@@ -1,0 +1,27 @@
+# Usage:
+# docker compose -f docker-compose.yml -f docker-compose.demo.yml -f docker-compose.windows.yml --profile agents up -d --no-build
+
+services:
+  redis:
+    security_opt: []
+    cap_drop: []
+    cap_add:
+      - SETUID
+      - SETGID
+      - CHOWN
+
+  postgres:
+    security_opt: []
+    cap_drop: []
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+
+  devops-engineer:
+    volumes:
+      - //./pipe/docker_engine://./pipe/docker_engine
+    environment:
+      - DOCKER_HOST=npipe:////./pipe/docker_engine

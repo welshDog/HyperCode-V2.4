@@ -1,0 +1,123 @@
+service_identity:
+  name: "devops-engineer"
+  codename: "🚀 The Infrastructure Expert"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Manages deployments, infrastructure automation, CI/CD pipelines,
+    container orchestration, and release management. Focuses on
+    reliability, scalability, and operational excellence.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#devops-agents"
+
+responsibility_matrix:
+  primary_role: "ARCHITECT"
+  owns:
+    - "Deployment automation"
+    - "CI/CD pipeline management"
+    - "Infrastructure provisioning"
+    - "Release coordination"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+    - docker daemon → "Container operations"
+  
+  critical_dependents:
+    - "All agents (depend on DevOps for deployment)"
+
+communication_contract:
+  input_endpoints:
+    - "POST /deploy"
+      request: |
+        {
+          "service": "hypercode-core",
+          "version": "2.1.0",
+          "strategy": "canary"
+        }
+      response: |
+        {
+          "deployment_id": "uuid",
+          "status": "in-progress",
+          "latency_ms": 250
+        }
+      latency_slo_ms: 300
+
+performance_slos:
+  latency_p99_ms: 300
+  error_rate_max: 0.01
+  availability_percent: 99.5
+
+failure_modes:
+  
+  - mode_id: "deployment_failed"
+    description: "Container fails to start or health check fails"
+    symptoms:
+      - "Container exits with non-zero code"
+      - "Health check fails for >3 retries"
+    recovery_steps:
+      - "1. Check: docker logs <container_name> for error"
+      - "2. Check: Resource limits (memory, CPU)"
+      - "3. Rollback: docker-compose up -d <service> (old version)"
+      - "4. Investigate: Find root cause in logs"
+    expected_mttr_minutes: 5
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "image_pull_failed"
+    description: "Cannot pull Docker image from registry"
+    symptoms:
+      - "docker pull fails: 'unauthorized' or 'image not found'"
+      - "Deployment blocked"
+    recovery_steps:
+      - "1. Check: Registry credentials (docker login)"
+      - "2. Check: Image tag exists on registry"
+      - "3. Check: Internet connectivity to Docker Hub/ghcr.io"
+      - "4. Retry: Pull with --retry 3"
+    expected_mttr_minutes: 2
+    user_impact: "CRITICAL"
+    sev: "P1"
+
+metrics_to_monitor:
+  
+  - name: "deployment_success_rate"
+    prometheus_query: "rate(deployments_successful_total{job='devops-engineer'}[5m]) / rate(deployments_total{job='devops-engineer'}[5m])"
+    alert_if: "... < 0.95"
+  
+  - name: "deployment_latency"
+    prometheus_query: "histogram_quantile(0.99, rate(deployment_duration_seconds_bucket[5m]))"
+    alert_if: "... > 300"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "devops-engineer"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "devops-engineer"
+    container_name: "devops-engineer"
+    ports:
+      - "8006:8006"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_deployment_failed:
+    trigger: "Deployment success rate < 95%"
+    actions:
+      - "1. Check: Last deployment logs"
+      - "2. Check: Resource availability (disk, CPU, memory)"
+      - "3. Check: Registry connectivity"
+      - "4. Manual: Retry deployment or rollback"
+
+support_contacts:
+  primary_engineer: "Lyndz"

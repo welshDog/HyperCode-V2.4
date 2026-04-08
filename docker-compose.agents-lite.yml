@@ -1,0 +1,99 @@
+# 🚀 HyperCode V2.0 - Agent Stack (Lean Profile)
+# 
+# For systems with limited RAM (4GB-8GB), use this override to start only essential agents.
+# 
+# USAGE:
+#   docker compose -f docker-compose.yml -f docker-compose.agents-lite.yml up -d
+#
+# WHAT'S INCLUDED:
+#   • crew-orchestrator  — Task routing brain (512M RAM, 0.5 CPU)
+#   • coder-agent        — Primary coding agent (512M RAM, 0.5 CPU)
+#   • tips-tricks-writer — Content generation agent (512M RAM, 0.5 CPU)
+#   • healer-agent       — System health monitor (512M RAM, 0.5 CPU)
+#
+# TOTAL FOOTPRINT: ~2GB RAM, 2 CPU cores (fits in 4GB systems)
+#
+# ⚠️  IMPORTANT: healer-agent will ONLY monitor core services by default:
+#   hypercode-core, redis, postgres, celery-worker, hypercode-ollama
+#   Override with: HEALER_WATCHED_SERVICES=service1,service2,service3
+services:
+  # ====================
+  # ESSENTIAL AGENTS
+  # ====================
+
+  crew-orchestrator:
+    profiles: ["agents"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  coder-agent:
+    profiles: ["agents"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  tips-tricks-writer:
+    profiles: ["agents"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  healer-agent:
+    profiles: ["agents"]
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  # ====================
+  # DISABLE SPECIALIST AGENTS (saves ~4GB RAM)
+  # ====================
+
+  frontend-specialist:
+    profiles: [] # Remove from "agents" profile
+
+  backend-specialist:
+    profiles: [] # Remove from "agents" profile
+
+  database-architect:
+    profiles: [] # Remove from "agents" profile
+
+  qa-engineer:
+    profiles: [] # Remove from "agents" profile
+
+  devops-engineer:
+    profiles: [] # Remove from "agents" profile
+
+  security-engineer:
+    profiles: [] # Remove from "agents" profile
+
+  system-architect:
+    profiles: [] # Remove from "agents" profile
+
+  project-strategist:
+    profiles: [] # Remove from "agents" profile
+
+  test-agent:
+    profiles: [] # Remove from "agents" profile

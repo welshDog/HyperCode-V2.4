@@ -1,0 +1,94 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HyperCode - BROski Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../THE HYPERCODE/hypercode-core/app/static/css/bds-core.css">
+  <style>
+    /* Demo-specific overrides for local preview */
+    body {
+        margin: 0;
+        min-height: 100vh;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: var(--space-md);
+      padding: var(--space-lg);
+    }
+    
+    .stat-badge {
+      display: inline-block;
+      padding: var(--space-xs) var(--space-sm);
+      background: rgba(0, 243, 255, 0.1);
+      border: 1px solid var(--hyper-cyan);
+      border-radius: 20px;
+      font-size: var(--text-sm);
+      color: var(--hyper-cyan);
+      font-weight: 600;
+    }
+    
+    .agent-status {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+    }
+    
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--matrix-green);
+      box-shadow: var(--glow-green);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-grid">
+    <!-- Mission Card -->
+    <div class="holo-card holo-card--glow">
+      <h2 style="color: var(--hyper-cyan); margin-bottom: var(--space-sm);">
+        🎯 Active Missions
+      </h2>
+      <div class="stat-badge">3 Running</div>
+      <p style="margin-top: var(--space-md); color: var(--slate-gray);">
+        BROski Orchestrator is coordinating 3 agent teams right now! 🔥
+      </p>
+    </div>
+    
+    <!-- Agent Status Card -->
+    <div class="holo-card">
+      <h2 style="color: var(--matrix-green); margin-bottom: var(--space-sm);">
+        🤖 Agent Fleet
+      </h2>
+      <div class="agent-status">
+        <span class="status-dot"></span>
+        <span>5 Agents Online</span>
+      </div>
+      <p style="margin-top: var(--space-md); color: var(--slate-gray);">
+        All systems operational. Let's GOOOO! 💪
+      </p>
+    </div>
+    
+    <!-- Performance Card -->
+    <div class="holo-card">
+      <h2 style="color: var(--ember-orange); margin-bottom: var(--space-sm);">
+        📊 Performance
+      </h2>
+      <div class="stat-badge">95% Success Rate</div>
+      <p style="margin-top: var(--space-md); color: var(--slate-gray);">
+        Your agents are CRUSHING IT today! 🚀
+      </p>
+    </div>
+  </div>
+</body>
+</html>

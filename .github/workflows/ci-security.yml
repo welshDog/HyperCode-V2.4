@@ -1,0 +1,137 @@
+name: \uD83D\uDD12 Security Scan
+
+on:
+  workflow_call:
+    inputs:
+      python_version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.11"
+      node_version:
+        description: Node version
+        required: false
+        type: string
+        default: "20"
+      fail_on_bandit_high:
+        description: Fail workflow if Bandit HIGH findings exist
+        required: false
+        type: boolean
+        default: false
+      npm_audit_level:
+        description: npm audit level (low|moderate|high|critical)
+        required: false
+        type: string
+        default: "off"
+      fail_on_secrets:
+        description: Fail workflow if detect-secrets finds potential secrets
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 2 * * 1'  # Every Monday 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ github.event_name == 'workflow_call' && inputs.python_version || '3.11' }}
+
+      - name: Run Bandit
+        run: |
+          pip install bandit
+          mkdir -p reports
+          bandit -r backend/ agents/ \
+            --format json \
+            --output reports/bandit-report.json \
+            -ll -ii || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ github.event_name == 'workflow_call' && inputs.node_version || '20' }}
+
+      - name: npm audit
+        run: |
+          cd agents/dashboard
+          npm audit --json > ../../reports/npm-audit.json || true
+
+      - name: detect-secrets
+        run: |
+          pip install detect-secrets
+          detect-secrets scan --all-files \
+            --exclude-files 'package-lock\.json' \
+            --exclude-files '\.secrets\.baseline' \
+            > reports/secrets-scan.json || true
+
+      - name: Enforce Bandit HIGH gate
+        if: ${{ github.event_name == 'workflow_call' && inputs.fail_on_bandit_high || false }}
+        run: |
+          python3 - << 'PY'
+          import json, sys
+          try:
+              with open("reports/bandit-report.json") as f:
+                  data = json.load(f)
+          except Exception:
+              sys.exit(0)
+          results = data.get("results", [])
+          high = [r for r in results if r.get("issue_severity") == "HIGH"]
+          if high:
+              for r in high[:10]:
+                  print(f"{r.get('filename','?')}:{r.get('line_number','?')} {r.get('test_name','?')}")
+              sys.exit(1)
+          PY
+
+      - name: Enforce npm audit gate
+        run: |
+          node - << 'NODE'
+          const fs = require('fs')
+          const level = (process.env.NPM_AUDIT_LEVEL || 'critical').toLowerCase()
+          const order = ['low', 'moderate', 'high', 'critical']
+          const minIdx = order.indexOf(level)
+          if (minIdx < 0) process.exit(0)
+          let data = {}
+          try { data = JSON.parse(fs.readFileSync('reports/npm-audit.json', 'utf8')) } catch (e) { process.exit(0) }
+          const meta = (data.metadata && data.metadata.vulnerabilities) || {}
+          const counts = {
+            low: meta.low || 0,
+            moderate: meta.moderate || 0,
+            high: meta.high || 0,
+            critical: meta.critical || 0,
+          }
+          let total = 0
+          for (let i = minIdx; i < order.length; i++) total += counts[order[i]]
+          if (total > 0) {
+            console.error(`npm audit gate failed (>=${level}). counts=${JSON.stringify(counts)}`)
+            process.exit(1)
+          }
+          NODE
+        env:
+          NPM_AUDIT_LEVEL: ${{ github.event_name == 'workflow_call' && inputs.npm_audit_level || 'off' }}
+
+      - name: Enforce detect-secrets gate
+        if: ${{ github.event_name == 'workflow_call' && inputs.fail_on_secrets || false }}
+        run: |
+          python3 - << 'PY'
+          import json, sys
+          try:
+              with open("reports/secrets-scan.json") as f:
+                  data = json.load(f)
+          except Exception:
+              sys.exit(0)
+          results = data.get("results", {})
+          hits = sum(len(v) for v in results.values()) if isinstance(results, dict) else 0
+          if hits:
+              print(f"detect-secrets found {hits} potential secret(s)")
+              sys.exit(1)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: reports/

@@ -1,0 +1,117 @@
+{
+  "report_metadata": {
+    "generated_at": "2026-04-05T07:15:00Z",
+    "docker_version": "29.3.1",
+    "uptime_hours": 14.5,
+    "overall_health_score": 92,
+    "status": "HEALTHY"
+  },
+  "system_summary": {
+    "total_containers": 27,
+    "running_containers": 24,
+    "dead_containers": 3,
+    "health_checks_passing": 19,
+    "health_checks_failing": 0,
+    "total_volumes": 15,
+    "active_volumes": 1,
+    "networks": 4,
+    "disk_usage_gb": 46.95,
+    "disk_reclaimable_gb": 32.85,
+    "memory_usage_percent": 11,
+    "cpu_usage_percent": 5
+  },
+  "critical_containers": {
+    "redis": {
+      "status": "running",
+      "health": "healthy",
+      "uptime_hours": 15,
+      "memory_mb": 12.65,
+      "cpu_percent": 0.13,
+      "port": 6379
+    },
+    "postgres": {
+      "status": "running",
+      "health": "healthy",
+      "uptime_hours": 15,
+      "memory_mb": 155.3,
+      "cpu_percent": 0.0,
+      "memory_limit_mb": 512,
+      "memory_usage_percent": 30.33,
+      "alert": "NEAR LIMIT"
+    },
+    "hypercode-core": {
+      "status": "running",
+      "health": "healthy",
+      "uptime_hours": 14,
+      "memory_mb": 113.3,
+      "cpu_percent": 0.57,
+      "port": 8000
+    },
+    "hypercode-ollama": {
+      "status": "running",
+      "health": "healthy",
+      "uptime_hours": 15,
+      "memory_mb": 33.21,
+      "cpu_percent": 0.0,
+      "port": 11434
+    }
+  },
+  "monitoring_stack": {
+    "prometheus": {
+      "status": "running",
+      "health": "healthy",
+      "memory_mb": 484.1,
+      "memory_limit_mb": 2048,
+      "memory_usage_percent": 23.64,
+      "port": 9090
+    },
+    "grafana": {
+      "status": "running",
+      "health": "healthy",
+      "memory_mb": 65.71,
+      "port": 3001
+    },
+    "cadvisor": {
+      "status": "running",
+      "health": "healthy",
+      "uptime_minutes": 25,
+      "port": 8090
+    },
+    "alertmanager": {
+      "status": "running",
+      "health_check_defined": true,
+      "port": 9093
+    }
+  },
+  "agents": {
+    "total": 12,
+    "running": 12,
+    "healthy": 12
+  },
+  "issues": {
+    "critical": [],
+    "high": [
+      {
+        "issue": "PostgreSQL memory at 30% limit",
+        "severity": "high",
+        "action": "Increase memory limit from 512MB to 2GB"
+      }
+    ],
+    "medium": [
+      {
+        "issue": "32.85GB unused image layers",
+        "severity": "medium",
+        "action": "Run weekly: docker image prune -a -f"
+      }
+    ]
+  },
+  "recommendations": {
+    "immediate": [
+      "Increase PostgreSQL memory limit to 2GB"
+    ],
+    "short_term": [
+      "Setup automated weekly docker image prune",
+      "Implement daily PostgreSQL backup automation"
+    ]
+  }
+}

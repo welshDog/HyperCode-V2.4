@@ -1,0 +1,237 @@
+# HyperCode V2.0 — Default Helm Values
+# Override with: helm install hypercode ./k8s/helm/hypercode -f my-values.yaml
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# ── Image defaults ────────────────────────────────────────────────────────────
+image:
+  registry: ghcr.io
+  repository: hyperstation/hypercode
+  pullPolicy: IfNotPresent
+
+# ── Replica counts ────────────────────────────────────────────────────────────
+replicaCount:
+  core: 2
+  orchestrator: 1
+  healer: 1
+
+# ── Core API ──────────────────────────────────────────────────────────────────
+core:
+  enabled: true
+  image:
+    tag: "2.0.0"
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+  env:
+    ENVIRONMENT: production
+    LOG_LEVEL: INFO
+    OTLP_ENDPOINT: http://tempo:4317
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+
+# ── Crew Orchestrator ─────────────────────────────────────────────────────────
+orchestrator:
+  enabled: true
+  image:
+    tag: "2.0.0"
+  service:
+    type: ClusterIP
+    port: 8081
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "384Mi"
+    limits:
+      cpu: "800m"
+      memory: "768Mi"
+
+# ── Healer Agent ──────────────────────────────────────────────────────────────
+healer:
+  enabled: true
+  image:
+    tag: "2.0.0"
+  service:
+    type: ClusterIP
+    port: 8008
+  restartPolicy: Always
+
+# ── Specialist Agents ─────────────────────────────────────────────────────────
+agents:
+  frontend:
+    enabled: true
+    port: 8012
+  backend:
+    enabled: true
+    port: 8003
+  database:
+    enabled: true
+    port: 8004
+  qa:
+    enabled: true
+    port: 8005
+  devops:
+    enabled: true
+    port: 8006
+  security:
+    enabled: true
+    port: 8007
+  sysarch:
+    enabled: true
+    port: 8008
+  coder:
+    enabled: true
+    port: 8002
+  tipswriter:
+    enabled: true
+    port: 8009
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+dashboard:
+  enabled: true
+  image:
+    tag: "2.0.0"
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# ── PostgreSQL (Bitnami dependency) ───────────────────────────────────────────
+postgresql:
+  enabled: true
+  auth:
+    database: hypercode
+    username: hypercode
+    existingSecret: hypercode-db-secret
+    secretKeys:
+      adminPasswordKey: postgres-password
+      userPasswordKey: password
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+
+# ── Redis (Bitnami dependency) ────────────────────────────────────────────────
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 2Gi
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "256Mi"
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: hypercode.local
+      paths:
+        - path: /
+          pathType: Prefix
+          service: core
+          port: 8000
+        - path: /dashboard
+          pathType: Prefix
+          service: dashboard
+          port: 3000
+  tls: []
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+secrets:
+  # Set to true to use existing K8s secrets; false to create from values
+  useExisting: false
+  existingSecretName: hypercode-secrets
+  # Only used if useExisting: false (development only — use Vault for production)
+  values:
+    apiKey: ""
+    jwtSecret: ""
+    memoryKey: ""
+
+# ── Observability ─────────────────────────────────────────────────────────────
+observability:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+      namespace: monitoring
+  grafana:
+    enabled: false
+  loki:
+    enabled: false
+
+# ── Service Account ───────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ── Pod security ──────────────────────────────────────────────────────────────
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: [ALL]
+
+# ── Node targeting ────────────────────────────────────────────────────────────
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ── Pod disruption ────────────────────────────────────────────────────────────
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1

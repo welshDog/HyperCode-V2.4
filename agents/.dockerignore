@@ -1,0 +1,7 @@
+*
+!healer/
+!healer/**
+!shared/
+!shared/**
+!__init__.py
+!.dockerignore

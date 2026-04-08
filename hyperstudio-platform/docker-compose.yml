@@ -1,0 +1,81 @@
+# HyperStudio Docker Compose
+# One-command deployment for avatar video generation
+# Built for neurodivergent creators! 💪
+
+version: '3.8'
+
+services:
+  # Main HyperStudio API
+  hyperstudio-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hyperstudio-api
+    restart: unless-stopped
+    
+    # GPU support (requires nvidia-docker)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    ports:
+      - "8000:8000"
+    
+    environment:
+      # Azure Speech Services
+      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
+      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION:-uksouth}
+      
+      # Supabase
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      
+      # Application
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - GPU_DEVICE=${GPU_DEVICE:-0}
+      - MAX_WORKERS=${MAX_WORKERS:-2}
+      
+      # Paths
+      - MODELS_DIR=/app/models
+      - AVATARS_DIR=/app/avatars
+      - TEMP_DIR=/tmp/hyperstudio
+    
+    volumes:
+      # Mount models directory (so you don't need to download every time)
+      - ./models:/app/models:ro
+      
+      # Mount avatars directory
+      - ./avatars:/app/avatars:ro
+      
+      # Mount temp directory for video processing
+      - hyperstudio-temp:/tmp/hyperstudio
+      
+      # Optional: mount code for development hot-reload
+      # - ./api:/app/api
+      # - ./core:/app/core
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  hyperstudio-temp:
+    driver: local
+
+networks:
+  default:
+    name: hyperstudio-network

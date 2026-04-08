@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-03-10T08:43:15.753564",
+  "infrastructure": {
+    "containers": []
+  },
+  "services": [
+    {
+      "name": "HyperCode Core",
+      "url": "http://localhost:8000/health",
+      "status": 200,
+      "latency_ms": 2079.62,
+      "healthy": true
+    },
+    {
+      "name": "Orchestrator",
+      "url": "http://localhost:8081/health",
+      "status": "ERROR",
+      "latency_ms": 0,
+      "healthy": false,
+      "error": "HTTPConnectionPool(host='localhost', port=8081): Max retries exceeded with url: /health (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000020BA3847390>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    },
+    {
+      "name": "Dashboard",
+      "url": "http://localhost:3000",
+      "status": "ERROR",
+      "latency_ms": 0,
+      "healthy": false,
+      "error": "HTTPConnectionPool(host='localhost', port=3000): Max retries exceeded with url: / (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000020BA3847610>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))"
+    },
+    {
+      "name": "Grafana",
+      "url": "http://localhost:3001",
+      "status": "ERROR",
+      "latency_ms": 0,
+      "healthy": false,
+      "error": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    }
+  ],
+  "resources": {
+    "docker_disk": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          64        44        71.12GB   60.05GB (84%)\nContainers      87        20        1.075GB   1.102MB (0%)\nLocal Volumes   27        9         102.3MB   102.2MB (99%)\nBuild Cache     159       0         32.76GB   13.87GB"
+  },
+  "logs": []
+}

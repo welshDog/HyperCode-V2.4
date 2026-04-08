@@ -1,0 +1,107 @@
+service_identity:
+  name: "database-architect"
+  codename: "🗄️ The Data Designer"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Designs database schemas, optimizes queries, handles migrations,
+    and manages data modeling. Focuses on normalization, indexing,
+    performance tuning, and data consistency.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#database-agents"
+
+responsibility_matrix:
+  primary_role: "ARCHITECT"
+  owns:
+    - "Database schema design"
+    - "Query optimization"
+    - "Migration planning"
+    - "Index strategies"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+    - postgres:5432 → "Schema verification"
+  
+  critical_dependents:
+    - "backend-specialist (implements APIs against schema)"
+
+communication_contract:
+  input_endpoints:
+    - "POST /design-schema"
+      request: |
+        {
+          "entity": "User",
+          "fields": ["id", "email", "name", "created_at"],
+          "relationships": [{"entity": "Post", "type": "1:N"}]
+        }
+      response: |
+        {
+          "sql": "CREATE TABLE...",
+          "migrations": [...],
+          "latency_ms": 320
+        }
+      latency_slo_ms: 400
+
+performance_slos:
+  latency_p99_ms: 400
+  error_rate_max: 0.01
+  availability_percent: 99.0
+
+failure_modes:
+  
+  - mode_id: "migration_failed"
+    description: "Database migration fails due to data conflicts"
+    symptoms:
+      - "Migration script exits with error"
+      - "Logs show constraint violation or rollback"
+    recovery_steps:
+      - "1. Analyze: Read full migration error log"
+      - "2. Fix: Create compensating migration"
+      - "3. Test: Run against staging DB first"
+      - "4. Apply: Deploy fixed migration"
+    expected_mttr_minutes: 15
+    user_impact: "CRITICAL"
+    sev: "P1"
+
+metrics_to_monitor:
+  
+  - name: "query_latency"
+    prometheus_query: "histogram_quantile(0.99, rate(query_duration_seconds_bucket{job='database-architect'}[5m]))"
+    alert_if: "... > 1.0"
+  
+  - name: "schema_conflicts"
+    prometheus_query: "rate(schema_conflict_errors_total[5m])"
+    alert_if: "... > 0"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "database-architect"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "database-architect"
+    container_name: "database-architect"
+    ports:
+      - "8004:8004"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    DATABASE_URL: "postgresql://postgres:password@postgres:5432/hypercode"
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_migration_failed:
+    trigger: "Migration fails to complete"
+    actions:
+      - "1. Check: Migration logs in database"
+      - "2. Rollback: pgctl rollback if uncommitted"
+      - "3. Analyze: Find data constraint violations"
+      - "4. Fix: Create compensating migration"
+
+support_contacts:
+  primary_engineer: "Lyndz"

@@ -1,0 +1,36 @@
+# Dockerfile.agents-test
+# Runs the hyper_agents unit test suite in an isolated container.
+# Usage:
+#   docker compose -f docker-compose.agents-test.yml run agents
+#   docker compose -f docker-compose.agents-test.yml run agents pytest tests/unit/ -v
+
+FROM python:3.11-slim
+
+# Keep Python output unbuffered so pytest output streams in real-time
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+WORKDIR /app
+
+# Hardening: run tests as non-root (reduces blast radius if a test dependency is compromised)
+RUN groupadd -r app && useradd -r -g app app
+
+# Install deps first — separate layer so rebuilds are fast when only code changes
+COPY requirements-agents.txt .
+RUN pip install --no-cache-dir -r requirements-agents.txt
+
+# Copy only what the agent tests need:
+#   src/agents/hyper_agents/  — the agent package
+#   tests/unit/               — the test suite
+#   pytest.ini                — configures pythonpath=. and asyncio_mode=auto
+COPY src/ src/
+COPY tests/unit/ tests/unit/
+COPY pytest.ini .
+# hypercode.py lives at the project root; test_hypercode.py imports it directly
+COPY hypercode.py .
+
+# Drop privileges for test execution
+USER app
+
+# Default: run the hyper_agents test file
+CMD ["python", "-m", "pytest", "tests/unit/test_hyper_agents.py", "-v"]

@@ -1,0 +1,218 @@
+# Development-focused docker-compose with hot reload and debugging
+
+networks:
+  dev-net:
+    driver: bridge
+    name: hypercode_dev_net
+
+volumes:
+  redis-dev-data:
+  postgres-dev-data:
+
+services:
+  # ==================== CORE WITH HOT RELOAD ====================
+  hypercode-core-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hypercode-core-dev
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=debug
+      - PRISMA_PY_DEBUG=1
+      - HYPERCODE_REDIS_URL=redis://redis-dev:6379
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_DEV_PASSWORD:-postgres}@postgres-dev:5432/hypercode_dev
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=dev-jwt-secret-change-in-production
+      - OTLP_EXPORTER_DISABLED=true
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./backend:/app:delegated
+    depends_on:
+      redis-dev:
+        condition: service_healthy
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - dev-net
+    ports:
+      - "127.0.0.1:8000:8000"
+    stdin_open: true
+    tty: true
+    command: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # ==================== AGENTS WITH HOT RELOAD ====================
+  crew-orchestrator-dev:
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator-dev
+    environment:
+      - REDIS_URL=redis://redis-dev:6379
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - CORE_URL=http://hypercode-core-dev:8000
+      - DEBUG=true
+      - LOG_LEVEL=debug
+    volumes:
+      - ./agents/crew-orchestrator:/app:delegated
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - /app/.venv
+    depends_on:
+      - redis-dev
+      - hypercode-core-dev
+    networks:
+      - dev-net
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
+
+  frontend-specialist-dev:
+    build:
+      context: ./agents/01-frontend-specialist
+      dockerfile: Dockerfile
+    container_name: frontend-specialist-dev
+    environment:
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - REDIS_URL=redis://redis-dev:6379
+      - CORE_URL=http://hypercode-core-dev:8000
+      - DEBUG=true
+    volumes:
+      - ./agents/01-frontend-specialist:/app:delegated
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - /app/.venv
+    depends_on:
+      - redis-dev
+      - hypercode-core-dev
+    networks:
+      - dev-net
+    ports:
+      - "127.0.0.1:8002:8002"
+
+  backend-specialist-dev:
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist-dev
+    environment:
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - REDIS_URL=redis://redis-dev:6379
+      - CORE_URL=http://hypercode-core-dev:8000
+      - DEBUG=true
+    volumes:
+      - ./agents/02-backend-specialist:/app:delegated
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - /app/.venv
+    depends_on:
+      - redis-dev
+      - hypercode-core-dev
+    networks:
+      - dev-net
+    ports:
+      - "127.0.0.1:8003:8003"
+
+  # ==================== INFRASTRUCTURE ====================
+  redis-dev:
+    image: redis:7-alpine
+    container_name: redis-dev
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: postgres-dev
+    environment:
+      - POSTGRES_DB=hypercode_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_DEV_PASSWORD:-postgres}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==================== DEV TOOLS ====================
+  # Redis Commander - Redis GUI
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      - redis-dev
+    networks:
+      - dev-net
+
+  # pgAdmin - Postgres GUI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-dev
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=dev@hypercode.local
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEV_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - ./dev-tools/pgadmin:/var/lib/pgadmin
+    depends_on:
+      - postgres-dev
+    networks:
+      - dev-net
+
+  # Mailhog - Email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog-dev
+    ports:
+      - "127.0.0.1:1025:1025"  # SMTP (localhost only)
+      - "127.0.0.1:8025:8025"  # Web UI (localhost only)
+    networks:
+      - dev-net
+
+  # Nginx - Local reverse proxy for dev
+  nginx-dev:
+    image: nginx:alpine
+    container_name: nginx-dev
+    ports:
+      - "127.0.0.1:80:80"
+    volumes:
+      - ./dev-tools/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./agents/dashboard:/usr/share/nginx/html:ro
+    depends_on:
+      - hypercode-core-dev
+      - crew-orchestrator-dev
+    networks:
+      - dev-net
+
+  # Docs server with live reload
+  docs-server:
+    image: squidfunk/mkdocs-material:latest
+    container_name: docs-dev
+    ports:
+      - "127.0.0.1:8888:8000"
+    volumes:
+      - ./docs:/docs
+    command: serve --dev-addr 0.0.0.0:8000 --livereload
+    networks:
+      - dev-net

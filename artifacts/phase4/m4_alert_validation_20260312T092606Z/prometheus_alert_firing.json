@@ -1,0 +1,15 @@
+{
+  "labels": {
+    "alertname": "CrewOrchestratorDown",
+    "instance": "crew-orchestrator:8080",
+    "job": "crew-orchestrator",
+    "severity": "critical"
+  },
+  "annotations": {
+    "description": "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute.",
+    "summary": "Crew Orchestrator metrics target is down"
+  },
+  "state": "firing",
+  "activeAt": "2026-03-12T09:16:57.304220504Z",
+  "value": "0e+00"
+}

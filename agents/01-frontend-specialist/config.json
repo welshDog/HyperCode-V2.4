@@ -1,0 +1,13 @@
+{
+  "agent_name": "frontend-specialist",
+  "specializations": [
+    "React",
+    "Next.js",
+    "TypeScript",
+    "Tailwind CSS",
+    "UI/UX"
+  ],
+  "model": "tinyllama",
+  "ollama_host": "http://hypercode-ollama:11434",
+  "temperature": 0.3
+}

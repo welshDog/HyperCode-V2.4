@@ -1,0 +1,220 @@
+# Build tools — never commit
+bfg.jar
+*.jar
+
+# CI artefacts — generated on-demand, never commit
+coverage.xml
+*.coverage
+htmlcov/
+sqlalchemy2-migration.bundle
+
+# Secrets and sensitive files
+.secrets.baseline
+*.env
+*.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+id_ed25519
+*_rsa
+*_ecdsa
+*_ed25519
+data/ollama/id_*
+data/secrets/
+data/certs/
+*.pub
+token.txt
+secrets/
+credentials.json
+client_secret.json
+.env1
+
+# .cursorignore / .traeIgnore / .aiexclude
+.env
+.env.local
+.env.production
+*.secret
+.env.nemoclaw
+.env.production
+.env1
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build and dependency directories
+node_modules/
+.npm/
+.pnpm-store/
+.next/
+out/
+dist/
+coverage/
+.turbo/
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+.coverage
+*.pyc
+*.pyo
+*.pyd
+.docker/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+grafana_quota.log
+*.bundle
+
+# Testing & reports
+playwright-report/
+test-results/
+.lighthouseci/
+*.tsbuildinfo
+test.db
+
+# Health reports / AI outputs - never commit secrets
+docs/health-reports/*.local.md
+*.pat.txt
+docs/outputs/
+reports/grafana/
+
+# Prometheus local overrides (Grafana Cloud remote_write credentials)
+monitoring/prometheus/prometheus.cloud.local.yml
+
+# Specific ignore patterns
+data/ollama/models
+scripts/verify_env.py
+k8s/01-secrets.yaml
+k8s/02-secrets.yaml
+k8s/patch-secret.yaml
+nginx/ssl/privkey.pem
+nginx/ssl/
+hyper-mission-system/certs/localhost.key
+HEALTH_CHECK_STATUS_REPORT_*.md
+full-docker-health-report.json
+health_check_inventory.json
+COMPLETE_SYSTEM_STATUS.md
+SYSTEM_STATUS_QUICK_VIEW.txt
+
+# Local agent memory/state
+memory/crew-orchestrator/chroma.sqlite3
+
+# Ignore specific sensitive files found during scan
+docs/archive/Docker help
+docs/archive/agent upgrade
+docs/archive/docker/docker-compose.agents.yml
+docs/archive/docker/docker-compose.ci.yml
+docs/archive/docker/docker-compose.monitoring.yml
+docs/archive/docker/docker-compose.prod.yml
+docs/archive/docker/docker-compose.production.yml
+docs/archive/docker/docker-compose.test.yml
+docker-compose.health.yml
+docs/archive/legacy/
+hyper-mission-system/docker-compose.prod.yml
+k8s/04-postgres.yaml
+k8s/05-backup-cronjob.yaml
+k8s/05-postgres.yaml
+k8s/07-crew-orchestrator.yaml
+k8s/07-observability.yaml
+k8s/08-agents.yaml
+k8s/09-data-services.yaml
+k8s/11-monitoring.yaml
+k8s/14-grafana-dashboards-alertmanager.yaml
+k8s/Makefile
+
+# Generated test/coverage outputs
+coverage.xml
+test-*.txt
+.coverage
+.env1
+.venv_broken/
+tcc-agent.exe
+tcc-agent.exe
+testcontainers-cloud-nodejs-example/
+
+# ===== HyperCode V2.0 - Generated artifacts (do not commit) =====
+backend/outputs/
+backend/cov.json
+backend/coverage.xml
+coverage.xml
+*.coverage
+.coverage
+htmlcov/
+
+# Runtime logs
+*.log
+logs/
+
+# Agent runtime outputs
+agents/*/outputs/
+agents/*/logs/
+
+# OS artifacts
+Thumbs.db
+desktop.ini
+
+# Compiled binaries
+*.exe
+*.jar
+*.test.exe
+
+# Build artifacts
+agents/dashboard/.next/
+agents/**/node_modules/
+**/.next/
+**/node_modules/
+
+# TLS / SSL Keys - NEVER commit these
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Compiled test binaries
+quantum-compiler/*.exe
+quantum-compiler/*.test.exe
+
+# Agent runtime memory (ChromaDB vector data)
+agents/memory/
+**/*.bin
+**/data_level0.bin
+**/header.bin
+**/length.bin
+**/link_lists.bin
+
+# Frontend build artifacts
+.next/
+node_modules/
+agents/**/.next/
+agents/**/node_modules/
+dashboard/.next/
+
+volumes/
+backups/
+*.sql
+*.db
+id_ed25519*
+tall git-filter-repo
+
+.venv311/
+.venv/
+venv/
+*.venv
+__pycache__/
+*.pyc

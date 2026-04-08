@@ -1,0 +1,103 @@
+# ══════════════════════════════════════════════════════
+# 🧠 HyperCode V2.0 — Optimised .wslconfig
+# ══════════════════════════════════════════════════════
+# Device    : HYPERFOCUSzone 🏴󠁧󠁢󠁷󠁬󠁳󠁿
+# Owner     : Lyndz Williams / @welshDog
+# CPU       : Intel i5-1035G1 — 8 logical cores @ 1.19GHz
+# RAM       : 8GB physical (7.79GB usable)
+# Purpose   : Docker agent stack + FastAPI backend + LLMs
+# HyperCode : V2.0 — github.com/welshDog/HyperCode-V2.0
+# Last Updated: 2026-03-26
+# ══════════════════════════════════════════════════════
+#
+# COPY THIS FILE TO: C:\Users\Lyndz\.wslconfig
+# Then run: wsl --shutdown && restart Docker Desktop
+#
+# ══════════════════════════════════════════════════════
+
+[wsl2]
+
+# ── MEMORY ─────────────────────────────────────────────
+# HYPERFOCUSzone has 8GB RAM — leave 2.5GB for Windows
+# 5.5GB for WSL2 = sweet spot for Docker lite stack
+# Agents running: Backend(8000) + Healer(8008) + Redis(6379)
+memory=5GB
+
+# ── CPU ──────────────────────────────────────────────
+# i5-1035G1 = 4 cores / 8 threads
+# Use 6 threads — leave 2 for Windows + browser
+processors=6
+
+# ── SWAP ─────────────────────────────────────────────
+# 2GB swap = ~25% of memory value
+# Helps when agents spike during LLM inference
+swap=2GB
+
+# ── SWAP FILE LOCATION ─────────────────────────────
+# Stored in HyperStation zone on H: drive
+# Change path if you move your HyperCode folder
+swapFile=H:\\HyperStation zone\\HyperCode\\wsl\\swap.vhdx
+
+# ── PAGE REPORTING ────────────────────────────────
+# CRITICAL on 8GB machine — returns idle RAM to Windows
+# Stops WSL2 hogging memory when agents are quiet
+pageReporting=true
+
+# ── LOCALHOST FORWARDING ──────────────────────────
+# Exposes ALL HyperCode ports to Windows localhost:
+# 🧠 Backend API    → localhost:8000
+# 🩺 Healer Agent   → localhost:8008
+# 🎛️  Crew Orchestr  → localhost:8081
+# 🖥️  BROski Terminal → localhost:3000
+# 📊 Mission Control → localhost:8088
+# 📈 Grafana        → localhost:3001
+# 🔎 Ollama LLM     → localhost:11434
+# 🗄️  Redis          → localhost:6379
+# 🐘 PostgreSQL     → localhost:5432
+localhostForwarding=true
+
+# ── NETWORK MODE ─────────────────────────────────
+# mirrored = WSL2 shares Windows network interface
+# FIXES: Docker containers not reaching localhost
+# FIXES: Agents not seeing each other across ports
+networkingMode=mirrored
+
+# ── DNS TUNNELLING ──────────────────────────────
+# Fixes DNS resolution inside WSL2 containers
+# Needed for: pulling Docker images + agent API calls
+dnsTunneling=true
+
+# ── FIREWALL ─────────────────────────────────────
+# Windows firewall rules apply inside WSL2
+# Keeps HyperCode agent ports secure
+firewall=true
+
+# ── GUI APPS ─────────────────────────────────────
+# Enables WSLg for any GUI tools you run from WSL
+guiApplications=true
+
+# ── NESTED VIRTUALISATION ─────────────────────────
+# Required for Docker Desktop to run inside WSL2
+# Also enables GPU passthrough if you add a GPU later
+nestedVirtualization=true
+
+# ── AUTO PROXY ────────────═──────────────────────
+# Mirrors Windows proxy settings into WSL2
+# Safe to keep on even if you don’t use a proxy
+autoProxy=true
+
+# ══════════════════════════════════════════════════════
+# 🚀 AFTER SAVING THIS FILE:
+#
+# 1. Copy to: C:\Users\Lyndz\.wslconfig
+# 2. Run in PowerShell:
+#      wsl --shutdown
+# 3. Create swap folder (one time):
+#      New-Item -ItemType Directory -Force -Path "H:\HyperStation zone\HyperCode\wsl"
+# 4. Restart Docker Desktop from Start Menu
+# 5. Run health check:
+#      python scripts/hypercode_health_check.py
+#
+# 💡 TIP: If Docker still loops, reduce memory=4GB
+#     The i5-1035G1 is efficient but 8GB is tight!
+# ══════════════════════════════════════════════════════

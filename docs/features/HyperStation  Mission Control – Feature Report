@@ -1,0 +1,222 @@
+Here’s a tight, product-style report you can use for docs, GitHub, or launch copy. You can tweak naming/details, but it should match what HyperStation is today.
+
+***
+
+## HyperStation | Mission Control – Feature Report
+
+### Overview
+
+HyperStation is a real-time **mission control dashboard** for the HyperCode multi‑agent swarm. It gives you a single place to **see**, **steer**, and **approve** everything your agents are doing, with a neurodivergent‑friendly, low‑stress UI that emphasizes visibility and control. [skywork](https://skywork.ai/blog/agent/mission-control-for-ai-agents-managing-multiple-agents-in-github/)
+
+***
+
+### Core Objectives
+
+- Provide live visibility into all active agents and tasks (no more “black box” AI). [verdent](https://www.verdent.ai/guides/ralph-tui-ai-agent-dashboard)
+- Enable human‑in‑the‑loop approvals for risky actions before any code or data is changed. [aufaitux](https://www.aufaitux.com/blog/agentic-ai-design-patterns-enterprise-guide/)
+- Reduce cognitive load with a clean, chunked layout that surfaces only the most important signals by default (status, commands, approvals, results). [mission-control-prompts.vercel](https://mission-control-prompts.vercel.app)
+
+***
+
+### Key Features
+
+#### 1. Live Agent Status Grid
+
+- Shows each agent (Database Architect, Backend Specialist, Frontend Specialist, Coder Agent, etc.) with:
+  - Current state: Idle, Working, Waiting for Approval, Error.
+  - Role/description so you always know “who” is doing what.
+- Auto‑refresh / polling every few seconds so the view stays current without manual reloads. [nexastack](https://www.nexastack.ai/blog/multi-agent-ai-infrastructure)
+
+**Benefit:** Matches modern “mission control” patterns where you can glance at the board and immediately see which parts of the system are active or stuck. [youtube](https://www.youtube.com/watch?v=3Hs_jDO0M1I)
+
+***
+
+#### 2. Command Console (Task Launcher)
+
+- Text input for natural language commands like:
+  - `build a TODO app with database, API, and React frontend`
+  - `run: build a spaceship UI`
+- Sends structured `POST /execute` requests to the `crew-orchestrator` behind the scenes.
+- Newly submitted commands immediately appear in the task history with a status like Queued → Running → Completed. [skywork](https://skywork.ai/blog/agent/mission-control-for-ai-agents-managing-multiple-agents-in-github/)
+
+**Benefit:** Acts like an “agent command center” where you can launch complex multi‑agent workflows from a single place, similar to emerging mission control UIs for AI workforces. [youtube](https://www.youtube.com/watch?v=sP-SQEE7K-Y)
+
+***
+
+#### 3. Real-Time Approval Modal (Human-in-the-Loop)
+
+- WebSocket connection to `/ws/approvals` listens for approval requests from the orchestrator in real time. [docs.cloud.google](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+- When an agent proposes an action (e.g., “create migration”, “modify files”, “deploy to staging”), HyperStation:
+  - Pops a high‑visibility **“AUTHORIZATION REQUIRED”** modal.
+  - Shows: agent name, action description, risk level, and key details.
+  - Provides **Authorize** and **Abort** buttons, posting the decision back to the orchestrator (e.g., `/approvals/respond`). [aufaitux](https://www.aufaitux.com/blog/agentic-ai-design-patterns-enterprise-guide/)
+- Handles reconnection and `ws://` vs `wss://` so it works both locally and via tunnels/hosting. [aufaitux](https://www.aufaitux.com/blog/agentic-ai-design-patterns-enterprise-guide/)
+
+**Benefit:** Aligns with best‑practice guidance that agentic systems must expose a clear **control plane**, with explicit approvals and auditability before high‑impact actions are taken. [verdent](https://www.verdent.ai/guides/ralph-tui-ai-agent-dashboard)
+
+***
+
+#### 4. Task History & Activity Feed
+
+- Shows a chronological list of tasks:
+  - Command text
+  - Involved agents
+  - Final status (Completed, Failed, Timed Out, Aborted)
+  - Timestamps
+- Mirrors patterns used in other mission control dashboards where users can quickly replay what happened overnight or during long‑running agent sessions. [youtube](https://www.youtube.com/watch?v=3Hs_jDO0M1I)
+
+**Benefit:** Acts as an audit trail and a learning tool—great for debugging, demos, and showing “what the swarm actually did while I was away.” [jontsai](https://www.jontsai.com/2026/02/12/building-mission-control-for-my-ai-workforce-introducing-openclaw-command-center)
+
+***
+
+#### 5. Live Logs Panel
+
+- Streams orchestration events from the `crew-orchestrator` (e.g., `task_received`, `rag_query`, `agent_started`, `approval_requested`, `approval_received`, `task_completed`).  
+- Inspired by real-world multi‑agent observability tools, where visibility into each step is considered essential for safe deployment. [nexastack](https://www.nexastack.ai/blog/multi-agent-ai-infrastructure)
+
+**Benefit:** You can match what you see in the UI (agent state, approvals) with the underlying events, which is critical for trust and production debugging. [verdent](https://www.verdent.ai/guides/ralph-tui-ai-agent-dashboard)
+
+***
+
+#### 6. Connection & System Status
+
+- Header includes:
+  - **Connection indicator** (Connected / Offline) based on API/WebSocket reachability.
+  - **Live clock** implemented client‑side to avoid hydration issues but still signal “this is live, not a static screenshot.”
+- Follows modern mission‑control UI patterns where a persistent status bar summarizes connectivity and recency at a glance. [mission-control-prompts.vercel](https://mission-control-prompts.vercel.app)
+
+**Benefit:** Immediate reassurance that the dashboard is talking to the orchestrator and that what you’re seeing is “now”, not stale. [skywork](https://skywork.ai/blog/agent/mission-control-for-ai-agents-managing-multiple-agents-in-github/)
+
+***
+
+### UX & Neurodivergent-Friendly Design
+
+HyperStation is particularly tuned for neurodivergent users:
+
+- **Chunked layout**: Separate, clearly-labelled zones for agents, commands, logs, and approvals, minimizing context switching. [mission-control-prompts.vercel](https://mission-control-prompts.vercel.app)
+- **Low-surprise interactions**: Agents never execute high‑risk actions without an explicit approval popup; nothing happens “behind your back”. [verdent](https://www.verdent.ai/guides/ralph-tui-ai-agent-dashboard)
+- **Progressive disclosure**: High‑level summaries up front, detailed logs and metadata available when you want them, echoing enterprise design guidance for agent dashboards. [mission-control-prompts.vercel](https://mission-control-prompts.vercel.app)
+- **Consistent feedback**: Every action (command sent, approval clicked) has a visible effect in either status, history, or logs, reducing ambiguity and anxiety. [youtube](https://www.youtube.com/watch?v=3Hs_jDO0M1I)
+
+This matches emerging best practices for **human-centered agentic UX**, where transparency, reversibility, and control are non‑negotiable. [agentic-design](https://agentic-design.ai/patterns/multi-agent)
+
+***
+
+### Architecture & Integration
+
+- **Backend**: `crew-orchestrator` exposes:
+  - `GET /agents` for agent status.
+  - `GET /tasks` for task history.
+  - `GET /logs` for streaming events.
+  - `POST /execute` for new tasks.
+  - WebSocket `/ws/approvals` for approval requests.
+- **Frontend**:
+  - `lib/api.ts` wraps these endpoints.
+  - `page.tsx` wires live polling + WebSocket + UI.
+  - `ApprovalModal.tsx` encapsulates the approval UX.
+  - `Clock.tsx` provides client‑only, hydration-safe time display.
+
+This mirrors the “central orchestrator + mission control dashboard” pattern described in modern multi‑agent infrastructure guides and enterprise design patterns. [docs.cloud.google](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+
+***
+
+### Technical Specifications
+
+#### Stack
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS (Dark Mode default)
+- **Icons**: Lucide React
+- **Animations**: Framer Motion
+- **State Management**: React Hooks (local state + polling)
+
+#### Directory Structure
+```
+agents/dashboard/
+├── app/
+│   ├── globals.css      # Global styles & fonts
+│   ├── layout.tsx       # Root layout (Metadata, Fonts)
+│   └── page.tsx         # Main Dashboard UI
+├── components/
+│   ├── ApprovalModal.tsx # Approval Popup Logic
+│   └── Clock.tsx        # Client-side Clock
+├── lib/
+│   └── api.ts           # API Client (Fetch + Types)
+├── public/              # Static assets
+└── package.json         # Dependencies
+```
+
+#### API Integration
+- **Polling Strategy**: Agents, Logs, and Tasks are polled every 2 seconds.
+- **WebSocket Strategy**: Approvals use a persistent WebSocket connection with auto-reconnect logic.
+- **Environment Variables**:
+  - `NEXT_PUBLIC_API_URL`: Base URL for the Orchestrator API (default: `http://localhost:8080`).
+
+***
+
+### User Guide
+
+#### 1. Getting Started
+- **Launch Orchestrator**: Ensure `crew-orchestrator` is running via Docker.
+- **Launch Dashboard**:
+  ```bash
+  cd agents/dashboard
+  npm install
+  npm run dev
+  ```
+- **Access**: Open `http://localhost:3000` in your browser.
+
+#### 2. Running Commands
+- Type your command in the bottom input bar (e.g., `run: deploy to staging`).
+- Press **Enter** or click the **Send** icon.
+- Watch the **Logs** panel for immediate feedback (`task_received`).
+
+#### 3. Handling Approvals
+- When a task requires approval, a yellow/black modal will appear.
+- Review the **Description** and **Risk Level**.
+- Click **AUTHORIZE** to proceed or **ABORT** to cancel.
+- If you ignore the modal for >60 seconds, the task will time out automatically.
+
+#### 4. Monitoring
+- Check the **Active Agents** panel (left) to see who is working.
+- Watch the **Live Ops** tab (center) for real-time logs.
+- Switch to the **Mission Log** tab to see past task history.
+
+***
+
+### Troubleshooting
+
+#### "Dashboard Offline"
+- **Symptom**: "OFFLINE" indicator in the header.
+- **Cause**: Dashboard cannot reach `crew-orchestrator`.
+- **Fix**:
+  1. Verify Docker containers are running: `docker ps`
+  2. Check API URL in `.env.local` or browser console.
+  3. Ensure port 8080 is exposed and accessible.
+
+#### "Approval Timeout"
+- **Symptom**: Task fails with "Approval timeout" in logs.
+- **Cause**: No response received within 60 seconds.
+- **Fix**:
+  1. Ensure you have the Dashboard open **before** sending the command.
+  2. Check browser console for WebSocket connection errors.
+  3. If using ngrok/cloud, ensure WebSocket support is enabled.
+
+#### "Hydration Error"
+- **Symptom**: React error about server/client mismatch.
+- **Cause**: Time/Date rendering differences.
+- **Fix**: Ensure all time-dependent components (like `Clock`) use `suppressHydrationWarning` or client-only rendering patterns.
+
+***
+
+### Positioning
+
+HyperStation puts HyperCode in the same conceptual space as other **AI agent mission control** products (Agent HQ, Ralph TUI, GitHub Copilot Mission Control, OpenClaw Command Center), but with a strong focus on:
+
+- Developer workflows  
+- Human‑in‑the‑loop safety  
+- Neurodivergent‑friendly UX  
+
+which is still an underserved niche in the 2026 agent tooling landscape. [youtube](https://www.youtube.com/watch?v=lQrr1M7AeiY&vl=en)
+
+***

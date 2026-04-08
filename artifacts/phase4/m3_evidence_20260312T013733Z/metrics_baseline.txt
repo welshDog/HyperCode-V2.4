@@ -1,0 +1,2 @@
+probe_health_fail_before=3
+probe_health_pass_before=48

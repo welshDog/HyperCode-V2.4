@@ -1,0 +1,13 @@
+# Grafana Assistant App Runtime Health Audit — Observability Gap Detected
+
+Complete observability blackout detected for grafana-assistant-app across all standard telemetry signals during the 3-hour investigation window (2026-03-22T17:45:44Z to 20:45:44Z). Zero metrics in grafanacloud-prom, zero logs in grafanacloud-logs, and zero traces in grafanacloud-traces prevent assessment of errors, latency, or resource utilization. Usage metrics from grafanacloud-usage show 1 active user beginning at 20:42Z, confirming the app is operational but not instrumented for observability. .
+
+
+## Recommendations
+
+- Implement metrics, logs, and traces instrumentation for grafana-assistant-app to enable runtime health monitoring. Configure export to grafanacloud-prom (metrics), grafanacloud-logs (structured logs), and grafanacloud-traces (distributed tracing). Priority signals: HTTP request/error rates, P50/P95/P99 latency, CPU/memory usage, agent completion rates, and error logs.
+- Confirm grafanacloud-prom, grafanacloud-logs, and grafanacloud-traces are the correct target datasources for grafana-assistant-app telemetry. Verify metric scraping configuration, log shipping, and trace sampling are enabled and operational.
+- Once instrumentation is enabled, establish baseline performance metrics (P99 latency, error rate, resource utilization) and configure alerts for degradation patterns (5xx spike, latency increase, resource saturation). Currently no alert state history exists for the application.
+
+
+<https://hypercode.grafana.net/a/grafana-assistant-app/investigations/c96f7b6d-bf41-47cd-91f1-84b2cacfdb71#summary|View investigation in Grafana>

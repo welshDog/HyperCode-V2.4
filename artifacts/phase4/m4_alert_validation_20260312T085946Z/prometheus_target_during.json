@@ -1,0 +1,23 @@
+{
+  "discoveredLabels": {
+    "__address__": "crew-orchestrator:8080",
+    "__metrics_path__": "/metrics",
+    "__scheme__": "http",
+    "__scrape_interval__": "15s",
+    "__scrape_timeout__": "10s",
+    "job": "crew-orchestrator"
+  },
+  "labels": {
+    "instance": "crew-orchestrator:8080",
+    "job": "crew-orchestrator"
+  },
+  "scrapePool": "crew-orchestrator",
+  "scrapeUrl": "http://crew-orchestrator:8080/metrics",
+  "globalUrl": "http://crew-orchestrator:8080/metrics",
+  "lastError": "Get \"http://crew-orchestrator:8080/metrics\": dial tcp: lookup crew-orchestrator on 127.0.0.11:53: no such host",
+  "lastScrape": "2026-03-12T09:00:05.835531739Z",
+  "lastScrapeDuration": 0.019137138,
+  "health": "down",
+  "scrapeInterval": "15s",
+  "scrapeTimeout": "10s"
+}

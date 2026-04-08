@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BROski Business Agents</title>
+    <style>
+        :root {
+            --color-white: rgba(255, 255, 255, 1);
+            --color-black: rgba(0, 0, 0, 1);
+            --color-cream-50: rgba(252, 252, 249, 1);
+            --color-cream-100: rgba(255, 255, 253, 1);
+            --color-gray-200: rgba(245, 245, 245, 1);
+            --color-gray-300: rgba(167, 169, 169, 1);
+            --color-gray-400: rgba(119, 124, 124, 1);
+            --color-slate-500: rgba(98, 108, 113, 1);
+            --color-brown-600: rgba(94, 82, 64, 1);
+            --color-charcoal-700: rgba(31, 33, 33, 1);
+            --color-charcoal-800: rgba(38, 40, 40, 1);
+            --color-slate-900: rgba(19, 52, 59, 1);
+            --color-teal-300: rgba(50, 184, 198, 1);
+            --color-teal-400: rgba(45, 166, 178, 1);
+            --color-teal-500: rgba(33, 128, 141, 1);
+            --color-teal-600: rgba(29, 116, 128, 1);
+            --color-teal-700: rgba(26, 104, 115, 1);
+            --color-red-400: rgba(255, 84, 89, 1);
+            --color-red-500: rgba(192, 21, 47, 1);
+            --color-orange-400: rgba(230, 129, 97, 1);
+            --color-orange-500: rgba(168, 75, 47, 1);
+
+            --color-brown-600-rgb: 94, 82, 64;
+            --color-teal-500-rgb: 33, 128, 141;
+            --color-slate-900-rgb: 19, 52, 59;
+            --color-slate-500-rgb: 98, 108, 113;
+            --color-red-500-rgb: 192, 21, 47;
+            --color-red-400-rgb: 255, 84, 89;
+            --color-orange-500-rgb: 168, 75, 47;
+            --color-orange-400-rgb: 230, 129, 97;
+            --color-teal-300-rgb: 50, 184, 198;
+
+            --color-background: var(--color-charcoal-700);
+            --color-surface: var(--color-charcoal-800);
+            --color-text: var(--color-gray-200);
+            --color-text-secondary: rgba(167, 169, 169, 0.7);
+            --color-primary: var(--color-teal-300);
+            --color-primary-hover: var(--color-teal-400);
+            --color-primary-active: var(--color-teal-800);
+            --color-secondary: rgba(119, 124, 124, 0.15);
+            --color-secondary-hover: rgba(119, 124, 124, 0.25);
+            --color-secondary-active: rgba(119, 124, 124, 0.3);
+            --color-border: rgba(119, 124, 124, 0.3);
+            --color-error: var(--color-red-400);
+            --color-success: var(--color-teal-300);
+            --color-warning: var(--color-orange-400);
+            --color-info: var(--color-gray-300);
+            --color-focus-ring: rgba(50, 184, 198, 0.4);
+            --color-btn-primary-text: var(--color-slate-900);
+            --color-card-border: rgba(119, 124, 124, 0.15);
+            --color-card-border-inner: rgba(119, 124, 124, 0.15);
+
+            --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-family-mono: 'Berkeley Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-base: 16px;
+            --font-size-md: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 20px;
+            --font-size-2xl: 22px;
+            --font-size-3xl: 26px;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 550;
+            --font-weight-bold: 600;
+            --line-height-tight: 1.2;
+            --line-height-normal: 1.5;
+
+            --space-0: 0;
+            --space-1: 1px;
+            --space-2: 2px;
+            --space-4: 4px;
+            --space-6: 6px;
+            --space-8: 8px;
+            --space-10: 10px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-20: 20px;
+            --space-24: 24px;
+            --space-32: 32px;
+
+            --radius-sm: 6px;
+            --radius-base: 8px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-full: 9999px;
+
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.04), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+
+            --duration-fast: 150ms;
+            --duration-normal: 250ms;
+            --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family-base);
+            background-color: var(--color-background);
+            color: var(--color-text);
+            line-height: var(--line-height-normal);
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: var(--space-16);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+            margin-bottom: var(--space-24);
+        }
+
+        .sidebar-header-icon {
+            font-size: 24px;
+        }
+
+        .sidebar-header-text h1 {
+            margin: 0;
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-primary);
+        }
+
+        .sidebar-header-text p {
+            margin: 0;
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .agents-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-8);
+            margin-bottom: var(--space-24);
+        }
+
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+            padding: var(--space-8) var(--space-12);
+            border-radius: var(--radius-base);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-standard);
+            border: 1px solid transparent;
+        }
+
+        .agent-item:hover {
+            background: var(--color-secondary-hover);
+            border-color: var(--color-border);
+        }
+
+        .agent-item.active {
+            background: rgba(50, 184, 198, 0.15);
+            border-color: var(--color-primary);
+        }
+
+        .agent-icon {
+            font-size: 18px;
+            min-width: 20px;
+        }
+
+        .agent-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(50, 184, 198, 0.5);
+            margin-left: auto;
+        }
+
+        .agent-status.active {
+            background: var(--color-success);
+            box-shadow: 0 0 8px rgba(50, 184, 198, 0.6);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .terminal-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-16);
+            background: var(--color-surface);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .terminal-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+        }
+
+        .terminal-title h2 {
+            margin: 0;
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .terminal-stats {
+            display: flex;
+            gap: var(--space-16);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .stat-value {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .terminal-output {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-16);
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-sm);
+            background: var(--color-background);
+            color: var(--color-text-secondary);
+        }
+
+        .output-line {
+            display: flex;
+            gap: var(--space-8);
+            margin-bottom: var(--space-8);
+            line-height: 1.6;
+        }
+
+        .output-prompt {
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        .output-text {
+            flex: 1;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-success {
+            color: var(--color-success);
+        }
+
+        .output-warning {
+            color: var(--color-warning);
+        }
+
+        .output-error {
+            color: var(--color-error);
+        }
+
+        .output-info {
+            color: var(--color-primary);
+        }
+
+        .output-agent {
+            color: var(--color-info);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .agent-response {
+            background: rgba(50, 184, 198, 0.08);
+            border-left: 2px solid var(--color-primary);
+            padding: var(--space-8) var(--space-12);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-8);
+        }
+
+        .agent-response-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-6);
+            margin-bottom: var(--space-6);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        .agent-response-icon {
+            font-size: 16px;
+        }
+
+        .agent-response-name {
+            color: var(--color-primary);
+        }
+
+        .agent-response-content {
+            color: var(--color-text);
+            font-size: var(--font-size-sm);
+            line-height: 1.5;
+        }
+
+        .agent-response-content p {
+            margin: 0 0 var(--space-8) 0;
+        }
+
+        .agent-response-content ul {
+            margin: 0;
+            padding-left: var(--space-16);
+        }
+
+        .agent-response-content li {
+            margin-bottom: var(--space-4);
+        }
+
+        .terminal-input-area {
+            padding: var(--space-16);
+            background: var(--color-surface);
+            border-top: 1px solid var(--color-border);
+            display: flex;
+            gap: var(--space-8);
+            align-items: flex-end;
+        }
+
+        .input-prefix {
+            color: var(--color-primary);
+            font-weight: var(--font-weight-semibold);
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-sm);
+            flex-shrink: 0;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-6);
+        }
+
+        #commandInput {
+            flex: 1;
+            padding: var(--space-8) var(--space-12);
+            background: var(--color-background);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-base);
+            color: var(--color-text);
+            font-family: var(--font-family-mono);
+            font-size: var(--font-size-sm);
+            transition: border-color var(--duration-fast) var(--ease-standard);
+        }
+
+        #commandInput:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(50, 184, 198, 0.2);
+        }
+
+        .suggestions {
+            display: flex;
+            gap: var(--space-6);
+            flex-wrap: wrap;
+        }
+
+        .suggestion {
+            padding: var(--space-4) var(--space-8);
+            background: var(--color-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-xs);
+            cursor: pointer;
+            transition: all var(--duration-fast) var(--ease-standard);
+        }
+
+        .suggestion:hover {
+            background: var(--color-secondary-hover);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-8) var(--space-16);
+            background: var(--color-charcoal-800);
+            border-top: 1px solid var(--color-border);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-secondary);
+        }
+
+        .status-left {
+            display: flex;
+            gap: var(--space-16);
+        }
+
+        .status-right {
+            display: flex;
+            gap: var(--space-8);
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--color-success);
+        }
+
+        .dot.offline {
+            background: var(--color-warning);
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--color-background);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--color-border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(119, 124, 124, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulsing {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        .skip-link {
+            position: absolute;
+            top: var(--space-8);
+            left: var(--space-16);
+            padding: var(--space-4) var(--space-8);
+            background: var(--color-secondary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            color: var(--color-text-secondary);
+            text-decoration: none;
+        }
+        .skip-link:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-focus-ring);
+        }
+        .suggestion:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: var(--color-secondary-hover);
+        }
+    </style>
+</head>
+<body>
+    <a href="#" class="skip-link" id="skipLink">Skip to input</a>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-header-icon">🤖</div>
+            <div class="sidebar-header-text">
+                <h1>BROski</h1>
+                <p>Agents Lab</p>
+            </div>
+        </div>
+
+        <div class="agents-list" id="agentsList">
+            <div class="agent-item active" data-agent="email">
+                <div class="agent-icon">📧</div>
+                <span>Email Agent</span>
+                <div class="agent-status active"></div>
+            </div>
+            <div class="agent-item" data-agent="finance">
+                <div class="agent-icon">💰</div>
+                <span>Finance Agent</span>
+                <div class="agent-status"></div>
+            </div>
+            <div class="agent-item" data-agent="task">
+                <div class="agent-icon">📋</div>
+                <span>Task Agent</span>
+                <div class="agent-status"></div>
+            </div>
+            <div class="agent-item" data-agent="partnership">
+                <div class="agent-icon">🤝</div>
+                <span>Partnership Agent</span>
+                <div class="agent-status"></div>
+            </div>
+            <div class="agent-item" data-agent="product">
+                <div class="agent-icon">🎨</div>
+                <span>Product Agent</span>
+                <div class="agent-status"></div>
+            </div>
+            <div class="agent-item" data-agent="analytics">
+                <div class="agent-icon">📊</div>
+                <span>Analytics Agent</span>
+                <div class="agent-status"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="terminal-container">
+            <div class="terminal-header">
+                <div class="terminal-title">
+                    <div id="agentIcon">📧</div>
+                    <div>
+                        <h2 id="agentName">Email Agent</h2>
+                    </div>
+                </div>
+                <div class="terminal-stats">
+                    <div class="stat">
+                        <span>CPU:</span>
+                        <span class="stat-value" id="cpuStat">23%</span>
+                    </div>
+                    <div class="stat">
+                        <span>Memory:</span>
+                        <span class="stat-value" id="memoryStat">456MB</span>
+                    </div>
+                    <div class="stat">
+                        <span>Latency:</span>
+                        <span class="stat-value" id="latencyStat">142ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="terminal-output" id="terminalOutput" role="log" aria-live="polite" aria-relevant="additions text">
+                <div class="output-line">
+                    <span class="output-prompt">></span>
+                    <span class="output-text output-info">Hyper Agents Lab initialized. Welcome back, BROski 🚀</span>
+                </div>
+                <div class="agent-response">
+                    <div class="agent-response-header">
+                        <span class="agent-response-icon">📧</span>
+                        <span class="agent-response-name">Email Agent</span>
+                    </div>
+                    <div class="agent-response-content">
+                        <p>Ready to help. Type commands like:</p>
+                        <ul>
+                            <li><strong>summarize inbox</strong> - Quick email overview</li>
+                            <li><strong>what's urgent?</strong> - Flag important items</li>
+                            <li><strong>show revenue</strong> - Finance status</li>
+                            <li><strong>next task</strong> - Your top priority</li>
+                            <li><strong>help</strong> - Full command list</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="terminal-input-area">
+                <span class="input-prefix">BROski ></span>
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="commandInput" 
+                        placeholder="Type command (e.g., summarize inbox)"
+                        autocomplete="off"
+                        aria-label="Command input"
+                    >
+                    <div class="suggestions" id="suggestions">
+                        <span class="suggestion" data-command="summarize inbox" tabindex="0">summarize inbox</span>
+                        <span class="suggestion" data-command="what's urgent?" tabindex="0">what's urgent?</span>
+                        <span class="suggestion" data-command="show revenue" tabindex="0">show revenue</span>
+                        <span class="suggestion" data-command="next task" tabindex="0">next task</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-left">
+                    <div class="status-indicator">
+                        <div class="dot"></div>
+                        <span>All Agents: ONLINE</span>
+                    </div>
+                    <div class="status-indicator">
+                        <span>Last sync: 2m ago</span>
+                    </div>
+                </div>
+                <div class="status-right">
+                    <span id="commandCount">Commands: 0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock data
+        const mockData = {
+            inbox: {
+                total: 47,
+                urgent: 3,
+                strategic: 8,
+                fyi: 36,
+            },
+            tasks: {
+                total: 24,
+                today: 4,
+                hyperfocus: 2,
+                admin: 22,
+            },
+            revenue: {
+                this_month: 847,
+                growth: 12.5,
+                white_label_leads: 5,
+                projection: 4200,
+            },
+            partnerships: {
+                grant_opportunities: 7,
+                investor_leads: 2,
+                collab_requests: 3,
+            },
+            products: {
+                hypercode_updates: 12,
+                welshdog_issues: 4,
+                active_repos: 3,
+            },
+        };
+
+        const agentResponses = {
+            'summarize inbox': {
+                agent: 'Email Agent',
+                icon: '📧',
+                response: `📧 Email Summary:\n\n📌 Urgent (3): WelshDog order issues, Grant deadline reminder, Payment failed\n🎯 Strategic (8): White-label leads, Partnership proposals, Investor follow-ups\n💬 FYI (36): Newsletters, GitHub notifications, Community updates\n\n→ Action: Reply to 2 grant opportunities + 1 partnership email`
+            },
+            "what's urgent?": {
+                agent: 'Email Agent',
+                icon: '📧',
+                response: `🚨 URGENT ALERTS:\n\n1. 🔴 WelshDog Shop Payment: 2 orders stuck pending payment\n   Action: Check Stripe webhooks, contact customers\n\n2. 🟠 Grant Deadline: Innovate UK SMART Cymru closes in 4 days\n   Action: Submit application draft (I can help write it)\n\n3. 🟡 White-Label Lead: TechStart Wales asking about pricing\n   Action: Send demo + pricing calculator\n\nEstimated time to resolve: 90 minutes`
+            },
+            'show revenue': {
+                agent: 'Finance Agent',
+                icon: '💰',
+                response: `💰 Revenue Dashboard (January 2026):\n\nWelshDog Shop: £847\n├─ 6 products active\n├─ 2 orders this month\n└─ 15-50% stock retained\n\nWhite-Label Pipeline:\n├─ 5 warm leads\n├─ 2 demos scheduled\n└─ Projected first contract: Feb\n\n📈 Growth: +12.5% vs December\n🎯 Monthly Projection: £4,200 (if all leads convert)\n\n⚠️  Flag: Cash flow dips if no white-label closed by Feb 15`
+            },
+            'next task': {
+                agent: 'Task Agent',
+                icon: '📋',
+                response: `📍 YOUR NEXT TASK (Hyperfocus-Optimized):\n\n🎯 PRIMARY (Do this now):\n   Complete Grant Application Draft\n   Est. time: 45 min\n   Why: Deadline in 4 days, high impact\n   Reward: +500 BROski$ if done by EOD\n\n🎨 SECONDARY (After primary):\n   Reply to White-Label Inquiry + Send Demo\n   Est. time: 30 min\n   Why: Revenue-generating lead\n\n📋 ADMIN (Later this week):\n   Fix WelshDog payment pipeline\n   Update Notion roadmap\n   Review GitHub PRs (HyperCode)\n\n✅ Tip: You're 2-4 hours into good hyperfocus energy. Ride it for the grant.`
+            },
+            'help': {
+                agent: 'System',
+                icon: '🤖',
+                response: `📚 COMMAND REFERENCE:\n\n📧 EMAIL AGENT:\n  • summarize inbox\n  • what's urgent?\n  • draft reply to [topic]\n  • schedule follow-up\n\n💰 FINANCE AGENT:\n  • show revenue\n  • cash flow forecast\n  • white-label projections\n  • expense tracker\n\n📋 TASK AGENT:\n  • next task\n  • hyperfocus mode\n  • daily standup\n  • week overview\n\n🤝 PARTNERSHIP AGENT:\n  • grant opportunities\n  • investor leads\n  • collab requests\n  • funding timeline\n\n🎨 PRODUCT AGENT:\n  • hypercode status\n  • welshdog updates\n  • github summary\n  • deployment check\n\n📊 ANALYTICS AGENT:\n  • weekly summary\n  • monthly report\n  • goal progress\n  • metrics dashboard\n\n⚡ SHORTCUTS:\n  • @email [command]  → Email Agent\n  • @finance [command]  → Finance Agent\n  • @task [command]  → Task Agent`
+            }
+        };
+
+        const agentEmojis = {
+            email: '📧',
+            finance: '💰',
+            task: '📋',
+            partnership: '🤝',
+            product: '🎨',
+            analytics: '📊',
+        };
+
+        const agentNames = {
+            email: 'Email Agent',
+            finance: 'Finance Agent',
+            task: 'Task Agent',
+            partnership: 'Partnership Agent',
+            product: 'Product Agent',
+            analytics: 'Analytics Agent',
+        };
+
+        let currentAgent = 'email';
+        let commandCount = 0;
+        const commandHistory = [];
+        let historyIndex = -1;
+
+        // DOM elements
+        const commandInput = document.getElementById('commandInput');
+        const terminalOutput = document.getElementById('terminalOutput');
+        const agentsList = document.getElementById('agentsList');
+        const agentIcon = document.getElementById('agentIcon');
+        const agentName = document.getElementById('agentName');
+        const commandCountEl = document.getElementById('commandCount');
+        const suggestionsEl = document.getElementById('suggestions');
+        const skipLink = document.getElementById('skipLink');
+
+        // Update system stats
+        function updateStats() {
+            document.getElementById('cpuStat').textContent = Math.floor(Math.random() * 80) + 10 + '%';
+            document.getElementById('memoryStat').textContent = Math.floor(Math.random() * 300) + 256 + 'MB';
+            document.getElementById('latencyStat').textContent = Math.floor(Math.random() * 200) + 50 + 'ms';
+        }
+
+        setInterval(updateStats, 3000);
+
+        // Agent selection
+        agentsList.addEventListener('click', (e) => {
+            const agentItem = e.target.closest('.agent-item');
+            if (!agentItem) return;
+
+            document.querySelectorAll('.agent-item').forEach(item => item.classList.remove('active'));
+            agentItem.classList.add('active');
+
+            const agent = agentItem.dataset.agent;
+            currentAgent = agent;
+
+            agentIcon.textContent = agentEmojis[agent];
+            agentName.textContent = agentNames[agent];
+
+            addOutput(`Switched to ${agentNames[agent]}. Type your command.`, 'info');
+            renderSuggestions(agent);
+        });
+
+        // Suggestions
+        suggestionsEl.addEventListener('click', (e) => {
+            if (e.target.classList.contains('suggestion')) {
+                const command = e.target.dataset.command;
+                commandInput.value = command;
+                handleCommand(command);
+            }
+        });
+
+        suggestionsEl.addEventListener('keydown', (e) => {
+            const target = e.target;
+            if (!target.classList.contains('suggestion')) return;
+            if (e.key === 'Enter') {
+                const command = target.dataset.command;
+                handleCommand(command);
+            }
+        });
+
+        // Command input
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const command = commandInput.value.trim();
+                if (command) {
+                    handleCommand(command);
+                    commandInput.value = '';
+                }
+            }
+        });
+
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                commandInput.value = '';
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    commandInput.value = commandHistory[historyIndex] || '';
+                }
+                e.preventDefault();
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    commandInput.value = commandHistory[historyIndex] || '';
+                } else {
+                    historyIndex = commandHistory.length;
+                    commandInput.value = '';
+                }
+                e.preventDefault();
+                return;
+            }
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const items = Array.from(suggestionsEl.querySelectorAll('.suggestion'));
+                if (!items.length) return;
+                const active = document.activeElement;
+                const idx = items.indexOf(active);
+                const nextIdx = e.shiftKey ? (idx > 0 ? idx - 1 : items.length - 1) : (idx >= 0 ? (idx + 1) % items.length : 0);
+                items[nextIdx].focus();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey) {
+                const map = {
+                    '1': 'email',
+                    '2': 'finance',
+                    '3': 'task',
+                    '4': 'partnership',
+                    '5': 'product',
+                    '6': 'analytics'
+                };
+                const agent = map[e.key];
+                if (agent) {
+                    const item = agentsList.querySelector(`.agent-item[data-agent="${agent}"]`);
+                    if (item) item.click();
+                    e.preventDefault();
+                }
+            }
+        });
+
+        skipLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            commandInput.focus();
+        });
+
+        function handleCommand(command) {
+            // Add user command to output
+            addOutput(command, 'user');
+
+            commandCount++;
+            commandCountEl.textContent = `Commands: ${commandCount}`;
+
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+
+            // Simulate processing delay
+            setTimeout(() => {
+                const response = agentResponses[command.toLowerCase()] || {
+                    agent: agentNames[currentAgent],
+                    icon: agentEmojis[currentAgent],
+                    response: `I don't have that command yet, BROski. Try: summarize inbox, what's urgent?, show revenue, next task, or help`
+                };
+
+                addAgentResponse(response.icon, response.agent, response.response);
+            }, 300);
+        }
+
+        function addOutput(text, type) {
+            const line = document.createElement('div');
+            line.className = 'output-line';
+
+            if (type === 'user') {
+                line.innerHTML = `<span class="output-prompt">></span><span class="output-text">${text}</span>`;
+            } else {
+                line.innerHTML = `<span class="output-text output-${type}">${text}</span>`;
+            }
+
+            terminalOutput.appendChild(line);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        function addAgentResponse(icon, agentName, content) {
+            const response = document.createElement('div');
+            response.className = 'agent-response';
+            response.innerHTML = `
+                <div class="agent-response-header">
+                    <span class="agent-response-icon">${icon}</span>
+                    <span class="agent-response-name">${agentName}</span>
+                </div>
+                <div class="agent-response-content">
+                    ${content.split('\n').map(line => `<p>${line}</p>`).join('')}
+                </div>
+            `;
+
+            terminalOutput.appendChild(response);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        const suggestionsByAgent = {
+            email: ['summarize inbox', "what's urgent?", 'help'],
+            finance: ['show revenue', 'cash flow forecast', 'help'],
+            task: ['next task', 'hyperfocus mode', 'help'],
+            partnership: ['grant opportunities', 'investor leads', 'help'],
+            product: ['hypercode status', 'github summary', 'help'],
+            analytics: ['weekly summary', 'monthly report', 'help']
+        };
+
+        function renderSuggestions(agent) {
+            const items = suggestionsByAgent[agent] || [];
+            suggestionsEl.innerHTML = items.map(cmd => `<span class="suggestion" data-command="${cmd}" tabindex="0">${cmd}</span>`).join('');
+        }
+
+        renderSuggestions(currentAgent);
+        commandInput.focus();
+    </script>
+</body>
+</html>

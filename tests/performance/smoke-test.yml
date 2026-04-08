@@ -1,0 +1,23 @@
+config:
+  target: "http://localhost:8001"
+  phases:
+    - duration: 10
+      arrivalRate: 2
+      name: "Smoke Test"
+  plugins:
+    ensure: {}
+    apdex: {}
+    metrics-by-endpoint: {}
+  ensure:
+    maxErrorRate: 1
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      X-API-Key: "dev-master-key"
+
+scenarios:
+  - flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200

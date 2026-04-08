@@ -1,0 +1,17 @@
+version: '3.9'
+services:
+  test-runner:
+    image: python:3.11-slim
+    volumes:
+      - ..:/app
+    working_dir: /app
+    networks:
+      - backend-net
+      - frontend-net
+    command: bash -c "pip install httpx pydantic pyyaml jsonschema && python tests/run_tests.py --url http://crew-orchestrator:8080"
+
+networks:
+  backend-net:
+    driver: bridge
+  frontend-net:
+    driver: bridge

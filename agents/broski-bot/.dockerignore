@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist
+build
+.eggs
+*.egg
+.venv
+venv
+
+# Testing & Coverage
+tests/
+pytest.ini
+.pytest_cache
+coverage.xml
+htmlcov/
+.coverage
+.coveragerc
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Docs & Archives
+docs/
+_archive/
+_git_backup_internal/
+reports/
+
+# Development
+env.example
+.pre-commit-config.yaml
+*.md
+*.txt
+!requirements.txt
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore

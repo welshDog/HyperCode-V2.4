@@ -1,0 +1,14 @@
+apiVersion: 1
+correlations:
+  - sourceUID: P1809F7CD0C75ACF3
+    targetUID: loki
+    label: "View agent logs"
+    description: "Jump from metrics to logs for this container"
+    type: query
+    config:
+      field: "container"
+      target:
+        expr: '{container="${__field.labels.container}"}'
+      transformations:
+        - type: logfmt
+          field: container

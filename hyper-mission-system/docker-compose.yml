@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: hypermission
+    volumes:
+      - ./server/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/hypermission
+    depends_on:
+      - postgres
+    command: sh -c "npm install && npm start"
+
+  client:
+    build: ./client
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:5000
+    depends_on:
+      - server
+    command: sh -c "npm install && npm run dev -- --host"

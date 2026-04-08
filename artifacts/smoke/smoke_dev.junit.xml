@@ -1,0 +1,1 @@
+<testsuite name="smoke:dev" tests="5" failures="0" time="4.865"><testcase name="orchestrator_health" time="1.525130" /><testcase name="core_health" time="2.316920" /><testcase name="healer_health" time="1.005450" /><testcase name="execute_smoke_noop" time="0.650650" /><testcase name="no_task_history_pollution" time="0.000000" /></testsuite>

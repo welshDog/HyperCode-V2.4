@@ -1,0 +1,44 @@
+--------------------------------------------------------------------------------
+SKILL 1: generate-unit-tests
+--------------------------------------------------------------------------------
+Analyze the selected code. Generate a comprehensive unit test suite using our project's testing framework (Jest/Vitest).
+Include:
+1. Happy Path tests (valid inputs).
+2. Edge Case tests (empty inputs, null values, limits).
+3. Error Handling tests (exceptions, failed promises).
+4. Mocking for external dependencies.
+Ensure the tests follow the Arrange-Act-Assert pattern.
+
+--------------------------------------------------------------------------------
+SKILL 2: generate-api-docs
+--------------------------------------------------------------------------------
+Analyze the selected API route handler. Generate a structured API documentation snippet.
+Include:
+1. Endpoint Path and Method (GET/POST/etc).
+2. Request Parameters (Query, Body, Headers) with types and validation rules.
+3. Response Schemas for 200 (Success), 400 (Bad Request), 401 (Unauthorized), 500 (Server Error).
+4. Example JSON request and response.
+Format the output as a Markdown table or OpenAPI YAML.
+
+--------------------------------------------------------------------------------
+SKILL 3: security-audit
+--------------------------------------------------------------------------------
+Act as a Security Engineer. Audit the selected code for vulnerabilities.
+Check for:
+1. Injection flaws (SQL, NoSQL, Command).
+2. XSS (Cross-Site Scripting).
+3. Improper Authentication/Authorization.
+4. Sensitive Data Exposure (logging secrets).
+5. Insecure Dependencies.
+If issues are found, list them with Severity (High/Medium/Low) and provide the Fixed Code.
+
+--------------------------------------------------------------------------------
+SKILL 4: refactor-performance
+--------------------------------------------------------------------------------
+Analyze the selected code for performance bottlenecks.
+Look for:
+1. Unnecessary re-renders (React).
+2. N+1 queries (Database).
+3. Heavy computations blocking the main thread.
+4. Memory leaks.
+Propose a refactored version that improves performance. Explain the specific gains (e.g., Time Complexity O(n^2) -> O(n)).

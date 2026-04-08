@@ -1,0 +1,16 @@
+{
+  "model_id": "mistral-7b-instruct-v0.2",
+  "model_path": "./models/mistral-7b-instruct-v0.2.Q2_K.gguf",
+  "hardware_limits": {
+    "max_ram_percent": 75,
+    "max_vram_percent": 80,
+    "min_free_ram_gb": 1.5
+  },
+  "streaming": {
+    "context_window_tokens": 4096,
+    "use_memory_mmap": true
+  },
+  "accessibility": {
+    "progress_bars": true
+  }
+}

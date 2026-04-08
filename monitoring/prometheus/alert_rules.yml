@@ -1,0 +1,56 @@
+groups:
+- name: hypercode-alerts
+  rules:
+  - alert: HighCpuUsage
+    expr: rate(container_cpu_usage_seconds_total[1m]) > 0.8
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage detected on {{ $labels.instance }}"
+      description: "Container CPU usage is above 80% for more than 1 minute."
+
+  - alert: ServiceDown
+    expr: up == 0
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.instance }} is down"
+      description: "Service {{ $labels.instance }} has been unreachable for 30 seconds."
+
+  - alert: CrewOrchestratorDown
+    expr: up{job="crew-orchestrator"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Crew Orchestrator metrics target is down"
+      description: "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute."
+
+  - alert: SmokeFailuresDetected
+    expr: sum(rate(smoke_request_total{result="fail"}[5m])) > 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Smoke failures detected"
+      description: "One or more smoke requests failed in the last 5 minutes."
+
+  - alert: HighRequestLatency
+    expr: rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m]) > 0.5
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High request latency on {{ $labels.instance }}"
+      description: "Average request latency is above 500ms."
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate on {{ $labels.instance }}"
+      description: "Error rate is above 5%."

@@ -1,0 +1,44 @@
+groups:
+  - name: voice_recording
+    rules:
+      - record: job:stt_latency_seconds:hist_p50
+        expr: histogram_quantile(0.50, sum(rate(stt_latency_seconds_bucket[5m])) by (le))
+      - record: job:stt_latency_seconds:hist_p95
+        expr: histogram_quantile(0.95, sum(rate(stt_latency_seconds_bucket[5m])) by (le))
+      - record: job:stt_latency_seconds:hist_p99
+        expr: histogram_quantile(0.99, sum(rate(stt_latency_seconds_bucket[5m])) by (le))
+      - record: job:stt_errors_total:rate_5m
+        expr: sum(rate(stt_errors_total[5m]))
+      - record: job:stt_confidence:hist_p50
+        expr: histogram_quantile(0.50, sum(rate(stt_confidence_bucket[5m])) by (le))
+      - record: job:voice_command_exec_duration_seconds:hist_p95
+        expr: histogram_quantile(0.95, sum(rate(voice_command_exec_duration_seconds_bucket[5m])) by (le))
+
+  - name: voice_alerts
+    rules:
+      - alert: VoiceSTTLatencyHigh
+        expr: job:stt_latency_seconds:hist_p95 > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High STT latency p95"
+          description: "STT p95 latency above 500ms for 5m"
+
+      - alert: VoiceSTTErrorRateHigh
+        expr: job:stt_errors_total:rate_5m / max(sum(rate(stt_latency_seconds_count[5m])), 1) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Voice STT error rate high"
+          description: "Error rate exceeds 5% over 5m"
+
+      - alert: VoiceTranscriptionAccuracyLow
+        expr: job:stt_confidence:hist_p50 < 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Transcription accuracy p50 below 90%"
+          description: "Median confidence below threshold for 10m"

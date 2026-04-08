@@ -1,0 +1,217 @@
+{
+  "id": null,
+  "uid": "throttle-healer",
+  "title": "Throttle + Healer (Autopilot)",
+  "tags": ["hypercode", "agents", "throttle", "healer", "autopilot"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "gauge",
+      "title": "Estimated System RAM % (containers sum / docker total)",
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "max(throttle_system_ram_usage_pct)",
+          "legendFormat": "RAM %"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 80 },
+              { "color": "orange", "value": 90 },
+              { "color": "red", "value": 95 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Paused Containers (count)",
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(throttle_container_paused_by_throttle)",
+          "legendFormat": "paused"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Open Circuits (count)",
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(throttle_healer_circuit_open)",
+          "legendFormat": "open"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value"
+      }
+    },
+    {
+      "type": "state-timeline",
+      "title": "Tier Paused Timeline",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 7 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "throttle_tier_paused",
+          "legendFormat": "tier {{tier}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "auto",
+        "mergeValues": true
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Throttle Actions / Second (pause/resume)",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(throttle_actions_total[5m])) by (tier, action)",
+          "legendFormat": "tier {{tier}} {{action}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["lastNotNull", "max"]
+        }
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Container RAM (bytes)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "topk(20, throttle_container_ram_bytes)",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "showValue": "auto"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Paused By Throttle (per container)",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "throttle_container_paused_by_throttle",
+          "legendFormat": "{{container_name}}"
+        }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Healer Circuit Open (per service)",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 35 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "throttle_healer_circuit_open",
+          "legendFormat": "{{service_name}}"
+        }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} }
+      ]
+    }
+  ]
+}

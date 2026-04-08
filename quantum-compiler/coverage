@@ -1,0 +1,22 @@
+mode: set
+quantum-compiler/main.go:24.38,104.2 3 1
+quantum-compiler/main.go:106.61,108.82 2 0
+quantum-compiler/main.go:108.82,110.3 1 0
+quantum-compiler/main.go:110.8,112.3 1 0
+quantum-compiler/main.go:113.2,117.27 4 0
+quantum-compiler/main.go:117.27,120.3 2 0
+quantum-compiler/main.go:122.2,124.24 2 0
+quantum-compiler/main.go:124.24,126.62 2 0
+quantum-compiler/main.go:126.62,132.4 2 0
+quantum-compiler/main.go:133.3,133.20 1 0
+quantum-compiler/main.go:134.8,137.3 1 0
+quantum-compiler/main.go:139.2,139.18 1 0
+quantum-compiler/main.go:139.18,145.3 2 0
+quantum-compiler/main.go:147.2,149.71 2 0
+quantum-compiler/main.go:149.71,153.3 3 0
+quantum-compiler/main.go:155.2,159.4 1 0
+quantum-compiler/main.go:162.60,169.2 2 0
+quantum-compiler/main.go:171.13,174.68 3 0
+quantum-compiler/main.go:174.68,185.3 2 0
+quantum-compiler/main.go:187.2,194.55 7 0
+quantum-compiler/main.go:194.55,196.3 1 0

@@ -1,0 +1,388 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "annotations": { "list": [] },
+  "description": "HyperCode V2.0 — Agent Health, MTTR, Circuit Breakers, BROski$ Events",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "System Health",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.8 },
+              { "color": "green", "value": 1.0 }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0, "max": 1
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Agent Health Ratio",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"healer-agent|crew-orchestrator|coder-agent|frontend-specialist|backend-specialist|database-architect|qa-engineer|devops-engineer|security-engineer|system-architect|tips-tricks-writer|test-agent|throttle-agent\"}) / count(up{job=~\"healer-agent|crew-orchestrator|coder-agent|frontend-specialist|backend-specialist|database-architect|qa-engineer|devops-engineer|security-engineer|system-architect|tips-tricks-writer|test-agent|throttle-agent\"})",
+          "legendFormat": "Agent Health",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.1 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "id": 3,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Error Rate (target <1%)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(rate(agent_requests_total{status=\"error\"}[5m])) / sum(rate(agent_requests_total[5m]))",
+          "legendFormat": "Error Rate",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "red", "value": 0.5 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 4,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "P99 Latency (target <100ms)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, rate(agent_request_duration_seconds_bucket[5m]))",
+          "legendFormat": "P99",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 300 },
+              { "color": "red", "value": 600 }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 5,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "MTTR (target <5min)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(healer_recovery_duration_seconds_bucket[1h]))",
+          "legendFormat": "MTTR p95",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.6 },
+              { "color": "red", "value": 0.3 }
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 6,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Cache Hit Rate (target >70%)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "rate(redis_cache_hits_total[5m]) / (rate(redis_cache_hits_total[5m]) + rate(redis_cache_misses_total[5m]))",
+          "legendFormat": "Cache Hits",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 10,
+      "title": "Agent-by-Agent Status",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "mappings": [
+            { "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } }, "type": "value" }
+          ]
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 6 },
+      "id": 11,
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "title": "Individual Agent Up/Down",
+      "type": "stat",
+      "targets": [
+        { "expr": "up{job=\"healer-agent\"}", "legendFormat": "healer", "refId": "A" },
+        { "expr": "up{job=\"crew-orchestrator\"}", "legendFormat": "orchestrator", "refId": "B" },
+        { "expr": "up{job=\"coder-agent\"}", "legendFormat": "coder", "refId": "C" },
+        { "expr": "up{job=\"frontend-specialist\"}", "legendFormat": "frontend", "refId": "D" },
+        { "expr": "up{job=\"backend-specialist\"}", "legendFormat": "backend", "refId": "E" },
+        { "expr": "up{job=\"database-architect\"}", "legendFormat": "database", "refId": "F" },
+        { "expr": "up{job=\"qa-engineer\"}", "legendFormat": "qa", "refId": "G" },
+        { "expr": "up{job=\"devops-engineer\"}", "legendFormat": "devops", "refId": "H" },
+        { "expr": "up{job=\"security-engineer\"}", "legendFormat": "security", "refId": "I" },
+        { "expr": "up{job=\"system-architect\"}", "legendFormat": "sys-arch", "refId": "J" },
+        { "expr": "up{job=\"test-agent\"}", "legendFormat": "test", "refId": "K" },
+        { "expr": "up{job=\"throttle-agent\"}", "legendFormat": "throttle", "refId": "L" }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 12 },
+      "id": 20,
+      "title": "Request Throughput & Latency",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "id": 21,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Request Throughput per Agent",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (job) (rate(agent_requests_total[1m]))",
+          "legendFormat": "{{job}}",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "id": 22,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "P50/P95/P99 Latency",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(agent_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(agent_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(agent_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "id": 30,
+      "title": "BROski$ Economy",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
+      "id": 31,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Tasks Completed (BROski$ Events)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "increase(orchestrator_tasks_completed_total[1h])",
+          "legendFormat": "Tasks/hr",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
+      "id": 32,
+      "options": { "reduceOptions": { "calcs": ["sum"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "title": "Total Completed Tasks (all time)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "orchestrator_tasks_completed_total",
+          "legendFormat": "Total Tasks",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
+      "id": 40,
+      "title": "Healer & Recovery",
+      "type": "row"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 31 },
+      "id": 41,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Healer Recoveries",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "increase(healer_recoveries_total[1h])",
+          "legendFormat": "Recoveries/hr",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 31 },
+      "id": 42,
+      "options": { "tooltip": { "mode": "multi" } },
+      "title": "Recovery Duration Distribution",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(healer_recovery_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50 MTTR",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(healer_recovery_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 MTTR",
+          "refId": "B"
+        }
+      ]
+    }
+
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["hypercode", "agents", "life-plans", "broski"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "HyperCode — Life Plans & Agent Health",
+  "uid": "hypercode-life-plans",
+  "version": 1
+}

@@ -1,0 +1,166 @@
+##
+# Workflow retirement note (2026-03-11)
+#
+# `test.yml` and `deploy-validate.yml` were retired and deleted from this repo because they targeted
+# an obsolete directory layout (`THE HYPERCODE/hypercode-core/**`) that no longer represents the
+# shipping backend (`backend/**`). Keeping parallel pipelines caused CI drift, false confidence,
+# and duplicated maintenance effort. This `ci.yml` is the single source of truth for CI quality,
+# security, tests, and container scanning going forward.
+##
+
+name: HyperCode CI
+
+on:
+  workflow_call:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  quality-checks:
+    name: Quality & Security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'agents/dashboard/package-lock.json'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install test/lint tools ensuring they are available
+          pip install bandit flake8 black pytest pytest-asyncio pytest-cov httpx
+
+      - name: Install Node.js Dependencies (Frontend)
+        run: |
+          if [ -f agents/dashboard/package.json ]; then
+            cd agents/dashboard
+            npm ci
+            # Install Playwright for e2e tests
+            npm install -D @playwright/test
+            npx playwright install --with-deps
+          fi
+
+      - name: Lint with Black
+        run: black backend tools --check
+
+      - name: Lint with Flake8
+        run: flake8 backend tools --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Security Scan (Bandit)
+        run: bandit -r backend tools agents/crew-orchestrator -ll -ii
+
+      - name: Run Pytest
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest
+
+      - name: Smoke Framework Coverage Gate
+        run: |
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          pytest tools/smoke_framework/tests -q --cov=tools/smoke_framework --cov-report=term-missing --cov-fail-under=80
+
+      - name: Run Frontend Tests (Vitest)
+        run: |
+          if [ -d "agents/dashboard" ]; then
+            cd agents/dashboard
+            npm test
+          fi
+
+      - name: Run Playwright Tests
+        run: |
+          if [ -d "agents/dashboard" ] && [ -d "tests/e2e" ]; then
+            npm ci
+            npx playwright install --with-deps
+            npx playwright test -c tests/e2e/playwright.config.ts
+          else
+             echo "Skipping Playwright tests: agents/dashboard or tests/e2e not found"
+          fi
+
+  docker-build:
+    name: Build & Scan Docker Images
+    needs: quality-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: hypercode-core:latest
+          outputs: type=docker,dest=/tmp/hypercode-core.tar
+
+      - name: Build Dashboard Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./agents/dashboard
+          file: ./agents/dashboard/Dockerfile
+          push: false
+          tags: hypercode-dashboard:latest
+          outputs: type=docker,dest=/tmp/hypercode-dashboard.tar
+
+      - name: Run Trivy Vulnerability Scanner (Backend)
+        id: trivy_backend
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: /tmp/hypercode-core.tar
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy SARIF (Backend)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-backend
+
+      - name: Run Trivy Vulnerability Scanner (Dashboard)
+        id: trivy_dashboard
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: /tmp/hypercode-dashboard.tar
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy SARIF (Dashboard)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-dashboard
+
+      - name: Fail if Trivy found HIGH/CRITICAL vulnerabilities
+        if: steps.trivy_backend.outcome == 'failure' || steps.trivy_dashboard.outcome == 'failure'
+        run: exit 1

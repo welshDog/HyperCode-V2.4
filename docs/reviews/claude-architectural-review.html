@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperCode V2.0 — Senior Architectural Review 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #252b38;
+    --accent: #7ee8a2;
+    --accent2: #4fd1c5;
+    --accent3: #f6ad55;
+    --accent4: #fc8181;
+    --accent5: #b794f4;
+    --text: #e2e8f0;
+    --text-muted: #718096;
+    --text-dim: #4a5568;
+    --critical: #fc8181;
+    --warn: #f6ad55;
+    --ok: #7ee8a2;
+    --info: #63b3ed;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 3rem 2rem 6rem;
+  }
+
+  /* COVER */
+  .cover {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    padding: 3.5rem 3rem;
+    margin-bottom: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(126,232,162,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .cover-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.2rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .cover-tag::before { content: '▶'; font-size: 9px; }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 0.5rem;
+  }
+  h1 span { color: var(--accent); }
+  .cover-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    margin-bottom: 2.5rem;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 2rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+  }
+  .meta-item label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .meta-item span { font-size: 13px; color: var(--text-muted); }
+
+  /* SCORECARD */
+  .scorecard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 4rem;
+  }
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.4rem 1.5rem;
+  }
+  .score-card .label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+  }
+  .score-card .score {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  .score-card .bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .score-card .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.8s ease;
+  }
+  .score-card .verdict {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 0.5rem;
+  }
+
+  /* SECTIONS */
+  .section { margin-bottom: 4rem; }
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  h2 .icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 2rem 0 0.75rem;
+  }
+  p { color: var(--text-muted); margin-bottom: 1rem; }
+
+  /* CODE BLOCK */
+  pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--accent2);
+    overflow-x: auto;
+    margin: 1.25rem 0;
+  }
+  code {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    background: var(--surface2);
+    color: var(--accent2);
+    padding: 0.15em 0.45em;
+    border-radius: 4px;
+  }
+
+  /* CALLOUT BOXES */
+  .callout {
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+    border-left: 3px solid;
+    font-size: 14px;
+  }
+  .callout.critical {
+    background: rgba(252,129,129,0.06);
+    border-color: var(--critical);
+    color: #fca5a5;
+  }
+  .callout.warn {
+    background: rgba(246,173,85,0.06);
+    border-color: var(--warn);
+    color: #fcd34d;
+  }
+  .callout.ok {
+    background: rgba(126,232,162,0.06);
+    border-color: var(--ok);
+    color: #86efac;
+  }
+  .callout.info {
+    background: rgba(99,179,237,0.06);
+    border-color: var(--info);
+    color: #93c5fd;
+  }
+  .callout strong { display: block; margin-bottom: 0.3rem; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
+
+  /* FINDING CARDS */
+  .findings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  @media (max-width: 700px) { .findings-grid { grid-template-columns: 1fr; } }
+  .finding {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.2rem 1.3rem;
+  }
+  .finding .finding-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    padding: 0.2em 0.6em;
+    border-radius: 4px;
+  }
+  .finding.strength .finding-tag { background: rgba(126,232,162,0.15); color: var(--ok); }
+  .finding.weakness .finding-tag { background: rgba(252,129,129,0.12); color: var(--critical); }
+  .finding.debt .finding-tag { background: rgba(246,173,85,0.12); color: var(--warn); }
+  .finding.rec .finding-tag { background: rgba(181,148,244,0.12); color: var(--accent5); }
+  .finding h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+  .finding p { font-size: 13px; margin: 0; }
+
+  /* ARCHITECTURE TREE */
+  .arch-tree {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    line-height: 2;
+    margin: 1.5rem 0;
+  }
+  .arch-tree .dir { color: var(--accent2); }
+  .arch-tree .file { color: var(--text-muted); }
+  .arch-tree .note { color: var(--text-dim); font-size: 11px; }
+  .arch-tree .highlight { color: var(--accent); }
+  .arch-tree .warn-file { color: var(--warn); }
+
+  /* TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 13px;
+  }
+  th {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(37,43,56,0.5);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge {
+    display: inline-block;
+    padding: 0.2em 0.65em;
+    border-radius: 4px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  .badge-critical { background: rgba(252,129,129,0.15); color: var(--critical); }
+  .badge-high { background: rgba(246,173,85,0.15); color: var(--warn); }
+  .badge-med { background: rgba(99,179,237,0.15); color: var(--info); }
+  .badge-low { background: rgba(126,232,162,0.15); color: var(--ok); }
+
+  /* RISK MATRIX */
+  .risk-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .risk-row:last-child { border-bottom: none; }
+  .risk-icon {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .risk-icon.c { background: rgba(252,129,129,0.15); }
+  .risk-icon.h { background: rgba(246,173,85,0.15); }
+  .risk-icon.m { background: rgba(99,179,237,0.15); }
+  .risk-body { flex: 1; }
+  .risk-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+  .risk-desc { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+  /* ROADMAP */
+  .roadmap-phase {
+    border-left: 2px solid var(--border);
+    padding-left: 1.5rem;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .roadmap-phase::before {
+    content: '';
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    left: -6px; top: 6px;
+  }
+  .roadmap-phase.phase2::before { background: var(--accent3); }
+  .roadmap-phase.phase3::before { background: var(--accent5); }
+  .phase-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+  .phase-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+  }
+  .phase-items { list-style: none; }
+  .phase-items li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 0.25rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+  .phase-items li::before {
+    content: '→';
+    position: absolute; left: 0;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 3rem 0; }
+
+  /* ND SCORE TABLE */
+  .nd-table td:last-child { text-align: right; }
+  .nd-pill {
+    display: inline-block;
+    height: 6px;
+    border-radius: 99px;
+    background: var(--border);
+    width: 80px;
+    position: relative;
+    vertical-align: middle;
+  }
+  .nd-pill-fill {
+    position: absolute;
+    left: 0; top: 0; height: 100%;
+    border-radius: 99px;
+  }
+
+  /* FOOTER */
+  .report-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-tag">Senior Architectural Review — Confidential</div>
+  <h1>HyperCode <span>V2.0</span></h1>
+  <div class="cover-sub">Monorepo Architectural Assessment · Neurodivergent-First Platform · Hyper IDE + AI Agent Stack</div>
+  <div class="meta-row">
+    <div class="meta-item"><label>Repo</label><span>welshDog/HyperCode-V2.0</span></div>
+    <div class="meta-item"><label>Review Date</label><span>March 23, 2026</span></div>
+    <div class="meta-item"><label>Reviewer</label><span>Senior Architect (AI-Assisted)</span></div>
+    <div class="meta-item"><label>Commits Analysed</label><span>57</span></div>
+    <div class="meta-item"><label>Primary Lang</label><span>Python 36.4% · HTML 19.3% · JS 12.4%</span></div>
+    <div class="meta-item"><label>Status</label><span>⚠️ Pre-Production — Not Cleared for Public Launch</span></div>
+  </div>
+</div>
+
+<!-- SCORECARD -->
+<div class="scorecard">
+  <div class="score-card">
+    <div class="label">Overall Readiness</div>
+    <div class="score" style="color: var(--warn);">6.1<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:61%; background:var(--warn);"></div></div>
+    <div class="verdict">Strong vision, architecture gaps remain</div>
+  </div>
+  <div class="score-card">
+    <div class="label">ND-First Design</div>
+    <div class="score" style="color: var(--accent);">7.4<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:74%; background:var(--accent);"></div></div>
+    <div class="verdict">Best-in-class intent, execution gaps</div>
+  </div>
+  <div class="score-card">
+    <div class="label">AI Agent Architecture</div>
+    <div class="score" style="color: var(--accent2);">6.8<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:68%; background:var(--accent2);"></div></div>
+    <div class="verdict">Ambitious multi-agent design, SPOF risks</div>
+  </div>
+  <div class="score-card">
+    <div class="label">Infra &amp; Ops</div>
+    <div class="score" style="color: var(--accent3);">5.5<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:55%; background:var(--accent3);"></div></div>
+    <div class="verdict">Docker Compose ceiling approaching</div>
+  </div>
+  <div class="score-card">
+    <div class="label">Security Posture</div>
+    <div class="score" style="color: var(--critical);">4.2<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:42%; background:var(--critical);"></div></div>
+    <div class="verdict">Secrets exposure — critical fix needed</div>
+  </div>
+  <div class="score-card">
+    <div class="label">Test Coverage</div>
+    <div class="score" style="color: var(--warn);">5.0<span style="font-size:1.1rem;color:var(--text-dim)">/10</span></div>
+    <div class="bar"><div class="bar-fill" style="width:50%; background:var(--warn);"></div></div>
+    <div class="verdict">Framework present, coverage sparse</div>
+  </div>
+</div>
+
+<!-- SECTION 1: REPO STRUCTURE -->
+<div class="section">
+  <h2><span class="icon">📁</span> 1. Monorepo Structure Analysis</h2>
+  <p>
+    The repo spans 57 commits across roughly 28 top-level directories plus 30+ root-level markdown and config files.
+    The structure reflects organic, rapid iteration rather than deliberate monorepo governance. This is entirely
+    consistent with the founder-driven, neurodivergent hyperfocus build style — but it introduces navigability
+    and onboarding debt that works against the ND-first mission.
+  </p>
+
+  <div class="arch-tree">
+<span class="dir">HyperCode-V2.0/</span><br>
+├── <span class="highlight">agents/</span>                 <span class="note">← Multi-agent orchestration layer</span><br>
+├── <span class="dir">BROski Business Agents/</span>    <span class="note">← Specialised BROski agent configs</span><br>
+├── <span class="dir">Hyper-Agents-Box/</span>          <span class="note">← Agent sandbox/factory</span><br>
+├── <span class="highlight">cli/</span>                   <span class="note">← Developer CLI tooling</span><br>
+├── <span class="highlight">docker/</span>               <span class="note">← Service-level Dockerfiles</span><br>
+├── <span class="dir">docs/</span>                      <span class="note">← Architecture &amp; API docs</span><br>
+├── <span class="dir">examples/</span>                  <span class="note">← Usage examples &amp; demos</span><br>
+├── <span class="dir">hyper-mission-system/</span>       <span class="note">← Mission/quest gamification layer</span><br>
+├── <span class="dir">HyperStudio platform/</span>       <span class="note">← IDE surface / webview canvas</span><br>
+├── <span class="dir">HyperFlow-Editor</span>           <span class="note">← Flow-based visual editor (file, not dir ⚠️)</span><br>
+├── <span class="dir">k8s/</span>                       <span class="note">← Kubernetes manifests (future scale)</span><br>
+├── <span class="dir">monitoring/</span>               <span class="note">← Prometheus + Grafana dashboards</span><br>
+├── <span class="dir">nginx/</span>                     <span class="note">← Reverse proxy configs</span><br>
+├── <span class="dir">scripts/</span>                   <span class="note">← Automation scripts (PS + bash)</span><br>
+├── <span class="warn-file">secrets/</span>               <span class="note">← ⚠️ CRITICAL: should not exist in repo</span><br>
+├── <span class="dir">security/</span>                  <span class="note">← Security configs &amp; policies</span><br>
+├── <span class="dir">tests/</span>                     <span class="note">← Test suites</span><br>
+├── <span class="dir">tools/</span>                     <span class="note">← Developer tooling utilities</span><br>
+├── <span class="dir">verification/</span>              <span class="note">← Health-check &amp; verification scripts</span><br>
+├── <span class="warn-file">docker-compose.yml</span>       <span class="note">← Production compose (root-level ⚠️)</span><br>
+├── <span class="file">docker-compose.dev.yml</span><br>
+├── <span class="file">docker-compose.backup.yml</span><br>
+├── <span class="file">prometheus.yml</span>            <span class="note">← Root-level monitoring config</span><br>
+├── <span class="file">alertmanager.yml</span><br>
+├── <span class="warn-file">*.md × 30+</span>             <span class="note">← ⚠️ Root markdown sprawl — 30+ report files</span><br>
+└── <span class="file">package.json</span>              <span class="note">← Node.js workspace root
+  </div>
+
+  <div class="callout warn">
+    <strong>Structure Finding — High Priority</strong>
+    The presence of a <code>secrets/</code> directory at root is a severe security concern regardless of .gitignore status. HyperFlow-Editor and THE HYPERCODE exist as flat files (not directories), suggesting they are spec/design documents accidentally committed as untyped blobs rather than living codebases. The 30+ root-level markdown reports indicate ad-hoc AI-generated documentation accumulation without a consolidation strategy.
+  </div>
+
+  <h3>Language Distribution Assessment</h3>
+  <table>
+    <tr><th>Language</th><th>Share</th><th>Role</th><th>Health</th></tr>
+    <tr><td>Python</td><td>36.4%</td><td>FastAPI backend, agent logic, AI bridges</td><td><span class="badge badge-med">Adequate</span></td></tr>
+    <tr><td>HTML</td><td>19.3%</td><td>Frontend templates / IDE webview surfaces</td><td><span class="badge badge-high">Needs Framework</span></td></tr>
+    <tr><td>JavaScript</td><td>12.4%</td><td>Frontend interactivity, Node tooling</td><td><span class="badge badge-med">Adequate</span></td></tr>
+    <tr><td>PowerShell</td><td>10.6%</td><td>Windows-first automation (good ND fit)</td><td><span class="badge badge-low">Strength</span></td></tr>
+    <tr><td>Dockerfile</td><td>5.6%</td><td>Service containers</td><td><span class="badge badge-med">Adequate</span></td></tr>
+    <tr><td>Shell</td><td>5.4%</td><td>Linux CI scripts</td><td><span class="badge badge-high">Duplication Risk</span></td></tr>
+    <tr><td>Other</td><td>10.3%</td><td>YAML, JSON, Markdown blobs</td><td><span class="badge badge-high">Consolidate</span></td></tr>
+  </table>
+
+  <div class="callout info">
+    <strong>Positive Signal</strong>
+    10.6% PowerShell — higher than most open-source projects — reflects intentional Windows-first design for the neurodivergent indie developer audience. This is a genuine differentiator.
+  </div>
+</div>
+
+<!-- SECTION 2: ND-FIRST DESIGN -->
+<div class="section">
+  <h2><span class="icon">🧠</span> 2. Neurodivergent-First Design Assessment</h2>
+  <p>
+    HyperCode's founding philosophy is its greatest competitive moat. The README leads with lived experience — dyslexia,
+    autism, instructions that "froze" rather than clicked. This isn't UX marketing copy; it's genuine product empathy
+    that shapes architectural choices in measurable ways. However, there's a growing gap between the ND-first
+    <em>philosophy</em> and ND-first <em>implementation</em>.
+  </p>
+
+  <h3>ND Feature Presence Matrix</h3>
+  <table class="nd-table">
+    <tr>
+      <th>Feature Category</th><th>Present</th><th>Implemented</th><th>Quality</th>
+    </tr>
+    <tr>
+      <td>Step-by-step guided workflows (no scatter)</td>
+      <td>✅</td>
+      <td>Partial — docs only, not IDE-native</td>
+      <td><span class="badge badge-med">Concept</span></td>
+    </tr>
+    <tr>
+      <td>BROski empathetic AI persona</td>
+      <td>✅</td>
+      <td>Yes — core agent identity</td>
+      <td><span class="badge badge-low">Strong</span></td>
+    </tr>
+    <tr>
+      <td>Cognitive load reduction (flat structure)</td>
+      <td>⚠️</td>
+      <td>Stated goal; repo is structurally complex</td>
+      <td><span class="badge badge-high">Contradiction</span></td>
+    </tr>
+    <tr>
+      <td>Gamification / mission system</td>
+      <td>✅</td>
+      <td>hyper-mission-system directory exists</td>
+      <td><span class="badge badge-med">In Progress</span></td>
+    </tr>
+    <tr>
+      <td>Windows PowerShell-first UX</td>
+      <td>✅</td>
+      <td>Strong — backup scripts, setup scripts</td>
+      <td><span class="badge badge-low">Strong</span></td>
+    </tr>
+    <tr>
+      <td>Hyperfocus support zone</td>
+      <td>✅</td>
+      <td>hyperfocus Zone Support-Hub directory</td>
+      <td><span class="badge badge-med">Concept</span></td>
+    </tr>
+    <tr>
+      <td>Sensory-friendly UI themes</td>
+      <td>❌</td>
+      <td>No evidence in codebase</td>
+      <td><span class="badge badge-critical">Missing</span></td>
+    </tr>
+    <tr>
+      <td>WCAG 2.1 AA accessibility</td>
+      <td>❌</td>
+      <td>No audit tooling found</td>
+      <td><span class="badge badge-critical">Missing</span></td>
+    </tr>
+    <tr>
+      <td>Screen reader / AT compatibility</td>
+      <td>❌</td>
+      <td>No ARIA roles in HTML layer</td>
+      <td><span class="badge badge-critical">Missing</span></td>
+    </tr>
+    <tr>
+      <td>Dyslexia-friendly fonts / spacing</td>
+      <td>❌</td>
+      <td>Not specified in any config</td>
+      <td><span class="badge badge-high">Gap</span></td>
+    </tr>
+    <tr>
+      <td>Focus/attention management</td>
+      <td>⚠️</td>
+      <td>BROski persona hints at this</td>
+      <td><span class="badge badge-high">Under-built</span></td>
+    </tr>
+    <tr>
+      <td>ND user testing protocols</td>
+      <td>❌</td>
+      <td>No user research artifacts</td>
+      <td><span class="badge badge-critical">Missing</span></td>
+    </tr>
+  </table>
+
+  <div class="callout critical">
+    <strong>Critical Gap — ND Paradox</strong>
+    The repo's most profound tension: a project built for neurodivergent developers has a codebase that would overwhelm a neurodivergent developer trying to contribute. 30+ root-level markdown files with near-identical names (TEST_UPGRADE_*, POST_UPDATE_*, FIX_VERIFICATION_*) create exactly the cognitive scatter the project exists to eliminate. This is the #1 ND-first remediation priority.
+  </div>
+
+  <div class="callout ok">
+    <strong>Genuine Strength — Empathetic Persona Architecture</strong>
+    The BROski agent identity is architecturally novel. By embedding neurodivergent empathy into the AI persona layer rather than just the UI layer, HyperCode can deliver ND support throughout the developer experience — not just at the surface. This is a real breakthrough design decision.
+  </div>
+
+  <h3>Recommended ND-First Additions</h3>
+  <div class="findings-grid">
+    <div class="finding rec">
+      <div class="finding-tag">Recommendation</div>
+      <h4>HyperFocus Mode</h4>
+      <p>A distraction-blocking UI state that collapses the IDE to a single-task pane. Triggered by user or auto-detected via inactivity patterns. Critical for ADHD developers.</p>
+    </div>
+    <div class="finding rec">
+      <div class="finding-tag">Recommendation</div>
+      <h4>Sensory Profile System</h4>
+      <p>CSS variable-driven theme tokens for high-contrast, reduced-motion, dyslexia-friendly font (OpenDyslexic/Lexie Readable), and low-stimulation colour palettes — switchable per session.</p>
+    </div>
+    <div class="finding rec">
+      <div class="finding-tag">Recommendation</div>
+      <h4>Chunked Progress Indicators</h4>
+      <p>Replace linear progress bars with chunked milestone visualisations. Research shows ND individuals respond better to discrete completed steps than percentages.</p>
+    </div>
+    <div class="finding rec">
+      <div class="finding-tag">Recommendation</div>
+      <h4>Repo Structure Rationalisation</h4>
+      <p>Consolidate 30+ root markdown files into a <code>/docs/reports/</code> archive. Create a single <code>STATUS.md</code> entry point. Apply the same cognitive load principles the product preaches.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3: AI AGENT ARCHITECTURE -->
+<div class="section">
+  <h2><span class="icon">🤖</span> 3. AI-Driven Hyper IDE Architecture</h2>
+
+  <p>
+    The AI integration is genuinely ambitious. The system orchestrates a multi-agent network via Docker Model Runner
+    (or OpenAI-compatible backends), with Ollama providing local LLM hosting via the <code>data/ollama/</code> mount.
+    The architecture establishes three distinct agent tiers, which is architecturally sound but currently under-specified
+    in terms of failure isolation.
+  </p>
+
+  <h3>Agent Tier Architecture</h3>
+  <table>
+    <tr><th>Tier</th><th>Agent</th><th>Role</th><th>Model Backend</th><th>Risk</th></tr>
+    <tr>
+      <td>Meta</td>
+      <td>Agent X</td>
+      <td>Architect &amp; deploy sub-agents, meta-orchestration</td>
+      <td>Docker Model Runner / OpenAI</td>
+      <td><span class="badge badge-critical">SPOF</span></td>
+    </tr>
+    <tr>
+      <td>Business</td>
+      <td>BROski Agents</td>
+      <td>Domain-specific tasks, user empathy layer</td>
+      <td>Ollama (local) + cloud fallback</td>
+      <td><span class="badge badge-med">Moderate</span></td>
+    </tr>
+    <tr>
+      <td>Utility</td>
+      <td>Hyper-Agents-Box</td>
+      <td>Sandboxed tool execution, templated agents</td>
+      <td>Template-based (agent-python)</td>
+      <td><span class="badge badge-low">Low</span></td>
+    </tr>
+  </table>
+
+  <div class="callout critical">
+    <strong>Critical Risk — Agent X as Single Point of Failure</strong>
+    Agent X acts as the meta-architect for the entire agent ecosystem. If this agent enters a bad state, produces a faulty agent spec, or encounters an API error during deployment, it can cascade failures across all sub-agents. There is currently no documented circuit-breaker, health-check timeout, or rollback mechanism at this tier. This was flagged in prior analysis and has not yet been resolved.
+  </div>
+
+  <h3>Self-Modification Risk</h3>
+  <div class="callout critical">
+    <strong>Critical Risk — Autonomous Agent Self-Modification Loops</strong>
+    Agent X's stated capability to "architect, implement, and deploy specialised AI agents" introduces the possibility of recursive modification loops — where an agent modifies its own prompt or configuration based on faulty AI output, and the next invocation inherits the corruption. No guardrails, human-in-the-loop confirmations, or immutable config versioning is documented for this path.
+  </div>
+
+  <h3>Model Gateway Architecture</h3>
+  <pre>
+User Request
+     │
+     ▼
+┌─────────────────────┐
+│   FastAPI Backend   │  ← Port 8000
+│   (Model Gateway)   │
+└────────┬────────────┘
+         │  Routes to
+    ┌────┴──────────────┐
+    │                   │
+    ▼                   ▼
+┌──────────┐     ┌────────────┐
+│  Ollama  │     │ Cloud LLM  │
+│ (Local)  │     │ (Anthropic │
+│ Port ?   │     │  /OpenAI)  │
+└──────────┘     └────────────┘</pre>
+
+  <p>
+    The model gateway pattern is correct — a single FastAPI service abstracting local vs. cloud LLM routing. However, the gateway itself has no documented rate-limiting, cost controls, or request queuing. For an ND developer who may not notice a runaway loop burning API credits, this is a real quality-of-life risk.
+  </p>
+
+  <h3>Ollama Health Check Issue</h3>
+  <p>
+    The dedicated <code>OLLAMA_HEALTH_CHECK_FIX.md</code> in root confirms a known production issue with the Ollama
+    service health check — the container was reported healthy before the model was fully loaded, leading to request
+    failures at startup. This is a common Docker health-check timing issue. The fix likely involves a custom
+    <code>start_period</code> and a model-ready probe script, but it signals that the local inference layer
+    is not yet production-hardened.
+  </p>
+
+  <div class="findings-grid">
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Dual-Backend LLM Strategy</h4>
+      <p>Local Ollama + cloud fallback is excellent for ND developers — offline capability means no anxiety about connectivity during deep focus sessions.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Docker Model Runner Integration</h4>
+      <p>Leveraging Docker's native agent runtime reduces ops complexity and keeps the "under 2 minutes" quick-start promise realistic.</p>
+    </div>
+    <div class="finding weakness">
+      <div class="finding-tag">Weakness</div>
+      <h4>No Agent Observability Layer</h4>
+      <p>Prometheus/Grafana monitors infra metrics but no agent-level traces (prompt in, response out, token cost, decision path) are captured.</p>
+    </div>
+    <div class="finding weakness">
+      <div class="finding-tag">Weakness</div>
+      <h4>Missing Circuit Breakers</h4>
+      <p>No retry limits, backoff strategies, or dead-letter queues for failed agent invocations. A failing cloud API will block indefinitely.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 4: MULTI-PARADIGM COMPUTING -->
+<div class="section">
+  <h2><span class="icon">⚛️</span> 4. Multi-Paradigm Computing Assessment</h2>
+  <p>
+    The repo describes itself as "Quantum-ready" and the HyperCode language as spanning Classical, Quantum, and
+    Molecular computing paradigms. This section critically examines what is actually present versus what is aspirational.
+  </p>
+
+  <div class="callout warn">
+    <strong>Honest Assessment — Quantum/Molecular Layer is Architectural Intent, Not Implementation</strong>
+    Based on the codebase composition (Python 36%, HTML 19%, JS 12%, no Rust/Haskell/Q# signals), the quantum and molecular computing features are currently design-level aspirations. There is no evidence of a Qiskit, Cirq, or OpenQASM integration in the tracked files, and no DNA/molecular simulation library bindings. This is not a criticism — it's the correct phased approach — but the roadmap must be explicit about this distinction to avoid contributor confusion.
+  </div>
+
+  <h3>HyperCode Language Architecture — What Exists vs What's Planned</h3>
+  <table>
+    <tr><th>Paradigm Layer</th><th>Status</th><th>Evidence</th><th>Maturity</th></tr>
+    <tr>
+      <td>Classical (Python-backed)</td>
+      <td>✅ Present</td>
+      <td>FastAPI backend, agent-python templates, Python 36%</td>
+      <td><span class="badge badge-low">Functional</span></td>
+    </tr>
+    <tr>
+      <td>AI-Augmented Classical</td>
+      <td>✅ Present</td>
+      <td>Multi-agent system, Ollama, model gateway</td>
+      <td><span class="badge badge-med">In Progress</span></td>
+    </tr>
+    <tr>
+      <td>Visual / Flow-Based</td>
+      <td>⚠️ Partial</td>
+      <td>HyperFlow-Editor referenced but is a flat file</td>
+      <td><span class="badge badge-high">Design Stage</span></td>
+    </tr>
+    <tr>
+      <td>Quantum (Simulation)</td>
+      <td>❌ Not Yet</td>
+      <td>Claimed in README, no implementation found</td>
+      <td><span class="badge badge-critical">Roadmap Only</span></td>
+    </tr>
+    <tr>
+      <td>Molecular / DNA Computing</td>
+      <td>❌ Not Yet</td>
+      <td>Referenced in branding, no library bindings</td>
+      <td><span class="badge badge-critical">Roadmap Only</span></td>
+    </tr>
+  </table>
+
+  <h3>Recommended Quantum Integration Path</h3>
+  <pre>
+# Phase 1: Quantum-Enhanced Entropy (already designed for HyperCode Quantum)
+pip install qiskit  # OR cirq for lightweight simulation
+# Use 8-qubit circuit → classical CSPRNG seeding
+# Honest framing: "quantum-enhanced randomness", not "quantum computing"
+
+# Phase 2: Qiskit simulation integration
+from qiskit import QuantumCircuit, transpile
+from qiskit_aer import AerSimulator
+
+# Phase 3: OpenQASM 3.0 syntax in HyperCode language spec
+# quantum block { ... } syntax with transpile-to-Qiskit compiler pass</pre>
+
+  <div class="callout ok">
+    <strong>Prior Work Leveraged</strong>
+    The HyperCode Quantum module design (8-qubit entropy seeding, VS Code webview canvas, Phi-3-mini local agent) is architecturally elegant and <em>honest</em> about what quantum hardware currently provides. This framing should be carried forward as the quantum layer's public contract.
+  </div>
+</div>
+
+<!-- SECTION 5: INFRA & DEVOPS -->
+<div class="section">
+  <h2><span class="icon">🐳</span> 5. Infrastructure & DevOps Architecture</h2>
+
+  <h3>Docker Compose Stack</h3>
+  <p>Three compose files exist at root: production, dev, and backup. The services span: FastAPI backend (port 8000),
+  Next.js frontend (port 3000), Grafana (3001), Prometheus (9090), Nginx reverse proxy, Ollama LLM runtime,
+  PostgreSQL, Redis, and Chroma vector store. This is a 9-service stack on a single Docker Compose orchestrator.</p>
+
+  <div class="callout critical">
+    <strong>Critical Scalability Bottleneck — Docker Compose Ceiling</strong>
+    A 9-service stack with an embedded LLM runtime (Ollama) will saturate a standard developer machine (16GB RAM) under moderate load. Ollama alone requires 4–8GB for typical 7B models. Grafana + Prometheus + Chroma + PostgreSQL + Redis + FastAPI on the same host is not viable for production traffic. The <code>k8s/</code> directory exists but appears underutilised — the migration path from Compose to K8s needs to be a near-term priority, not a future aspiration.
+  </div>
+
+  <h3>CI/CD Pipeline Assessment</h3>
+  <p>
+    The <code>.github/</code> directory contains GitHub Actions workflows. Based on prior analysis, an 8-stage
+    pipeline was designed (lint → type-check → unit test → integration test → security scan → Docker build →
+    smoke test → deploy). The Playwright CI workflow in the related Hyper-Vibe-Coding-Course repo was confirmed
+    broken; the same pattern risk applies here.
+  </p>
+
+  <table>
+    <tr><th>Pipeline Stage</th><th>Status</th><th>Risk</th></tr>
+    <tr><td>Lint &amp; Format</td><td>⚠️ Assumed via .husky hooks</td><td><span class="badge badge-med">Medium</span></td></tr>
+    <tr><td>Type Checking (mypy/pyright)</td><td>❓ Unknown</td><td><span class="badge badge-high">High</span></td></tr>
+    <tr><td>Unit Tests</td><td>⚠️ tests/ dir exists, coverage unknown</td><td><span class="badge badge-high">High</span></td></tr>
+    <tr><td>Integration Tests</td><td>❌ No evidence</td><td><span class="badge badge-critical">Critical</span></td></tr>
+    <tr><td>Security Scan (Dependabot)</td><td>✅ Active — 2 open PRs</td><td><span class="badge badge-low">Addressed</span></td></tr>
+    <tr><td>Docker Build &amp; Push</td><td>✅ Dockerfile.production exists</td><td><span class="badge badge-low">Low</span></td></tr>
+    <tr><td>E2E / Smoke Tests</td><td>❓ verification/ exists</td><td><span class="badge badge-high">High</span></td></tr>
+    <tr><td>Deploy Gate</td><td>⚠️ Manual based on docs</td><td><span class="badge badge-high">High</span></td></tr>
+  </table>
+
+  <div class="callout ok">
+    <strong>Positive Signal — Dependabot Active</strong>
+    Two active Dependabot PRs (pydantic-settings 2.1.0 → 2.13.1 and Python base image 3.11-slim → 3.14-slim) confirm automated dependency security is configured and working. The Python base image bump should be merged carefully — 3.14 is still in pre-release as of early 2026; 3.12-slim is the recommended production target.
+  </div>
+
+  <h3>Secrets Management — CRITICAL</h3>
+  <div class="callout critical">
+    <strong>Critical Security Risk — Secrets Directory</strong>
+    A <code>secrets/</code> directory exists at repository root. Even if currently gitignored, its presence in the repo structure communicates a pattern where secrets live adjacent to code. For a project that claims "Quantum-ready" and "AI-ready" security posture, this is a fundamental violation of secrets hygiene. Immediate action: remove <code>secrets/</code>, implement HashiCorp Vault or GitHub Actions Secrets + environment injection, add <code>secrets/</code> to <code>.gitignore</code> with a pre-commit hook that detects credential patterns.
+  </div>
+
+  <h3>Monitoring Stack</h3>
+  <p>
+    Prometheus + Grafana + Alertmanager at root level is a solid observability foundation. The
+    <code>alert.rules.yml</code> confirms alerting is configured. However, the monitoring stack is
+    configured at the infrastructure layer only — there are no application-level custom metrics
+    for agent token consumption, inference latency, or ND-relevant UX metrics (session length,
+    task completion rates, context-switch frequency).
+  </p>
+</div>
+
+<!-- SECTION 6: RISK MATRIX -->
+<div class="section">
+  <h2><span class="icon">⚠️</span> 6. Risk Matrix</h2>
+
+  <div class="risk-row">
+    <div class="risk-icon c">🔴</div>
+    <div class="risk-body">
+      <div class="risk-title">R1 — Secrets Directory at Repository Root <span class="badge badge-critical" style="margin-left:0.5rem">CRITICAL</span></div>
+      <p class="risk-desc">The <code>secrets/</code> directory represents a secrets-adjacent-to-code anti-pattern. If any credential ever lands here and is committed, it is immediately public. Likelihood: High. Impact: Catastrophic (API key exposure, database credential leak).</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon c">🔴</div>
+    <div class="risk-body">
+      <div class="risk-title">R2 — Agent X SPOF + Self-Modification Loop <span class="badge badge-critical" style="margin-left:0.5rem">CRITICAL</span></div>
+      <p class="risk-desc">No circuit breaker, rollback mechanism, or human-in-the-loop gate on Agent X's deploy path. A runaway agent could corrupt the entire agent configuration set. Likelihood: Medium. Impact: Critical (full platform outage).</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon c">🔴</div>
+    <div class="risk-body">
+      <div class="risk-title">R3 — Docker Compose Scalability Ceiling <span class="badge badge-critical" style="margin-left:0.5rem">CRITICAL</span></div>
+      <p class="risk-desc">9-service stack with embedded LLM will OOM on standard hardware under load. No horizontal scaling path within Compose. Likelihood: Certain at &gt;10 concurrent users. Impact: High (performance degradation, service crashes).</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon h">🟡</div>
+    <div class="risk-body">
+      <div class="risk-title">R4 — Python 3.14 Base Image (Dependabot PR) <span class="badge badge-high" style="margin-left:0.5rem">HIGH</span></div>
+      <p class="risk-desc">Open Dependabot PR bumps Python to 3.14-slim which is pre-release. Merging this will break production. Should target 3.12-slim instead. Likelihood: High if auto-merged. Impact: High (build failures, runtime incompatibilities).</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon h">🟡</div>
+    <div class="risk-body">
+      <div class="risk-title">R5 — Ollama Health Check Race Condition <span class="badge badge-high" style="margin-left:0.5rem">HIGH</span></div>
+      <p class="risk-desc">Model loading completes after container reports healthy, causing failed inference requests during warm-up. Documented but not confirmed fixed. Impacts all ND users who expect reliable "under 2 minutes" startup.</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon h">🟡</div>
+    <div class="risk-body">
+      <div class="risk-title">R6 — Quantum/Molecular Claims vs. Reality Gap <span class="badge badge-high" style="margin-left:0.5rem">HIGH</span></div>
+      <p class="risk-desc">Repo markets "Quantum-ready | Open source revolution" but no quantum implementation exists. For an ND audience that trusts direct communication, feature overclaiming damages trust. Roadmap must clearly distinguish "built" from "planned".</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon m">🔵</div>
+    <div class="risk-body">
+      <div class="risk-title">R7 — Root Markdown Document Sprawl <span class="badge badge-med" style="margin-left:0.5rem">MEDIUM</span></div>
+      <p class="risk-desc">30+ report documents at root undermine the ND-first promise of low cognitive load. New contributors — especially ND contributors — will struggle to orient. Fixable with simple reorganisation.</p>
+    </div>
+  </div>
+
+  <div class="risk-row">
+    <div class="risk-icon m">🔵</div>
+    <div class="risk-body">
+      <div class="risk-title">R8 — No WCAG Accessibility Compliance <span class="badge badge-med" style="margin-left:0.5rem">MEDIUM</span></div>
+      <p class="risk-desc">A neurodivergent-first IDE with no documented ARIA roles, colour contrast testing, or screen reader support is architecturally inconsistent with its mission statement. Medium likelihood this blocks adoption by users with compound disabilities.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 7: STRENGTHS -->
+<div class="section">
+  <h2><span class="icon">💪</span> 7. Architectural Strengths</h2>
+
+  <div class="findings-grid">
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Genuine Founding Philosophy</h4>
+      <p>ND-first design rooted in lived experience (dyslexia + autism) gives this project authentic differentiation that cannot be copied by neurotypical teams. The README's vulnerability is a product strength.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>BROski Persona Architecture</h4>
+      <p>Embedding empathy into the AI agent persona layer is architecturally novel — the support experience is consistent across the entire developer workflow, not just the onboarding UI.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Local-First LLM (Ollama)</h4>
+      <p>Offline AI capability reduces anxiety for ND developers, eliminates API cost surprises, and enables deep focus sessions without connectivity dependency.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Windows / PowerShell First</h4>
+      <p>10.6% of codebase is PowerShell — a deliberate choice to serve the Windows-using ND community that mainstream dev tools routinely exclude.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Full Observability Stack</h4>
+      <p>Prometheus + Grafana + Alertmanager is production-grade monitoring from day one. Most indie projects skip this entirely.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Dependabot Active</h4>
+      <p>Automated dependency security scanning is configured and producing results — a security hygiene baseline many larger projects lack.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Mission/Gamification System</h4>
+      <p>The hyper-mission-system directory signals an XP/achievement layer. Gamification dramatically improves task completion and motivation for ADHD developers — this is evidence-based ND design.</p>
+    </div>
+    <div class="finding strength">
+      <div class="finding-tag">Strength</div>
+      <h4>Devcontainer Support</h4>
+      <p>The <code>.devcontainer/</code> config enables zero-friction onboarding via GitHub Codespaces or VS Code Dev Containers — critical for ND developers where "setup hell" is a major dropout point.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 8: TECHNICAL DEBT -->
+<div class="section">
+  <h2><span class="icon">🏚️</span> 8. Technical Debt Catalogue</h2>
+
+  <div class="findings-grid">
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>HyperFlow-Editor as Flat File</h4>
+      <p><code>HyperFlow-Editor</code> and <code>THE HYPERCODE</code> are flat files (not directories), suggesting spec documents accidentally committed without extension. Should be in <code>/docs/specs/</code>.</p>
+    </div>
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>Root-Level Config Sprawl</h4>
+      <p><code>prometheus.yml</code>, <code>alertmanager.yml</code>, <code>alert.rules.yml</code> at root should live in <code>/monitoring/</code> for consistency with the existing directory structure.</p>
+    </div>
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>Dual Script Coverage (PS + Bash)</h4>
+      <p>Both <code>backup_hypercode.ps1</code> and <code>backup_hypercode.sh</code> exist with (presumably) equivalent logic. This creates dual maintenance burden. Abstract behind a Makefile or cross-platform Node script.</p>
+    </div>
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>HTML 19% — No Framework</h4>
+      <p>Raw HTML templates at 19.3% of the codebase suggest UI work happened before a frontend framework was chosen. This will become increasingly painful as the IDE surface grows.</p>
+    </div>
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>pydantic-settings v2.1 → v2.13</h4>
+      <p>12 minor versions of drift (open Dependabot PR). The pydantic v2 migration path introduced breaking changes at several minor versions. Careful testing needed before merge.</p>
+    </div>
+    <div class="finding debt">
+      <div class="finding-tag">Technical Debt</div>
+      <h4>Spaces in Directory Names</h4>
+      <p>"BROski Business Agents", "HyperStudio platform", "hyperfocus Zone Support-Hub" contain spaces — causes escaping issues in shell scripts, CI pipelines, and cross-platform tooling.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 9: ROADMAP -->
+<div class="section">
+  <h2><span class="icon">🗺️</span> 9. Recommended Remediation Roadmap</h2>
+
+  <div class="roadmap-phase">
+    <div class="phase-label">Phase 1 · Weeks 1–2 · Security &amp; Stability</div>
+    <div class="phase-title">🔐 Stop the Bleeding</div>
+    <ul class="phase-items">
+      <li>Audit and remove <code>secrets/</code> directory; implement proper secrets injection via GitHub Secrets + Docker secrets</li>
+      <li>Block Dependabot Python 3.14 PR; redirect to Python 3.12-slim target</li>
+      <li>Merge pydantic-settings bump with full test suite validation</li>
+      <li>Fix Ollama health check race condition with model-ready probe script</li>
+      <li>Add Agent X circuit breaker: max retry limit + human confirmation gate for deploy operations</li>
+      <li>Rename all spaced directories (replace spaces with hyphens)</li>
+    </ul>
+  </div>
+
+  <div class="roadmap-phase phase2">
+    <div class="phase-label">Phase 2 · Weeks 3–4 · ND-First Remediation</div>
+    <div class="phase-title">🧠 Walk the Talk</div>
+    <ul class="phase-items">
+      <li>Consolidate 30+ root markdown files into <code>/docs/reports/archive/</code></li>
+      <li>Create single <code>STATUS.md</code> entry-point linked from README</li>
+      <li>Add CSS variable-driven sensory profile system (high-contrast, reduced-motion, dyslexia font)</li>
+      <li>Implement WCAG 2.1 AA audit tooling (axe-core or Lighthouse CI)</li>
+      <li>Move <code>prometheus.yml</code>, <code>alertmanager.yml</code>, <code>alert.rules.yml</code> into <code>/monitoring/</code></li>
+      <li>Unify PS + bash backup scripts behind Makefile targets</li>
+    </ul>
+  </div>
+
+  <div class="roadmap-phase phase3">
+    <div class="phase-label">Phase 3 · Weeks 5–8 · Architecture Evolution</div>
+    <div class="phase-title">🚀 Scale &amp; Expand</div>
+    <ul class="phase-items">
+      <li>Design K8s migration path: identify which services move first (Ollama → dedicated node, Chroma → StatefulSet)</li>
+      <li>Implement agent-level observability: token cost tracking, inference latency metrics, BROski conversation quality scores</li>
+      <li>Build HyperFocus Mode UI: single-task distraction-blocking pane with auto-save context</li>
+      <li>Integrate Qiskit simulation as the quantum entropy layer (8-qubit classical CSPRNG seeding)</li>
+      <li>Add ARIA roles to all HTML surfaces; implement screen reader compatibility testing in CI</li>
+      <li>Define and publish HyperCode Language Spec v0.1 as a proper spec document (not a flat committed file)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- SECTION 10: CONCLUSION -->
+<div class="section">
+  <h2><span class="icon">🏁</span> 10. Conclusion</h2>
+  <p>
+    HyperCode V2.0 is a rare thing in the developer tools space: a project with genuine moral purpose and
+    architectural ambition that backs its philosophy with technical choices. The Windows-first PowerShell
+    posture, local-first LLM via Ollama, BROski empathetic agent persona, and devcontainer onboarding
+    are all evidence that the ND-first mission drives real engineering decisions — not just marketing copy.
+  </p>
+  <p>
+    The project's current state is best described as <strong>vision-complete, implementation-partial</strong>.
+    The three critical risks (secrets hygiene, Agent X SPOF, Docker Compose ceiling) are real blockers
+    that must be resolved before any public launch. The ND-first paradox — a project for ND developers
+    that currently overwhelms ND developers with its own repo complexity — is the most ironic and most
+    fixable problem in the entire codebase.
+  </p>
+  <p>
+    The quantum and molecular computing features are roadmap aspirations, not shipped capabilities. This
+    is fine and should be stated clearly. The honest "quantum-enhanced entropy" framing developed for
+    HyperCode Quantum is exactly the right model: ambitious, technically grounded, and honest about
+    current hardware realities.
+  </p>
+
+  <div class="callout ok">
+    <strong>Final Verdict</strong>
+    With 3–4 weeks of focused remediation targeting the security, stability, and ND-consistency issues identified in this report, HyperCode V2.0 will be ready for a public beta. The architectural bones are solid. The founding philosophy is irreplaceable. The main task now is making the codebase live up to the values the README preaches. 🔥
+  </div>
+</div>
+
+<hr>
+
+<div class="report-footer">
+  <span>HyperCode V2.0 — Architectural Review Report</span>
+  <span>Generated: March 23, 2026</span>
+  <span>Repo: welshDog/HyperCode-V2.0 · 57 commits analysed</span>
+</div>
+
+</body>
+</html>

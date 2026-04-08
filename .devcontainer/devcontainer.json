@@ -1,0 +1,29 @@
+
+{
+  "name": "HyperCode Dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-node-20",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "postCreateCommand": "npm install && pip install -r requirements.txt",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "esbenp.prettier-vscode",
+        "GitHub.copilot",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "forwardPorts": [3000, 5000, 5173, 8000, 5432, 6379],
+  "portsAttributes": {
+    "3000": {"label": "Broski Terminal", "onAutoForward": "notify"},
+    "5000": {"label": "Hyper Agents Box", "onAutoForward": "notify"},
+    "5173": {"label": "HyperFlow Editor", "onAutoForward": "notify"},
+    "8000": {"label": "HyperCode Core", "onAutoForward": "notify"}
+  },
+  "remoteUser": "vscode"
+}

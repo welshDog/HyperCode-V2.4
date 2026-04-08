@@ -1,0 +1,311 @@
+# ============================================================================
+# Dockerfile - Production Container
+# ============================================================================
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN pip install poetry==1.7.1
+
+# Copy dependency files
+COPY pyproject.toml poetry.lock ./
+
+# Install dependencies
+RUN poetry config virtualenvs.create false \
+    && poetry install --no-dev --no-interaction --no-ansi
+
+# Copy application code
+COPY src/ ./src/
+COPY migrations/ ./migrations/
+
+# Create non-root user
+RUN useradd -m -u 1000 broski && chown -R broski:broski /app
+USER broski
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import asyncio; from src.core.database import db; asyncio.run(db.health_check())" || exit 1
+
+# Run application
+CMD ["python", "-m", "src.main"]
+
+
+# ============================================================================
+# docker-compose.yml - Local Development Stack
+# ============================================================================
+# version: '3.8'
+# 
+# services:
+#   postgres:
+#     image: postgres:15-alpine
+#     container_name: broski-postgres
+#     environment:
+#       POSTGRES_DB: broski_bot
+#       POSTGRES_USER: broski
+#       POSTGRES_PASSWORD: broski_password
+#     ports:
+#       - "5432:5432"
+#     volumes:
+#       - postgres_data:/var/lib/postgresql/data
+#     healthcheck:
+#       test: ["CMD-SHELL", "pg_isready -U broski"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#   
+#   redis:
+#     image: redis:7-alpine
+#     container_name: broski-redis
+#     ports:
+#       - "6379:6379"
+#     volumes:
+#       - redis_data:/data
+#     healthcheck:
+#       test: ["CMD", "redis-cli", "ping"]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#   
+#   broski-bot:
+#     build:
+#       context: .
+#       dockerfile: Dockerfile
+#     container_name: broski-bot
+#     env_file:
+#       - .env
+#     environment:
+#       DATABASE_URL: postgresql+asyncpg://broski:broski_password@postgres:5432/broski_bot
+#       REDIS_URL: redis://redis:6379
+#     depends_on:
+#       postgres:
+#         condition: service_healthy
+#       redis:
+#         condition: service_healthy
+#     restart: unless-stopped
+#     volumes:
+#       - ./logs:/app/logs
+#   
+#   prometheus:
+#     image: prom/prometheus:latest
+#     container_name: broski-prometheus
+#     ports:
+#       - "9090:9090"
+#     volumes:
+#       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+#       - prometheus_data:/prometheus
+#     command:
+#       - '--config.file=/etc/prometheus/prometheus.yml'
+#       - '--storage.tsdb.path=/prometheus'
+#   
+#   grafana:
+#     image: grafana/grafana:latest
+#     container_name: broski-grafana
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       GF_SECURITY_ADMIN_PASSWORD: admin
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+#     depends_on:
+#       - prometheus
+# 
+# volumes:
+#   postgres_data:
+#   redis_data:
+#   prometheus_data:
+#   grafana_data:
+# 
+# networks:
+#   default:
+#     name: broski-network
+
+
+# ============================================================================
+# .github/workflows/ci.yml - CI/CD Pipeline
+# ============================================================================
+# name: CI/CD Pipeline
+# 
+# on:
+#   push:
+#     branches: [main, develop]
+#   pull_request:
+#     branches: [main, develop]
+# 
+# jobs:
+#   test:
+#     name: Test & Lint
+#     runs-on: ubuntu-latest
+#     
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_DB: broski_test
+#           POSTGRES_USER: test
+#           POSTGRES_PASSWORD: test
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 5432:5432
+#     
+#     steps:
+#       - uses: actions/checkout@v4
+#       
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.11'
+#       
+#       - name: Install Poetry
+#         run: |
+#           pip install poetry==1.7.1
+#           poetry config virtualenvs.create false
+#       
+#       - name: Install dependencies
+#         run: poetry install
+#       
+#       - name: Run linting
+#         run: |
+#           black --check src/ tests/
+#           isort --check-only src/ tests/
+#           flake8 src/ tests/
+#           mypy src/
+#       
+#       - name: Run security scan
+#         run: bandit -r src/
+#       
+#       - name: Run tests
+#         env:
+#           DATABASE_URL: postgresql+asyncpg://test:test@localhost:5432/broski_test
+#           REDIS_URL: redis://localhost:6379
+#         run: pytest --cov --cov-report=xml --cov-report=term
+#       
+#       - name: Upload coverage
+#         uses: codecov/codecov-action@v3
+#         with:
+#           file: ./coverage.xml
+#   
+#   build:
+#     name: Build & Push Docker Image
+#     runs-on: ubuntu-latest
+#     needs: test
+#     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+#     
+#     steps:
+#       - uses: actions/checkout@v4
+#       
+#       - name: Set up Docker Buildx
+#         uses: docker/setup-buildx-action@v3
+#       
+#       - name: Login to DockerHub
+#         uses: docker/login-action@v3
+#         with:
+#           username: ${{ secrets.DOCKER_USERNAME }}
+#           password: ${{ secrets.DOCKER_PASSWORD }}
+#       
+#       - name: Build and push
+#         uses: docker/build-push-action@v5
+#         with:
+#           context: .
+#           push: true
+#           tags: |
+#             welshdog/broski-bot:latest
+#             welshdog/broski-bot:${{ github.sha }}
+#           cache-from: type=gha
+#           cache-to: type=gha,mode=max
+#   
+#   deploy:
+#     name: Deploy to Production
+#     runs-on: ubuntu-latest
+#     needs: build
+#     if: github.ref == 'refs/heads/main'
+#     
+#     steps:
+#       - name: Deploy to server
+#         uses: appleboy/ssh-action@v1.0.0
+#         with:
+#           host: ${{ secrets.DEPLOY_HOST }}
+#           username: ${{ secrets.DEPLOY_USER }}
+#           key: ${{ secrets.DEPLOY_KEY }}
+#           script: |
+#             cd /opt/broski-bot
+#             docker-compose pull
+#             docker-compose up -d
+#             docker-compose logs --tail=50
+
+
+# ============================================================================
+# Makefile - Development Commands
+# ============================================================================
+# .PHONY: help install test lint format run clean docker-build docker-up
+# 
+# help:
+# 	@echo "BROski-Bot Development Commands"
+# 	@echo "================================"
+# 	@echo "install      - Install dependencies"
+# 	@echo "test         - Run tests with coverage"
+# 	@echo "lint         - Run linters"
+# 	@echo "format       - Format code"
+# 	@echo "run          - Run bot locally"
+# 	@echo "migrate      - Run database migrations"
+# 	@echo "docker-build - Build Docker image"
+# 	@echo "docker-up    - Start Docker stack"
+# 	@echo "clean        - Clean build artifacts"
+# 
+# install:
+# 	poetry install
+# 	poetry run pre-commit install
+# 
+# test:
+# 	poetry run pytest --cov --cov-report=html --cov-report=term
+# 
+# lint:
+# 	poetry run black --check src/ tests/
+# 	poetry run isort --check-only src/ tests/
+# 	poetry run flake8 src/ tests/
+# 	poetry run mypy src/
+# 	poetry run bandit -r src/
+# 
+# format:
+# 	poetry run black src/ tests/
+# 	poetry run isort src/ tests/
+# 
+# run:
+# 	poetry run python -m src.main
+# 
+# migrate:
+# 	poetry run alembic upgrade head
+# 
+# docker-build:
+# 	docker build -t broski-bot:latest .
+# 
+# docker-up:
+# 	docker-compose up -d
+# 
+# docker-down:
+# 	docker-compose down
+# 
+# docker-logs:
+# 	docker-compose logs -f broski-bot
+# 
+# clean:
+# 	find . -type d -name __pycache__ -exec rm -rf {} +
+# 	find . -type f -name "*.pyc" -delete
+# 	rm -rf .pytest_cache .coverage htmlcov/ dist/ build/

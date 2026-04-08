@@ -1,0 +1,28 @@
+{
+  "name": "nd_safe_plugin",
+  "version": "0.1.0",
+  "author": "Your Name",
+  "nd_metadata": {
+    "cognitive_load": "low",
+    "distraction_level": "minimal",
+    "supports_reduced_motion": true,
+    "keyboard_navigable": true,
+    "screen_reader_tested": false,
+    "sensory_profile_aware": true
+  },
+  "tools": [
+    {
+      "name": "focus.start",
+      "description": "Start a focus session with low-distraction defaults.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "minutes": { "type": "integer", "minimum": 1, "maximum": 240, "default": 25 },
+          "mode": { "type": "string", "enum": ["calm", "focus", "energise"], "default": "focus" }
+        },
+        "required": ["minutes"]
+      }
+    }
+  ]
+}
+

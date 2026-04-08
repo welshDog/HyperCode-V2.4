@@ -1,0 +1,78 @@
+
+name: Performance Testing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Load Testing Tools
+        run: |
+          pip install locust
+
+      - name: Start Application Stack
+        run: |
+          docker compose build hypercode-core
+          docker compose up -d hypercode-core redis
+          sleep 10 # Wait for startup
+
+      - name: Run Locust Load Test
+        run: |
+          # Run headless load test
+          # Users: 50, Spawn Rate: 5, Duration: 1m
+          # Host: localhost:8000 (Forwarded from Docker)
+          locust -f tests/load/locustfile.py \
+            --headless \
+            -u 50 -r 5 \
+            --run-time 1m \
+            --host http://localhost:8000 \
+            --csv=load_test_results \
+            --exit-code-on-error 0 # Don't fail immediately, parse results later
+
+      - name: Analyze Results & Enforce Thresholds
+        run: |
+          python3 -c "
+          import csv
+          import sys
+          
+          THRESHOLD_AVG_MS = 200
+          THRESHOLD_FAIL_RATE = 1.0
+          
+          with open('load_test_results_stats.csv', 'r') as f:
+              reader = csv.DictReader(f)
+              rows = list(reader)
+              # Last row is usually 'Aggregated'
+              agg = rows[-1]
+              
+              avg_resp = float(agg['Average Response Time'])
+              fail_rate = float(agg['Failure Rate'].replace('%', ''))
+              
+              print(f'Average Response Time: {avg_resp}ms')
+              print(f'Failure Rate: {fail_rate}%')
+              
+              if avg_resp > THRESHOLD_AVG_MS:
+                  print(f'❌ FAILED: Response time > {THRESHOLD_AVG_MS}ms')
+                  sys.exit(1)
+                  
+              if fail_rate > THRESHOLD_FAIL_RATE:
+                  print(f'❌ FAILED: Failure rate > {THRESHOLD_FAIL_RATE}%')
+                  sys.exit(1)
+                  
+              print('✅ PERFORMANCE CHECK PASSED')
+          "
+
+      - name: Upload Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-report
+          path: load_test_results_*.csv

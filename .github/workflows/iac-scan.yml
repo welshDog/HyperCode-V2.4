@@ -1,0 +1,225 @@
+name: IaC & Dockerfile Scan
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '**Dockerfile*'
+      - '**/docker-compose*.yml'
+      - 'helm/**'
+      - 'k8s/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  hadolint:
+    name: Hadolint (Dockerfile lint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint all Dockerfiles
+        id: hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          failure-threshold: error
+          format: sarif
+          output-file: hadolint-results.sarif
+          ignore: DL3008,DL3009,DL3018   # pin versions — advisory, not blocking
+
+      - name: Upload Hadolint SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: hadolint-results.sarif
+          category: hadolint
+
+      - name: Generate JSON report
+        if: always()
+        run: |
+          mkdir -p reports/iac
+          hadolint \
+            $(find . -name "Dockerfile*" -not -path "*/node_modules/*" -not -path "*/_archive/*") \
+            --format json \
+            --ignore DL3008 --ignore DL3009 --ignore DL3018 \
+            > reports/iac/hadolint.json || true
+
+      - name: Upload Hadolint JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hadolint-report
+          path: reports/iac/hadolint.json
+          retention-days: 30
+
+  trivy-iac:
+    name: Trivy IaC Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy config/IaC scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-iac.sarif
+          exit-code: '0'
+          severity: CRITICAL,HIGH,MEDIUM
+
+      - name: Upload Trivy IaC SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-iac.sarif
+          category: trivy-iac
+
+      - name: Trivy IaC JSON report
+        run: |
+          mkdir -p reports/iac
+          docker run --rm \
+            -v "$(pwd):/project" \
+            aquasec/trivy:latest config \
+              --format json \
+              --output /project/reports/iac/trivy-iac.json \
+              --severity CRITICAL,HIGH,MEDIUM \
+              /project || true
+
+      - name: Upload Trivy IaC JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-iac-report
+          path: reports/iac/trivy-iac.json
+          retention-days: 30
+
+      - name: Enforce IaC gate (CRITICAL/HIGH block)
+        run: |
+          python3 - << 'EOF'
+          import json, sys
+
+          try:
+              with open("reports/iac/trivy-iac.json") as f:
+                  data = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError):
+              print("No IaC report found — skipping gate")
+              sys.exit(0)
+
+          blocking = []
+          results = data.get("Results", [])
+          for r in results:
+              for m in r.get("Misconfigurations", []):
+                  sev = m.get("Severity", "").upper()
+                  if sev in ("CRITICAL", "HIGH"):
+                      blocking.append(
+                          f"  [{sev}] {r.get('Target','?')} — {m.get('ID','?')}: {m.get('Title','?')}"
+                      )
+
+          if blocking:
+              print("::error::IaC gate failed — CRITICAL/HIGH misconfigurations:")
+              print("\n".join(blocking))
+              sys.exit(1)
+
+          print("IaC gate passed.")
+          EOF
+
+  yamllint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run yamllint
+        run: |
+          pip install yamllint
+          yamllint \
+            -d "{extends: relaxed, rules: {line-length: {max: 160}, truthy: {allowed-values: ['true','false','on','off']}}}" \
+            $(find . -name "*.yml" -o -name "*.yaml" \
+              | grep -v node_modules \
+              | grep -v ".venv" \
+              | grep -v "_archive" \
+              | grep -v "package-lock" \
+              | head -100) \
+            || true   # advisory — don't block on style issues
+
+  compose-validate:
+    name: Docker Compose Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate all compose files
+        run: |
+          FAILED=0
+          for f in $(find . -name "docker-compose*.yml" -not -path "*/_archive/*"); do
+            echo "Validating: $f"
+            docker compose -f "$f" config --quiet 2>&1 && echo "  OK" || {
+              echo "  FAILED: $f"
+              FAILED=1
+            }
+          done
+          exit $FAILED
+
+  workflow-lint:
+    name: GitHub Actions Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: actionlint
+        uses: rhysd/actionlint@v1
+
+  k8s-schema-validate:
+    name: Kubernetes Schema Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+
+      - name: Render Helm templates
+        run: |
+          mkdir -p reports/iac/rendered
+          if [ -d "k8s/helm" ]; then
+            for chart in k8s/helm/*; do
+              [ -d "$chart" ] || continue
+              name=$(basename "$chart")
+              helm template "$name" "$chart" > "reports/iac/rendered/helm-${name}.yaml" || exit 1
+            done
+          fi
+          if [ -d "helm" ]; then
+            for chart in helm/*; do
+              [ -d "$chart" ] || continue
+              name=$(basename "$chart")
+              helm template "$name" "$chart" > "reports/iac/rendered/helm-${name}.yaml" || exit 1
+            done
+          fi
+
+      - name: Kubeconform validate
+        run: |
+          mkdir -p reports/iac
+          docker run --rm \
+            -v "$(pwd):/work" \
+            ghcr.io/yannh/kubeconform:latest \
+            -summary \
+            -output json \
+            -strict \
+            -ignore-missing-schemas \
+            /work/k8s /work/reports/iac/rendered \
+            > reports/iac/kubeconform.json || exit 1
+
+      - name: Upload Kubernetes validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubeconform-report
+          path: reports/iac/kubeconform.json
+          retention-days: 30

@@ -1,0 +1,142 @@
+# ============================================================
+# HyperHealth Compose Override
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.hyperhealth.yml up -d
+# ============================================================
+
+services:
+
+  # ── HyperHealth Orchestrator API ────────────────────────────────────────────────
+  hyperhealth-api:
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-api
+    container_name: hyperhealth-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8095:8090"
+
+    environment:
+      - PORT=8090
+      # asyncpg dialect — REQUIRED for SQLAlchemy async
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+      - CREW_URL=http://crew-orchestrator:8080
+      # CRIT-2: no default fallback — must be set explicitly
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    networks:
+      - backend-net
+      - data-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Bumped to 60s — FastAPI + asyncpg pool init takes ~15-20s on cold start
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "hypercode.service=hyperhealth-api"
+      - "hypercode.role=health-orchestrator"
+
+  # ── HyperHealth Async Worker Pool ───────────────────────────────────────────────
+  hyperhealth-worker:
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-worker
+    container_name: hyperhealth-worker
+    restart: unless-stopped
+    command: ["python", "-m", "worker"]
+    environment:
+      # asyncpg dialect — REQUIRED
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - WORKER_CONCURRENCY=50
+      - CHECK_BATCH_SIZE=100
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    networks:
+      - backend-net
+      - data-net
+    depends_on:
+      hyperhealth-api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # CRIT-4 fix: worker runs no HTTP server — check Redis heartbeat key instead
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - |
+          import redis, sys
+          r = redis.from_url('redis://redis:6379/0', socket_timeout=5)
+          val = r.get('hyperhealth:worker:heartbeat')
+          sys.exit(0 if val else 1)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "hypercode.service=hyperhealth-worker"
+      - "hypercode.role=check-executor"
+
+networks:
+  backend-net:
+    name: hypercode_public_net
+    external: true
+  data-net:
+    name: hypercode_data_net
+    external: true

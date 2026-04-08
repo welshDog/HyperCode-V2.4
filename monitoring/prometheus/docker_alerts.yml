@@ -1,0 +1,104 @@
+groups:
+- name: docker-health-alerts
+  rules:
+  # Container Status Alerts
+  - alert: ContainerKilled
+    expr: time() - container_last_seen > 60
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container killed (instance {{ $labels.instance }})"
+      description: "A container has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: ContainerAbsent
+    expr: absent(container_last_seen)
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container absent (instance {{ $labels.instance }})"
+      description: "A container is absent for 5 min\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: DashboardContainerMissing
+    expr: absent(container_last_seen{name="hypercode-dashboard"})
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Dashboard container missing"
+      description: "The hypercode-dashboard container has not been observed by cAdvisor for > 1 minute."
+
+  - alert: GrafanaRestartLoop
+    expr: changes(container_start_time_seconds{name="grafana"}[5m]) > 2
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Grafana is restart-looping"
+      description: "Grafana restarted more than twice in 5 minutes. Likely provisioning loop or DB issue. Check: docker logs grafana"
+
+  - alert: ContainerHighCpuUsage
+    expr: (sum(rate(container_cpu_usage_seconds_total[3m])) BY (instance, name) * 100) > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container High CPU usage (instance {{ $labels.instance }})"
+      description: "Container CPU usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: ContainerHighMemoryUsage
+    expr: |
+      (
+        container_memory_usage_bytes{name!=""}
+        / container_spec_memory_limit_bytes{name!=""}
+      ) > 0.80
+      and container_spec_memory_limit_bytes{name!=""} > 0
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container {{ $labels.name }} memory > 80%"
+      description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit. Run: docker stats {{ $labels.name }}"
+
+  - alert: ContainerCriticalMemoryUsage
+    expr: |
+      (
+        container_memory_usage_bytes{name!=""}
+        / container_spec_memory_limit_bytes{name!=""}
+      ) > 0.90
+      and container_spec_memory_limit_bytes{name!=""} > 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Container {{ $labels.name }} memory > 90% — OOM risk"
+      description: "Container {{ $labels.name }} is using {{ $value | humanizePercentage }} of its memory limit. OOM kill imminent — increase limit or restart."
+
+  - alert: ContainerVolumeUsage
+    expr: (1 - (container_fs_inodes_free / container_fs_inodes_total)) * 100 > 80
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container Volume usage high (instance {{ $labels.instance }})"
+      description: "Container Volume usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  # Host Health
+  - alert: HostHighCpuLoad
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Host high CPU load (instance {{ $labels.instance }})"
+      description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - alert: HostOomKillDetected
+    expr: increase(node_vmstat_oom_kill[1m]) > 0
+    for: 0m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Host OOM kill detected (instance {{ $labels.instance }})"
+      description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"

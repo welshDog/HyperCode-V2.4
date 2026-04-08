@@ -1,0 +1,10 @@
+{
+  "recovered_utc": null,
+  "success_detection_sla": true,
+  "kill_utc": "2026-03-12T01:20:40.2312256Z",
+  "remediation_latency_seconds": 0.0,
+  "success_remediation_sla": true,
+  "detection_latency_seconds": -63908875240.2,
+  "detect_utc": null,
+  "evidence_dir": "artifacts/phase4/m3_final_latest"
+}

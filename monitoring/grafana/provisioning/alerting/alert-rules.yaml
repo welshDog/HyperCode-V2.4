@@ -1,0 +1,77 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: HyperCode Alerts
+    folder: Alerts
+    interval: 1m
+    rules:
+      - uid: cpu_usage_high
+        title: High CPU Usage
+        condition: A
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: P1809F7CD0C75ACF3
+            model:
+              expr: 'rate(container_cpu_usage_seconds_total[5m]) * 100 > 80'
+              hide: false
+              intervalFactor: 1
+              refId: A
+        noDataState: NoData
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          description: "Container {{ $labels.name }} has high CPU usage ({{ $value }}%)"
+          summary: "High CPU usage detected"
+        labels:
+          severity: warning
+      - uid: crew_orchestrator_down
+        title: Crew Orchestrator Down
+        condition: A
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: P1809F7CD0C75ACF3
+            model:
+              expr: 'up{job="crew-orchestrator"} == 0'
+              hide: false
+              intervalFactor: 1
+              refId: A
+        noDataState: NoData
+        execErrState: Alerting
+        for: 1m
+        annotations:
+          description: "Prometheus cannot scrape crew-orchestrator /metrics"
+          summary: "Crew Orchestrator is down"
+        labels:
+          severity: critical
+      - uid: smoke_failures_detected
+        title: Smoke Failures Detected
+        condition: A
+        data:
+          - refId: A
+            queryType: ""
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: P1809F7CD0C75ACF3
+            model:
+              expr: 'sum(rate(smoke_request_total{result="fail"}[5m])) > 0'
+              hide: false
+              intervalFactor: 1
+              refId: A
+        noDataState: NoData
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          description: "Smoke requests are failing in the last 5 minutes"
+          summary: "Smoke failures detected"
+        labels:
+          severity: warning

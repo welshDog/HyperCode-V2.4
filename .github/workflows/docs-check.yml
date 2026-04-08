@@ -1,0 +1,97 @@
+name: Docs Check
+
+on:
+  pull_request:
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docs-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check canonical markdown links
+        uses: lycheeverse/lychee-action@v2.8.0
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --max-concurrency 8
+            --exclude-mail
+            --exclude "(^http://localhost|^http://127\\.0\\.0\\.1)"
+            --exclude-path docs/reports
+            --exclude-path docs/archive
+            --exclude-path docs/notes
+            --exclude-path docs/outputs
+            README.md
+            QUICKSTART.md
+            START_HERE.md
+            DOCUMENTATION_INDEX.md
+            docs/**/*.md
+
+      - name: Enforce docker compose terminology in canonical docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git grep -n "docker-compose" -- \
+            README.md QUICKSTART.md RUNBOOK.md START_HERE.md DOCUMENTATION_INDEX.md docs \
+            ":(exclude)docs/reports/**" \
+            ":(exclude)docs/archive/**" \
+            ":(exclude)docs/notes/**" \
+            ":(exclude)docs/outputs/**"
+          then
+            echo "Found 'docker-compose' in canonical documentation. Use 'docker compose' instead."
+            exit 1
+          fi
+
+      - name: Require docs changelog entry when canonical docs change
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t changed < <(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+
+          require_changelog=0
+          changelog_touched=0
+
+          for f in "${changed[@]}"; do
+            if [[ "$f" == "docs/CHANGELOG_DOCS.md" ]]; then
+              changelog_touched=1
+              continue
+            fi
+
+            case "$f" in
+              README.md|QUICKSTART.md|RUNBOOK.md|START_HERE.md|DOCUMENTATION_INDEX.md|CONTRIBUTING.md)
+                require_changelog=1
+                ;;
+              docs/*)
+                case "$f" in
+                  docs/reports/*|docs/archive/*|docs/notes/*|docs/outputs/*)
+                    ;;
+                  *)
+                    require_changelog=1
+                    ;;
+                esac
+                ;;
+            esac
+          done
+
+          if [[ "$require_changelog" -eq 1 && "$changelog_touched" -ne 1 ]]; then
+            echo "Canonical documentation changed but docs/CHANGELOG_DOCS.md was not updated."
+            echo "Add a short entry explaining what changed and why."
+            exit 1
+          fi
+

@@ -1,0 +1,13 @@
+{
+  "alert_routing_accuracy": "CrewOrchestratorDown delivered to alert-webhook",
+  "alert_detection_latency_seconds": -63908902576.0,
+  "notification_reliability": "observed delivery=1, transport=http webhook",
+  "failure_start_utc": "2026-03-12T08:56:16.0175157Z",
+  "alert_delivery_latency_seconds": 22980389.0,
+  "alert_resolved_utc": "2026-03-12T08:59:13.7925819Z",
+  "evidence_dir": "artifacts/phase4/m4_alert_validation_20260312T085613Z",
+  "alert_resolution_latency_seconds": 9.4,
+  "webhook_received_utc": "2026-03-12T08:22:45.205872Z",
+  "alert_firing_utc": null,
+  "recovery_start_utc": "2026-03-12T08:59:04.3979986Z"
+}

@@ -1,0 +1,89 @@
+name: Accessibility CI Gate
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  a11y-dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dashboard deps
+        working-directory: agents/dashboard
+        run: npm ci
+
+      - name: Build dashboard
+        working-directory: agents/dashboard
+        run: npm run build
+
+      - name: Verify standalone assets
+        working-directory: agents/dashboard
+        run: npm run verify:standalone
+
+      - name: Install Chrome + ChromeDriver (synced)
+        run: |
+          OUT="$(npx -y browser-driver-manager install chrome)"
+          echo "$OUT"
+          CHROME_PATH="$(echo "$OUT" | sed -n 's/^CHROME_TEST_PATH="\\(.*\\)"$/\\1/p')"
+          CHROMEDRIVER_PATH="$(echo "$OUT" | sed -n 's/^CHROMEDRIVER_TEST_PATH="\\(.*\\)"$/\\1/p')"
+          if [ -z "$CHROME_PATH" ] || [ -z "$CHROMEDRIVER_PATH" ]; then
+            echo "failed to extract chrome paths" >&2
+            exit 1
+          fi
+          echo "CHROME_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+          echo "CHROMEDRIVER_PATH=$CHROMEDRIVER_PATH" >> "$GITHUB_ENV"
+
+      - name: Start dashboard
+        working-directory: agents/dashboard
+        env:
+          PORT: "8088"
+          HOSTNAME: "127.0.0.1"
+        run: |
+          npm run start:standalone &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8088/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run axe-core scan
+        run: |
+          mkdir -p reports
+          npx -y @axe-core/cli http://127.0.0.1:8088/ -d reports -s axe.json --timeout 90 --chrome-path "$CHROME_PATH" --chromedriver-path "$CHROMEDRIVER_PATH"
+
+      - name: Run axe-core scan (auth dialog)
+        run: |
+          npx -y @axe-core/cli http://127.0.0.1:8088/ -d reports -s axe-auth.json --timeout 90 --load-delay 2000 -i 'div[role="dialog"]' --chrome-path "$CHROME_PATH" --chromedriver-path "$CHROMEDRIVER_PATH"
+
+      - name: Enforce a11y gate
+        run: |
+          python scripts/check_a11y_gate.py --report reports/axe.json --fail-on CRITICAL,HIGH
+          python scripts/check_a11y_gate.py --report reports/axe-auth.json --fail-on CRITICAL,HIGH
+
+      - name: Upload a11y report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a11y-dashboard-${{ github.run_number }}
+          path: reports/*.json
+          retention-days: 30
+

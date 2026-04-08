@@ -1,0 +1,167 @@
+service_identity:
+  name: "healer-agent"
+  codename: "🏥 The Recovery Expert"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Monitors service health, detects failures, triggers automatic recovery,
+    and manages incident response. Focuses on SLO monitoring, alert management,
+    and self-healing mechanisms.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#healer-agents"
+
+responsibility_matrix:
+  primary_role: "OBSERVER"
+  owns:
+    - "Health monitoring"
+    - "Failure detection"
+    - "Auto-recovery triggers"
+    - "Incident coordination"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Health checks"
+    - redis:6379 → "State management"
+    - docker daemon → "Container restart"
+  
+  critical_dependents:
+    - "crew-orchestrator (notified of failures)"
+    - "All services (monitored by Healer)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "services_monitored": 12,
+          "failures_detected": 0
+        }
+      latency_slo_ms: 100
+    
+    - "GET /watched-services"
+      response: |
+        {
+          "services": ["hypercode-core", "redis", "postgres", ...],
+          "statuses": {...}
+        }
+      latency_slo_ms: 100
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    monitoring_p99_ms: 500  # Time to detect + trigger recovery
+  
+  reliability:
+    availability_percent: 99.9
+    mean_time_to_recovery_minutes: 2
+  
+  resource_usage:
+    memory_limit_mb: 512
+    cpu_limit_cores: 0.5
+
+failure_modes:
+  
+  - mode_id: "docker_socket_unavailable"
+    description: "Cannot connect to Docker daemon to restart containers"
+    symptoms:
+      - "docker: Cannot connect to Docker daemon"
+      - "DOCKER_HOST invalid or socket missing"
+    recovery_steps:
+      - "1. Check: Docker daemon running? (docker ps)"
+      - "2. Check: /var/run/docker.sock exists and accessible"
+      - "3. Check: Permissions (is Healer user in docker group?)"
+      - "4. Restart: systemctl restart docker"
+    expected_mttr_minutes: 5
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "false_positive_alert"
+    description: "Healer detects failure that isn't real (transient network blip)"
+    symptoms:
+      - "Service marked failed, but health check succeeds"
+      - "False positive recovery triggers"
+    recovery_steps:
+      - "1. Improve: Increase health check retry count"
+      - "2. Timeout: Longer timeout before declaring service down"
+      - "3. Tuning: Adjust alert thresholds in watchdog"
+    expected_mttr_minutes: 10
+    user_impact: "DEGRADED"
+    sev: "P2"
+  
+  - mode_id: "cascading_restart_loop"
+    description: "Service keeps restarting indefinitely (crash loop)"
+    symptoms:
+      - "Container restarts every 10 seconds"
+      - "Status shows 'Restarting (N) X seconds ago'"
+    recovery_steps:
+      - "1. Detect: Check restart count (docker inspect)"
+      - "2. Circuit-breaker: Stop restarting after 3 failures in 1 min"
+      - "3. Alert: Escalate to human (this is not self-healing)"
+      - "4. Manual: Investigate root cause in logs"
+    expected_mttr_minutes: 15
+    user_impact: "CRITICAL"
+    sev: "P1"
+
+metrics_to_monitor:
+  
+  - name: "services_unhealthy"
+    prometheus_query: "healer_services_unhealthy{job='healer-agent'}"
+    alert_if: "... > 0"
+  
+  - name: "recovery_time"
+    prometheus_query: "histogram_quantile(0.99, rate(healer_recovery_duration_seconds_bucket{job='healer-agent'}[5m]))"
+    alert_if: "... > 120"  # >2 min MTTR
+  
+  - name: "restart_loop_detected"
+    prometheus_query: "rate(healer_restart_loop_total{job='healer-agent'}[5m])"
+    alert_if: "... > 0"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "healer-agent"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "healer-agent"
+    container_name: "healer-agent"
+    ports:
+      - "8010:8008"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    AGENT_ROLE: "healer"
+    AGENT_PORT: "8010"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+    HEALER_WATCHDOG_ENABLED: "true"
+    HEALER_WATCHDOG_INTERVAL_SECONDS: "60"
+    HEALER_WATCHED_SERVICES: "hypercode-core,redis,postgres,celery-worker,hypercode-ollama"
+
+versioning:
+  current_version: "2.0.0"
+  breaking_changes_v2_1_0:
+    - "Alert escalation format changed"
+
+on_call_playbook:
+  
+  alert_service_unhealthy:
+    trigger: "Service health check fails"
+    actions:
+      - "1. Auto: Healer attempts restart (if <3 restarts in 1 min)"
+      - "2. Monitor: Watch for recovery"
+      - "3. Manual: If still down after 5 min, investigate logs"
+      - "4. Manual: Contact service owner if restart fails"
+  
+  alert_restart_loop:
+    trigger: "Restart loop detected (>3 restarts in 1 min)"
+    actions:
+      - "1. Immediate: Stop auto-restart (circuit breaker)"
+      - "2. Escalate: Alert on-call engineer"
+      - "3. Investigate: Check logs for crash reason"
+      - "4. Fix: Deploy fix or rollback to previous version"
+
+support_contacts:
+  primary_engineer: "Lyndz"

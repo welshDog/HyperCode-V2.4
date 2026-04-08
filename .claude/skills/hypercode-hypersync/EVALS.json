@@ -1,0 +1,69 @@
+[
+  {
+    "skill": "hypercode-hypersync",
+    "query": "My chat session is getting too long, how do I hand it off to a new tab?",
+    "expected_behavior": [
+      "Explains the POST /handoff endpoint",
+      "Mentions the single-use resume_token",
+      "Describes the frontend ?resume= URL flow",
+      "Mentions the 12000 char threshold"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "Set up the HyperSync master key in the environment",
+    "expected_behavior": [
+      "Shows the key generation command using os.urandom",
+      "Names the HYPERSYNC_MASTER_KEY env var",
+      "Returns 503 if key is missing"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "Redeem endpoint returns 410 — what went wrong?",
+    "expected_behavior": [
+      "Explains token is single-use and already consumed",
+      "Mentions the 60-second retry window",
+      "Says to trigger a new handoff"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "What encryption does HyperSync use and why?",
+    "expected_behavior": [
+      "States AES-256-GCM",
+      "Mentions AEAD provides confidentiality and integrity",
+      "Explains AAD binds ciphertext to session identity",
+      "Mentions compression before encryption"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "Add HyperSync threshold detection to the MissionPanel component",
+    "expected_behavior": [
+      "References hypersyncHandoff and hypersyncRedeem from lib/api.ts",
+      "Shows the MAX_CHARS threshold pattern",
+      "Mentions the resume ?resume= URL param",
+      "Mentions CognitiveUplink as the reference implementation"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "What Redis keys does HyperSync use and what are their TTLs?",
+    "expected_behavior": [
+      "Lists hypersync:payload:{handoff_id}",
+      "Lists hypersync:token:{resume_token}",
+      "Mentions SESSION_TTL_SECONDS and TOKEN_TTL_SECONDS",
+      "Mentions the 60-second redeemed retry cache"
+    ]
+  },
+  {
+    "skill": "hypercode-hypersync",
+    "query": "I'm getting a 409 integrity check failed on redeem",
+    "expected_behavior": [
+      "Explains pt_sha256 mismatch means payload was tampered",
+      "Advises to not use the payload",
+      "Recommends triggering a new handoff"
+    ]
+  }
+]

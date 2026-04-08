@@ -1,0 +1,69 @@
+# HyperCode V2.4 — Quality Gate Thresholds
+# Consumed by: .github/workflows/quality-gate.yml
+#              scripts/scan/run-all-scans.sh
+# Edit these to adjust what blocks CI vs what is advisory only.
+
+# ── Test coverage ────────────────────────────────────────────────────────
+coverage:
+  minimum_percent: 70          # fail CI if total coverage drops below this
+  branch_minimum_percent: 60   # branch coverage threshold
+  new_code_minimum_percent: 80 # stricter gate for newly changed files
+
+# ── Security ─────────────────────────────────────────────────────────────
+security:
+  block_on_critical: true      # CRITICAL vulns always block
+  block_on_high: false         # HIGH vulns are reported but advisory
+  block_on_secrets: true       # any confirmed secret blocks
+  max_high_vulns: 10           # if block_on_high is false, still block above this count
+  max_medium_vulns: 50         # advisory threshold for MEDIUM
+
+# ── Static analysis (Bandit / Semgrep) ───────────────────────────────────
+sast:
+  block_on_high: true
+  block_on_medium: false
+  max_issues_per_severity:
+    high: 0
+    medium: 20
+    low: 100
+
+# ── License compliance ───────────────────────────────────────────────────
+licenses:
+  # These SPDX identifiers block CI if found in any dependency
+  blocked:
+    - GPL-2.0
+    - GPL-2.0-only
+    - GPL-2.0-or-later
+    - GPL-3.0
+    - GPL-3.0-only
+    - GPL-3.0-or-later
+    - AGPL-3.0
+    - AGPL-3.0-only
+    - AGPL-3.0-or-later
+    - SSPL-1.0
+    - Commons-Clause
+  # These are advisory (reported but don't block)
+  review_required:
+    - LGPL-2.0
+    - LGPL-2.1
+    - LGPL-3.0
+    - MPL-2.0
+    - EUPL-1.1
+    - EUPL-1.2
+
+# ── Performance regression ───────────────────────────────────────────────
+performance:
+  avg_response_time_ms: 200       # Locust threshold (matches performance.yml)
+  max_failure_rate_percent: 1.0   # Locust failure rate threshold
+  p95_response_time_ms: 500       # p95 latency gate
+  regression_threshold_percent: 15 # % increase from Prometheus baseline = fail
+
+# ── IaC / Dockerfile lint ────────────────────────────────────────────────
+iac:
+  block_on_critical: true
+  block_on_high: true
+  hadolint_failure_threshold: error  # error | warning | info | style
+
+# ── Dependency freshness ─────────────────────────────────────────────────
+dependencies:
+  max_days_since_last_update: 365   # warn if a dep hasn't been updated in 1 year
+  max_major_versions_behind: 2      # warn if 2+ major versions behind latest

@@ -1,0 +1,27 @@
+name: Prune Celery Task Audit
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements.txt
+      - name: Run pruning
+        working-directory: backend
+        env:
+          HYPERCODE_DB_URL: ${{ secrets.HYPERCODE_DB_URL }}
+          AUDIT_TTL_DAYS: ${{ vars.AUDIT_TTL_DAYS }}
+        run: |
+          python tools/prune_audit.py

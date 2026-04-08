@@ -1,0 +1,1529 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.12.1, cov-4.1.0, asyncio-0.23.3
+asyncio: mode=Mode.AUTO
+collecting ... collected 91 items
+
+tests/e2e/test_integration_bridge.py::test_agent_registration_e2e ERROR  [  1%]
+tests/e2e/test_integration_bridge.py::test_mission_submission_e2e ERROR  [  2%]
+tests/e2e/test_integration_bridge.py::test_telemetry_aggregation_e2e ERROR [  3%]
+tests/perf/test_engine_latency.py::test_engine_run_latency_distribution ERROR [  4%]
+tests/perf/test_interpreter_perf.py::test_perf_simple_loop_under_threshold ERROR [  5%]
+tests/unit/test_agent_registry_acceptance.py::test_duplicate_payload_returns_200 ERROR [  6%]
+tests/unit/test_agent_registry_acceptance.py::test_immutable_role_change_rejected_422 ERROR [  7%]
+tests/unit/test_agent_registry_acceptance.py::test_version_minor_bumps_and_patch_resets_on_dedup_re_register ERROR [  8%]
+tests/unit/test_agent_registry_idempotent.py::test_sse_stream_endpoint_available ERROR [  9%]
+tests/unit/test_agent_registry_idempotent.py::test_idempotent_registration_by_dedup_key ERROR [ 10%]
+tests/unit/test_agent_registry_idempotent.py::test_metrics_exposed ERROR [ 12%]
+tests/unit/test_agents.py::test_register_agent ERROR                     [ 13%]
+tests/unit/test_agents.py::test_get_agents ERROR                         [ 14%]
+tests/unit/test_agents.py::test_heartbeat ERROR                          [ 15%]
+tests/unit/test_agents.py::test_sse_stream_endpoint_sync ERROR           [ 16%]
+tests/unit/test_auth_config.py::test_security_validation_dev ERROR       [ 17%]
+tests/unit/test_auth_config.py::test_security_validation_prod_missing ERROR [ 18%]
+tests/unit/test_auth_config.py::test_security_validation_prod_short ERROR [ 19%]
+tests/unit/test_auth_config.py::test_security_validation_prod_valid ERROR [ 20%]
+tests/unit/test_circuit_breaker.py::test_circuit_breaker_opens_after_failures ERROR [ 21%]
+tests/unit/test_collaboration_efficiency.py::test_agents_collaboration_register_list_heartbeat ERROR [ 23%]
+tests/unit/test_dlq_consumer.py::test_dlq_publish_and_persist ERROR      [ 24%]
+tests/unit/test_engine_adapter.py::test_adapter_api_path ERROR           [ 25%]
+tests/unit/test_engine_adapter.py::test_adapter_cli_path ERROR           [ 26%]
+tests/unit/test_engine_adapter_payload.py::test_adapter_forwards_env_and_target ERROR [ 27%]
+tests/unit/test_engine_run_route.py::test_engine_run_route ERROR         [ 28%]
+tests/unit/test_error_handling.py::test_agent_register_role_change_422 ERROR [ 29%]
+tests/unit/test_error_handling.py::test_execution_error_status ERROR     [ 30%]
+tests/unit/test_event_bus.py::test_publish_subscribe_roundtrip ERROR     [ 31%]
+tests/unit/test_execute_hc.py::test_execute_hc_eval_print ERROR          [ 32%]
+tests/unit/test_execute_hc_file.py::test_execute_hc_file_run ERROR       [ 34%]
+tests/unit/test_hc_parser.py::test_parse_hc_mission_block ERROR          [ 35%]
+tests/unit/test_health.py::test_health_check ERROR                       [ 36%]
+tests/unit/test_heartbeat_lifecycle.py::test_heartbeat_full_lifecycle ERROR [ 37%]
+tests/unit/test_heartbeat_lifecycle.py::test_timeout_marks_offline ERROR [ 38%]
+tests/unit/test_hypercode_cli_target.py::test_cli_includes_target_flag ERROR [ 39%]
+tests/unit/test_immutable_error_payload.py::test_immutable_role_error_payload ERROR [ 40%]
+tests/unit/test_interpreter_constructs.py::test_if_else ERROR            [ 41%]
+tests/unit/test_interpreter_constructs.py::test_while_loop_break ERROR   [ 42%]
+tests/unit/test_interpreter_constructs.py::test_for_loop_continue ERROR  [ 43%]
+tests/unit/test_interpreter_constructs.py::test_function_decl_and_call ERROR [ 45%]
+tests/unit/test_interpreter_constructs.py::test_scoping_variables ERROR  [ 46%]
+tests/unit/test_interpreter_constructs.py::test_operators_and_expressions ERROR [ 47%]
+tests/unit/test_interpreter_errors.py::test_undefined_name_error ERROR   [ 48%]
+tests/unit/test_interpreter_errors.py::test_unsupported_node_error ERROR [ 49%]
+tests/unit/test_interpreter_metrics.py::test_interpreter_metrics_success_exposed ERROR [ 50%]
+tests/unit/test_interpreter_metrics.py::test_interpreter_metrics_error_exposed ERROR [ 51%]
+tests/unit/test_key_manager.py::test_generate_list_validate_revoke ERROR [ 52%]
+tests/unit/test_key_manager.py::test_api_key_fallback ERROR              [ 53%]
+tests/unit/test_memory_service.py::test_memory_crud_and_search ERROR     [ 54%]
+tests/unit/test_memory_service.py::test_memory_cleanup_expired ERROR     [ 56%]
+tests/unit/test_metrics_latency.py::test_stream_latency_metric_observed ERROR [ 57%]
+tests/unit/test_mission_flow_report.py::test_mission_flow_and_report ERROR [ 58%]
+tests/unit/test_mission_lifecycle.py::test_mission_full_lifecycle ERROR  [ 59%]
+tests/unit/test_nd_errors.py::test_undefined_name_error_with_suggestions ERROR [ 60%]
+tests/unit/test_nd_errors.py::test_syntax_error_formatting ERROR         [ 61%]
+tests/unit/test_nd_errors.py::test_type_error_explanation ERROR          [ 62%]
+tests/unit/test_nd_errors.py::test_unsupported_feature_helpful ERROR     [ 63%]
+tests/unit/test_nd_errors.py::test_similar_names_detection ERROR         [ 64%]
+tests/unit/test_orchestrator_selection.py::test_orchestrator_assign_prefers_capability_and_health ERROR [ 65%]
+tests/unit/test_parser.py::test_parse_hello_world ERROR                  [ 67%]
+tests/unit/test_parser.py::test_parse_assignment ERROR                   [ 68%]
+tests/unit/test_parser.py::test_parse_function_def ERROR                 [ 69%]
+tests/unit/test_rate_limit.py::test_rate_limiter_redis_allowed ERROR     [ 70%]
+tests/unit/test_rate_limit.py::test_rate_limiter_redis_blocked ERROR     [ 71%]
+tests/unit/test_rate_limit.py::test_rate_limiter_fallback ERROR          [ 72%]
+tests/unit/test_rate_limit.py::test_check_rate_limit_dependency ERROR    [ 73%]
+tests/unit/test_report_endpoint.py::test_report_endpoint_success ERROR   [ 74%]
+tests/unit/test_report_endpoint.py::test_report_endpoint_error ERROR     [ 75%]
+tests/unit/test_report_endpoint.py::test_report_endpoint_invalid_json ERROR [ 76%]
+tests/unit/test_retry_backoff.py::test_schedule_retry_exponential_backoff_and_jitter ERROR [ 78%]
+tests/unit/test_retry_backoff.py::test_max_retries_prevents_scheduling ERROR [ 79%]
+tests/unit/test_retry_integration.py::test_retry_flow_schedules_and_requeues ERROR [ 80%]
+tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[worker-architect] ERROR [ 81%]
+tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[Worker-architect] ERROR [ 82%]
+tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[worker-Architect] ERROR [ 83%]
+tests/unit/test_role_immutability.py::test_case_only_role_is_considered_same ERROR [ 84%]
+tests/unit/test_services_event_bus.py::test_publish_subscribe_envelope_roundtrip ERROR [ 85%]
+tests/unit/test_sse_emission.py::test_sse_emits_valid_messages ERROR     [ 86%]
+tests/unit/test_sse_emission.py::test_sse_handles_malformed_data ERROR   [ 87%]
+tests/unit/test_sse_emission.py::test_sse_high_frequency ERROR           [ 89%]
+tests/unit/test_sse_emission.py::test_sse_connection_recovers ERROR      [ 90%]
+tests/unit/test_sse_resilience.py::test_sse_handles_cancelled_error ERROR [ 91%]
+tests/unit/test_sse_resilience.py::test_sse_pubsub_failure_does_not_500 ERROR [ 92%]
+tests/unit/test_sse_stability.py::test_sse_stream_connects_with_backoff ERROR [ 93%]
+tests/unit/test_sse_stability.py::test_metrics_endpoint_exposes_sse_metrics ERROR [ 94%]
+tests/unit/test_voice_service.py::test_dc_offset_filter_reduces_offset ERROR [ 95%]
+tests/unit/test_voice_service.py::test_agc_scales_signal ERROR           [ 96%]
+tests/unit/test_voice_service.py::test_audio_buffer_window_and_transcribe ERROR [ 97%]
+tests/unit/test_voice_ws.py::test_voice_ws_text_flow_dev_auth_disabled ERROR [ 98%]
+tests/unit/test_voice_ws.py::test_voice_ws_rate_limit ERROR              [100%]
+
+==================================== ERRORS ====================================
+________________ ERROR at setup of test_agent_registration_e2e _________________
+
+request = <SubRequest 'mock_redis' for <Function test_agent_registration_e2e>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933768fed0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_mission_submission_e2e _________________
+
+request = <SubRequest 'mock_redis' for <Function test_mission_submission_e2e>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337665550>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_telemetry_aggregation_e2e _______________
+
+request = <SubRequest 'mock_redis' for <Function test_telemetry_aggregation_e2e>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933771d9d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_engine_run_latency_distribution ____________
+
+request = <SubRequest 'mock_redis' for <Function test_engine_run_latency_distribution>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793377069d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_perf_simple_loop_under_threshold ____________
+
+request = <SubRequest 'mock_redis' for <Function test_perf_simple_loop_under_threshold>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933757a0d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________ ERROR at setup of test_duplicate_payload_returns_200 _____________
+
+request = <SubRequest 'mock_redis' for <Function test_duplicate_payload_returns_200>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933758ab10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________ ERROR at setup of test_immutable_role_change_rejected_422 ___________
+
+request = <SubRequest 'mock_redis' for <Function test_immutable_role_change_rejected_422>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772d050>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_ ERROR at setup of test_version_minor_bumps_and_patch_resets_on_dedup_re_register _
+
+request = <SubRequest 'mock_redis' for <Function test_version_minor_bumps_and_patch_resets_on_dedup_re_register>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375078d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________ ERROR at setup of test_sse_stream_endpoint_available _____________
+
+request = <SubRequest 'mock_redis' for <Function test_sse_stream_endpoint_available>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933756e910>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_idempotent_registration_by_dedup_key __________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_idempotent_registration_by_dedup_key>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933754ca10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________________ ERROR at setup of test_metrics_exposed ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_metrics_exposed>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337510dd0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________________ ERROR at setup of test_register_agent _____________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_register_agent>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772f9d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________________ ERROR at setup of test_get_agents _______________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_get_agents>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772d250>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________________ ERROR at setup of test_heartbeat _______________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_heartbeat>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337500d90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_sse_stream_endpoint_sync ________________
+
+request = <SubRequest 'mock_redis' for <Function test_sse_stream_endpoint_sync>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375bf650>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_security_validation_dev ________________
+
+request = <SubRequest 'mock_redis' for <Function test_security_validation_dev>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933754ed10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_security_validation_prod_missing ____________
+
+request = <SubRequest 'mock_redis' for <Function test_security_validation_prod_missing>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933754d190>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_security_validation_prod_short _____________
+
+request = <SubRequest 'mock_redis' for <Function test_security_validation_prod_short>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376c1210>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_security_validation_prod_valid _____________
+
+request = <SubRequest 'mock_redis' for <Function test_security_validation_prod_valid>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337528f90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_circuit_breaker_opens_after_failures __________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_circuit_breaker_opens_after_failures>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933768e490>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____ ERROR at setup of test_agents_collaboration_register_list_heartbeat ______
+
+request = <SubRequest 'mock_redis' for <Function test_agents_collaboration_register_list_heartbeat>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933771dd10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_dlq_publish_and_persist ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_dlq_publish_and_persist>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375015d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_adapter_api_path ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_adapter_api_path>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375ef3d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_adapter_cli_path ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_adapter_cli_path>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376f8150>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_adapter_forwards_env_and_target ____________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_adapter_forwards_env_and_target>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337666b90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_engine_run_route ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_engine_run_route>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793377073d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_agent_register_role_change_422 _____________
+
+request = <SubRequest 'mock_redis' for <Function test_agent_register_role_change_422>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375df2d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_execution_error_status _________________
+
+request = <SubRequest 'mock_redis' for <Function test_execution_error_status>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933759d190>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_publish_subscribe_roundtrip ______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_publish_subscribe_roundtrip>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374fb350>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________________ ERROR at setup of test_execute_hc_eval_print _________________
+
+request = <SubRequest 'mock_redis' for <Function test_execute_hc_eval_print>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375b2bd0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________________ ERROR at setup of test_execute_hc_file_run __________________
+
+request = <SubRequest 'mock_redis' for <Function test_execute_hc_file_run>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337665a50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_parse_hc_mission_block _________________
+
+request = <SubRequest 'mock_redis' for <Function test_parse_hc_mission_block>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933766d310>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________________ ERROR at setup of test_health_check ______________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_health_check>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374ef550>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_heartbeat_full_lifecycle ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_heartbeat_full_lifecycle>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375de750>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________________ ERROR at setup of test_timeout_marks_offline _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_timeout_marks_offline>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376c8810>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_cli_includes_target_flag ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_cli_includes_target_flag>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337537050>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________ ERROR at setup of test_immutable_role_error_payload ______________
+
+request = <SubRequest 'mock_redis' for <Function test_immutable_role_error_payload>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374fa0d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________________ ERROR at setup of test_if_else ________________________
+
+request = <SubRequest 'mock_redis' for <Function test_if_else>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376f0b50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_while_loop_break ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_while_loop_break>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933771e350>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_for_loop_continue ___________________
+
+request = <SubRequest 'mock_redis' for <Function test_for_loop_continue>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337513510>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_function_decl_and_call _________________
+
+request = <SubRequest 'mock_redis' for <Function test_function_decl_and_call>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374eeb10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_scoping_variables ___________________
+
+request = <SubRequest 'mock_redis' for <Function test_scoping_variables>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933754f9d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_operators_and_expressions _______________
+
+request = <SubRequest 'mock_redis' for <Function test_operators_and_expressions>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933747b450>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________________ ERROR at setup of test_undefined_name_error __________________
+
+request = <SubRequest 'mock_redis' for <Function test_undefined_name_error>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337562a50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_unsupported_node_error _________________
+
+request = <SubRequest 'mock_redis' for <Function test_unsupported_node_error>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933750bb50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________ ERROR at setup of test_interpreter_metrics_success_exposed __________
+
+request = <SubRequest 'mock_redis' for <Function test_interpreter_metrics_success_exposed>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337535650>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_interpreter_metrics_error_exposed ___________
+
+request = <SubRequest 'mock_redis' for <Function test_interpreter_metrics_error_exposed>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933771d3d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________ ERROR at setup of test_generate_list_validate_revoke _____________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_generate_list_validate_revoke>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337722350>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_api_key_fallback ____________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_api_key_fallback>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772c390>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_memory_crud_and_search _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_memory_crud_and_search>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375be650>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_memory_cleanup_expired _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_memory_cleanup_expired>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933758b890>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_stream_latency_metric_observed _____________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_stream_latency_metric_observed>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375639d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_mission_flow_and_report ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_mission_flow_and_report>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337516e50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_mission_full_lifecycle _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_mission_full_lifecycle>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375ddb10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_undefined_name_error_with_suggestions _________
+
+request = <SubRequest 'mock_redis' for <Function test_undefined_name_error_with_suggestions>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374e2450>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_syntax_error_formatting ________________
+
+request = <SubRequest 'mock_redis' for <Function test_syntax_error_formatting>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337503750>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_type_error_explanation _________________
+
+request = <SubRequest 'mock_redis' for <Function test_type_error_explanation>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374ee750>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_unsupported_feature_helpful ______________
+
+request = <SubRequest 'mock_redis' for <Function test_unsupported_feature_helpful>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376c0890>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_similar_names_detection ________________
+
+request = <SubRequest 'mock_redis' for <Function test_similar_names_detection>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933752a0d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___ ERROR at setup of test_orchestrator_assign_prefers_capability_and_health ___
+
+request = <SubRequest 'mock_redis' for <Function test_orchestrator_assign_prefers_capability_and_health>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337704e90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_parse_hello_world ___________________
+
+request = <SubRequest 'mock_redis' for <Function test_parse_hello_world>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374d0e50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_parse_assignment ____________________
+
+request = <SubRequest 'mock_redis' for <Function test_parse_assignment>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375153d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________________ ERROR at setup of test_parse_function_def ___________________
+
+request = <SubRequest 'mock_redis' for <Function test_parse_function_def>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933747ae90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_rate_limiter_redis_allowed _______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_rate_limiter_redis_allowed>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374ec2d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_rate_limiter_redis_blocked _______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_rate_limiter_redis_blocked>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374ef010>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________________ ERROR at setup of test_rate_limiter_fallback _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_rate_limiter_fallback>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337589c10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_check_rate_limit_dependency ______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_check_rate_limit_dependency>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374e37d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_report_endpoint_success ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_report_endpoint_success>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375de490>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________________ ERROR at setup of test_report_endpoint_error _________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_report_endpoint_error>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375df010>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____________ ERROR at setup of test_report_endpoint_invalid_json ______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_report_endpoint_invalid_json>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337723f90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_____ ERROR at setup of test_schedule_retry_exponential_backoff_and_jitter _____
+
+request = <SubRequest 'mock_redis' for <Coroutine test_schedule_retry_exponential_backoff_and_jitter>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375bcb10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_max_retries_prevents_scheduling ____________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_max_retries_prevents_scheduling>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337723dd0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_retry_flow_schedules_and_requeues ___________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_retry_flow_schedules_and_requeues>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375bcfd0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_ ERROR at setup of test_role_change_with_same_dedup_key_returns_422[worker-architect] _
+
+request = <SubRequest 'mock_redis' for <Function test_role_change_with_same_dedup_key_returns_422[worker-architect]>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772da50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_ ERROR at setup of test_role_change_with_same_dedup_key_returns_422[Worker-architect] _
+
+request = <SubRequest 'mock_redis' for <Function test_role_change_with_same_dedup_key_returns_422[Worker-architect]>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793376f0250>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_ ERROR at setup of test_role_change_with_same_dedup_key_returns_422[worker-Architect] _
+
+request = <SubRequest 'mock_redis' for <Function test_role_change_with_same_dedup_key_returns_422[worker-Architect]>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933772d590>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_case_only_role_is_considered_same ___________
+
+request = <SubRequest 'mock_redis' for <Function test_case_only_role_is_considered_same>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337508790>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_publish_subscribe_envelope_roundtrip __________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_publish_subscribe_envelope_roundtrip>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374792d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_______________ ERROR at setup of test_sse_emits_valid_messages ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_sse_emits_valid_messages>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933747a5d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_sse_handles_malformed_data _______________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_sse_handles_malformed_data>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933752e610>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________________ ERROR at setup of test_sse_high_frequency ___________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_sse_high_frequency>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933753cad0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+________________ ERROR at setup of test_sse_connection_recovers ________________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_sse_connection_recovers>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375039d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+______________ ERROR at setup of test_sse_handles_cancelled_error ______________
+
+request = <SubRequest 'mock_redis' for <Function test_sse_handles_cancelled_error>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337719a10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_sse_pubsub_failure_does_not_500 ____________
+
+request = <SubRequest 'mock_redis' for <Function test_sse_pubsub_failure_does_not_500>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374e1e90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________ ERROR at setup of test_sse_stream_connects_with_backoff ____________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_sse_stream_connects_with_backoff>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374ea3d0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_metrics_endpoint_exposes_sse_metrics __________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_metrics_endpoint_exposes_sse_metrics>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x779337513d90>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+____________ ERROR at setup of test_dc_offset_filter_reduces_offset ____________
+
+request = <SubRequest 'mock_redis' for <Function test_dc_offset_filter_reduces_offset>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933752bd50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+___________________ ERROR at setup of test_agc_scales_signal ___________________
+
+request = <SubRequest 'mock_redis' for <Function test_agc_scales_signal>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793374f8d50>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________ ERROR at setup of test_audio_buffer_window_and_transcribe ___________
+
+request = <SubRequest 'mock_redis' for <Coroutine test_audio_buffer_window_and_transcribe>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933753fc10>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+_________ ERROR at setup of test_voice_ws_text_flow_dev_auth_disabled __________
+
+request = <SubRequest 'mock_redis' for <Function test_voice_ws_text_flow_dev_auth_disabled>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x7793375bc990>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+__________________ ERROR at setup of test_voice_ws_rate_limit __________________
+
+request = <SubRequest 'mock_redis' for <Function test_voice_ws_rate_limit>>
+kwargs = {'event_loop': <_UnixSelectorEventLoop running=False closed=False debug=False>, 'monkeypatch': <_pytest.monkeypatch.MonkeyPatch object at 0x77933756fcd0>}
+
+    @functools.wraps(fixture)
+    def _asyncgen_fixture_wrapper(request: SubRequest, **kwargs: Any):
+        func = _perhaps_rebind_fixture_func(
+>           fixture, request.instance, fixturedef.unittest
+                                       ^^^^^^^^^^^^^^^^^^^
+        )
+E       AttributeError: 'FixtureDef' object has no attribute 'unittest'
+
+/usr/local/lib/python3.11/site-packages/pytest_asyncio/plugin.py:311: AttributeError
+=============================== warnings summary ===============================
+app/core/config.py:5
+  /app/app/core/config.py:5: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Settings(BaseSettings):
+
+app/schemas/agent.py:17
+  /app/app/schemas/agent.py:17: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AgentMetadata(BaseModel):
+
+app/schemas/memory.py:24
+  /app/app/schemas/memory.py:24: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class MemoryResponse(MemoryBase):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+---------- coverage: platform linux, python 3.11.14-final-0 ----------
+Name                                Stmts   Miss Branch BrPart  Cover   Missing
+-------------------------------------------------------------------------------
+app/core/auth.py                       39     28     20      0    19%   15-35, 48-92
+app/core/config.py                     39      8     10      2    67%   24-31, 45->50, 48-49
+app/core/db.py                        254    250    144      0     1%   6-298
+app/core/event_bus.py                  22     10      4      0    46%   20-23, 27-32
+app/core/logging.py                    12      1      2      1    86%   21
+app/engine/adapter.py                  57     47      8      0    15%   11, 14, 17-72
+app/engine/interpreter.py             231    197    156      0     9%   44, 57-61, 66-72, 75-79, 82, 85, 88-101, 104-172, 175-190, 193-259, 262-274, 277-278
+app/errors/nd_errors.py                82     63     40      0    17%   16-38, 41-42, 46-67, 71-81, 91-105, 116, 131, 145-156
+app/middleware/rate_limit.py           58     38     12      0    29%   35-37, 44-65, 68-86, 97-104
+app/parser/__init__.py                  1      0      0      0   100%
+app/parser/hc_parser.py               314    260    160      0    13%   19-20, 29-31, 44-47, 50-52, 55-62, 65-72, 75-104, 107-110, 113-116, 119-125, 128-131, 136-137, 140-142, 145-148, 151-155, 158-163, 166-180, 183-192, 195-203, 206-211, 214-218, 221-229, 232-238, 241-249, 253-261, 265-308, 312-316, 320-324, 328-363
+app/routers/agents.py                 120     86     44      0    33%   17-64, 68, 72-73, 77-84, 88-89, 94, 99, 103-108, 112-124, 128-131, 135-142
+app/routers/engine.py                  24     10      4      0    57%   18-35
+app/routers/execution.py               39     19     16      0    55%   15, 19, 27-28, 35-50, 54-56
+app/routers/memory.py                  34     17     18      0    56%   10, 21-29, 33-36, 40-43, 47-50, 54-55
+app/routers/metrics.py                 81     39     26      0    50%   17-28, 41-55, 64-65, 74-75, 88-97, 115-116
+app/routers/orchestrator.py            83     49     50      0    47%   12, 17-20, 24, 28-31, 35-38, 42-46, 50-53, 57-60, 64-67, 71-72, 76-79, 83-86, 90-93, 97-100
+app/routers/simulator.py               44     28     14      0    38%   15-30, 35, 40-51, 56-64
+app/routers/voice.py                   83     69     20      0    16%   28-116
+app/schemas/agent.py                   38      0      4      2    95%   26->exit, 27->exit
+app/schemas/execution.py               21      0      0      0   100%
+app/schemas/memory.py                  32      0      0      0   100%
+app/schemas/message.py                 12      0      4      2    88%   10->exit, 11->exit
+app/schemas/mission.py                 26      0      0      0   100%
+app/services/__init__.py                0      0      0      0   100%
+app/services/agent_registry.py        155    114     32      0    22%   71-161, 165-193, 198-209, 213-216, 220-235, 238-242, 245-253, 256-261, 264-281
+app/services/event_bus.py             127    102     34      0    16%   31-34, 41-51, 58-75, 82-93, 96-100, 103-108, 111-114, 117-128, 131-142, 145-149, 156-185
+app/services/execution_service.py      78     65     22      0    17%   15-93, 97-115
+app/services/key_manager.py            71     48     16      0    26%   31-50, 54-66, 70-87, 91-102
+app/services/llm.py                    35     35      2      0     0%   2-77
+app/services/llm_service.py            54     37     16      0    24%   27-41, 45-64, 68, 72-95
+app/services/memory_service.py        156    123     54      0    24%   13-18, 32-41, 45-50, 54-67, 70-95, 99-108, 112-145, 149-158, 162-195, 199-211
+app/services/metrics_registry.py       37     17     14      0    39%   19-20, 23-24, 27-32, 35-36, 39-43
+app/services/orchestrator.py          276    235     57      0    12%   46-56, 59, 62-113, 124-290, 293-351, 362, 365, 368, 371, 374-379, 390-411, 414-440, 443-464, 475-510
+app/services/voice_service.py         110     83     38      0    20%   43-45, 48, 51-59, 64-74, 79-91, 95-109, 114, 118-139, 143-151, 155-160
+main.py                               260    193     58      3    25%   7-9, 38-42, 51-52, 70->75, 76-77, 87-296, 306-311, 324-326, 330-356
+-------------------------------------------------------------------------------
+TOTAL                                3105   2271   1099     10    23%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+=========================== short test summary info ============================
+ERROR tests/e2e/test_integration_bridge.py::test_agent_registration_e2e - Att...
+ERROR tests/e2e/test_integration_bridge.py::test_mission_submission_e2e - Att...
+ERROR tests/e2e/test_integration_bridge.py::test_telemetry_aggregation_e2e - ...
+ERROR tests/perf/test_engine_latency.py::test_engine_run_latency_distribution
+ERROR tests/perf/test_interpreter_perf.py::test_perf_simple_loop_under_threshold
+ERROR tests/unit/test_agent_registry_acceptance.py::test_duplicate_payload_returns_200
+ERROR tests/unit/test_agent_registry_acceptance.py::test_immutable_role_change_rejected_422
+ERROR tests/unit/test_agent_registry_acceptance.py::test_version_minor_bumps_and_patch_resets_on_dedup_re_register
+ERROR tests/unit/test_agent_registry_idempotent.py::test_sse_stream_endpoint_available
+ERROR tests/unit/test_agent_registry_idempotent.py::test_idempotent_registration_by_dedup_key
+ERROR tests/unit/test_agent_registry_idempotent.py::test_metrics_exposed - At...
+ERROR tests/unit/test_agents.py::test_register_agent - AttributeError: 'Fixtu...
+ERROR tests/unit/test_agents.py::test_get_agents - AttributeError: 'FixtureDe...
+ERROR tests/unit/test_agents.py::test_heartbeat - AttributeError: 'FixtureDef...
+ERROR tests/unit/test_agents.py::test_sse_stream_endpoint_sync - AttributeErr...
+ERROR tests/unit/test_auth_config.py::test_security_validation_dev - Attribut...
+ERROR tests/unit/test_auth_config.py::test_security_validation_prod_missing
+ERROR tests/unit/test_auth_config.py::test_security_validation_prod_short - A...
+ERROR tests/unit/test_auth_config.py::test_security_validation_prod_valid - A...
+ERROR tests/unit/test_circuit_breaker.py::test_circuit_breaker_opens_after_failures
+ERROR tests/unit/test_collaboration_efficiency.py::test_agents_collaboration_register_list_heartbeat
+ERROR tests/unit/test_dlq_consumer.py::test_dlq_publish_and_persist - Attribu...
+ERROR tests/unit/test_engine_adapter.py::test_adapter_api_path - AttributeErr...
+ERROR tests/unit/test_engine_adapter.py::test_adapter_cli_path - AttributeErr...
+ERROR tests/unit/test_engine_adapter_payload.py::test_adapter_forwards_env_and_target
+ERROR tests/unit/test_engine_run_route.py::test_engine_run_route - AttributeE...
+ERROR tests/unit/test_error_handling.py::test_agent_register_role_change_422
+ERROR tests/unit/test_error_handling.py::test_execution_error_status - Attrib...
+ERROR tests/unit/test_event_bus.py::test_publish_subscribe_roundtrip - Attrib...
+ERROR tests/unit/test_execute_hc.py::test_execute_hc_eval_print - AttributeEr...
+ERROR tests/unit/test_execute_hc_file.py::test_execute_hc_file_run - Attribut...
+ERROR tests/unit/test_hc_parser.py::test_parse_hc_mission_block - AttributeEr...
+ERROR tests/unit/test_health.py::test_health_check - AttributeError: 'Fixture...
+ERROR tests/unit/test_heartbeat_lifecycle.py::test_heartbeat_full_lifecycle
+ERROR tests/unit/test_heartbeat_lifecycle.py::test_timeout_marks_offline - At...
+ERROR tests/unit/test_hypercode_cli_target.py::test_cli_includes_target_flag
+ERROR tests/unit/test_immutable_error_payload.py::test_immutable_role_error_payload
+ERROR tests/unit/test_interpreter_constructs.py::test_if_else - AttributeErro...
+ERROR tests/unit/test_interpreter_constructs.py::test_while_loop_break - Attr...
+ERROR tests/unit/test_interpreter_constructs.py::test_for_loop_continue - Att...
+ERROR tests/unit/test_interpreter_constructs.py::test_function_decl_and_call
+ERROR tests/unit/test_interpreter_constructs.py::test_scoping_variables - Att...
+ERROR tests/unit/test_interpreter_constructs.py::test_operators_and_expressions
+ERROR tests/unit/test_interpreter_errors.py::test_undefined_name_error - Attr...
+ERROR tests/unit/test_interpreter_errors.py::test_unsupported_node_error - At...
+ERROR tests/unit/test_interpreter_metrics.py::test_interpreter_metrics_success_exposed
+ERROR tests/unit/test_interpreter_metrics.py::test_interpreter_metrics_error_exposed
+ERROR tests/unit/test_key_manager.py::test_generate_list_validate_revoke - At...
+ERROR tests/unit/test_key_manager.py::test_api_key_fallback - AttributeError:...
+ERROR tests/unit/test_memory_service.py::test_memory_crud_and_search - Attrib...
+ERROR tests/unit/test_memory_service.py::test_memory_cleanup_expired - Attrib...
+ERROR tests/unit/test_metrics_latency.py::test_stream_latency_metric_observed
+ERROR tests/unit/test_mission_flow_report.py::test_mission_flow_and_report - ...
+ERROR tests/unit/test_mission_lifecycle.py::test_mission_full_lifecycle - Att...
+ERROR tests/unit/test_nd_errors.py::test_undefined_name_error_with_suggestions
+ERROR tests/unit/test_nd_errors.py::test_syntax_error_formatting - AttributeE...
+ERROR tests/unit/test_nd_errors.py::test_type_error_explanation - AttributeEr...
+ERROR tests/unit/test_nd_errors.py::test_unsupported_feature_helpful - Attrib...
+ERROR tests/unit/test_nd_errors.py::test_similar_names_detection - AttributeE...
+ERROR tests/unit/test_orchestrator_selection.py::test_orchestrator_assign_prefers_capability_and_health
+ERROR tests/unit/test_parser.py::test_parse_hello_world - AttributeError: 'Fi...
+ERROR tests/unit/test_parser.py::test_parse_assignment - AttributeError: 'Fix...
+ERROR tests/unit/test_parser.py::test_parse_function_def - AttributeError: 'F...
+ERROR tests/unit/test_rate_limit.py::test_rate_limiter_redis_allowed - Attrib...
+ERROR tests/unit/test_rate_limit.py::test_rate_limiter_redis_blocked - Attrib...
+ERROR tests/unit/test_rate_limit.py::test_rate_limiter_fallback - AttributeEr...
+ERROR tests/unit/test_rate_limit.py::test_check_rate_limit_dependency - Attri...
+ERROR tests/unit/test_report_endpoint.py::test_report_endpoint_success - Attr...
+ERROR tests/unit/test_report_endpoint.py::test_report_endpoint_error - Attrib...
+ERROR tests/unit/test_report_endpoint.py::test_report_endpoint_invalid_json
+ERROR tests/unit/test_retry_backoff.py::test_schedule_retry_exponential_backoff_and_jitter
+ERROR tests/unit/test_retry_backoff.py::test_max_retries_prevents_scheduling
+ERROR tests/unit/test_retry_integration.py::test_retry_flow_schedules_and_requeues
+ERROR tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[worker-architect]
+ERROR tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[Worker-architect]
+ERROR tests/unit/test_role_immutability.py::test_role_change_with_same_dedup_key_returns_422[worker-Architect]
+ERROR tests/unit/test_role_immutability.py::test_case_only_role_is_considered_same
+ERROR tests/unit/test_services_event_bus.py::test_publish_subscribe_envelope_roundtrip
+ERROR tests/unit/test_sse_emission.py::test_sse_emits_valid_messages - Attrib...
+ERROR tests/unit/test_sse_emission.py::test_sse_handles_malformed_data - Attr...
+ERROR tests/unit/test_sse_emission.py::test_sse_high_frequency - AttributeErr...
+ERROR tests/unit/test_sse_emission.py::test_sse_connection_recovers - Attribu...
+ERROR tests/unit/test_sse_resilience.py::test_sse_handles_cancelled_error - A...
+ERROR tests/unit/test_sse_resilience.py::test_sse_pubsub_failure_does_not_500
+ERROR tests/unit/test_sse_stability.py::test_sse_stream_connects_with_backoff
+ERROR tests/unit/test_sse_stability.py::test_metrics_endpoint_exposes_sse_metrics
+ERROR tests/unit/test_voice_service.py::test_dc_offset_filter_reduces_offset
+ERROR tests/unit/test_voice_service.py::test_agc_scales_signal - AttributeErr...
+ERROR tests/unit/test_voice_service.py::test_audio_buffer_window_and_transcribe
+ERROR tests/unit/test_voice_ws.py::test_voice_ws_text_flow_dev_auth_disabled
+ERROR tests/unit/test_voice_ws.py::test_voice_ws_rate_limit - AttributeError:...
+======================= 3 warnings, 91 errors in 44.97s ========================

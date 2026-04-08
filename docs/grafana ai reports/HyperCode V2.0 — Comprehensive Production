@@ -1,0 +1,14 @@
+# HyperCode V2.0 — Comprehensive Production Audit
+
+HyperCode V2.0 production audit failed with 0/100 production-readiness score. Complete observability blackout detected: 13 CRITICAL, 3 HIGH, 1 MEDIUM findings across 17 total issues. No services discovered on target ports; all datasources contain zero metrics, logs, or traces. 7,350 BROski$ XP available for remediation. See  for severity breakdown and  for top 5 priority actions.
+
+
+## Recommendations
+
+- Priority: CRITICAL | Severity: BLOCKER | BROski$ XP: +500 Configure Prometheus exporters for Crew :8081, Healer :8008, BROski Terminal :3000, Mission Control :8088, and Redis. Verify scrape targets in Prometheus config, test metric ingestion by querying up metric. Enable container resource metrics (CPU, memory) via cAdvisor or kubelet. Implement HTTP instrumentation with histograms for latency tracking (p95/p99). Validation: Query up{job=~"crew|healer|broski|mission-control"} should return 4 series with value 1.
+- Priority: CRITICAL | Severity: BLOCKER | BROski$ XP: +500 Deploy log collection agents (promtail or fluent-bit) to ship container logs to grafanacloud-logs. Configure log output from all four services and Redis. Enable structured logging with severity levels (ERROR, CRITICAL, INFO). Verify log ingestion by querying for service-specific log streams. Validation: Query {job=~"crew|healer|broski|mission-control"} should return log streams for each service.
+- Priority: CRITICAL | Severity: BLOCKER | BROski$ XP: +500 Execute manual runtime verification: docker ps or kubectl get pods to confirm Crew, Healer, BROski Terminal, Mission Control are deployed and running. Test health endpoints: curl localhost:8081/health, curl localhost:8008/health, curl localhost:3000/health, curl localhost:8088/health. Document actual deployment state before proceeding with observability configuration. Validation: All four services respond with HTTP 200 on health endpoints.
+- Priority: HIGH | Severity: BLOCKER | BROski$ XP: +250 Verify Redis deployment status. If Redis exists, deploy Redis exporter and configure Prometheus scrape for redis_* metrics including redis_up, redis_memory_used_bytes, redis_keyspace_hits_total, redis_keyspace_misses_total. Calculate hit ratio and monitor evictions. If Redis is not deployed but referenced in architecture, document as missing dependency. Validation: Query redis_up should return 1; hit ratio query should return percentage value.
+
+
+<https://hypercode.grafana.net/a/grafana-assistant-app/investigations/b25db0f4-4f55-4695-aec0-6b85850cd759#summary|View investigation in Grafana>

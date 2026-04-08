@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hyperfocuszone.com/sitemap.xml
+
+# Optimize crawling
+Crawl-delay: 1
+
+# Block any future admin areas
+Disallow: /admin/
+Disallow: /private/
+Disallow: /_/
+
+# Allow all donation and support pages
+Allow: /support
+Allow: /donate
+Allow: /

@@ -1,0 +1,10 @@
+groups:
+  - name: agent_stream_recording
+    rules:
+      - record: job:agent_stream_latency_ms:hist_p50
+        expr: histogram_quantile(0.5, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+      - record: job:agent_stream_latency_ms:hist_p95
+        expr: histogram_quantile(0.95, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+      - record: job:agent_stream_latency_ms:hist_p99
+        expr: histogram_quantile(0.99, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+

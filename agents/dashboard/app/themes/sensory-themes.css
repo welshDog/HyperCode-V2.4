@@ -1,0 +1,109 @@
+/*
+ * HyperCode V2.0 — Neurodivergent Sensory Theme System
+ * Three presets: CALM | FOCUS | ENERGISE
+ * All themes respect prefers-reduced-motion and prefers-contrast.
+ */
+
+/* ── Base custom properties (defaults = FOCUS theme) ──────────────── */
+:root {
+  --hc-font-body: var(--font-mono), 'Courier New', monospace;
+  --hc-font-heading: var(--font-orbitron), sans-serif;
+  --hc-color-bg: #050505;
+  --hc-color-surface: #0d1117;
+  --hc-color-border: rgba(0, 255, 255, 0.15);
+  --hc-color-text-primary: #67e8f9;    /* cyan-300 */
+  --hc-color-text-secondary: #a5f3fc; /* cyan-200 */
+  --hc-color-accent: #06b6d4;          /* cyan-500 */
+  --hc-color-success: #22c55e;
+  --hc-color-warning: #f59e0b;
+  --hc-color-danger: #ef4444;
+  --hc-letter-spacing: 0.01em;
+  --hc-line-height: 1.6;
+  --hc-border-radius: 0.5rem;
+  --hc-motion-duration: 200ms;
+  --hc-motion-easing: ease-in-out;
+  --hc-saturation-filter: saturate(1);
+}
+
+/* ── CALM preset ──────────────────────────────────────────────────── */
+/* Muted palette, max reduced motion, OpenDyslexic font, wide spacing */
+[data-hc-theme='calm'] {
+  --hc-font-body: 'OpenDyslexic', 'Lexie Readable', var(--font-mono), monospace;
+  --hc-color-bg: #0a0e14;
+  --hc-color-surface: #111827;
+  --hc-color-border: rgba(148, 163, 184, 0.2);
+  --hc-color-text-primary: #cbd5e1;    /* slate-300 — low saturation */
+  --hc-color-text-secondary: #94a3b8; /* slate-400 */
+  --hc-color-accent: #7c9cbf;          /* muted blue */
+  --hc-color-success: #6ee7b7;
+  --hc-color-warning: #fcd34d;
+  --hc-color-danger: #fca5a5;
+  --hc-letter-spacing: 0.06em;         /* dyslexia-friendly wide spacing */
+  --hc-line-height: 1.9;               /* generous line height */
+  --hc-border-radius: 0.75rem;         /* softer edges */
+  --hc-motion-duration: 0.01ms;        /* effectively no motion */
+  --hc-saturation-filter: saturate(0.4);
+}
+
+/* ── FOCUS preset (default) ───────────────────────────────────────── */
+/* High-contrast cyan, minimal animations, sharp edges */
+[data-hc-theme='focus'] {
+  /* Inherits :root defaults — cyan terminal aesthetic */
+  --hc-motion-duration: 150ms;
+  --hc-saturation-filter: saturate(1);
+}
+
+/* ── ENERGISE preset ──────────────────────────────────────────────── */
+/* Vibrant purple/pink, full animations, for high-energy flow states */
+[data-hc-theme='energise'] {
+  --hc-color-bg: #0d0015;
+  --hc-color-surface: #1a0030;
+  --hc-color-border: rgba(168, 85, 247, 0.25);
+  --hc-color-text-primary: #e879f9;    /* fuchsia-400 */
+  --hc-color-text-secondary: #c084fc; /* purple-400 */
+  --hc-color-accent: #a855f7;          /* purple-500 */
+  --hc-color-success: #4ade80;
+  --hc-color-warning: #fb923c;
+  --hc-color-danger: #f87171;
+  --hc-letter-spacing: 0.02em;
+  --hc-line-height: 1.65;
+  --hc-border-radius: 0.75rem;
+  --hc-motion-duration: 300ms;
+  --hc-saturation-filter: saturate(1.3);
+}
+
+/* ── Motion safety net ────────────────────────────────────────────── */
+/* Always override animations for users who request it — regardless of theme */
+@media (prefers-reduced-motion: reduce) {
+  [data-hc-theme] {
+    --hc-motion-duration: 0.01ms !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── High contrast safety net ────────────────────────────────────── */
+@media (prefers-contrast: more) {
+  [data-hc-theme] {
+    --hc-color-text-primary: #ffffff;
+    --hc-color-text-secondary: #f1f5f9;
+    --hc-color-border: rgba(255, 255, 255, 0.5);
+    --hc-saturation-filter: saturate(1);
+  }
+}
+
+/* ── OpenDyslexic font loading ────────────────────────────────────── */
+/* Primary: Google Fonts CDN (always available, no local file needed)  */
+@import url('https://fonts.googleapis.com/css2?family=Open+Dyslexic&display=swap');
+
+/* Fallback: local file if CDN is unreachable (place in /public/fonts/) */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

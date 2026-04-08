@@ -1,0 +1,62 @@
+config:
+  target: "http://localhost:8001"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 20
+      name: "Warm up"
+    - duration: 300
+      arrivalRate: 20
+      name: "Sustained load"
+  plugins:
+    ensure: {}
+    apdex: {}
+    metrics-by-endpoint: {}
+  ensure:
+    p95: 3000
+    maxErrorRate: 1
+  apdex:
+    threshold: 100
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      X-API-Key: "dev-master-key"
+
+scenarios:
+  - name: "Task Submission Flow"
+    weight: 7
+    flow:
+      - post:
+          url: "/api/v1/chat/completions"
+          json:
+            model: "gpt-4o"
+            messages:
+              - role: "user"
+                content: "Print Hello World"
+          capture:
+            - json: "$.id"
+              as: "taskId"
+          expect:
+            - statusCode: 200
+
+  - name: "Status Query Flow"
+    weight: 2
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+
+  - name: "Orchestrator Execution Test"
+    weight: 1
+    flow:
+      - post:
+          url: "http://localhost:8081/execute"
+          json:
+            task:
+              id: "load-test-task"
+              description: "Load Test"
+              agent: "test-agent"
+              type: "test"
+          expect:
+            - statusCode: 200

@@ -1,0 +1,14 @@
+groups:
+  - name: hypercode_precomputed
+    interval: 1m
+    rules:
+      - record: job:container_cpu_usage:rate5m
+        expr: sum by(name) (rate(container_cpu_usage_seconds_total[5m]))
+      
+      - record: job:agent_memory_pct:current
+        expr: |
+          container_memory_usage_bytes{name=~".*agent.*"}
+          / container_spec_memory_limit_bytes * 100
+      
+      - record: job:loki_ingestion_rate:rate5m
+        expr: sum(rate(loki_ingester_bytes_received_total[5m]))

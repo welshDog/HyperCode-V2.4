@@ -1,0 +1,9 @@
+exclude = [
+    "agents/broski-bot/_archive",
+    "new-fix-0.1",
+    "examples"
+]
+
+[lint.per-file-ignores]
+"**/__init__.py" = ["F401"]
+"agents/broski-bot/tests/*.py" = ["E402"]

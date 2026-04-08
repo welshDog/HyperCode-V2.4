@@ -1,0 +1,154 @@
+# Production-optimized Dockerfile for HyperCode
+# Multi-stage builds to minimize final image size and attack surface
+
+# ==================== BASE STAGE ====================
+# Shared foundation for all production stages
+ARG NODE_IMAGE=node:20.18.1-bookworm-slim
+FROM ${NODE_IMAGE} as node
+
+FROM python:3.11-slim-bookworm as base
+
+# Install system dependencies in a single layer with cache cleanup
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Node.js LTS without curl|bash (copy from official node image)
+# Supply-chain note: pin NODE_IMAGE (ideally with a digest) in CI/build args for reproducibility.
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/bin/npm /usr/local/bin/npm
+COPY --from=node /usr/local/bin/npx /usr/local/bin/npx
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+
+# Install production Python packages with no cache
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir \
+    pip-tools \
+    twine
+
+WORKDIR /workspace
+
+# ==================== RUNTIME STAGE (Python Services) ====================
+# Minimal runtime image for production services (agents, core, orchestrator)
+FROM base as runtime
+
+# Security: Create non-root user for running services
+RUN groupadd -r hypercode && useradd -r -g hypercode hypercode
+
+# Install only runtime Python packages (no dev tools)
+RUN pip install --no-cache-dir \
+    httpx \
+    pydantic \
+    python-dotenv
+
+WORKDIR /app
+
+# Copy only what's needed and set ownership
+COPY --chown=hypercode:hypercode . .
+
+# Security: Set read-only filesystem where possible
+USER hypercode
+
+HEALTHCHECK NONE 
+ # Override with service-specific healthchecks in docker-compose
+
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# ==================== DEVELOPMENT STAGE ====================
+# Full-featured development with testing and debugging
+FROM base as development
+
+# Install comprehensive development tools
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-cov \
+    pytest-asyncio \
+    pytest-mock \
+    pytest-xdist \
+    pytest-timeout \
+    black \
+    ruff \
+    mypy \
+    ipython \
+    debugpy \
+    pre-commit \
+    coverage[toml] \
+    pytest-html \
+    bandit \
+    safety \
+    faker \
+    factory-boy \
+    hypothesis \
+    responses \
+    freezegun
+
+# Install Node.js dev tools
+RUN npm install -g \
+    eslint \
+    prettier \
+    @commitlint/cli \
+    artillery
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
+
+# ==================== TESTING STAGE ====================
+# Dedicated testing environment with test-specific dependencies
+FROM development as testing
+
+# Additional performance testing
+RUN pip install --no-cache-dir \
+    pytest-json-report \
+    pytest-benchmark
+
+WORKDIR /tests
+
+CMD ["pytest", "-v", "--cov", "--cov-report=html"]
+
+# ==================== CI STAGE ====================
+# CI/CD pipeline execution with security scanning
+FROM development as ci
+
+# Already includes coverage, bandit, safety from development stage
+
+# Install additional CI tools
+RUN pip install --no-cache-dir \
+    pytest-json-report
+
+WORKDIR /ci
+
+CMD ["/bin/bash"]
+
+# ==================== DOCUMENTATION STAGE ====================
+# Lightweight documentation builder
+FROM base as docs
+
+# Install only documentation dependencies
+RUN pip install --no-cache-dir \
+    mkdocs \
+    mkdocs-material \
+    mkdocstrings[python] \
+    mkdocs-gen-files \
+    mkdocs-literate-nav \
+    mkdocs-section-index
+
+WORKDIR /docs
+
+CMD ["mkdocs", "serve", "--dev-addr=0.0.0.0:8000"]
+
+# ==================== DATABASE MIGRATION STAGE ====================
+# Minimal database migration runner
+FROM base as migration
+
+# Install only migration tools
+RUN pip install --no-cache-dir \
+    prisma \
+    alembic \
+    sqlalchemy
+
+WORKDIR /migrations
+
+CMD ["prisma", "migrate", "deploy"]

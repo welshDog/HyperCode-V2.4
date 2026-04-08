@@ -1,0 +1,19 @@
+{
+  "state": "inactive",
+  "name": "CrewOrchestratorDown",
+  "query": "up{job=\"crew-orchestrator\"} == 0",
+  "duration": 60,
+  "keepFiringFor": 0,
+  "labels": {
+    "severity": "critical"
+  },
+  "annotations": {
+    "description": "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute.",
+    "summary": "Crew Orchestrator metrics target is down"
+  },
+  "alerts": [],
+  "health": "ok",
+  "evaluationTime": 0.000769632,
+  "lastEvaluation": "2026-03-12T09:38:42.281502472Z",
+  "type": "alerting"
+}

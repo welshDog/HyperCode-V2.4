@@ -1,0 +1,357 @@
+service_identity:
+  name: "crew-orchestrator"
+  codename: "🎭 The Conductor"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Central task orchestrator that coordinates all agents in the system.
+    Receives high-level goals from HyperCode Core, decomposes them into
+    subtasks, assigns work to appropriate agents, tracks progress, and
+    aggregates results. Manages agent health, detects failures, and triggers
+    cascading failure recovery through the Healer.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#crew-orchestrator"
+    oncall_schedule: "crew-oncall"
+
+responsibility_matrix:
+  primary_role: "ORCHESTRATOR"
+  secondary_roles: ["ARCHITECT"]
+  
+  owns:
+    - "Task lifecycle (create → assign → execute → track → complete)"
+    - "Agent coordination (task dispatch, result aggregation)"
+    - "Dependency resolution (task ordering)"
+    - "Health monitoring (detect failed agents)"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Receives task requests. <200ms latency required."
+    - redis:6379 → "Task queue, lock manager, agent heartbeats. <50ms required."
+    - postgres:5432 → "Task history, audit logs. <100ms required."
+    - healer-agent:8008 → "Notified when dependent services fail, triggers recovery."
+    - all-agents → "Sends work to frontend-specialist, backend-specialist, etc."
+  
+  critical_dependents:
+    - "hypercode-core (waits for task results)"
+    - "all-agents (receive work, return results)"
+    - "dashboard (real-time task progress)"
+
+communication_contract:
+  input_endpoints:
+    
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "active_tasks": 12,
+          "agents_connected": 8,
+          "queue_depth": 3
+        }
+      latency_slo_ms: 100
+    
+    - "GET /metrics"
+      response: "Prometheus format"
+      latency_slo_ms: 200
+    
+    - "POST /task/create"
+      request: |
+        {
+          "goal": "Build login API endpoint",
+          "priority": 5,
+          "deadline_seconds": 3600,
+          "context": {
+            "repo_url": "...",
+            "framework": "FastAPI"
+          }
+        }
+      response: |
+        {
+          "task_id": "uuid",
+          "status": "created",
+          "subtasks": [
+            {"id": "uuid", "type": "backend-specialist"},
+            {"id": "uuid", "type": "database-architect"},
+            {"id": "uuid", "type": "qa-engineer"}
+          ]
+        }
+      latency_slo_ms: 300
+    
+    - "GET /task/{task_id}"
+      response: |
+        {
+          "task_id": "uuid",
+          "status": "in-progress",
+          "progress_percent": 45,
+          "subtasks_complete": 1,
+          "subtasks_total": 3,
+          "estimated_completion_seconds": 1200
+        }
+      latency_slo_ms: 100
+    
+    - "POST /task/{task_id}/cancel"
+      response: |
+        {
+          "task_id": "uuid",
+          "status": "cancelled",
+          "subtasks_cancelled": 2
+        }
+      latency_slo_ms: 150
+  
+  output_events:
+    - redis://crew-queue → "Agent work assignments"
+    - redis://crew-results → "Agent result aggregation"
+    - redis://agent-heartbeats → "Health monitoring"
+    - postgres://tasks → "Task history"
+    - loki://{service="crew-orchestrator"} → "Logs with task correlation IDs"
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    /task/create_p99_ms: 300
+    /task/{id}_p99_ms: 100
+    /metrics_p99_ms: 200
+  
+  reliability:
+    availability_percent: 99.5  # 99.5% (3-4 hours/month downtime)
+    error_rate_max: 0.01  # 1%
+    task_success_rate_min: 0.95  # 95% of tasks complete successfully
+  
+  resource_usage:
+    memory_limit_mb: 512
+    memory_warn_mb: 400
+    cpu_limit_cores: 0.5
+    cpu_avg_cores: 0.15
+
+failure_modes:
+  
+  - mode_id: "redis_queue_full"
+    description: "Redis queue fills up, no more tasks can be queued"
+    symptoms:
+      - "POST /task/create returns 503 'Queue full'"
+      - "Metric redis_memory_usage_bytes > 400MB"
+      - "Users report tasks not being accepted"
+    root_causes:
+      - "Agents backed up (not completing tasks fast enough)"
+      - "Redis maxmemory policy not working"
+      - "Burst of task submissions"
+    recovery_steps:
+      - "1. Check: Rate of task creation vs completion"
+      - "2. Scale: Increase agent replicas (Kubernetes) or spawn more workers"
+      - "3. Manual: Force-clear old completed tasks from Redis"
+      - "4. Backpressure: Temporarily rate-limit new task submissions"
+    expected_mttr_minutes: 5
+    user_impact: "DEGRADED - New tasks rejected, existing tasks still running"
+    sev: "P2"
+  
+  - mode_id: "agent_unresponsive"
+    description: "One or more agents not responding to work assignments"
+    symptoms:
+      - "Task stuck in 'assigned' state for >5 minutes"
+      - "Metric agent_heartbeat_missed{agent='backend-specialist'} > 3"
+      - "Logs: '[WARN] Agent backend-specialist not responding'"
+    root_causes:
+      - "Agent process crashed"
+      - "Agent out of memory"
+      - "Agent CPU pegged (hanging on blocking operation)"
+      - "Network partition to agent"
+    recovery_steps:
+      - "1. Detect: Orchestrator notices missed heartbeats"
+      - "2. Alert: Healer notified via webhook"
+      - "3. Restart: Healer restarts agent container"
+      - "4. Requeue: Orchestrator requeues stuck task for another agent"
+      - "5. Escalate: If agent crashes >3 times in 1h, page on-call"
+    expected_mttr_minutes: 2
+    user_impact: "DEGRADED - Task takes longer (requeued to another agent)"
+    sev: "P2"
+  
+  - mode_id: "deadlock_circular_dependency"
+    description: "Circular task dependencies cause deadlock"
+    symptoms:
+      - "Multiple tasks stuck in 'waiting' state indefinitely"
+      - "No errors, but no progress either"
+      - "Metric active_waiting_tasks > 5 for >10min"
+    root_causes:
+      - "Task dependency graph has cycle"
+      - "Agent A waits for result from Agent B, but B depends on A"
+      - "Rare edge case in dependency resolution"
+    recovery_steps:
+      - "1. Detect: Deadlock detection algorithm (watch for time-to-completion outliers)"
+      - "2. Timeout: After 30min stuck in 'waiting', force-fail task"
+      - "3. Manual: Investigate which tasks caused cycle"
+      - "4. Fix: Update dependency resolution logic"
+      - "5. Retry: Resubmit task with corrected dependencies"
+    expected_mttr_minutes: 35
+    user_impact: "CRITICAL - Deadlocked tasks never complete"
+    sev: "P1"
+  
+  - mode_id: "cascading_failure_to_core"
+    description: "Orchestrator fails, blocking all task creation from Core"
+    symptoms:
+      - "POST /chat times out (waiting for task result)"
+      - "Orchestrator container shows 'CrashLoopBackOff'"
+      - "Metric orchestrator_requests_total stopped incrementing"
+    root_causes:
+      - "Out of memory"
+      - "PostgreSQL connection pool exhausted"
+      - "Unhandled exception in task dispatch logic"
+    recovery_steps:
+      - "1. Healer auto-restarts orchestrator"
+      - "2. Check: `docker logs crew-orchestrator` for crash reason"
+      - "3. Fallback: Core falls back to direct agent dispatch (slower)"
+      - "4. Scale: If memory issue, increase memory limit"
+      - "5. Fix: Deploy patched version"
+    expected_mttr_minutes: 1
+    user_impact: "CRITICAL - All new tasks fail"
+    sev: "P1"
+
+metrics_to_monitor:
+  
+  - name: "task_completion_latency"
+    prometheus_query: "histogram_quantile(0.95, rate(task_completion_duration_seconds_bucket{job='crew-orchestrator'}[5m]))"
+    alert_if: "... > 300"  # SLO: 300s (5 min)
+    alert_name: "Crew_HighTaskLatency"
+  
+  - name: "task_success_rate"
+    prometheus_query: "rate(tasks_completed_total{status='success'}[5m]) / rate(tasks_completed_total[5m])"
+    alert_if: "... < 0.95"  # SLO: 95%
+    alert_name: "Crew_LowSuccessRate"
+  
+  - name: "agent_heartbeat_health"
+    prometheus_query: "agent_heartbeat_missed_total{job='crew-orchestrator'}"
+    alert_if: "... > 3 for agent in ['backend-specialist', 'frontend-specialist', ...]"
+    alert_name: "Crew_AgentHeartbeatMissed"
+  
+  - name: "queue_depth"
+    prometheus_query: "redis_llen{key='crew-queue'}"
+    alert_if: "... > 500"  # Warn if >500 pending tasks
+    alert_name: "Crew_QueueBacklog"
+  
+  - name: "memory_usage"
+    prometheus_query: "container_memory_usage_bytes{name='crew-orchestrator'}"
+    alert_if: "... > 400 * 1024 * 1024"  # 400MB threshold
+  
+  - name: "task_timeout_rate"
+    prometheus_query: "rate(tasks_completed_total{status='timeout'}[5m])"
+    alert_if: "... > 0.01"  # >1% timeout rate
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "crew-orchestrator"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "crew-orchestrator"
+    container_name: "crew-orchestrator"
+    build_context: "./agents/crew-orchestrator"
+    build_dockerfile: "Dockerfile"
+    ports:
+      - "8081:8080"  # External 8081 → Internal 8080
+  
+  healthcheck:
+    endpoint: "GET http://localhost:8080/health"
+    interval_seconds: 30
+    timeout_seconds: 10
+    retries: 3
+  
+  restart_policy: "unless-stopped"
+  
+  resource_allocation:
+    limits:
+      cpus: "0.5"
+      memory: "512M"
+    reservations:
+      cpus: "0.1"
+      memory: "256M"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    REDIS_HOST: "redis"
+    REDIS_PORT: "6379"
+    POSTGRES_HOST: "postgres"
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: "hypercode"
+    POSTGRES_USER: "${POSTGRES_USER}"
+    POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    HEALER_URL: "http://healer-agent:8008"
+    LOG_LEVEL: "INFO"
+    PROMETHEUS_ENABLED: "true"
+  
+  logging:
+    driver: "json-file"
+    format: "JSON"
+    retention:
+      max_size: "10m"
+      max_file: "3"
+    log_fields:
+      - timestamp
+      - level
+      - task_id (correlation ID)
+      - agent_id
+      - action (created, assigned, completed, failed)
+      - status_code
+      - latency_ms
+
+versioning:
+  current_version: "2.0.0"
+  breaking_changes_v2_1_0:
+    - "Task assignment protocol changed (new 'priority_tier' field required)"
+    - "Result aggregation format changed (nested structure)"
+  
+  migration_v2_0_to_v2_1:
+    - "Deploy v2.1.0 alongside v2.0.0"
+    - "Migrate in-flight tasks: none (stateless)"
+    - "Migrate Redis schemas: none (protocol backward compatible)"
+  
+  deprecation_schedule:
+    v2_0: "Supported until 2025-12-31"
+    v1_9: "EOL 2024-09-01"
+
+evolution_roadmap:
+  v2_0: "Stable MVP - Sequential task execution"
+  v2_1:
+    timeline: "Q2 2024"
+    features:
+      - "Parallel subtask execution (DAG support)"
+      - "Task priorities (urgent vs background work)"
+      - "Resource-aware scheduling (don't overload agents)"
+  v2_2:
+    timeline: "Q3 2024"
+    features:
+      - "Distributed tracing (request → all subtasks)"
+      - "Task rollback on failure"
+      - "SLA enforcement (fail fast if deadline near)"
+  v3_0:
+    timeline: "Q1 2025"
+    features:
+      - "Kubernetes-native orchestration"
+      - "Multi-region task dispatch"
+      - "Agent auto-scaling based on queue depth"
+
+on_call_playbook:
+  
+  alert_high_task_latency:
+    trigger: "Task p95 latency > 300s for 10 minutes"
+    actions:
+      - "Check: Are agents backed up? (queue_depth metric)"
+      - "Check: Any agents unresponsive? (heartbeat_missed)"
+      - "Decision: Scale up agents vs investigate slow task"
+  
+  alert_low_success_rate:
+    trigger: "Success rate < 95% for 5 minutes"
+    actions:
+      - "Check: Recent deployment? Rollback if yes"
+      - "Check: Which tasks failing? (check logs, find pattern)"
+      - "Check: Dependent service issues (Core, agents, DB)"
+  
+  alert_agent_heartbeat_missed:
+    trigger: "Agent hasn't checked in for >2 minutes"
+    actions:
+      - "1. Healer auto-restarts agent"
+      - "2. Monitor: Check if it comes back"
+      - "3. Check: `docker logs <agent>` for crash reason"
+      - "4. Requeue: Orchestrator moves stuck tasks to other agents"
+
+support_contacts:
+  primary_engineer: "Lyndz"
+  backup_engineer: "TBD"

@@ -1,0 +1,11 @@
+services:
+  nim-service:
+    profiles: ["nim"]
+    image: nvcr.io/nvidia/nim/nemotron-3-super:1.0
+    container_name: nim-service
+    environment:
+      - NIM_API_KEY=${NIM_API_KEY:-}
+    ports:
+      - "127.0.0.1:8009:8000"
+    restart: unless-stopped
+

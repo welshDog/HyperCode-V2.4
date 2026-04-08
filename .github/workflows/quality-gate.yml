@@ -1,0 +1,181 @@
+name: Quality Gate — Master Orchestrator
+
+# This is the single gate that must pass before a PR can merge.
+# It calls the specialist workflows and enforces thresholds from
+# quality-gate-thresholds.yml.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+  checks: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  THRESHOLD_COVERAGE: 70
+  THRESHOLD_JS_COVERAGE: 80
+  THRESHOLD_FAIL_RATE: 1.0
+  THRESHOLD_AVG_RESP_MS: 200
+
+jobs:
+  # ── 1. Python CI (reusable) ──────────────────────────────────────────────
+  python-ci:
+    name: Python CI
+    uses: ./.github/workflows/ci-python.yml
+    with:
+      python_version: "3.11"
+      coverage_min: "70"
+      fail_on_ruff: false
+      fail_on_pip_audit: false
+      fail_on_bandit_high: false
+
+  # ── 2. JS CI (reusable) ─────────────────────────────────────────────────
+  js-ci:
+    name: JS CI
+    uses: ./.github/workflows/ci-js.yml
+    with:
+      node_version: "20"
+      project_dir: "agents/dashboard"
+      coverage_min: "80"
+      run_e2e: true
+      npm_audit_level: "high"
+
+  # ── 3. Security CI (reusable; advisory by default) ───────────────────────
+  security-ci:
+    name: Security CI
+    uses: ./.github/workflows/ci-security.yml
+    with:
+      python_version: "3.11"
+      node_version: "20"
+      fail_on_bandit_high: false
+      npm_audit_level: "off"
+      fail_on_secrets: false
+
+  # ── 3.1 Coverage summary for PR ─────────────────────────────────────────
+  coverage-summary:
+    name: Coverage Summary (PR)
+    needs: [python-ci]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-reports
+          path: reports/python
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Comment coverage on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const xml = fs.readFileSync('reports/python/coverage.xml', 'utf8');
+            const m = xml.match(/line-rate="([^"]+)"/);
+            const rate = m ? (parseFloat(m[1]) * 100).toFixed(1) : '0.0';
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Coverage Report\n\n- line coverage: ${rate}%\n`
+            });
+
+  # ── 4. Dependency freshness ──────────────────────────────────────────────
+  deps-check:
+    name: Dependency Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Check for outdated Python packages (advisory)
+        run: |
+          pip install pip-outdated 2>/dev/null || pip install packaging requests
+          pip install -r requirements.txt -q
+          pip list --outdated --format=json > reports/outdated-python.json 2>/dev/null || echo "[]" > reports/outdated-python.json
+          python3 -c "
+          import json
+          with open('reports/outdated-python.json') as f:
+              pkgs = json.load(f)
+          print(f'{len(pkgs)} Python packages have newer versions available')
+          for p in pkgs[:20]:
+              print(f'  {p[\"name\"]}: {p[\"version\"]} -> {p[\"latest_version\"]}')
+          "
+
+      - name: Upload freshness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deps-freshness
+          path: reports/outdated-*.json
+          retention-days: 14
+
+  # ── 5. Generate executive dashboard ─────────────────────────────────────
+  dashboard:
+    name: Generate Health Dashboard
+    needs: [python-ci, js-ci, security-ci, deps-check]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: reports/all
+        continue-on-error: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Generate HTML dashboard
+        run: |
+          python3 scripts/scan/generate-dashboard.py \
+            --reports-dir reports/all \
+            --output reports/dashboard.html \
+            --commit "${{ github.sha }}" \
+            --branch "${{ github.ref_name }}" \
+            --run-id "${{ github.run_id }}"
+
+      - name: Upload dashboard
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-dashboard
+          path: reports/dashboard.html
+          retention-days: 90
+
+  # ── 6. Master gate ───────────────────────────────────────────────────────
+  gate:
+    name: Quality Gate Result
+    needs: [python-ci, js-ci]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Evaluate all gates
+        run: |
+          echo "python:   ${{ needs.python-ci.result }}"
+          echo "js:       ${{ needs.js-ci.result }}"
+
+          FAILED=""
+          [ "${{ needs.python-ci.result }}" == "failure" ] && FAILED="$FAILED python"
+          [ "${{ needs.js-ci.result }}"     == "failure" ] && FAILED="$FAILED js"
+
+          if [ -n "$FAILED" ]; then
+            echo "::error::Quality gate FAILED. Blocking jobs:$FAILED"
+            exit 1
+          fi
+
+          echo "Quality gate PASSED."

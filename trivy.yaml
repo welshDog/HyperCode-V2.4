@@ -1,0 +1,48 @@
+# HyperCode V2.4 — Trivy Scanner Configuration
+# Docs: https://aquasecurity.github.io/trivy/latest/docs/references/configuration/config-file/
+# Used by: .github/workflows/security-comprehensive.yml
+#          .github/workflows/iac-scan.yml
+#          docker-compose.yml (security-scanner service)
+
+# ── Vulnerability scanning ───────────────────────────────────────────────
+severity:
+  - CRITICAL
+  - HIGH
+
+ignore-unfixed: true
+
+vuln-type:
+  - os
+  - library
+
+# ── Output ───────────────────────────────────────────────────────────────
+format: json     # overridden per scan target in CI (sarif for GitHub, json for dashboard)
+
+# ── Secret detection ─────────────────────────────────────────────────────
+secret:
+  config: contrib/secret/secret.yaml   # built-in ruleset
+
+# ── Filesystem / repo scan ignores ───────────────────────────────────────
+skip-dirs:
+  - node_modules
+  - .venv
+  - .git
+  - migrations
+  - agents/broski-bot/_archive
+
+skip-files:
+  - "**/*.lock"
+  - package-lock.json
+
+# ── IaC scanning ─────────────────────────────────────────────────────────
+misconfiguration:
+  include-non-failures: false    # only report actual misconfigurations
+  helm-values: []
+  terraform-vars: []
+
+# ── Exit behaviour ───────────────────────────────────────────────────────
+# exit-code: 1   # set per-invocation in CI; not set globally to allow
+#                # continue-on-error + SARIF upload pattern
+
+# ── Caching ──────────────────────────────────────────────────────────────
+cache-dir: /tmp/trivy-cache

@@ -1,0 +1,7 @@
+networks:
+  backend-net:
+    name: ${HYPERCODE_PUBLIC_NET_NAME:-hypercode_public_net}
+    external: true
+  hypercode-agents-net:
+    name: ${HYPERCODE_AGENTS_NET_NAME:-hypercode-v20_hypercode-net}
+    external: true

@@ -1,0 +1,60 @@
+// ═══════════════════════════════════════════════════════════════════
+// 🧠 HyperCode V2.0 — Grafana Agent River Config
+// Ships: Metrics → Grafana Cloud Prometheus (Mimir)
+//        Logs    → Grafana Cloud Loki
+//        Traces  → Grafana Cloud Tempo
+// ═══════════════════════════════════════════════════════════════════
+
+// ── METRICS: scrape from local Prometheus ────────────────────────
+prometheus.scrape "hypercode_agents" {
+  targets = [
+    {"__address__" = "prometheus-cloud:9090", "job" = "prometheus-federate"},
+  ]
+  metrics_path   = "/federate"
+  params         = {
+    "match[]" = [
+      "hyper_agent_requests_total",
+      "hyper_agent_latency_seconds",
+      "hyper_agent_errors_total",
+      "hyper_agent_queue_depth",
+      "hyper_agent_jobs_in_flight",
+      "llm_tokens_in_total",
+      "llm_tokens_out_total",
+      "llm_cost_estimate_usd",
+      "llm_latency_seconds",
+      "llm_errors_total",
+      "healer_recoveries_total",
+      "agent_x_deployments_total",
+      "up",
+      "process_cpu_seconds_total",
+      "process_resident_memory_bytes",
+    ]
+  }
+  scrape_interval = "15s"
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+}
+
+// ── REMOTE WRITE → Grafana Cloud Prometheus ──────────────────────
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+      password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
+    }
+    queue_config {
+      max_samples_per_send = 1000
+      batch_send_deadline  = "5s"
+    }
+  }
+  external_labels = {
+    project   = "hypercode-v2",
+    env       = "production",
+    site      = "hyperstation-wales",
+  }
+}
+
+// ── LOGS: collect Docker container logs for all agents ───────────
+loki.source.docker "hypercode_containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.docker.hypercode_services.targets

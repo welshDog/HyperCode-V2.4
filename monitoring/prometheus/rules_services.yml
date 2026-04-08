@@ -1,0 +1,12 @@
+groups:
+  - name: hypercode_services_latency
+    rules:
+      - record: job:memory_service_latency_seconds:hist_p95
+        expr: |
+          histogram_quantile(0.95, sum(rate(memory_service_latency_seconds_bucket[5m])) by (le, operation))
+      - record: job:key_manager_latency_seconds:hist_p95
+        expr: |
+          histogram_quantile(0.95, sum(rate(key_manager_latency_seconds_bucket[5m])) by (le, operation))
+      - record: job:event_bus_latency_seconds:hist_p95
+        expr: |
+          histogram_quantile(0.95, sum(rate(event_bus_latency_seconds_bucket[5m])) by (le, operation))

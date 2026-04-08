@@ -1,0 +1,105 @@
+# --- Tempo (Tracing) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tempo
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tempo
+  template:
+    metadata:
+      labels:
+        app: tempo
+    spec:
+      containers:
+      - name: tempo
+        image: grafana/tempo:latest
+        args: ["-config.file=/etc/tempo.yaml"]
+        ports:
+        - containerPort: 3200 # HTTP
+        - containerPort: 4317 # OTLP gRPC
+        - containerPort: 4318 # OTLP HTTP
+        - containerPort: 14268 # Jaeger HTTP
+        - containerPort: 14250 # Jaeger gRPC
+        - containerPort: 9411 # Zipkin
+        volumeMounts:
+        - name: tempo-config
+          mountPath: /etc/tempo.yaml
+          subPath: tempo.yaml
+        - name: tempo-data
+          mountPath: /var/lib/tempo
+      volumes:
+      - name: tempo-config
+        configMap:
+          name: tempo-config
+      - name: tempo-data
+        persistentVolumeClaim:
+          claimName: tempo-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tempo
+  namespace: hypercode
+spec:
+  ports:
+  - name: http
+    port: 3200
+  - name: otlp-grpc
+    port: 4317
+  - name: otlp-http
+    port: 4318
+  - name: jaeger-http
+    port: 14268
+  - name: jaeger-grpc
+    port: 14250
+  - name: zipkin
+    port: 9411
+  selector:
+    app: tempo
+---
+# --- Loki (Logs) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loki
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+  template:
+    metadata:
+      labels:
+        app: loki
+    spec:
+      containers:
+      - name: loki
+        image: grafana/loki:latest
+        args: ["-config.file=/etc/loki/local-config.yaml"]
+        ports:
+        - containerPort: 3100
+        volumeMounts:
+        - name: loki-config
+          mountPath: /etc/loki/local-config.yaml
+          subPath: loki-config.yml
+      volumes:
+      - name: loki-config
+        configMap:
+          name: loki-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loki
+  namespace: hypercode
+spec:
+  ports:
+  - port: 3100
+    targetPort: 3100
+  selector:
+    app: loki

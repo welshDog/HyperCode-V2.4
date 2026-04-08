@@ -1,0 +1,127 @@
+# 🧠 HyperCode V2.0 — NANO Profile (Low-Spec Hardware Override)
+#
+# Targets machines with 4GB RAM or less:
+#   Raspberry Pi 4 (4GB), old laptops, budget cloud VMs, WSL2 tight configs
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.nano.yml up
+#
+# What it does:
+#   - Overrides ALL service resource limits to nano-safe values
+#   - Disables Ollama (use cloud LLM instead via PERPLEXITY_API_KEY)
+#   - Disables observability stack (Grafana/Prometheus/Loki/Tempo)
+#   - Disables MinIO, ChromaDB, cAdvisor, security-scanner
+#   - Keeps: redis, postgres, hypercode-core, dashboard, celery-worker
+#   - Total idle RAM target: < 1.6GB
+#
+# Re-enable services one at a time as you confirm free headroom.
+services:
+  # ── CORE ───────────────────────────────────────────────────── #
+  redis:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+
+  postgres:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  hypercode-core:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+
+  celery-worker:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  dashboard:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+
+  # ── DISABLED IN NANO ─────────────────────────────────────── #
+  # Ollama — too heavy (1–3GB). Use PERPLEXITY_API_KEY cloud fallback instead.
+  hypercode-ollama:
+    deploy:
+      replicas: 0
+
+  # Observability stack — enable one-by-one as RAM headroom allows
+  prometheus:
+    deploy:
+      replicas: 0
+
+  grafana:
+    deploy:
+      replicas: 0
+
+  node-exporter:
+    deploy:
+      replicas: 0
+
+  cadvisor:
+    deploy:
+      replicas: 0
+
+  loki:
+    deploy:
+      replicas: 0
+
+  tempo:
+    deploy:
+      replicas: 0
+
+  promtail:
+    deploy:
+      replicas: 0
+
+  celery-exporter:
+    deploy:
+      replicas: 0
+
+  # Object storage + vector DB — disable unless RAG features needed
+  minio:
+    deploy:
+      replicas: 0
+
+  chroma:
+    deploy:
+      replicas: 0
+
+  # Security scanner — heavy, run manually
+  security-scanner:
+    deploy:
+      replicas: 0
+
+  # Janitor — optional on low-spec
+  docker-janitor:
+    deploy:
+      replicas: 0
+
+  auto-prune:
+    deploy:
+      replicas: 0

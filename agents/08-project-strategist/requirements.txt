@@ -1,0 +1,6 @@
+python-json-logger>=2.0.7
+fastapi
+uvicorn
+requests
+pydantic
+redis

@@ -1,0 +1,15 @@
+apiVersion: 1
+
+correlations:
+  - sourceUID: prometheus
+    targetUID: loki
+    label: "View Agent Logs"
+    description: "Jump from Agent Metrics to Agent Logs"
+    type: query
+    config:
+      field: "container_name"
+      target:
+        expr: '{container_name="${__field.labels.container_name}"}'
+      transformations:
+        - type: logfmt
+          field: "container_name"

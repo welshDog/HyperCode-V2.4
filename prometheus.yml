@@ -1,0 +1,137 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Grafana Cloud Remote Write - Placeholder (Disabled for Local Production)
+# remote_write:
+#   - url: <Your Prometheus Remote Write Endpoint>
+#     basic_auth:
+#       username: <Your Prometheus Username / Instance ID>
+#       password: <Your Grafana Cloud Access Policy Token>
+
+rule_files:
+  - "/etc/prometheus/monitoring/rules/*.yml"
+
+scrape_configs:
+
+  # ── PROMETHEUS SELF ───────────────────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── CORE SERVICES ─────────────────────────────────────────────────────────
+  - job_name: "hypercode-core"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["hypercode-core:8000"]
+
+  - job_name: "celery-exporter"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["celery-exporter:9808"]
+
+  # ── INFRA ─────────────────────────────────────────────────────────────────
+  - job_name: "node-exporter"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: "cadvisor"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+
+  # ── CORE AGENTS ───────────────────────────────────────────────────────────
+  - job_name: "healer-agent"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["healer-agent:8008"]
+
+  - job_name: "crew-orchestrator"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["crew-orchestrator:8081"]
+
+  - job_name: "coder-agent"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["coder-agent:8002"]
+
+  # ── SPECIALIST AGENTS ─────────────────────────────────────────────────────
+  - job_name: "project-strategist"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["project-strategist:8001"]
+
+  - job_name: "frontend-specialist"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["frontend-specialist:8012"]
+
+  - job_name: "backend-specialist"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["backend-specialist:8003"]
+
+  - job_name: "database-architect"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["database-architect:8004"]
+
+  - job_name: "qa-engineer"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["qa-engineer:8005"]
+
+  - job_name: "devops-engineer"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["devops-engineer:8006"]
+
+  - job_name: "security-engineer"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["security-engineer:8007"]
+
+  - job_name: "system-architect"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["system-architect:8008"]
+
+  - job_name: "tips-tricks-writer"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["tips-tricks-writer:8009"]
+
+  # ── SPECIAL AGENTS ────────────────────────────────────────────────────────
+  - job_name: "test-agent"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["test-agent:8080"]
+
+  - job_name: "throttle-agent"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["throttle-agent:8014"]
+
+  - job_name: "super-hyper-broski-agent"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["super-hyper-broski-agent:8015"]
+
+  - job_name: "coderabbit-webhook"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["coderabbit-webhook:8089"]
+
+  # ── OBSERVABILITY ─────────────────────────────────────────────────────────
+  - job_name: "hyperhealth"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["hyperhealth-api:8090"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: hyperhealth

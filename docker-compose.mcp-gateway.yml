@@ -1,0 +1,327 @@
+# ============================================================================
+# MCP Gateway + Ollama Profile for HyperCode V2.0
+# ============================================================================
+# Enable with: docker compose -f docker-compose.yml -f docker-compose.mcp-gateway.yml up -d
+#
+# This profile adds:
+# 1. MCP Gateway: Central tool access control for all agents
+# 2. Ollama: Local LLM orchestration (Windows Docker Desktop compatible)
+# 3. MCP Tools: GitHub, PostgreSQL, File System, ChromaDB/RAG
+# 4. Agent Integration: Wire agents to use MCP tools via gateway
+#
+# Architecture:
+#   [Agent] -> [MCP Gateway:8820] -> [MCP Tools/Models]
+#              ^
+#              Auth, Rate Limiting, Audit Logging
+#
+# FIX LOG:
+# - Removed obsolete 'version:' key (Docker Compose v2 warning)
+# - Replaced all fake modelcontextprotocol/* images with real equivalents
+# - Replaced docker/model-runner with ollama/ollama (actually exists)
+# - MCP tool servers run via npx on node:20-alpine (official MCP approach)
+# - [2026-03-25] Removed volume declarations entirely from this override file.
+#   All volumes are owned by docker-compose.yml (main stack) with bind-mount
+#   driver_opts. Re-declaring them here (even as external) causes a
+#   "conflicting parameters" error on merged compose startup.
+#   Services in this file reference the volumes by name — Docker resolves
+#   them from the already-loaded main compose context automatically.
+# ============================================================================
+
+services:
+
+  # ====================
+  # MCP GATEWAY
+  # ====================
+  mcp-gateway:
+    # Supply-chain note: pin this via MCP_GATEWAY_IMAGE (ideally with a digest) in .env.
+    image: ${MCP_GATEWAY_IMAGE:-docker/mcp-gateway:latest}
+    container_name: mcp-gateway
+    environment:
+      - GATEWAY_HOST=0.0.0.0
+      - GATEWAY_PORT=8820
+      - MCP_GATEWAY_API_KEY=${MCP_GATEWAY_API_KEY:?MCP_GATEWAY_API_KEY must be set (do not use a default)}
+      - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:?MCP_GATEWAY_API_KEY must be set (do not use a default)}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
+      - LOG_LEVEL=info
+      - ENABLE_AUDIT_LOG=true
+      - AUDIT_LOG_PATH=/var/log/mcp-gateway
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_PER_MINUTE=1000
+      - RATE_LIMIT_PER_HOUR=50000
+      - AUTH_ENABLED=true
+      - AUTH_TYPE=api_key
+      # Hardening: disable Docker-based tool auto-discovery by default (removes need for docker.sock).
+      - AUTO_DISCOVER_TOOLS=false
+      - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/mcp_audit
+    command:
+      [
+        "--port", "8820",
+        "--transport", "sse",
+        "--block-secrets=true",
+        "--servers", "github,postgres,filesystem",
+        "--config", "/mcp/config.yaml"
+      ]
+    volumes:
+      - ./monitoring/mcp-gateway:/var/log/mcp-gateway
+      - ./:/workspace:ro
+      - ./mcp:/mcp:ro
+    ports:
+      - "127.0.0.1:8820:8820"
+    networks:
+      - backend-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  mcp-rest-adapter:
+    build:
+      context: ./services/mcp-rest-adapter
+      dockerfile: Dockerfile
+    container_name: mcp-rest-adapter
+    environment:
+      - MCP_GATEWAY_BASE_URL=http://host.docker.internal:8820
+      - MCP_GATEWAY_SSE_URL=http://host.docker.internal:8820/sse
+      - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:?MCP_GATEWAY_API_KEY must be set}
+      - MCP_WORKSPACE_TARGET_PATH=/workspace
+      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HyperStation zone/HyperCode/HyperCode-V2.4
+      - MCP_LOCAL_WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./:/workspace:ro
+    ports:
+      - "127.0.0.1:8821:8821"
+    networks:
+      - backend-net
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================
+  # LOCAL LLM (OLLAMA)
+  # ====================
+  ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    container_name: ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=24h
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      backend-net:
+        aliases:
+          - hypercode-ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 6G
+        reservations:
+          cpus: "1"
+          memory: 2G
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ====================
+  # MCP TOOLS
+  # ====================
+
+  mcp-github:
+    # Supply-chain note: pin this via MCP_GITHUB_IMAGE (ideally with a digest) in .env.
+    image: ${MCP_GITHUB_IMAGE:-ghcr.io/github/github-mcp-server:latest}
+    container_name: mcp-github
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
+    command: ["http", "--port", "8082"]
+    networks:
+      - backend-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  mcp-postgres:
+    image: node:20-alpine
+    container_name: mcp-postgres
+    profiles: ["mcp"]
+    command: >
+      sh -c "npx -y @modelcontextprotocol/server-postgres
+      postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-hypercode}"
+    networks:
+      - backend-net
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  mcp-filesystem:
+    image: node:20-alpine
+    container_name: mcp-filesystem
+    profiles: ["mcp"]
+    command: >
+      sh -c "npx -y @modelcontextprotocol/server-filesystem /workspace /data"
+    volumes:
+      # Hardening: default to read-only mounts. If you need write access, override in a local compose overlay.
+      - ./agents:/workspace:ro
+      - ./data:/data:ro
+    networks:
+      - backend-net
+    restart: "no"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    cap_drop:
+      - ALL
+
+  chroma-mcp:
+    image: ${CHROMA_IMAGE:-chromadb/chroma:latest}
+    container_name: chroma-mcp
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_PORT=8000
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=false
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - backend-net
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ====================
+  # AGENT MCP CLIENT
+  # ====================
+  backend-specialist-mcp:
+    profiles: ["agents"]
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist-mcp
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=backend-specialist
+      - AGENT_PORT=8003
+      - MCP_GATEWAY_URL=http://mcp-gateway:8820
+      - MCP_GATEWAY_API_KEY=${MCP_GATEWAY_API_KEY:-agent-key-001}
+      - MCP_TOOLS_ENABLED=true
+      - MCP_TOOLS_LIST=github,postgres,filesystem,vectordb
+      - LLM_ENDPOINT=http://ollama:11434
+      - LLM_MODEL=phi3:mini
+    volumes:
+      - ./agents/02-backend-specialist:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - backend-net
+    ports:
+      - "127.0.0.1:8003:8003"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      mcp-gateway:
+        condition: service_started
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================
+  # OBSERVABILITY
+  # ====================
+  mcp-exporter:
+    image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.1}
+    container_name: mcp-exporter
+    command:
+      - "--collector.textfile.directory=/var/lib/node_exporter/textfile_collector"
+      - "--collector.netclass.ignored-devices=^$"
+    volumes:
+      - ./monitoring/mcp-metrics:/var/lib/node_exporter/textfile_collector:ro
+    ports:
+      - "9101:9100"
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ============================================================================
+# NETWORKS
+# All volumes are declared and owned by docker-compose.yml (main stack).
+# Do NOT re-declare volumes here — it causes driver/external conflicts.
+# Services above reference volume names directly; Docker resolves them
+# from the merged compose context automatically.
+# ============================================================================
+networks:
+  backend-net:
+    external: true
+    name: hypercode_public_net

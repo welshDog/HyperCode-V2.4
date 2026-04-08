@@ -1,0 +1,73 @@
+# --------------------------------------------------------------------
+# HyperCode Commit Template with AI Disclosure (NLnet-aligned)
+# --------------------------------------------------------------------
+# Lines starting with '#' are ignored by git.
+# Fill in all non-optional fields. AI Disclosure is REQUIRED whenever
+# Generative AI materially influenced this commit.
+# --------------------------------------------------------------------
+
+# 1. Short summary (max 72 chars)
+#   Example: "feat: add RFC123 compliance tests"
+Summary:
+
+# 2. Detailed description (what/why, not just how)
+#
+# - What changed?
+# - Why is it needed?
+# - Any important design decisions?
+#
+Description:
+
+# 3. AI Disclosure (REQUIRED if GenAI was used)
+#
+# If NO GenAI was used for this commit, write:
+#   AI Used: No
+#
+# If GenAI WAS used, fill in all fields below.
+#
+# Model examples: "gpt-5.1 (Perplexity)", "CodeLLM-3.4", etc.
+# AI Generation Percentage is an estimate of how much of the diff
+# was generated or heavily influenced by GenAI.
+#
+AI Used: Yes | No
+AI Tool / Model:
+AI Provider (e.g. Perplexity, OpenAI, PERPLEXITY, Local):
+AI Generation Percentage (0–100% of this commit):
+AI Usage Summary (what was generated or assisted):
+
+# Optional: key prompts or reference
+#   - If prompts are long, reference a log file or issue.
+#   - Keep enough info so provenance is clear.
+AI Prompts / Reference (optional):
+
+# 4. Human Review Confirmation (REQUIRED if AI Used = Yes)
+#
+# State clearly that a human has reviewed and validated the changes.
+# Example:
+#   Human Review: Yes – all tests run and logic checked against RFC123.
+#
+Human Review:
+
+# --------------------------------------------------------------------
+# Example (do not leave in final commit):
+#
+# Summary:
+# feat: add RFC123 compliance test suite
+#
+# Description:
+# - Introduce new test cases for message parsing and validation
+# - Align coverage with RFC123 specification sections 4–7
+#
+# AI Used: Yes
+# AI Tool / Model: CodeLLM-3.4
+# AI Provider: ExampleCorp
+# AI Generation Percentage (0–100% of this commit): 80
+# AI Usage Summary (what was generated or assisted):
+# Generated initial test cases and structure from high-level RFC summary.
+#
+# AI Prompts / Reference (optional):
+# Prompt: "Generate tests for compliance with RFC123 messages."
+#
+# Human Review:
+# Yes – all tests reviewed and adjusted against official RFC123 text.
+# --------------------------------------------------------------------

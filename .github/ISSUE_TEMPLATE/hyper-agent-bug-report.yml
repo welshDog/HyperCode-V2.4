@@ -1,0 +1,75 @@
+name: "Bug Report - Hyper Agent"
+description: Report a bug with a Hyper Agent. No judgment - let's fix it together.
+labels: ["bug", "hyper-agents", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Hey! Thanks for reporting this.
+        No blame here. Bugs happen. Let's fix it together.
+        Fill in what you can - don't worry if you don't have all the answers.
+
+  - type: dropdown
+    id: agent-type
+    attributes:
+      label: Which agent is affected?
+      description: Pick the closest match. Not sure? Just pick "Other".
+      options:
+        - Worker Agent
+        - Observer Agent
+        - Architect Agent
+        - Base Agent / Core
+        - Agent Registration / Crew Orchestrator
+        - The Brain handshake
+        - Mission Control visibility
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What went wrong? (plain English is perfect)
+      description: Describe what you saw. Short or long - whatever works for you.
+      placeholder: "Example: I tried to create a new Worker agent and it crashed..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: "Example: I expected the agent to start and appear in Mission Control..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Error message or log output (if any)
+      description: Paste the error here. We won't judge!
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: How much is this blocking you?
+      options:
+        - "Completely blocked - can't continue"
+        - "Partially blocked - can work around it"
+        - "Minor - low impact, just annoying"
+    validations:
+      required: true
+
+  - type: textarea
+    id: nd-context
+    attributes:
+      label: Neurodivergent Context (optional)
+      description: |
+        If this caused extra frustration or confusion due to unclear error messages,
+        please tell us. This helps us improve ND-friendly error handling.
+      placeholder: "Example: The error message was confusing and I didn't know what to do next..."
+    validations:
+      required: false

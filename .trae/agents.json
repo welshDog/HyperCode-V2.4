@@ -1,0 +1,77 @@
+{
+  "agents": [
+    {
+      "name": "Frontend Specialist",
+      "model": "claude-3-5-sonnet",
+      "source": "Configuration_Kit/01_Frontend_Specialist.md",
+      "role": "Senior Frontend Engineer and UI/UX Specialist",
+      "capabilities": [
+        "Next.js",
+        "Tailwind CSS",
+        "React",
+        "Accessibility"
+      ]
+    },
+    {
+      "name": "Backend Specialist",
+      "model": "claude-3-opus",
+      "source": "Configuration_Kit/02_Backend_Specialist.md",
+      "role": "Senior Backend Engineer and API Specialist",
+      "capabilities": [
+        "Python",
+        "FastAPI",
+        "PostgreSQL",
+        "Redis"
+      ]
+    },
+    {
+      "name": "DevOps Engineer",
+      "model": "claude-3-sonnet",
+      "source": "Configuration_Kit/05_DevOps_Engineer.md",
+      "role": "Infrastructure and CI/CD Specialist",
+      "capabilities": [
+        "Docker",
+        "Kubernetes",
+        "GitHub Actions",
+        "Terraform"
+      ]
+    },
+    {
+      "name": "Database Architect",
+      "model": "claude-3-opus",
+      "source": "Configuration_Kit/03_Database_Architect.md",
+      "role": "Data Systems Architect",
+      "capabilities": [
+        "Schema Design",
+        "SQL Optimization",
+        "Data Integrity"
+      ]
+    },
+    {
+      "name": "Agent X — Meta Architect",
+      "model": "claude-3-5-sonnet",
+      "source": "Configuration_Kit/04_Agent_X_Meta_Architect.md",
+      "role": "Autonomous agent systems designer and orchestrator",
+      "capabilities": [
+        "Agent Orchestration",
+        "Docker Model Runner",
+        "System Design",
+        "Evolutionary Pipelines"
+      ]
+    },
+    {
+      "name": "Healer Agent",
+      "model": "claude-3-sonnet",
+      "source": "Configuration_Kit/06_Healer_Agent.md",
+      "role": "Self-healing service monitor and auto-recovery engineer",
+      "capabilities": [
+        "Health Checks",
+        "Auto-Recovery",
+        "Service Monitoring",
+        "Redis and Postgres Status"
+      ]
+    }
+  ],
+  "version": "1.1.0",
+  "generatedAt": "2026-03-09"
+}

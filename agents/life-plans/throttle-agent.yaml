@@ -1,0 +1,179 @@
+service_identity:
+  name: "throttle-agent"
+  codename: "⚡ The Resource Guardian"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Monitors resource usage (CPU, memory, disk), applies auto-throttling,
+    manages graceful degradation, and prevents system overload. Focuses
+    on SLO protection and cascade failure prevention.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#throttle-agents"
+
+responsibility_matrix:
+  primary_role: "OBSERVER"
+  owns:
+    - "Resource monitoring"
+    - "Auto-throttling"
+    - "Graceful degradation"
+    - "Overload protection"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Resource data"
+    - healer-agent:8008 → "Recovery coordination"
+  
+  critical_dependents:
+    - "All services (throttled by Throttle Agent)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "cpu_percent": 45,
+          "memory_percent": 62,
+          "throttle_tier": 3
+        }
+      latency_slo_ms: 100
+    
+    - "GET /metrics"
+      response: |
+        {
+          "cpu": 45.2,
+          "memory": 62.1,
+          "disk": 28.5,
+          "throttle_actions": ["pause-tier-6", "pause-tier-5"]
+        }
+      latency_slo_ms: 100
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    monitoring_p99_ms: 300
+  
+  reliability:
+    availability_percent: 99.9
+    slo_protection_rate: 0.98  # 98% of time SLOs protected
+  
+  resource_usage:
+    memory_limit_mb: 512
+    cpu_limit_cores: 0.5
+
+failure_modes:
+  
+  - mode_id: "throttle_too_aggressive"
+    description: "Throttle Agent pauses too many tiers, users perceive slowness"
+    symptoms:
+      - "Tiers 4, 5, 6 paused even when CPU is 60%"
+      - "User complaints of lag"
+    recovery_steps:
+      - "1. Adjust: Increase THROTTLE_PAUSE_TIER6_AT from 80 to 85"
+      - "2. Tune: Reduce pause duration (THROTTLE_RESUME_HOLD_MINUTES)"
+      - "3. Monitor: Watch for improvement in user experience"
+    expected_mttr_minutes: 5
+    user_impact: "DEGRADED"
+    sev: "P2"
+  
+  - mode_id: "throttle_not_aggressive_enough"
+    description: "System overloads despite throttle (SLO breached)"
+    symptoms:
+      - "CPU hits 95%+ despite throttle being active"
+      - "Latency p99 exceeds SLO"
+    recovery_steps:
+      - "1. Adjust: Lower THROTTLE_PAUSE_TIER6_AT from 80 to 75"
+      - "2. Check: Are all tiers paused? If not, add more tiers"
+      - "3. Scale: May need additional resources or horizontal scaling"
+    expected_mttr_minutes: 10
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "resurrection_stuck"
+    description: "Services remain paused even after resources available"
+    symptoms:
+      - "CPU is 40%, but tier-6 still paused"
+      - "Resume timer not triggering"
+    recovery_steps:
+      - "1. Check: THROTTLE_RESUME_BELOW threshold (should be <75)"
+      - "2. Manual: Trigger resume via API"
+      - "3. Check: Logs for timer bugs"
+    expected_mttr_minutes: 5
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "resource_utilization"
+    prometheus_query: "throttle_agent_cpu_percent{job='throttle-agent'}"
+    alert_if: "... > 90"  # Alert at 90% (before SLO breaks)
+  
+  - name: "throttle_actions_triggered"
+    prometheus_query: "rate(throttle_actions_total{job='throttle-agent'}[5m])"
+    alert_if: "... > 1"  # More than 1 throttle action per minute = anomaly
+  
+  - name: "slo_protection_rate"
+    prometheus_query: "throttle_slo_protected_count / throttle_checks_total"
+    alert_if: "... < 0.98"  # <98% SLO protection
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "throttle-agent"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "throttle-agent"
+    container_name: "throttle-agent"
+    ports:
+      - "8014:8014"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    AGENT_ROLE: "throttle-agent"
+    HEALER_URL: "http://healer-agent:8008"
+    AUTO_THROTTLE_ENABLED: "true"
+    THROTTLE_PAUSE_TIER6_AT: "80"
+    THROTTLE_PAUSE_TIER5_AT: "90"
+    THROTTLE_PAUSE_TIER4_AT: "95"
+    THROTTLE_RESUME_BELOW: "75"
+    THROTTLE_RESUME_HOLD_MINUTES: "5"
+    THROTTLE_KEEP_OBSERVABILITY: "true"
+    POLL_INTERVAL_SECONDS: "30"
+    THROTTLE_PROTECT_TIERS: "1,2,3"
+
+versioning:
+  current_version: "2.0.0"
+  breaking_changes_v2_1_0:
+    - "Tier numbering changed (new priority system)"
+
+on_call_playbook:
+  
+  alert_high_cpu:
+    trigger: "CPU usage > 90%"
+    actions:
+      - "1. Check: Is throttle active? (GET /metrics)"
+      - "2. Check: Which tiers paused?"
+      - "3. Scaling: May need more CPU or horizontal scale"
+      - "4. Investigate: What's causing spike? (docker stats)"
+  
+  alert_too_many_throttle_actions:
+    trigger: ">1 throttle action per minute"
+    actions:
+      - "1. Analyze: Pattern of throttle actions"
+      - "2. Check: Thresholds appropriate for workload?"
+      - "3. Adjust: May need to tune THROTTLE_PAUSE_TIER6_AT"
+      - "4. Scale: Consider horizontal scaling"
+  
+  alert_slo_not_protected:
+    trigger: "SLO protection rate < 98%"
+    actions:
+      - "1. Check: What SLO was breached? (latency, error rate?)"
+      - "2. Aggressive: Lower throttle thresholds"
+      - "3. Scale: Add resources"
+      - "4. Review: Is workload sustainable at current tier?"
+
+support_contacts:
+  primary_engineer: "Lyndz"

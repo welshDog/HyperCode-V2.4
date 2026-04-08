@@ -1,0 +1,1 @@
+smoke_request_total{mode="probe_health",result="fail"} 3.0

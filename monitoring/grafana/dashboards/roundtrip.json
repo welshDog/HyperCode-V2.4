@@ -1,0 +1,43 @@
+{
+  "title": "Roundtrip Worker Latency",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": { "time_options": ["1h","6h","12h","24h","7d"], "refresh_intervals": ["5s","10s","30s","1m","5m"] },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Latency p95 & p99 (seconds)",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "p95" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#33B5E5" } } ] },
+          { "matcher": { "id": "byName", "options": "p99" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#F44336" } } ] }
+        ]
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "p95",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(roundtrip_latency_seconds_bucket{job=\"roundtrip-worker\"}[5m])))",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "refId": "B",
+          "legendFormat": "p99",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(roundtrip_latency_seconds_bucket{job=\"roundtrip-worker\"}[5m])))",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
+  ]
+}

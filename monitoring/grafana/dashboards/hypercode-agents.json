@@ -1,0 +1,27 @@
+{
+  "title": "HyperCode Agents",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Agent Stream Clients",
+      "targets": [
+        {
+          "expr": "agent_stream_clients_total",
+          "legendFormat": "clients"
+        }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Agent Stream Latency p95",
+      "targets": [
+        {
+          "expr": "job:agent_stream_latency_ms:hist_p95",
+          "legendFormat": "p95"
+        }
+      ]
+    }
+  ]
+}
+

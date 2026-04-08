@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-core-api
+  namespace: hypercode-agents
+spec:
+  podSelector:
+    matchLabels:
+      app: agent
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: hypercode-core
+    ports:
+    - protocol: TCP
+      port: 8000

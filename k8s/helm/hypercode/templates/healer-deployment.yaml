@@ -1,0 +1,51 @@
+{{- if .Values.healer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hypercode.fullname" . }}-healer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hypercode.labels" . | nindent 4 }}
+    app.kubernetes.io/component: healer
+spec:
+  replicas: {{ .Values.replicaCount.healer }}
+  selector:
+    matchLabels:
+      {{- include "hypercode.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: healer
+  strategy:
+    type: Recreate  # Healer must always be running — never zero replicas
+  template:
+    metadata:
+      labels:
+        {{- include "hypercode.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: healer
+    spec:
+      serviceAccountName: {{ include "hypercode.serviceAccountName" . }}
+      restartPolicy: Always
+      containers:
+        - name: healer-agent
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}-healer:{{ .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.healer.service.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "hypercode.fullname" . }}-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.healer.service.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6  # Extra tolerance — healer is critical
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+{{- end }}

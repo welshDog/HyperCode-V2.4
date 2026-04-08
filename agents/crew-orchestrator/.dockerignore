@@ -1,0 +1,48 @@
+# Crew Orchestrator .dockerignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# Tests
+tests/
+*_test.py
+test_*.py
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Logs
+*.log
+
+# Environment
+.env*

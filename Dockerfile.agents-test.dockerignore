@@ -1,0 +1,51 @@
+# Per-Dockerfile ignore rules for Dockerfile.agents-test
+# This file overrides .dockerignore for this specific build only.
+# See: https://docs.docker.com/build/concepts/context/#dockerignore-files
+
+# Inherit the heavy exclusions from the root .dockerignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+node_modules/
+.git/
+.gitignore
+.vscode/
+.idea/
+secrets/
+*.key
+*.pem
+*.crt
+*.log
+logs/
+data/
+models/
+.DS_Store
+Thumbs.db
+
+# Exclude tests we don't need — but ALLOW tests/unit/
+tests/e2e/
+tests/integration/
+tests/load/
+tests/performance/
+tests/security/
+tests/functional/
+tests/planning_postman_collection.json
+tests/README_planning_tests.md
+tests/run_tests.py
+tests/verify_fix_loop.py
+tests/docker_verification.py
+tests/docker-compose.test.yml
+tests/go-e2e/
+tests/framework/
+tests/hyper_agents/
+# tests/unit/ is NOT excluded — it's what we need

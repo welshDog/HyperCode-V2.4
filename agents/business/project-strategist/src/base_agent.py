@@ -1,0 +1,231 @@
+"""
+Base Agent Template for HyperCode Crew
+Each specialized agent extends this base
+"""
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Optional, Dict, Any
+import os
+import redis.asyncio as redis
+from PERPLEXITY import AsyncPERPLEXITY
+from contextlib import asynccontextmanager
+import sys
+
+# Allow imports from shared modules
+sys.path.append('/app')
+try:
+    from shared.rag_memory import AgentMemory
+    from shared.project_memory import ProjectMemory
+    from shared.logging_config import setup_logging
+    from shared.approval_system import ApprovalSystem
+except ImportError:
+    # Fallback for local testing or if shared modules not mounted
+    # print("⚠️ Shared modules not found, running in limited mode")
+    AgentMemory = None
+    ProjectMemory = None
+    def setup_logging(name):
+        return None
+    ApprovalSystem = None
+
+class AgentConfig:
+    """Base configuration for all agents"""
+    def __init__(self):
+        self.name = os.getenv("AGENT_NAME", "base-agent")
+        self.role = os.getenv("AGENT_ROLE", "Generic Agent")
+        self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
+        self.port = int(os.getenv("AGENT_PORT", "8001"))
+        self.PERPLEXITY_key = os.getenv("PERPLEXITY_API_KEY")
+        self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+        self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
+        self.api_key = os.getenv("HYPERCODE_API_KEY")
+
+class TaskRequest(BaseModel):
+    id: Optional[str] = None
+    task_id: Optional[str] = None  # Backward compatibility
+    task: Optional[str] = None     # Backward compatibility
+    description: Optional[str] = None
+    type: Optional[str] = "generic"
+    context: Optional[Dict[str, Any]] = None
+    requires_approval: bool = True
+
+class TaskResponse(BaseModel):
+    task_id: Optional[str] = None
+    agent: Optional[str] = None
+    status: str
+    result: Any
+    error: Optional[str] = None
+
+class BaseAgent:
+    def __init__(self, config: AgentConfig):
+        self.config = config
+        self.logger = setup_logging(config.name)
+        
+        # Initialize systems placeholders
+        self.redis = None
+        self.agent_memory = None
+        self.project_memory = None
+        self.approval_system = None
+        self.client = None
+
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            """Initialize shared systems on startup"""
+            await self.startup()
+            yield
+            await self.shutdown()
+
+        self.app = FastAPI(title=f"{config.name} Agent", lifespan=lifespan)
+        self.setup_routes()
+
+    async def startup(self):
+        if self.logger:
+            self.logger.info("initializing_agent", agent=self.config.name)
+        
+        # Initialize Redis
+        try:
+            self.redis = await redis.from_url(self.config.redis_url, decode_responses=True)
+        except Exception as e:
+            print(f"Warning: Failed to connect to Redis at startup: {e}")
+        
+        # Initialize AI Client
+        if self.config.PERPLEXITY_key:
+            self.client = AsyncPERPLEXITY(api_key=self.config.PERPLEXITY_key)
+        
+        # Initialize Shared Systems
+        # (This import might fail if shared modules are missing, but we handle it gracefully)
+        try:
+            if AgentMemory:
+                self.agent_memory = AgentMemory(self.config.name)
+                # Try to ingest Bible if available
+                bible_path = "/app/HYPER-AGENT-BIBLE.md"
+                if os.path.exists(bible_path):
+                    self.agent_memory.ingest_document(bible_path)
+            
+            if ProjectMemory:
+                self.project_memory = ProjectMemory(self.config.redis_url)
+        except NameError:
+            if self.logger:
+                self.logger.warning("Shared memory modules not available")
+            
+        await self.initialize()
+
+    async def initialize(self):
+        """Hook for subclasses to add custom initialization logic"""
+        pass
+
+    def register_tool(self, tool_func):
+        """Placeholder for tool registration (future implementation)"""
+        # In a real implementation, this would register the tool with the LLM client
+        if self.logger:
+            self.logger.info(f"Registered tool: {tool_func.__name__}")
+            
+        if ApprovalSystem:
+            self.approval_system = ApprovalSystem(self.config.redis_url)
+
+        if self.logger:
+            self.logger.info("agent_ready")
+
+    async def shutdown(self):
+        if self.redis:
+            await self.redis.close()
+        if self.logger:
+            self.logger.info("agent_shutdown")
+
+    def setup_routes(self):
+        @self.app.get("/")
+        async def root():
+            return {
+                "agent": self.config.name,
+                "role": self.config.role,
+                "status": "ready"
+            }
+        
+        @self.app.get("/health")
+        async def health():
+            try:
+                if self.redis:
+                    await self.redis.ping()
+                return {"status": "healthy"}
+            except Exception as e:
+                # raise HTTPException(status_code=503, detail=str(e))
+                return {"status": "unhealthy", "error": str(e)}
+
+        @self.app.post("/execute")
+        async def execute(request: TaskRequest):
+            # Normalize input
+            task_desc = request.description or request.task
+            task_id = request.id or request.task_id or "unknown"
+            
+            if self.logger:
+                self.logger.info("task_received", task_id=task_id)
+            
+            try:
+                result = await self.process_task(task_desc, request.context, request.requires_approval)
+                return {"status": "success", "result": result}
+            except Exception as e:
+                if self.logger:
+                    self.logger.error("task_failed", error=str(e))
+                raise HTTPException(status_code=500, detail=str(e))
+
+    async def process_task(self, task: str, context: Dict[str, Any], requires_approval: bool):
+        """Override this method in specialized agents"""
+        # Default implementation for base agent
+        
+        # 1. Get Context (RAG)
+        rag_context = ""
+        if self.agent_memory:
+            rag_context = self.agent_memory.query_relevant_context(task)
+            
+        # 2. Get Project Context
+        project_context = {}
+        if self.project_memory:
+            project_context = self.project_memory.get_project_context()
+
+        # 3. Generate Plan (LLM)
+        plan = await self.generate_plan(task, rag_context, project_context)
+        
+        # 4. Approval
+        if requires_approval and self.approval_system:
+            approval = await self.approval_system.request_approval(
+                self.config.name,
+                "execute_task",
+                {"task": task, "plan": plan}
+            )
+            
+            if approval['status'] != "approved":
+                raise Exception(f"Task rejected: {approval.get('reason')}")
+        
+        # 5. Execute
+        return f"Executed task: {task} based on plan: {plan}"
+
+    async def generate_plan(self, task, rag_context, project_context):
+        # Simple LLM call
+        if not self.client:
+            return "No LLM client configured"
+            
+        prompt = f"""
+        You are {self.config.name} ({self.config.role}).
+        
+        CONTEXT FROM BIBLE:
+        {rag_context}
+        
+        PROJECT STATUS:
+        {project_context}
+        
+        TASK:
+        {task}
+        
+        Create a brief execution plan.
+        """
+        
+        response = await self.client.messages.create(
+            model=self.config.model,
+            max_tokens=1000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        return response.content[0].text
+
+    def run(self):
+        import uvicorn
+        uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)

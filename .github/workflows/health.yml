@@ -1,0 +1,103 @@
+name: Health Checks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and start stack
+        run: docker compose up -d --build
+      - name: Wait for health endpoints
+        run: |
+          for i in {1..10}; do
+            curl -sSf http://localhost:8000/health && break || sleep 10;
+          done
+          for i in {1..10}; do
+            curl -sSf http://localhost:5000/agents/health && break || sleep 10;
+          done
+          for i in {1..10}; do
+            curl -sSf http://localhost:3000/api/health && break || sleep 10;
+          done
+      - name: Latency gate for /celery/health (<100ms)
+        run: |
+          python - <<'PY'
+          import sys, time, urllib.request
+          url = 'http://localhost:8000/celery/health'
+          start = time.perf_counter()
+          with urllib.request.urlopen(url) as r:
+              r.read()
+          lat = time.perf_counter() - start
+          print(f"/celery/health latency: {lat:.4f}s")
+          sys.exit(0 if lat <= 0.100 else 1)
+          PY
+      - name: Prometheus regression check (p50/p95/p99)
+        env:
+          PROM_URL: http://localhost:9090
+          PROM_BASELINE: .github/prom-baseline.json
+        run: |
+          python .github/scripts/prom-regression.py
+      - name: Run connectivity tests (hypercode-core)
+        working-directory: THE HYPERCODE/hypercode-core
+        env:
+          HYPERCODE_DB_URL: postgresql://hyper:hyper@localhost:5432/hypercode
+          HYPERCODE_REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/1
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pytest tests/test_connectivity.py -q
+      - name: Run Playwright targeted tests
+        working-directory: BROski Business Agents/broski-terminal
+        run: |
+          npm ci || npm install
+          npx playwright install --with-deps
+          npx playwright test tests/error-boundary.spec.ts tests/visual.spec.ts tests/health.spec.ts
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  celery-saturation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start stack
+        run: docker compose up -d --build
+      - name: Saturate Celery
+        working-directory: THE HYPERCODE/hypercode-core
+        env:
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/1
+        run: |
+          python - <<'PY'
+          import os, time
+          from celery import Celery
+          app = Celery('hypercode', broker=os.getenv('CELERY_BROKER_URL'), backend=os.getenv('CELERY_RESULT_BACKEND'))
+          start = time.time()
+          sent = 0
+          while time.time() - start < 60:
+            for _ in range(1000):
+              app.send_task('hypercode.ping', args=[1])
+              sent += 1
+            time.sleep(0.2)
+          print('sent', sent)
+          PY
+      - name: Check health
+        run: |
+          curl -sSf http://localhost:8000/celery/health
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          git reset --hard HEAD~1 || true
+          docker compose down -v || true
+          docker compose up -d --build || true

@@ -1,0 +1,47 @@
+{
+  "id": "broski-discord-bot-developer",
+  "name": "BROski Discord Bot Developer",
+  "version": "1.0.0",
+  "description": "Expert Discord bot development skill for Claude. Covers Discord API v10, sharding, ML integration, security hardening, and production deployment. BROski-style responses optimised for neurodivergent developers.",
+  "author": "Lyndz Williams (@welshDog)",
+  "repo": "https://github.com/welshDog/HyperCode-V2.0",
+  "license": "MIT",
+  "tags": [
+    "discord",
+    "bot",
+    "python",
+    "automation",
+    "ml",
+    "fastapi",
+    "redis",
+    "postgresql",
+    "docker",
+    "neurodivergent",
+    "hypercode",
+    "broski"
+  ],
+  "capabilities": [
+    "discord-api-v10",
+    "auto-sharding",
+    "slash-commands",
+    "ml-moderation",
+    "redis-caching",
+    "postgresql-async",
+    "docker-deployment",
+    "github-actions-cicd",
+    "security-hardening",
+    "performance-optimization"
+  ],
+  "examples": [
+    "examples/basic_bot.py",
+    "examples/redis_caching.py",
+    "examples/ml_moderation.py"
+  ],
+  "min_claude_version": "claude-3",
+  "hypercode_integration": {
+    "agent_x_compatible": true,
+    "crew_orchestrator": true,
+    "broski_terminal": true,
+    "healer_agent_monitored": true
+  }
+}

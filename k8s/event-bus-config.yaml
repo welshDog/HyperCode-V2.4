@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-bus-config
+  namespace: hypercode
+data:
+  dedup.ttl.seconds: "300"
+  acl.json: |
+    {
+      "agent-services": [
+        "agent.events",
+        "agent.register",
+        "agent.deregister"
+      ]
+    }

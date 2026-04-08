@@ -1,0 +1,3 @@
+echo "Skipping pre-commit tests (no test script configured)"
+
+python -m detect_secrets.pre_commit_hook --baseline .secrets.baseline

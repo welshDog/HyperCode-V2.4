@@ -1,0 +1,54 @@
+{
+  "duration_ms": 4865.31,
+  "environment": "dev",
+  "failed": 0,
+  "finished_at": "2026-03-11T23:29:25.253536+00:00",
+  "ok": true,
+  "passed": 5,
+  "results": [
+    {
+      "detail": null,
+      "latency_ms": 1525.13,
+      "meta": {},
+      "name": "orchestrator_health",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "detail": null,
+      "latency_ms": 2316.92,
+      "meta": {},
+      "name": "core_health",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "detail": null,
+      "latency_ms": 1005.45,
+      "meta": {},
+      "name": "healer_health",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "detail": null,
+      "latency_ms": 650.65,
+      "meta": {},
+      "name": "execute_smoke_noop",
+      "passed": true,
+      "status_code": 200
+    },
+    {
+      "detail": null,
+      "latency_ms": null,
+      "meta": {
+        "tasks_after": 0,
+        "tasks_before": 0
+      },
+      "name": "no_task_history_pollution",
+      "passed": true,
+      "status_code": null
+    }
+  ],
+  "started_at": "2026-03-11T23:29:20.388214+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "notification_reliability_ok": true,
+  "webhook_resolved_received_utc": "2026-03-12T08:21:25.211853Z",
+  "webhook_lines_before": 72,
+  "alert_detection_latency_seconds": 15.4,
+  "alert_routing_accuracy_ok": true,
+  "alert_cleared_observed_utc": null,
+  "up_zero_observed_utc": "2026-03-12T09:26:23.7953427Z",
+  "webhook_lines_delta": 0,
+  "webhook_firing_received_utc": "2026-03-12T08:19:15.207891Z",
+  "alert_clear_latency_seconds": null,
+  "evidence_dir": "artifacts/phase4/m4_alert_validation_20260312T092606Z",
+  "alert_delivery_latency_seconds": 22978384.9,
+  "alert_firing_observed_utc": "2026-03-12T09:26:25.5211730Z",
+  "webhook_lines_after": 72,
+  "failure_induced_utc": "2026-03-12T09:26:10.0825960Z",
+  "recovery_start_utc": "2026-03-12T09:26:30.8079025Z"
+}

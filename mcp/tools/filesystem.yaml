@@ -1,0 +1,8 @@
+services:
+  filesystem:
+    image: mcp/filesystem
+    command:
+      - /workspace
+    volumes:
+      - ./:/workspace:rw
+

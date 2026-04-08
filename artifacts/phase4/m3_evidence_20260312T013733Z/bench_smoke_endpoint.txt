@@ -1,0 +1,1 @@
+{'requests': 800, 'concurrency': 50, 'duration_seconds': 3.243, 'rps': 246.68, 'p50_ms': 168.87, 'p90_ms': 254.61, 'p99_ms': 393.35, 'errors': 0}

@@ -1,0 +1,31 @@
+File: quantum-compiler.test.exe
+Type: cpu
+Duration: 1.21s, Total samples = 1.53s (126.64%)
+Showing nodes accounting for 1.29s, 84.31% of 1.53s total
+Showing top 25 nodes out of 134
+      flat  flat%   sum%        cum   cum%
+     0.25s 16.34% 16.34%      0.50s 32.68%  strings.(*Builder).WriteString (inline)
+     0.22s 14.38% 30.72%      0.22s 14.38%  runtime.memmove
+     0.17s 11.11% 41.83%      0.17s 11.11%  runtime.stdcall2
+     0.10s  6.54% 48.37%      0.70s 45.75%  strings.Join
+     0.08s  5.23% 53.59%      0.14s  9.15%  strconv.appendQuotedWith
+     0.05s  3.27% 56.86%      0.05s  3.27%  runtime.scanblock
+     0.04s  2.61% 59.48%      0.04s  2.61%  runtime.procyield
+     0.04s  2.61% 62.09%      0.13s  8.50%  runtime.scanobject
+     0.04s  2.61% 64.71%      0.04s  2.61%  runtime.stdcall1
+     0.04s  2.61% 67.32%      0.06s  3.92%  runtime.typePointers.next
+     0.03s  1.96% 69.28%      0.91s 59.48%  quantum-compiler.compileBF
+     0.03s  1.96% 71.24%      0.03s  1.96%  strconv.IsPrint
+     0.03s  1.96% 73.20%      0.06s  3.92%  strconv.appendEscapedRune
+     0.03s  1.96% 75.16%      0.03s  1.96%  strings.(*Builder).copyCheck (inline)
+     0.02s  1.31% 76.47%      0.06s  3.92%  runtime.(*sweepLocked).sweep
+     0.02s  1.31% 77.78%      0.03s  1.96%  runtime.concatstrings
+     0.02s  1.31% 79.08%      0.02s  1.31%  runtime.stdcall3
+     0.01s  0.65% 79.74%      0.10s  6.54%  internal/bytealg.MakeNoZero
+     0.01s  0.65% 80.39%      0.01s  0.65%  internal/runtime/atomic.(*Uint32).Add (inline)
+     0.01s  0.65% 81.05%      0.01s  0.65%  internal/runtime/atomic.(*Uint32).CompareAndSwap
+     0.01s  0.65% 81.70%      0.01s  0.65%  runtime.(*fixalloc).alloc
+     0.01s  0.65% 82.35%      0.04s  2.61%  runtime.(*gcControllerState).enlistWorker
+     0.01s  0.65% 83.01%      0.01s  0.65%  runtime.(*mcentral).partialSwept (inline)
+     0.01s  0.65% 83.66%      0.05s  3.27%  runtime.(*mheap).allocSpan
+     0.01s  0.65% 84.31%      0.02s  1.31%  runtime.(*mheap).initSpan

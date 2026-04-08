@@ -1,0 +1,73 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hypercode-ingress
+  namespace: hypercode
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Adjust these annotations based on your ingress controller
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # If using cert-manager
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx  # Adjust based on your ingress controller
+  tls:
+  - hosts:
+    - hypercode.yourdomain.com
+    - dashboard.hypercode.yourdomain.com
+    - grafana.hypercode.yourdomain.com
+    secretName: hypercode-tls
+  rules:
+  - host: hypercode.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hypercode-core
+            port:
+              number: 8000
+  - host: dashboard.hypercode.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: dashboard
+            port:
+              number: 80
+  - host: grafana.hypercode.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana
+            port:
+              number: 3000
+---
+# Internal ingress for crew orchestrator (optional, for internal access)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hypercode-internal
+  namespace: hypercode
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Optionally restrict to internal IPs
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: orchestrator.hypercode.internal
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: crew-orchestrator
+            port:
+              number: 8080

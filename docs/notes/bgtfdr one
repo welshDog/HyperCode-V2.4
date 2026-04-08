@@ -1,0 +1,128 @@
+# ==========================
+# Core Configuration
+# ==========================
+ENVIRONMENT=production                        # deployment environment
+API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫             # main HyperCode API key
+HYPERCODE_JWT_SECRET=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫     # JWT secret for auth
+JWT_SECRET=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫             # backward-compatible alias
+HYPERCODE_MEMORY_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# Root path for all bound volumes (see docker-compose.yml volumes)
+# Example (Windows): HC_DATA_ROOT=C:\HyperCodeData
+# Example (Linux):   HC_DATA_ROOT=/opt/hypercode-data
+HC_DATA_ROOT="H:\HyperStation zone\HyperCode\HyperCodeData"
+
+# ==========================
+# AI Providers
+# ==========================
+PERPLEXITY_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+OPENAI_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# ==========================
+# Local LLM (Ollama)
+# ==========================
+OLLAMA_HOST=http://localhost:11434
+DEFAULT_LLM_MODEL=auto
+OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+OLLAMA_MAX_MODEL_SIZE_MB=2500
+OLLAMA_MODEL_REFRESH_SECONDS=300
+OLLAMA_TEMPERATURE=0.3
+OLLAMA_TOP_P=0.9
+OLLAMA_TOP_K=40
+OLLAMA_REPEAT_PENALTY=1.1
+OLLAMA_NUM_CTX=2048
+OLLAMA_NUM_PREDICT=256
+
+# ==========================
+# Database (PostgreSQL)
+# ==========================
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+POSTGRES_DB=hypercode
+HYPERCODE_DB_URL=postgresql://postgres:🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 @postgres:5432/hypercode
+
+# ==========================
+# Redis & Celery
+# ==========================
+HYPERCODE_REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/1
+
+# ==========================
+# Frontend Configuration
+# ==========================
+NEXT_PUBLIC_CORE_URL=http://localhost:8000
+NEXT_PUBLIC_AGENTS_URL=http://localhost:8000
+CORS_ALLOW_ORIGINS=http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000
+
+# ==========================
+# Observability (Tempo, Grafana, Prometheus)
+# ==========================
+OTLP_EXPORTER_DISABLED=true
+OTLP_ENDPOINT=http://tempo:4317
+
+GRAFANA_URL=http://localhost:3001
+GF_SECURITY_ADMIN_USER=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+GF_SECURITY_ADMIN_PASSWORD=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# ==========================
+# Object Storage (MinIO)
+# ==========================
+MINIO_ROOT_USER=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+MINIO_ROOT_PASSWORD=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# ==========================
+# Crew Orchestrator
+# ==========================
+ORCHESTRATOR_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+ORCHESTRATOR_ENABLED_AGENTS=true
+
+# ==========================
+# Discord Broski Bot
+# ==========================
+DISCORD_TOKEN=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+DISCORD_GUILD_ID=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# ==========================
+# Smoke Endpoint (Benchmark/Validation Only)
+# ==========================
+SMOKE_ENDPOINT_ENABLED=false
+SMOKE_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+SMOKE_KEY_ALLOWLIST=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+SMOKE_KEY_TTL_SECONDS=900
+
+# ==========================
+# Healer Watchdog
+# ==========================
+HEALER_WATCHDOG_ENABLED=true
+HEALER_WATCHDOG_INTERVAL_SECONDS=60
+HEALER_SMOKE_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+HEALER_ORCHESTRATOR_API_KEY=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+HEALER_WATCHDOG_AGENT=healer_watchdog_agent
+HEALER_WATCHDOG_FORCE_RESTART=false
+HEALER_WATCHED_SERVICES=hypercode-core,redis,postgres,celery-worker,hypercode-ollama,healer-agent
+
+# ==========================
+# Grafana Cloud
+# ==========================
+GRAFANA_URL=https://hypercode.grafana.net
+GRAFANA_CLOUD_TOKEN=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+
+# Metrics (Prometheus Remote Write)
+PROMETHEUS_REMOTE_WRITE_URL=https://prometheus-prod-XX.grafana.net/api/prom/push
+PROMETHEUS_USERNAME=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+PROMETHEUS_PASSWORD=${GRAFANA_CLOUD_TOKEN}
+
+# Traces (OTLP → Grafana Cloud)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp-gateway-prod-XX.grafana.net/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ${GRAFANA_CLOUD_TOKEN}
+
+# Logs (Loki)
+LOKI_URL=https://logs-prod-XX.grafana.net/loki/api/v1/push
+LOKI_USERNAME=🚫❌🛑⛔📛🚫🆘⛔🛑📛❌🚫🆘⛔🛑📛❌🚫 
+LOKI_PASSWORD=${GRAFANA_CLOUD_TOKEN}
+
+# Switch OTLP back ON now we have cloud endpoint
+OTLP_EXPORTER_DISABLED=false
+OTLP_ENDPOINT=https://otlp-gateway-prod-XX.grafana.net/otlp
+OTEL_EXPORTER_OTLP_HEADERS=Authorization=Bearer ${GRAFANA_CLOUD_TOKEN}

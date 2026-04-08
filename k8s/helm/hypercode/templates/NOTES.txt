@@ -1,0 +1,45 @@
+🚀 HyperCode V2.0 has been deployed!
+
+Chart version:  {{ .Chart.Version }}
+App version:    {{ .Chart.AppVersion }}
+Release name:   {{ .Release.Name }}
+Namespace:      {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SERVICES
+────────
+  Core API:        {{ include "hypercode.fullname" . }}-core:{{ .Values.core.service.port }}
+  Orchestrator:    {{ include "hypercode.fullname" . }}-orchestrator:{{ .Values.orchestrator.service.port }}
+  Healer:          {{ include "hypercode.fullname" . }}-healer:{{ .Values.healer.service.port }}
+
+QUICK ACCESS
+────────────
+  kubectl port-forward svc/{{ include "hypercode.fullname" . }}-core 8000:{{ .Values.core.service.port }} -n {{ .Release.Namespace }}
+  curl http://localhost:8000/health
+
+{{- if .Values.ingress.enabled }}
+INGRESS
+───────
+  {{- range .Values.ingress.hosts }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+{{- else }}
+INGRESS
+───────
+  Ingress is disabled. Enable with: --set ingress.enabled=true
+{{- end }}
+
+NEXT STEPS
+──────────
+  1. Run health checks:
+     kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "hypercode.name" . }}
+
+  2. Check logs:
+     kubectl logs -n {{ .Release.Namespace }} deployment/{{ include "hypercode.fullname" . }}-core --tail=50
+
+  3. Run smoke tests:
+     helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BROski♾ — "Ride or die, every session."

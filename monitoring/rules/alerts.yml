@@ -1,0 +1,56 @@
+groups:
+  - name: hypercode_alerts
+    rules:
+      - alert: ExecutionHighErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: High 5xx rate on HTTP server requests
+      - alert: AgentRegistryErrorsIncreasing
+        expr: rate(agent_registry_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          description: Agent registry errors increasing
+
+  - name: container_memory
+    rules:
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""}
+            / container_spec_memory_limit_bytes{name!=""}
+          ) > 0.8
+          and
+          container_spec_memory_limit_bytes{name!=""} > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} memory > 80%"
+          description: >
+            Container {{ $labels.name }} is using
+            {{ $value | humanizePercentage }} of its memory limit.
+            Check with: docker stats {{ $labels.name }}
+
+      - alert: ContainerCriticalMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""}
+            / container_spec_memory_limit_bytes{name!=""}
+          ) > 0.9
+          and
+          container_spec_memory_limit_bytes{name!=""} > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} memory > 90% — OOM risk"
+          description: >
+            Container {{ $labels.name }} is using
+            {{ $value | humanizePercentage }} of its memory limit.
+            OOM kill imminent. Increase limit or restart container.
+

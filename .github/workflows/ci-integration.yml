@@ -1,0 +1,49 @@
+name: \uD83D\uDD17 Integration Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        options: --health-cmd "redis-cli ping" --health-interval 5s
+        ports: ['6379:6379']
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: hypercode
+          POSTGRES_PASSWORD: hypercode
+          POSTGRES_DB: hypercode
+        options: --health-cmd pg_isready
+        ports: ['5432:5432']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt pytest pytest-asyncio httpx
+      - name: Start HyperCode Core
+        run: |
+          cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+        env:
+          REDIS_URL:    redis://localhost:6379
+          DATABASE_URL: postgresql+asyncpg://hypercode:hypercode@localhost/hypercode
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ \
+            --asyncio-mode=auto \
+            --junitxml=reports/junit-integration.xml \
+            -v -m integration
+        env:
+          CORE_BASE_URL: http://localhost:8000
+      - uses: actions/upload-artifact@v4
+        with:
+          name: integration-results
+          path: reports/

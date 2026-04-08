@@ -1,0 +1,146 @@
+service_identity:
+  name: "backend-specialist"
+  codename: "⚙️ The API Engineer"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Designs and builds REST APIs, async workers, database integration,
+    and backend services. Handles API contracts, authentication, data
+    validation, and service performance optimization.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#backend-agents"
+
+responsibility_matrix:
+  primary_role: "EXECUTOR"
+  owns:
+    - "REST API design and implementation"
+    - "Database schema design"
+    - "Authentication and authorization"
+    - "Async task queuing"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+    - crew-orchestrator:8080 → "Work dispatch"
+    - postgres:5432 → "Data persistence"
+    - redis:6379 → "Task queues"
+  
+  critical_dependents:
+    - "test-agent (validates APIs)"
+    - "qa-engineer (tests endpoints)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "database": "connected",
+          "redis": "connected"
+        }
+      latency_slo_ms: 100
+    
+    - "POST /generate-api"
+      request: |
+        {
+          "endpoint": "/users/:id",
+          "method": "GET",
+          "auth": "jwt",
+          "response_schema": {...}
+        }
+      response: |
+        {
+          "code": "...",
+          "tests": "...",
+          "latency_ms": 480
+        }
+      latency_slo_ms: 500
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    /generate-api_p99_ms: 500
+  
+  reliability:
+    availability_percent: 99.0
+    error_rate_max: 0.02
+  
+  resource_usage:
+    memory_limit_mb: 512
+    cpu_limit_cores: 0.5
+
+failure_modes:
+  
+  - mode_id: "database_connection_failed"
+    description: "Cannot connect to PostgreSQL"
+    symptoms:
+      - "GET /health returns 503 'Database unavailable'"
+      - "Logs contain 'psycopg2.OperationalError'"
+    recovery_steps:
+      - "1. Check: PostgreSQL connectivity"
+      - "2. Check: Connection pool (may be exhausted)"
+      - "3. Manual: Restart postgres container if needed"
+    expected_mttr_minutes: 2
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "redis_queue_blocked"
+    description: "Redis task queue is stuck or full"
+    symptoms:
+      - "Async tasks don't complete"
+      - "Queue length grows continuously"
+    recovery_steps:
+      - "1. Check: Redis memory usage"
+      - "2. Clear: Flush old tasks from queue"
+      - "3. Manual: Restart Redis if needed"
+    expected_mttr_minutes: 3
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "api_latency"
+    prometheus_query: "histogram_quantile(0.99, rate(api_request_duration_seconds_bucket{job='backend-specialist'}[5m]))"
+    alert_if: "... > 0.5"
+  
+  - name: "db_connection_errors"
+    prometheus_query: "rate(database_connection_errors_total{job='backend-specialist'}[5m])"
+    alert_if: "... > 0.01"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "backend-specialist"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "backend-specialist"
+    container_name: "backend-specialist"
+    build_context: "./agents/02-backend-specialist"
+    ports:
+      - "8003:8003"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    AGENT_ROLE: "backend-specialist"
+    AGENT_PORT: "8003"
+    DATABASE_URL: "postgresql://postgres:password@postgres:5432/hypercode"
+    REDIS_URL: "redis://redis:6379"
+
+versioning:
+  current_version: "2.0.0"
+  deprecation_schedule:
+    v2_0: "Supported until 2025-12-31"
+
+on_call_playbook:
+  
+  alert_database_error:
+    trigger: "DB connection errors spike"
+    actions:
+      - "1. Check: Is Postgres running? (docker ps | grep postgres)"
+      - "2. Check: Connection pool exhaustion (ps aux | grep psycopg2)"
+      - "3. Restart: docker-compose restart postgres"
+      - "4. Alert: If persistent, check disk space"
+
+support_contacts:
+  primary_engineer: "Lyndz"

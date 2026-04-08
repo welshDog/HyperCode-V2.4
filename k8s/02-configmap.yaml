@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hypercode-config
+  namespace: hypercode
+data:
+  ENVIRONMENT: "production"
+  PRISMA_PY_DEBUG: "0"
+  OTLP_EXPORTER_DISABLED: "false"
+  OTLP_ENDPOINT: "http://jaeger:4318/v1/traces"
+  REDIS_URL: "redis://redis:6379"
+  HYPERCODE_REDIS_URL: "redis://redis:6379"
+  HYPERCODE_DB_URL: "postgresql://postgres@postgres:5432/hypercode"
+  CORE_URL: "http://hypercode-core:8000"
+  OLLAMA_HOST: "http://ollama:11434"
+  DEFAULT_LLM_MODEL: "auto"
+  OLLAMA_MODEL_PREFERRED: "tinyllama:latest,tinyllama,phi3:latest,phi3"
+  OLLAMA_MAX_MODEL_SIZE_MB: "2500"
+  OLLAMA_MODEL_REFRESH_SECONDS: "300"
+  OLLAMA_TEMPERATURE: "0.3"
+  OLLAMA_TOP_P: "0.9"
+  OLLAMA_TOP_K: "40"
+  OLLAMA_REPEAT_PENALTY: "1.1"
+  OLLAMA_NUM_CTX: "2048"
+  OLLAMA_NUM_PREDICT: "256"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: hypercode
+data:
+  POSTGRES_DB: "hypercode"
+  POSTGRES_USER: "postgres"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-bus-config
+  namespace: hypercode
+data:
+  dedup.ttl.seconds: "300"
+  acl.json: |
+    {
+      "agent-services": [
+        "agent.events",
+        "agent.register",
+        "agent.deregister"
+      ]
+    }

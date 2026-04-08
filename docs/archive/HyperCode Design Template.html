@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hacker Dashboard</title>
+    <style>
+        :root {
+            --color-primary: #7c3aed;
+            --color-secondary: #06b6d4;
+            --color-bg: #0f0f1e;
+            --color-panel: #1a1a2e;
+            --glow-purple: 0 0 20px rgba(124, 58, 237, 0.6);
+            --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: var(--color-bg);
+            color: #00ff88;
+            overflow: hidden;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Falling code background */
+        .code-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.08;
+        }
+
+        .code-char {
+            position: absolute;
+            color: var(--color-secondary);
+            font-weight: bold;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+
+        /* Main container */
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            align-content: start;
+            overflow-y: auto;
+        }
+
+        /* Panel styling */
+        .panel {
+            background-color: var(--color-panel);
+            border: 2px solid var(--color-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--glow-cyan), inset 0 0 20px rgba(6, 182, 212, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel:nth-child(even) {
+            border-color: var(--color-primary);
+            box-shadow: var(--glow-purple), inset 0 0 20px rgba(124, 58, 237, 0.1);
+        }
+
+        .panel:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--glow-cyan), 0 10px 40px rgba(6, 182, 212, 0.4);
+        }
+
+        .panel:nth-child(even):hover {
+            box-shadow: var(--glow-purple), 0 10px 40px rgba(124, 58, 237, 0.4);
+        }
+
+        /* Panel header */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .panel-header h2 {
+            font-size: 16px;
+            color: var(--color-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .panel:nth-child(even) .panel-header h2 {
+            color: var(--color-primary);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            background-color: #00ff88;
+            border-radius: 50%;
+            margin-left: auto;
+            box-shadow: 0 0 10px #00ff88;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Panel content */
+        .panel-content {
+            font-size: 12px;
+            line-height: 1.6;
+            color: #00ff88;
+        }
+
+        .code-line {
+            margin: 8px 0;
+            padding-left: 10px;
+            border-left: 2px solid var(--color-secondary);
+        }
+
+        .panel:nth-child(even) .code-line {
+            border-left-color: var(--color-primary);
+        }
+
+        .keyword {
+            color: var(--color-primary);
+            font-weight: bold;
+        }
+
+        .string {
+            color: var(--color-secondary);
+        }
+
+        .comment {
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Stat boxes */
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px;
+            background-color: rgba(6, 182, 212, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid var(--color-secondary);
+        }
+
+        .stat:nth-child(even) {
+            border-left-color: var(--color-primary);
+            background-color: rgba(124, 58, 237, 0.05);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #999;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        /* Scrollbar styling */
+        .container::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .container::-webkit-scrollbar-track {
+            background-color: var(--color-bg);
+        }
+
+        .container::-webkit-scrollbar-thumb {
+            background-color: var(--color-secondary);
+            border-radius: 5px;
+            box-shadow: var(--glow-cyan);
+        }
+
+        .container::-webkit-scrollbar-thumb:hover {
+            background-color: var(--color-primary);
+        }
+
+        /* Top header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, var(--color-bg), transparent);
+            padding: 15px 20px;
+            z-index: 2;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: var(--color-secondary);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+        }
+
+        .container {
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <div class="code-rain" id="codeRain"></div>
+
+    <div class="header">
+        <h1>> SYSTEM INITIALIZED</h1>
+    </div>
+
+    <div class="container">
+        <!-- Panel 1 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ ROOT ACCESS</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="code-line"><span class="keyword">const</span> <span class="string">system</span> = <span class="keyword">new</span> Framework();</div>
+                <div class="code-line"><span class="comment">// Initializing core modules</span></div>
+                <div class="code-line"><span class="keyword">if</span> (status === <span class="string">'active'</span>) {</div>
+                <div class="code-line">&nbsp;&nbsp;execute();</div>
+                <div class="code-line">}</div>
+            </div>
+        </div>
+
+        <!-- Panel 2 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ NETWORK STATUS</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="stat">
+                    <span class="stat-label">Bandwidth</span>
+                    <span class="stat-value">98.2%</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Latency</span>
+                    <span class="stat-value">12ms</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Packets</span>
+                    <span class="stat-value">↑ 2.4M</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ DATA STREAM</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="code-line"><span class="keyword">function</span> <span class="string">decrypt</span>(data) {</div>
+                <div class="code-line">&nbsp;&nbsp;<span class="keyword">return</span> await crypto.process();</div>
+                <div class="code-line">}</div>
+                <div class="code-line"><span class="comment">// Encryption: AES-256</span></div>
+            </div>
+        </div>
+
+        <!-- Panel 4 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ MEMORY USAGE</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="stat">
+                    <span class="stat-label">RAM</span>
+                    <span class="stat-value">64.7GB</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Cache</span>
+                    <span class="stat-value">45.3MB</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">CPU</span>
+                    <span class="stat-value">↑ 87%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 5 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ PROTOCOLS ACTIVE</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="code-line"><span class="keyword">var</span> protocols = [</div>
+                <div class="code-line">&nbsp;&nbsp;<span class="string">"HTTPS/2"</span>, <span class="string">"WebSocket"</span>,</div>
+                <div class="code-line">&nbsp;&nbsp;<span class="string">"TCP/IP"</span>, <span class="string">"SSH"</span></div>
+                <div class="code-line">];</div>
+            </div>
+        </div>
+
+        <!-- Panel 6 -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>/ SECURITY SCAN</h2>
+                <div class="status-indicator"></div>
+            </div>
+            <div class="panel-content">
+                <div class="stat">
+                    <span class="stat-label">Threats</span>
+                    <span class="stat-value">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Firewalls</span>
+                    <span class="stat-value">ACTIVE</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Encryption</span>
+                    <span class="stat-value">✓ ON</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Generate falling code effect
+        function generateCodeRain() {
+            const codeRain = document.getElementById('codeRain');
+            const characters = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン<>[]{}();';
+            
+            for (let i = 0; i < 30; i++) {
+                const char = document.createElement('div');
+                char.className = 'code-char';
+                char.textContent = characters[Math.floor(Math.random() * characters.length)];
+                
+                const xPos = Math.random() * 100;
+                const duration = Math.random() * 15 + 10;
+                const delay = Math.random() * 5;
+                
+                char.style.left = xPos + '%';
+                char.style.top = '-20px';
+                char.style.animationDuration = duration + 's';
+                char.style.animationDelay = delay + 's';
+                
+                codeRain.appendChild(char);
+            }
+        }
+
+        generateCodeRain();
+
+        // Add interactive hover effect to panels
+        document.querySelectorAll('.panel').forEach(panel => {
+            panel.addEventListener('mouseenter', () => {
+                panel.style.filter = 'brightness(1.1)';
+            });
+            panel.addEventListener('mouseleave', () => {
+                panel.style.filter = 'brightness(1)';
+            });
+        });
+    </script>
+</body>
+</html>

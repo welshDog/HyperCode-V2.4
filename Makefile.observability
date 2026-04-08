@@ -1,0 +1,186 @@
+.PHONY: help observability-stack test test-unit test-chaos test-stress test-soak test-redteam life-plans
+
+help:
+	@echo "HyperCode Observability & Resilience Test Suite"
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make observability-stack    Start Prometheus + Loki + Grafana"
+	@echo "  make test-unit              Run unit tests (health checks, SLO baselines)"
+	@echo "  make test-chaos             Run chaos tests (failure injection + recovery)"
+	@echo "  make test-stress            Run stress tests (100 req/sec, memory leaks)"
+	@echo "  make test-soak              Run 72-hour soak test (SLOW!)"
+	@echo "  make test-redteam           Run red-team tests (security, adversarial)"
+	@echo "  make test                   Run all tests (unit + chaos + stress)"
+	@echo "  make life-plans             Generate agent life-plan YAMLs"
+	@echo "  make dashboards             Provision Grafana dashboards"
+	@echo "  make logs                   Tail Docker logs (all services)"
+	@echo "  make metrics                Query Prometheus metrics"
+	@echo "  make clean                  Stop all containers, clear volumes"
+	@echo ""
+
+# ============================================================================
+# STACK MANAGEMENT
+# ============================================================================
+
+observability-stack:
+	@echo "Starting observability stack: Prometheus, Loki, Tempo, Grafana..."
+	docker-compose up -d prometheus loki tempo grafana promtail node-exporter cadvisor
+	@echo "Waiting for services to be healthy..."
+	@sleep 5
+	@echo "✓ Prometheus:  http://localhost:9090"
+	@echo "✓ Loki:        http://localhost:3100"
+	@echo "✓ Grafana:     http://localhost:3001 (admin/admin)"
+	@echo "✓ Tempo:       http://localhost:3200"
+
+# ============================================================================
+# TESTS
+# ============================================================================
+
+test-unit:
+	@echo "Running unit tests (health, baselines)..."
+	python3 tests/run_tests.py --suite unit
+
+test-chaos:
+	@echo "Running chaos tests (failure injection + recovery)..."
+	python3 tests/run_tests.py --suite chaos
+
+test-stress:
+	@echo "Running stress tests (high load, memory detection)..."
+	python3 tests/run_tests.py --suite stress
+
+test-soak:
+	@echo "Running 72-hour soak test (TAKES LONG TIME)..."
+	python3 tests/run_tests.py --suite soak --soak-hours 72
+
+test-soak-quick:
+	@echo "Running quick 1-hour soak test (for testing)..."
+	python3 tests/run_tests.py --suite soak --soak-hours 1
+
+test-redteam:
+	@echo "Running red-team tests (security, adversarial)..."
+	python3 tests/run_tests.py --suite redteam
+
+test:
+	@echo "Running full test suite: unit + chaos + stress..."
+	python3 tests/run_tests.py --suite all
+
+# ============================================================================
+# LIFE PLANS & DASHBOARDS
+# ============================================================================
+
+life-plans:
+	@echo "Agent life-plans (YAML runbooks) are at:"
+	@echo "  agents/life-plans/TEMPLATE.md (guide)"
+	@echo "  agents/life-plans/hypercode-core.yaml (example)"
+	@echo "  agents/life-plans/crew-orchestrator.yaml (example)"
+	@echo ""
+	@echo "To create more:"
+	@echo "  cp agents/life-plans/TEMPLATE.md agents/life-plans/[agent-name].yaml"
+	@echo "  vim agents/life-plans/[agent-name].yaml"
+	@echo "  git add agents/life-plans/ && git commit -m 'docs: add life plan for [agent-name]'"
+
+dashboards:
+	@echo "Grafana dashboards will be auto-provisioned from:"
+	@echo "  monitoring/grafana/provisioning/dashboards/"
+	@echo ""
+	@echo "Manual access: http://localhost:3001"
+	@echo "  Username: admin"
+	@echo "  Password: admin"
+	@echo ""
+	@echo "To add custom dashboard:"
+	@echo "  1. Create in Grafana UI"
+	@echo "  2. Export as JSON"
+	@echo "  3. Save to monitoring/grafana/provisioning/dashboards/[name].json"
+	@echo "  4. Restart Grafana: docker-compose up -d grafana"
+
+# ============================================================================
+# DEBUGGING & MONITORING
+# ============================================================================
+
+logs:
+	@echo "Tailing logs from all services..."
+	docker-compose logs -f hypercode-core crew-orchestrator redis postgres
+
+logs-service:
+	@echo "Usage: make logs-service SERVICE=hypercode-core"
+	docker-compose logs -f $(SERVICE)
+
+metrics:
+	@echo "Prometheus queries:"
+	@echo "  UP status:              curl 'http://localhost:9090/api/v1/query?query=up' | jq"
+	@echo "  Request latency:        curl 'http://localhost:9090/api/v1/query?query=http_request_duration_seconds_bucket' | jq"
+	@echo "  Error rate:             curl 'http://localhost:9090/api/v1/query?query=http_requests_total' | jq"
+	@echo "  Container memory:       curl 'http://localhost:9090/api/v1/query?query=container_memory_usage_bytes' | jq"
+
+alerts:
+	@echo "Alert rules:"
+	@echo "  Rules file: monitoring/prometheus/alert_rules.yml"
+	@echo "  Alertmanager: http://localhost:9093 (if configured)"
+
+status:
+	@echo "Service status:"
+	docker-compose ps
+
+# ============================================================================
+# CLEANUP
+# ============================================================================
+
+clean:
+	@echo "Stopping all services..."
+	docker-compose down
+	@echo "Clearing volumes (DESTRUCTIVE - data loss!)..."
+	docker volume prune -f
+
+restart:
+	@echo "Restarting observability stack..."
+	docker-compose restart prometheus loki grafana tempo
+
+# ============================================================================
+# CI/CD INTEGRATION
+# ============================================================================
+
+ci-test:
+	@echo "Running tests in CI environment..."
+	python3 tests/run_tests.py --suite all
+	@echo "Collecting test results..."
+	@if [ -f /tmp/soak_test_metrics.json ]; then echo "✓ Soak metrics saved"; fi
+
+ci-publish-results:
+	@echo "Publishing metrics to external system..."
+	@echo "TODO: Integrate with Datadog/Splunk/CloudWatch"
+
+# ============================================================================
+# LOCAL DEVELOPMENT
+# ============================================================================
+
+dev-watch-logs:
+	@echo "Watching logs in real-time..."
+	docker-compose logs -f --tail=50
+
+dev-health-check:
+	@echo "Checking all service health endpoints..."
+	@echo "HyperCode Core:     $$(curl -s http://localhost:8000/health | jq '.status' 2>/dev/null || echo 'FAIL')"
+	@echo "Crew Orchestrator:  $$(curl -s http://localhost:8081/health | jq '.status' 2>/dev/null || echo 'FAIL')"
+	@echo "Prometheus:         $$(curl -s http://localhost:9090/-/healthy | head -1 2>/dev/null || echo 'FAIL')"
+	@echo "Grafana:            $$(curl -s http://localhost:3001/api/health | jq '.status' 2>/dev/null || echo 'FAIL')"
+
+dev-scale-agents:
+	@echo "Scaling agents (for load testing)..."
+	docker-compose up -d --scale backend-specialist=3 --scale frontend-specialist=3
+
+# ============================================================================
+# DOCUMENTATION
+# ============================================================================
+
+docs:
+	@echo "Documentation:"
+	@echo "  Life Plans:        agents/life-plans/TEMPLATE.md"
+	@echo "  Test Suite:        tests/test_agent_observability.py"
+	@echo "  Monitoring Setup:  monitoring/"
+	@echo "  This Makefile:     Makefile"
+
+docs-generate:
+	@echo "Auto-generating documentation from code..."
+	@mkdir -p docs/generated
+	pdoc3 --html agents/ -o docs/generated
+	@echo "Generated: docs/generated/"

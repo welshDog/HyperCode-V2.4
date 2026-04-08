@@ -1,0 +1,31 @@
+name: No Legacy Paths Guard
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  check-legacy-paths:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Search for deprecated HyperCode-V2.0 paths
+        run: |
+          echo "Scanning for legacy 'HyperCode-V2.0' references..."
+          # Exclude .git and reports/ directory which contains historical data
+          # grep returns 0 if it finds a match, 1 if no match.
+          # We want to FAIL if we find a match, so we invert the check.
+          if grep -r "HyperCode-V2\.0" . \
+              --exclude-dir=".git" \
+              --exclude-dir="reports" \
+              --exclude-dir="docs"; then
+            echo "::error::Found legacy 'HyperCode-V2.0' path references in the codebase!"
+            echo "Please update these references to the V3+ canonical entrypoint (e.g., 'HyperCode-V2.4' or relative paths)."
+            exit 1
+          else
+            echo "No legacy paths found. Check passed!"
+          fi

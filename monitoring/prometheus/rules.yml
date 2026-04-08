@@ -1,0 +1,96 @@
+groups:
+  - name: hypercode_alerts
+    rules:
+      # 🚨 CRITICAL: Instance Down
+      - alert: InstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      # ⚠️ WARNING: High CPU Load
+      - alert: HighCpuLoad
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU load on {{ $labels.instance }}"
+          description: "CPU load is > 80% for 5 minutes."
+
+      # ⚠️ WARNING: High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Memory usage on {{ $labels.instance }}"
+          description: "Memory usage is > 90% for 5 minutes."
+
+  - name: agent_registry_recording
+    rules:
+      - record: job:agent_stream_latency_ms:hist_p50
+        expr: histogram_quantile(0.5, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+      - record: job:agent_stream_latency_ms:hist_p95
+        expr: histogram_quantile(0.95, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+      - record: job:agent_stream_latency_ms:hist_p99
+        expr: histogram_quantile(0.99, sum(rate(agent_stream_latency_ms_bucket[5m])) by (le))
+      - record: job:agent_stream_clients_total:rate_5m
+        expr: sum(rate(agent_stream_clients_total[5m]))
+      - record: job:agent_registry_errors_total:rate_5m
+        expr: sum by (operation) (rate(agent_registry_errors_total[5m]))
+
+  - name: agent_registry_alerts
+    rules:
+      - alert: HighStreamLatencyP95
+        expr: job:agent_stream_latency_ms:hist_p95 > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent SSE latency p95 high"
+          description: "p95 latency > 500ms"
+      - alert: NoStreamClients
+        expr: job:agent_stream_clients_total:rate_5m == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No SSE clients connected"
+          description: "No clients connected in the last 10m"
+      - alert: StreamErrorsElevated
+        expr: job:agent_registry_errors_total:rate_5m > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent registry errors elevated"
+          description: "Error rate > 0.1/s"
+      - alert: SseConnectionDrops
+        expr: (sum(increase(agent_stream_clients_total[10m])) == 0) and (sum(rate(agent_stream_latency_ms_count[10m])) > 0)
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSE connections dropped"
+          description: "No new clients but events flowing"
+      - alert: SseHighLatency
+        expr: job:agent_stream_latency_ms:hist_p99 > 2000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SSE high latency p99"
+          description: "p99 latency > 2s"
+      - alert: Sse404RateHigh
+        expr: sum(rate(http_requests_total{status="404",path=~"/agents/(watch|stream)"}[5m])) / sum(rate(http_requests_total{path=~"/agents/(watch|stream)"}[5m])) > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSE 404 rate high"
+          description: ">1% 404s on SSE endpoints"

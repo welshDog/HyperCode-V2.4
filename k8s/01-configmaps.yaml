@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: hypercode
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      - job_name: "prometheus"
+        static_configs:
+          - targets: ["localhost:9090"]
+
+      - job_name: "hypercode-core"
+        static_configs:
+          - targets: ["hypercode-core:8000"]
+
+      - job_name: "node-exporter"
+        static_configs:
+          - targets: ["node-exporter:9100"]
+
+      - job_name: "minio"
+        metrics_path: /minio/v2/metrics/cluster
+        static_configs:
+          - targets: ["minio:9000"]
+          
+      - job_name: "celery-exporter"
+        static_configs:
+          - targets: ["celery-exporter:9808"]
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tempo-config
+  namespace: hypercode
+data:
+  tempo.yaml: |
+    server:
+      http_listen_port: 3200
+
+    distributor:
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+            http:
+              endpoint: "0.0.0.0:4318"
+        jaeger:
+          protocols:
+            thrift_http:
+              endpoint: "0.0.0.0:14268"
+            grpc:
+              endpoint: "0.0.0.0:14250"
+            thrift_binary:
+              endpoint: "0.0.0.0:6832"
+            thrift_compact:
+              endpoint: "0.0.0.0:6831"
+        zipkin:
+          endpoint: "0.0.0.0:9411"
+
+    ingester:
+      trace_idle_period: 10s
+      max_block_bytes: 1_000_000
+      max_block_duration: 5m
+
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/lib/tempo/blocks
+        wal:
+          path: /var/lib/tempo/wal
+
+    overrides:
+      defaults:
+        metrics_generator:
+          processors: [service-graphs, span-metrics]
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-config
+  namespace: hypercode
+data:
+  loki-config.yml: |
+    auth_enabled: false
+
+    server:
+      http_listen_port: 3100
+
+    common:
+      path_prefix: /loki
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
+      replication_factor: 1
+      ring:
+        kvstore:
+          store: inmemory
+
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+
+    limits_config:
+      allow_structured_metadata: false
+
+    ruler:
+      alertmanager_url: http://localhost:9093

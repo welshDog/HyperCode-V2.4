@@ -1,0 +1,7 @@
+# pack-refs with: peeled fully-peeled sorted 
+a6ce4062129c938f5ad28c6da6011b388550cd5b refs/remotes/origin/feature/industry-grade-setup
+7d2ddc33d9e94e043d6056006e587d04e3111c03 refs/remotes/origin/feature/industry-grade-structure
+69572f4468ba04ce1230d73144bff950afc0b581 refs/remotes/origin/feature/phase-4a-gamification
+a11c0fc7452e6af6bbd77cebdee79cfad45ff2f7 refs/remotes/origin/feature/self-learning-infrastructure
+a2de9dc82538d96687cfbf588daa08d443206a91 refs/remotes/origin/fix/phase-4a-cogs-content
+7e546ec5ce63653a2a629bd0a608777c7d4781ec refs/remotes/origin/main

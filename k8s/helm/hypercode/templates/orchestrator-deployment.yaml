@@ -1,0 +1,54 @@
+{{- if .Values.orchestrator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hypercode.fullname" . }}-orchestrator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "hypercode.labels" . | nindent 4 }}
+    app.kubernetes.io/component: orchestrator
+spec:
+  replicas: {{ .Values.replicaCount.orchestrator }}
+  selector:
+    matchLabels:
+      {{- include "hypercode.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: orchestrator
+  template:
+    metadata:
+      labels:
+        {{- include "hypercode.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: orchestrator
+    spec:
+      serviceAccountName: {{ include "hypercode.serviceAccountName" . }}
+      {{- with .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: crew-orchestrator
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}-crew-orchestrator:{{ .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.orchestrator.service.port }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "hypercode.fullname" . }}-config
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.orchestrator.service.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.orchestrator.service.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          {{- with .Values.orchestrator.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

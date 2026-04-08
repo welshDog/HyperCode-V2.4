@@ -1,0 +1,13 @@
+[MAIN]
+ignored-modules=alembic.op
+py-version=3.11
+
+[FORMAT]
+max-line-length=120
+
+[MESSAGES CONTROL]
+disable=
+    C0103,
+    W0703,
+    R0913,
+    R0914

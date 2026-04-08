@@ -1,0 +1,40 @@
+# Security Engineer .dockerignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+Dockerfile*
+.dockerignore
+
+# Tests
+tests/
+*_test.py
+
+# Documentation
+README.md
+*.md
+
+# Logs
+*.log
+
+# Environment
+.env*

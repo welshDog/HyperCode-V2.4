@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: broski-bot
+  namespace: hypercode
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: broski-bot
+  template:
+    metadata:
+      labels:
+        app: broski-bot
+    spec:
+      containers:
+      - name: broski-bot
+        image: hypercode-v20-broski-bot:latest 
+        imagePullPolicy: IfNotPresent
+        command: ["python", "src/bot.py"]
+        envFrom:
+        - secretRef:
+            name: hypercode-secrets
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: hypercode-secrets
+              key: HYPERCODE_DB_URL
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"

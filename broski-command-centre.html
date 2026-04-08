@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BROski Command Centre</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem; --space-16: 4rem;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+  --text-2xl: clamp(2rem, 1.2rem + 2.5vw, 3.5rem);
+  --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+  --radius-xl: 1rem; --radius-full: 9999px;
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --font-body: "Satoshi", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0d0f0e;
+  --color-surface: #111412;
+  --color-surface-2: #151816;
+  --color-surface-offset: #1a1d1b;
+  --color-surface-dynamic: #212522;
+  --color-divider: #242724;
+  --color-border: #2a2e2b;
+  --color-text: #e2e8e4;
+  --color-text-muted: #7a8c80;
+  --color-text-faint: #4a5549;
+  --color-primary: #00ff88;
+  --color-primary-dim: rgba(0,255,136,0.15);
+  --color-primary-glow: rgba(0,255,136,0.08);
+  --color-secondary: #00d4ff;
+  --color-secondary-dim: rgba(0,212,255,0.12);
+  --color-purple: #b060ff;
+  --color-purple-dim: rgba(176,96,255,0.12);
+  --color-gold: #ffd700;
+  --color-gold-dim: rgba(255,215,0,0.12);
+  --color-warning: #ff9500;
+  --color-error: #ff4757;
+  --color-success: #00ff88;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 20px rgba(0,255,136,0.15);
+}
+
+[data-theme="light"] {
+  --color-bg: #f5f7f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8faf8;
+  --color-surface-offset: #edf2ee;
+  --color-surface-dynamic: #e2e9e3;
+  --color-divider: #d5ddd6;
+  --color-border: #c8d2c9;
+  --color-text: #1a2b1e;
+  --color-text-muted: #4a6550;
+  --color-text-faint: #8aaa90;
+  --color-primary: #007a40;
+  --color-primary-dim: rgba(0,122,64,0.1);
+  --color-primary-glow: rgba(0,122,64,0.06);
+  --color-secondary: #005a7a;
+  --color-secondary-dim: rgba(0,90,122,0.1);
+  --color-purple: #6030aa;
+  --color-purple-dim: rgba(96,48,170,0.1);
+  --color-gold: #8a6a00;
+  --color-gold-dim: rgba(138,106,0,0.1);
+  --color-warning: #c06000;
+  --color-error: #c02030;
+  --color-success: #007a40;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.1);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --shadow-glow: 0 0 20px rgba(0,122,64,0.12);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body {
+  min-height: 100dvh; line-height: 1.6;
+  font-family: var(--font-body); font-size: var(--text-base);
+  color: var(--color-text); background: var(--color-bg);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+a, button { transition: color var(--transition-interactive), background var(--transition-interactive), box-shadow var(--transition-interactive); }
+
+/* Layout */
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.main { padding: var(--space-8); overflow: auto; }
+
+/* Logo */
+.logo {
+  display: flex; align-items: center; gap: var(--space-3);
+  text-decoration: none; color: var(--color-text);
+}
+.logo-icon {
+  width: 40px; height: 40px; background: var(--color-primary-dim);
+  border: 1.5px solid var(--color-primary); border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow-glow);
+}
+.logo-name { font-size: var(--text-base); font-weight: 900; letter-spacing: -0.02em; }
+.logo-name span { color: var(--color-primary); }
+.logo-sub { font-size: var(--text-xs); color: var(--color-text-muted); font-family: var(--font-mono); }
+
+/* Status pill */
+.status-pill {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-2) var(--space-3); background: var(--color-primary-dim);
+  border: 1px solid rgba(0,255,136,0.25); border-radius: var(--radius-full);
+  font-size: var(--text-xs); color: var(--color-primary); font-weight: 600;
+}
+.status-dot {
+  width: 6px; height: 6px; background: var(--color-primary);
+  border-radius: 50%; animation: pulse 2s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+/* Nav */
+.nav-section-label {
+  font-size: var(--text-xs); font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-text-faint);
+  padding: var(--space-2) 0;
+}
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  font-size: var(--text-sm); font-weight: 500; color: var(--color-text-muted);
+  cursor: pointer; transition: all var(--transition-interactive);
+  border: 1px solid transparent; text-decoration: none;
+}
+.nav-item:hover { background: var(--color-surface-offset); color: var(--color-text); }
+.nav-item.active {
+  background: var(--color-primary-dim); color: var(--color-primary);
+  border-color: rgba(0,255,136,0.2);
+}
+.nav-icon { font-size: 1.1em; width: 20px; text-align: center; }
+
+/* Header */
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-8);
+}
+.page-title { font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.03em; }
+.page-title span { color: var(--color-primary); }
+.header-actions { display: flex; gap: var(--space-3); align-items: center; }
+
+/* Theme Toggle */
+.theme-toggle {
+  width: 36px; height: 36px; border-radius: var(--radius-full);
+  background: var(--color-surface-offset); border: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted); font-size: 1rem;
+  transition: all var(--transition-interactive);
+}
+.theme-toggle:hover { color: var(--color-text); background: var(--color-surface-dynamic); }
+
+/* Stats Grid */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4); margin-bottom: var(--space-8);
+}
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: var(--space-5);
+  transition: all var(--transition-interactive);
+}
+.stat-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-glow); transform: translateY(-1px); }
+.stat-label { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--space-2); }
+.stat-value { font-size: var(--text-xl); font-weight: 900; letter-spacing: -0.03em; font-family: var(--font-mono); }
+.stat-value.green { color: var(--color-primary); }
+.stat-value.blue { color: var(--color-secondary); }
+.stat-value.purple { color: var(--color-purple); }
+.stat-value.gold { color: var(--color-gold); }
+.stat-sub { font-size: var(--text-xs); color: var(--color-text-faint); margin-top: var(--space-1); }
+
+/* Module Grid */
+.modules-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4); margin-bottom: var(--space-8);
+}
+.module-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: var(--space-5);
+  transition: all var(--transition-interactive);
+}
+.module-card:hover { border-color: var(--color-primary); box-shadow: var(--shadow-md); }
+.module-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-4); }
+.module-name { font-size: var(--text-base); font-weight: 700; display: flex; align-items: center; gap: var(--space-2); }
+.module-badge {
+  font-size: var(--text-xs); padding: 2px 8px;
+  border-radius: var(--radius-full); font-weight: 700; font-family: var(--font-mono);
+}
+.badge-new { background: var(--color-purple-dim); color: var(--color-purple); border: 1px solid rgba(176,96,255,0.3); }
+.badge-fixed { background: var(--color-secondary-dim); color: var(--color-secondary); border: 1px solid rgba(0,212,255,0.3); }
+.badge-core { background: var(--color-primary-dim); color: var(--color-primary); border: 1px solid rgba(0,255,136,0.3); }
+
+/* Commands List */
+.cmd-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.cmd-item {
+  display: flex; align-items: center; gap: var(--space-2);
+  font-size: var(--text-xs); font-family: var(--font-mono);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-offset); border-radius: var(--radius-md);
+  color: var(--color-text-muted); border: 1px solid var(--color-divider);
+  transition: all var(--transition-interactive); cursor: default;
+}
+.cmd-item:hover { border-color: var(--color-primary); color: var(--color-primary); background: var(--color-primary-glow); }
+.cmd-slash { color: var(--color-primary); font-weight: 700; }
+.cmd-tag {
+  margin-left: auto; font-size: 0.65rem; padding: 1px 6px;
+  border-radius: var(--radius-full); font-weight: 600;
+}
+.tag-life { background: var(--color-gold-dim); color: var(--color-gold); }
+.tag-profile { background: var(--color-purple-dim); color: var(--color-purple); }
+.tag-admin { background: rgba(255,71,87,0.12); color: var(--color-error); }
+.tag-focus { background: var(--color-secondary-dim); color: var(--color-secondary); }
+.tag-economy { background: var(--color-gold-dim); color: var(--color-gold); }
+.tag-ai { background: var(--color-primary-dim); color: var(--color-primary); }
+
+/* Section Title */
+.section-title {
+  font-size: var(--text-lg); font-weight: 800; letter-spacing: -0.02em;
+  margin-bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-3);
+}
+.section-title::after {
+  content: ""; flex: 1; height: 1px; background: var(--color-divider);
+}
+
+/* System Status */
+.status-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3); margin-bottom: var(--space-8);
+}
+.status-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); font-size: var(--text-sm);
+}
+.status-icon { font-size: 1rem; }
+.status-name { font-weight: 600; }
+.status-val { margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 700; }
+.ok { color: var(--color-primary); }
+.info { color: var(--color-secondary); }
+.warn { color: var(--color-warning); }
+
+/* Heartbeat bar */
+.heartbeat-bar {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl); padding: var(--space-5);
+  margin-bottom: var(--space-8);
+  display: flex; align-items: center; gap: var(--space-6);
+}
+.hb-label { font-size: var(--text-sm); font-weight: 700; color: var(--color-text-muted); }
+.hb-beat { display: flex; gap: var(--space-1); align-items: flex-end; height: 24px; }
+.hb-bar {
+  width: 4px; background: var(--color-primary); border-radius: 2px;
+  animation: beat 1.2s ease-in-out infinite;
+  opacity: 0.4;
+}
+.hb-bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+.hb-bar:nth-child(2) { height: 70%; animation-delay: 0.1s; }
+.hb-bar:nth-child(3) { height: 100%; animation-delay: 0.2s; }
+.hb-bar:nth-child(4) { height: 60%; animation-delay: 0.3s; }
+.hb-bar:nth-child(5) { height: 80%; animation-delay: 0.4s; }
+.hb-bar:nth-child(6) { height: 45%; animation-delay: 0.5s; }
+.hb-bar:nth-child(7) { height: 90%; animation-delay: 0.6s; }
+.hb-bar:nth-child(8) { height: 55%; animation-delay: 0.7s; }
+.hb-bar:nth-child(9) { height: 100%; animation-delay: 0.8s; }
+.hb-bar:nth-child(10) { height: 35%; animation-delay: 0.9s; }
+.hb-bar:nth-child(11) { height: 75%; animation-delay: 1.0s; }
+.hb-bar:nth-child(12) { height: 50%; animation-delay: 1.1s; }
+@keyframes beat {
+  0%,100% { opacity: 0.3; transform: scaleY(0.8); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+.hb-stats { margin-left: auto; display: flex; gap: var(--space-6); }
+.hb-stat { text-align: right; }
+.hb-stat-label { font-size: var(--text-xs); color: var(--color-text-faint); }
+.hb-stat-val { font-size: var(--text-sm); font-weight: 700; font-family: var(--font-mono); color: var(--color-primary); }
+
+/* Next Build Section */
+.next-build {
+  background: linear-gradient(135deg, var(--color-primary-dim), var(--color-purple-dim));
+  border: 1px solid rgba(0,255,136,0.2); border-radius: var(--radius-xl);
+  padding: var(--space-6); margin-bottom: var(--space-8);
+}
+.next-build-title { font-size: var(--text-lg); font-weight: 800; margin-bottom: var(--space-4); }
+.next-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-3); }
+.next-option {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4); cursor: pointer;
+  transition: all var(--transition-interactive);
+}
+.next-option:hover { border-color: var(--color-primary); transform: translateY(-2px); box-shadow: var(--shadow-glow); }
+.next-option-icon { font-size: 1.5rem; margin-bottom: var(--space-2); }
+.next-option-name { font-size: var(--text-sm); font-weight: 700; margin-bottom: var(--space-1); }
+.next-option-desc { font-size: var(--text-xs); color: var(--color-text-muted); line-height: 1.5; }
+.next-option-tag {
+  display: inline-block; margin-top: var(--space-2);
+  font-size: 0.65rem; padding: 2px 6px; border-radius: var(--radius-full);
+  font-weight: 700; font-family: var(--font-mono);
+  background: var(--color-primary-dim); color: var(--color-primary);
+  border: 1px solid rgba(0,255,136,0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; flex-direction: row; flex-wrap: wrap; padding: var(--space-4); }
+  .main { padding: var(--space-4); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-faint); }
+
+/* Conn flash */
+@keyframes connFlash { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.conn-id { animation: connFlash 3s ease infinite; color: var(--color-primary); font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* Progress bar */
+.xp-bar-wrap { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+.xp-bar-bg { flex: 1; height: 6px; background: var(--color-surface-offset); border-radius: var(--radius-full); overflow: hidden; }
+.xp-bar-fill {
+  height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  border-radius: var(--radius-full); transition: width 1s ease; width: 0%;
+}
+.xp-label { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--color-text-muted); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-label="BROski logo">
+          <path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11 4.5-.85 8-5.75 8-11V6L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" fill="none" color="var(--color-primary)"/>
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="var(--color-primary)"/>
+        </svg>
+      </div>
+      <div>
+        <div class="logo-name"><span>BROski</span>&#x221E;</div>
+        <div class="logo-sub">Command Centre</div>
+      </div>
+    </a>
+
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      FULLY OPERATIONAL
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:var(--space-1)">
+      <div class="nav-section-label">System</div>
+      <div class="nav-item active" onclick="showPanel('dashboard')">
+        <span class="nav-icon">&#x1F3E0;</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="showPanel('commands')">
+        <span class="nav-icon">&#x26A1;</span> Commands
+      </div>
+      <div class="nav-item" onclick="showPanel('modules')">
+        <span class="nav-icon">&#x1F9E9;</span> Modules
+      </div>
+      <div class="nav-section-label" style="margin-top:var(--space-3)">Build</div>
+      <div class="nav-item" onclick="showPanel('roadmap')">
+        <span class="nav-icon">&#x1F5FA;&#xFE0F;</span> Roadmap
+      </div>
+      <div class="nav-item" onclick="showPanel('nextwins')">
+        <span class="nav-icon">&#x1F3AF;</span> Next Wins
+      </div>
+      <div class="nav-section-label" style="margin-top:var(--space-3)">DevOps</div>
+      <div class="nav-item" onclick="showPanel('hotreload')">
+        <span class="nav-icon">&#x1F525;</span> Hot-Reload
+      </div>
+    </nav>
+
+    <div style="margin-top:auto;padding-top:var(--space-4);border-top:1px solid var(--color-divider)">
+      <div style="font-size:var(--text-xs);color:var(--color-text-faint);margin-bottom:var(--space-2)">Gateway</div>
+      <div class="conn-id">96c5088&#x2026;</div>
+      <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-1)">1 guild &middot; 42 slash cmds</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- THEME TOGGLE -->
+    <div style="position:fixed;top:var(--space-4);right:var(--space-4);z-index:100">
+      <button class="theme-toggle" data-theme-toggle aria-label="Toggle theme">&#x1F319;</button>
+    </div>
+
+    <!-- DASHBOARD PANEL -->
+    <div id="panel-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Bot <span>Status</span> &#x1F525;</div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">Everything is green. BROski World is running at full power.</div>
+        </div>
+      </div>
+
+      <!-- Heartbeat -->
+      <div class="heartbeat-bar">
+        <div>
+          <div class="hb-label">&#x1F493; Life Engine Heartbeat</div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-faint);margin-top:2px">Active &amp; Pumping</div>
+        </div>
+        <div class="hb-beat">
+          <div class="hb-bar"></div><div class="hb-bar"></div><div class="hb-bar"></div>
+          <div class="hb-bar"></div><div class="hb-bar"></div><div class="hb-bar"></div>
+          <div class="hb-bar"></div><div class="hb-bar"></div><div class="hb-bar"></div>
+          <div class="hb-bar"></div><div class="hb-bar"></div><div class="hb-bar"></div>
+        </div>
+        <div class="hb-stats">
+          <div class="hb-stat">
+            <div class="hb-stat-label">Uptime</div>
+            <div class="hb-stat-val" id="uptime">00:00:00</div>
+          </div>
+          <div class="hb-stat">
+            <div class="hb-stat-label">Latency</div>
+            <div class="hb-stat-val">~12ms</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="section-title">&#x1F4CA; Bot Stats</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Slash Commands</div>
+          <div class="stat-value green">42</div>
+          <div class="stat-sub">Synced &amp; Ready</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Modules Loaded</div>
+          <div class="stat-value blue">7</div>
+          <div class="stat-sub">All Operational</div>
+          <div class="xp-bar-wrap">
+            <div class="xp-bar-bg"><div class="xp-bar-fill" data-width="100"></div></div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">DB: broski</div>
+          <div class="stat-value green">&#x2705;</div>
+          <div class="stat-sub">Clean Schema</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Gateway</div>
+          <div class="stat-value purple">&#x1F7E2;</div>
+          <div class="stat-sub">Connected</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Guilds</div>
+          <div class="stat-value gold">1</div>
+          <div class="stat-sub">Live &amp; Active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Categories</div>
+          <div class="stat-value blue">6</div>
+          <div class="stat-sub">Life&middot;Profile&middot;Admin+more</div>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="section-title">&#x1F7E2; System Status</div>
+      <div class="status-grid">
+        <div class="status-item">
+          <span class="status-icon">&#x1F5C4;&#xFE0F;</span>
+          <div><div class="status-name">Database</div><div style="font-size:var(--text-xs);color:var(--color-text-faint)">broski</div></div>
+          <div class="status-val ok">LIVE</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F4B0;</span>
+          <div><div class="status-name">Economy</div></div>
+          <div class="status-val ok">&#x2705; Loaded</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F3AF;</span>
+          <div><div class="status-name">Focus</div><div style="font-size:var(--text-xs);color:var(--color-secondary)">was broken, now fixed</div></div>
+          <div class="status-val ok">&#x2705; Fixed</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F916;</span>
+          <div><div class="status-name">AI Relay</div></div>
+          <div class="status-val ok">&#x2705; Loaded</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x26A1;</span>
+          <div><div class="status-name">HyperCode Sync</div></div>
+          <div class="status-val ok">&#x2705; Loaded</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F6E1;&#xFE0F;</span>
+          <div><div class="status-name">Admin</div><div style="font-size:var(--text-xs);color:var(--color-purple)">NEW</div></div>
+          <div class="status-val ok">&#x2705; NEW</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F493;</span>
+          <div><div class="status-name">Life Engine</div><div style="font-size:var(--text-xs);color:var(--color-purple)">NEW</div></div>
+          <div class="status-val ok">&#x2705; NEW</div>
+        </div>
+        <div class="status-item">
+          <span class="status-icon">&#x1F464;</span>
+          <div><div class="status-name">Profile</div><div style="font-size:var(--text-xs);color:var(--color-purple)">NEW</div></div>
+          <div class="status-val ok">&#x2705; NEW</div>
+        </div>
+      </div>
+
+      <!-- Next Build Options -->
+      <div class="section-title">&#x1F3AF; What to Build Next</div>
+      <div class="next-build">
+        <div class="next-build-title">&#x1F680; Pick Your Next Win, BROski!</div>
+        <div class="next-options">
+          <div class="next-option" onclick="alert('Let\'s go! Clan system is a banger idea 🔥')">
+            <div class="next-option-icon">&#x1F3C6;</div>
+            <div class="next-option-name">Clan / Squad System</div>
+            <div class="next-option-desc">Group XP, team missions, clan wars. ADHD loves team accountability!</div>
+            <span class="next-option-tag">&#x1F525; HIGH IMPACT</span>
+          </div>
+          <div class="next-option" onclick="alert('Web dashboard is NEXT LEVEL! 🌐')">
+            <div class="next-option-icon">&#x1F310;</div>
+            <div class="next-option-name">Web Dashboard</div>
+            <div class="next-option-desc">Real-time stats, server overview, XP graphs. FastAPI + Next.js.</div>
+            <span class="next-option-tag">&#x26A1; POWER MOVE</span>
+          </div>
+          <div class="next-option" onclick="alert('AI Coach level-up coming right up! 🧠')">
+            <div class="next-option-icon">&#x1F9E0;</div>
+            <div class="next-option-name">AI Coach 2.0</div>
+            <div class="next-option-desc">Memory-aware coaching. Learns your patterns, adapts advice over time.</div>
+            <span class="next-option-tag">&#x1F916; SMART</span>
+          </div>
+          <div class="next-option" onclick="alert('Auto-mod BEAST MODE incoming! 🛡️')">
+            <div class="next-option-icon">&#x1F6E1;&#xFE0F;</div>
+            <div class="next-option-name">Auto-Mod Engine</div>
+            <div class="next-option-desc">ML-powered toxicity filter, raid detection, smart word filters.</div>
+            <span class="next-option-tag">&#x1F512; SECURITY</span>
+          </div>
+          <div class="next-option" onclick="alert('Daily quest engine sounds amazing! 🗡️')">
+            <div class="next-option-icon">&#x1F5E1;&#xFE0F;</div>
+            <div class="next-option-name">Quest / Daily Missions</div>
+            <div class="next-option-desc">Auto-generated daily missions, XP rewards, streak bonuses.</div>
+            <span class="next-option-tag">&#x1F3AE; GAMIFY</span>
+          </div>
+          <div class="next-option" onclick="alert('Multi-server SCALE UP! 📡')">
+            <div class="next-option-icon">&#x1F4E1;</div>
+            <div class="next-option-name">Multi-Server Sharding</div>
+            <div class="next-option-desc">Scale BROski to 100+ servers. Sharding + Redis caching strategy.</div>
+            <span class="next-option-tag">&#x1F680; SCALE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMMANDS PANEL -->
+    <div id="panel-commands" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Slash <span>Commands</span> &#x26A1;</div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">42 commands synced across 6 categories</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4)">
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F31F; Life Engine</div>
+            <span class="module-badge badge-new">NEW</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>brain_mode<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>vibe<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>life_stats<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>hyperdash<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>spawn_mission<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>streak<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>rank<span class="cmd-tag tag-life">Life</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>xp_leaderboard<span class="cmd-tag tag-life">Life</span></div>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F464; Profile</div>
+            <span class="module-badge badge-new">NEW</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>profile<span class="cmd-tag tag-profile">Profile</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>setbio<span class="cmd-tag tag-profile">Profile</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>settitle<span class="cmd-tag tag-profile">Profile</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>titles<span class="cmd-tag tag-profile">Profile</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>badges<span class="cmd-tag tag-profile">Profile</span></div>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F6E1;&#xFE0F; Admin</div>
+            <span class="module-badge badge-new">NEW</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>ban<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>kick<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>timeout<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>warn<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>purge<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>role_add<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>role_create<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>announce<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>serverinfo<span class="cmd-tag tag-admin">Admin</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>userinfo<span class="cmd-tag tag-admin">Admin</span></div>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F3AF; Focus</div>
+            <span class="module-badge badge-fixed">FIXED</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>focus<span class="cmd-tag tag-focus">Focus</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>focusend<span class="cmd-tag tag-focus">Focus</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>hyperfocus<span class="cmd-tag tag-focus">Focus</span></div>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F4B0; Economy</div>
+            <span class="module-badge badge-core">CORE</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>balance<span class="cmd-tag tag-economy">Economy</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>daily<span class="cmd-tag tag-economy">Economy</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>give<span class="cmd-tag tag-economy">Economy</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>leaderboard<span class="cmd-tag tag-economy">Economy</span></div>
+          </div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F916; AI Coach</div>
+            <span class="module-badge badge-core">CORE</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item"><span class="cmd-slash">/</span>coach<span class="cmd-tag tag-ai">AI</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>motivate<span class="cmd-tag tag-ai">AI</span></div>
+            <div class="cmd-item"><span class="cmd-slash">/</span>anxietycheck<span class="cmd-tag tag-ai">AI</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MODULES PANEL -->
+    <div id="panel-modules" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title"><span>Modules</span> &#x1F9E9;</div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">7/7 loaded &middot; All green</div>
+        </div>
+      </div>
+      <div class="modules-grid">
+        <div class="module-card" style="border-color:var(--color-primary)">
+          <div class="module-header">
+            <div class="module-name">&#x1F4B0; Economy</div>
+            <span class="module-badge badge-core">CORE</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">BROski$ currency system. Daily rewards, balance, leaderboards, peer-to-peer giving.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">4 commands &middot; DB: economy_accounts</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-secondary)">
+          <div class="module-header">
+            <div class="module-name">&#x1F3AF; Focus</div>
+            <span class="module-badge badge-fixed">FIXED &#x2728;</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">ADHD-friendly focus sessions. Timer-based hyperfocus mode with XP rewards on completion.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">3 commands &middot; DB: focus_sessions</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-primary)">
+          <div class="module-header">
+            <div class="module-name">&#x1F916; AI Relay</div>
+            <span class="module-badge badge-core">CORE</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Routes AI coaching requests. Connects Discord commands to AI backends for real-time responses.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">3 commands &middot; External API</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-primary)">
+          <div class="module-header">
+            <div class="module-name">&#x26A1; HyperCode Sync</div>
+            <span class="module-badge badge-core">CORE</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Syncs with HyperCode V2.0 ecosystem. Agent status, project tracking, dev updates.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">HyperCode API bridge</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-error)">
+          <div class="module-header">
+            <div class="module-name">&#x1F6E1;&#xFE0F; Admin</div>
+            <span class="module-badge badge-new">NEW &#x1F389;</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Full server management. Ban, kick, timeout, warn, purge, role management, announcements.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">10 commands &middot; Discord Permissions</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-gold)">
+          <div class="module-header">
+            <div class="module-name">&#x1F493; Life Engine</div>
+            <span class="module-badge badge-new">NEW &#x1F389;</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">The BRAIN of BROski. XP, streaks, missions, brain modes, vibes, hyperdash quests.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">8 commands &middot; DB: life_engine &middot; Heartbeat active</div>
+        </div>
+        <div class="module-card" style="border-color:var(--color-purple)">
+          <div class="module-header">
+            <div class="module-name">&#x1F464; Profile</div>
+            <span class="module-badge badge-new">NEW &#x1F389;</span>
+          </div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Full user identity system. Bio, custom titles, badges collection, profile cards.</p>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">5 commands &middot; DB: user_profiles</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROADMAP PANEL -->
+    <div id="panel-roadmap" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Build <span>Roadmap</span> &#x1F5FA;&#xFE0F;</div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">Where BROski goes from here</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-primary);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);flex-shrink:0;box-shadow:var(--shadow-glow)">&#x2713;</div>
+          <div class="module-card" style="flex:1;border-color:var(--color-primary)">
+            <div style="font-weight:800;font-size:var(--text-base);margin-bottom:var(--space-2)">Phase 1 &mdash; Foundation &#x2705; DONE!</div>
+            <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Core bot live, 7 modules loaded, 42 slash commands, dedicated DB, Life Engine heartbeat. YOU ARE HERE! &#x1F525;</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-secondary-dim);border:2px solid var(--color-secondary);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);flex-shrink:0;color:var(--color-secondary)">2</div>
+          <div class="module-card" style="flex:1">
+            <div style="font-weight:800;font-size:var(--text-base);margin-bottom:var(--space-2)">Phase 2 &mdash; Gamification Depth &#x1F3AE;</div>
+            <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Clan system, daily quests, achievement engine, custom badge minting, shop with BROski$.</p>
+            <div style="margin-top:var(--space-3);display:flex;gap:var(--space-2);flex-wrap:wrap">
+              <span style="font-size:var(--text-xs);padding:2px 8px;background:var(--color-gold-dim);color:var(--color-gold);border-radius:var(--radius-full);border:1px solid rgba(255,215,0,0.3)">&#x1F3C6; Clans</span>
+              <span style="font-size:var(--text-xs);padding:2px 8px;background:var(--color-purple-dim);color:var(--color-purple);border-radius:var(--radius-full);border:1px solid rgba(176,96,255,0.3)">&#x1F5E1;&#xFE0F; Quests</span>
+              <span style="font-size:var(--text-xs);padding:2px 8px;background:var(--color-primary-dim);color:var(--color-primary);border-radius:var(--radius-full);border:1px solid rgba(0,255,136,0.3)">&#x1F396;&#xFE0F; Achievements</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-offset);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);flex-shrink:0;color:var(--color-text-muted)">3</div>
+          <div class="module-card" style="flex:1">
+            <div style="font-weight:800;font-size:var(--text-base);margin-bottom:var(--space-2)">Phase 3 &mdash; AI Intelligence &#x1F9E0;</div>
+            <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Memory-aware AI Coach, user behaviour pattern learning, personalized mission generation, anxiety pattern detection.</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-offset);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);flex-shrink:0;color:var(--color-text-muted)">4</div>
+          <div class="module-card" style="flex:1">
+            <div style="font-weight:800;font-size:var(--text-base);margin-bottom:var(--space-2)">Phase 4 &mdash; Web Dashboard &#x1F310;</div>
+            <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Next.js + FastAPI real-time dashboard. XP graphs, server analytics, bot config UI, mod tools in browser.</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--space-4);align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--color-surface-offset);border:2px solid var(--color-border);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:var(--text-sm);flex-shrink:0;color:var(--color-text-muted)">5</div>
+          <div class="module-card" style="flex:1">
+            <div style="font-weight:800;font-size:var(--text-base);margin-bottom:var(--space-2)">Phase 5 &mdash; Scale &amp; Open Source &#x1F680;</div>
+            <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Sharding for 100+ servers, Docker deployment package, public GitHub release, community templates, BROski App Directory listing.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEXT WINS PANEL -->
+    <div id="panel-nextwins" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Next <span>Wins</span> &#x1F3AF;</div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">Quick wins to build momentum right now</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4)">
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-error);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x1F525; Quick Win &mdash; 30 min</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Add /shop command</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Let users spend BROski$ on custom roles, badge slots, title unlocks. Tiny effort, huge engagement boost.</p>
+        </div>
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-gold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x26A1; Medium Win &mdash; 2 hours</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Clan / Squad System</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">/clan_create, /clan_join, shared XP pool, clan leaderboard. Team accountability is ADHD gold.</p>
+        </div>
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x1F9E0; Smart Win &mdash; half day</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Auto Daily Missions</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Bot auto-generates 3 missions every morning at 9am. Complete them for bonus XP + BROski$. Cron job + DB.</p>
+        </div>
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-purple);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x1F3A8; Fun Win &mdash; 1 hour</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Profile Card Image Gen</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">Render a visual profile card as an image on /profile. Canvas or Pillow. Badges, XP bar, streak counter.</p>
+        </div>
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-primary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x1F512; Power Win &mdash; full day</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Auto-Mod Engine</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">ML toxicity filter, raid detection, configurable word filters, auto-warn &rarr; auto-timeout escalation pipeline.</p>
+        </div>
+        <div class="module-card">
+          <div style="font-size:var(--text-xs);font-weight:700;color:var(--color-warning);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:var(--space-2)">&#x1F4C8; Big Win &mdash; 2 days</div>
+          <div style="font-weight:800;margin-bottom:var(--space-2)">Web Dashboard MVP</div>
+          <p style="font-size:var(--text-sm);color:var(--color-text-muted)">FastAPI endpoints + simple HTML dashboard. XP stats, bot health, command usage charts. No Next.js needed for MVP.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOT-RELOAD PANEL -->
+    <div id="panel-hotreload" style="display:none">
+      <div class="page-header">
+        <div>
+          <div class="page-title">&#x1F525; Docker <span>Hot-Reload</span></div>
+          <div style="font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)">13 agents &middot; Live code sync &middot; Zero rebuild &middot; &#x2705; ACTIVE</div>
+        </div>
+        <div class="header-actions">
+          <span style="font-size:var(--text-xs);padding:4px 12px;background:var(--color-primary-dim);color:var(--color-primary);border:1px solid rgba(0,255,136,0.3);border-radius:var(--radius-full);font-weight:700;font-family:var(--font-mono)">&#x26A1; ~1s SYNC</span>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="stats-grid" style="margin-bottom:var(--space-6)">
+        <div class="stat-card">
+          <div class="stat-label">Hot-Reload</div>
+          <div class="stat-value green">ON</div>
+          <div class="stat-sub">develop.watch active</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Agents Covered</div>
+          <div class="stat-value blue">13</div>
+          <div class="stat-sub">All specialist agents</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Hyper-Agents</div>
+          <div class="stat-value purple">4</div>
+          <div class="stat-sub">architect&middot;observer&middot;worker&middot;x</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Compose Files</div>
+          <div class="stat-value gold">2</div>
+          <div class="stat-sub">agents + hyper-agents</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Sync Speed</div>
+          <div class="stat-value green">~1s</div>
+          <div class="stat-sub">py changes &rarr; container</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Rebuild Trigger</div>
+          <div class="stat-value blue">Auto</div>
+          <div class="stat-sub">requirements.txt change</div>
+        </div>
+      </div>
+
+      <!-- Launch commands -->
+      <div class="section-title">&#x1F680; Launch Commands</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4);margin-bottom:var(--space-8)">
+
+        <div class="module-card" style="border-color:var(--color-primary)">
+          <div class="module-header">
+            <div class="module-name">&#x1F916; Specialist Agents</div>
+            <span class="module-badge badge-core">13 AGENTS</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker compose -f docker-compose.agents.yml up --watch
+              <span class="cmd-tag tag-ai">COPY</span>
+            </div>
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker compose -f docker-compose.agents.yml up --watch -d
+              <span class="cmd-tag tag-focus">BG</span>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">Edit any agent &rarr; syncs in ~1s &middot; No rebuild needed</div>
+        </div>
+
+        <div class="module-card" style="border-color:var(--color-purple)">
+          <div class="module-header">
+            <div class="module-name">&#x1F985; Hyper Agents</div>
+            <span class="module-badge badge-new">4 AGENTS</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker compose -f docker-compose.hyper-agents.yml up --watch
+              <span class="cmd-tag tag-ai">COPY</span>
+            </div>
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker compose -f docker-compose.hyper-agents.yml up --watch -d
+              <span class="cmd-tag tag-focus">BG</span>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">architect &middot; observer &middot; worker &middot; agent-x</div>
+        </div>
+
+        <div class="module-card" style="border-color:var(--color-secondary)">
+          <div class="module-header">
+            <div class="module-name">&#x26A1; Both Stacks</div>
+            <span class="module-badge badge-fixed">FULL FLEET</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer;overflow:hidden">
+              <span class="cmd-slash">$</span>&nbsp;docker compose -f docker-compose.agents.yml -f docker-compose.hyper-agents.yml up --watch
+              <span class="cmd-tag tag-ai">COPY</span>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">All 17 agents live &middot; Full HyperCode stack</div>
+        </div>
+
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F6E0;&#xFE0F; Debug Agent</div>
+            <span class="module-badge" style="background:rgba(255,149,0,0.12);color:var(--color-warning);border:1px solid rgba(255,149,0,0.3)">docker debug</span>
+          </div>
+          <div class="cmd-list">
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker debug hyper-architect
+              <span class="cmd-tag tag-admin">DEBUG</span>
+            </div>
+            <div class="cmd-item" onclick="copyCmd(this)" title="Click to copy" style="cursor:pointer">
+              <span class="cmd-slash">$</span>&nbsp;docker debug agent-x
+              <span class="cmd-tag tag-admin">DEBUG</span>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-faint)">Shell into container without exec &middot; Next-gen debugging</div>
+        </div>
+      </div>
+
+      <!-- Agent Fleet Table -->
+      <div class="section-title">&#x1F916; Agent Fleet Status</div>
+      <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:var(--space-8)">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1.5fr 1fr;padding:var(--space-3) var(--space-4);background:var(--color-surface-offset);border-bottom:1px solid var(--color-divider)">
+          <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-faint)">Agent</div>
+          <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-faint)">Port</div>
+          <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-faint)">Watch Path</div>
+          <div style="font-size:var(--text-xs);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-text-faint)">Status</div>
+        </div>
+        <div id="agent-rows"></div>
+      </div>
+
+      <!-- Config snippet -->
+      <div class="section-title">&#x1F4CB; develop.watch Config</div>
+      <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-5);margin-bottom:var(--space-8)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+          <span style="font-size:var(--text-xs);font-weight:700;color:var(--color-text-muted);font-family:var(--font-mono)">docker-compose.agents.yml snippet</span>
+          <button onclick="copySnippet()" style="font-size:var(--text-xs);padding:4px 12px;background:var(--color-primary-dim);color:var(--color-primary);border:1px solid rgba(0,255,136,0.3);border-radius:var(--radius-full);font-weight:700;font-family:var(--font-mono);cursor:pointer">&#x1F4CB; Copy</button>
+        </div>
+        <pre style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.7;overflow-x:auto"><span style="color:var(--color-secondary)">  coder</span><span style="color:var(--color-text-faint)">:</span>
+<span style="color:var(--color-text-faint)">    build: </span><span style="color:var(--color-primary)">./agents/coder</span>
+<span style="color:var(--color-text-faint)">    develop:</span>
+<span style="color:var(--color-text-faint)">      watch:</span>
+<span style="color:var(--color-text-faint)">        - action: </span><span style="color:var(--color-gold)">sync</span>
+<span style="color:var(--color-text-faint)">          path: </span><span style="color:var(--color-primary)">./agents/coder</span>
+<span style="color:var(--color-text-faint)">          target: </span><span style="color:var(--color-primary)">/app</span>
+<span style="color:var(--color-text-faint)">          ignore:</span>
+<span style="color:var(--color-text-faint)">            - </span><span style="color:var(--color-error)">__pycache__</span>
+<span style="color:var(--color-text-faint)">            - </span><span style="color:var(--color-error)">.pytest_cache</span>
+<span style="color:var(--color-text-faint)">            - </span><span style="color:var(--color-error)">*.pyc</span>
+<span style="color:var(--color-text-faint)">        - action: </span><span style="color:var(--color-warning)">rebuild</span>
+<span style="color:var(--color-text-faint)">          path: </span><span style="color:var(--color-primary)">./agents/coder/requirements.txt</span></pre>
+      </div>
+
+      <!-- Done checklist + next wins -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-4)">
+        <div class="module-card" style="border-color:var(--color-primary)">
+          <div class="module-header">
+            <div class="module-name">&#x2705; Done &amp; Shipped</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-primary)">&#x2713;</span> docker-compose.agents.yml &mdash; develop.watch added</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-primary)">&#x2713;</span> docker-compose.hyper-agents.yml &mdash; develop.watch added</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-primary)">&#x2713;</span> HOT_RELOAD_QUICK_START.md created</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-primary)">&#x2713;</span> .dockerignore &mdash; pycache + .pyc excluded</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-primary)">&#x2713;</span> All 13 specialist agents covered</div>
+          </div>
+        </div>
+        <div class="module-card">
+          <div class="module-header">
+            <div class="module-name">&#x1F3AF; Next Wins</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--space-2)">
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-warning)">&rarr;</span> Enable Docker Build Cloud (39x faster rebuilds)</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-secondary)">&rarr;</span> Add <code style="font-family:var(--font-mono);font-size:0.85em;color:var(--color-secondary)">docker debug</code> to daily workflow</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-purple)">&rarr;</span> Mount secrets via Docker Secrets (not .env)</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-sm)"><span style="color:var(--color-gold)">&rarr;</span> Add healthcheck to all agent containers</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy toast -->
+      <div id="copy-toast" style="position:fixed;bottom:var(--space-6);right:var(--space-6);background:var(--color-primary);color:#000;padding:var(--space-3) var(--space-5);border-radius:var(--radius-full);font-weight:700;font-size:var(--text-sm);opacity:0;transition:opacity 0.3s ease;pointer-events:none;z-index:999">
+        &#x2705; Copied to clipboard!
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Theme toggle
+(function(){
+  const t = document.querySelector('[data-theme-toggle]');
+  const r = document.documentElement;
+  let d = 'dark';
+  r.setAttribute('data-theme', d);
+  if(t) t.innerHTML = '&#x1F319;';
+  if(t) t.addEventListener('click', () => {
+    d = d === 'dark' ? 'light' : 'dark';
+    r.setAttribute('data-theme', d);
+    t.innerHTML = d === 'dark' ? '&#x1F319;' : '&#x2600;&#xFE0F;';
+  });
+})();
+
+// Panel switching
+function showPanel(name) {
+  const panels = ['dashboard','commands','modules','roadmap','nextwins','hotreload'];
+  panels.forEach(p => {
+    document.getElementById('panel-'+p).style.display = p === name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-item').forEach((el) => {
+    el.classList.toggle('active', el.getAttribute('onclick') && el.getAttribute('onclick').includes(name));
+  });
+  if(name === 'hotreload') renderAgents();
+}
+
+// Uptime counter
+let seconds = 0;
+function updateUptime() {
+  seconds++;
+  const h = Math.floor(seconds/3600).toString().padStart(2,'0');
+  const m = Math.floor((seconds%3600)/60).toString().padStart(2,'0');
+  const s = (seconds%60).toString().padStart(2,'0');
+  const el = document.getElementById('uptime');
+  if(el) el.textContent = h+':'+m+':'+s;
+}
+setInterval(updateUptime, 1000);
+
+// XP bar animation
+setTimeout(() => {
+  document.querySelectorAll('.xp-bar-fill[data-width]').forEach(el => {
+    el.style.width = el.getAttribute('data-width') + '%';
+  });
+}, 500);
+
+// Hot-Reload Agent Fleet
+const agents = [
+  {name:'&#x1F985; hyper-architect', port:'8090', path:'./Hyper-Agents-Box/hyper-architect', status:'hot-sync'},
+  {name:'&#x1F441;&#xFE0F; hyper-observer',  port:'8091', path:'./Hyper-Agents-Box/hyper-observer',  status:'hot-sync'},
+  {name:'&#x2699;&#xFE0F; hyper-worker',     port:'8092', path:'./Hyper-Agents-Box/hyper-worker',    status:'hot-sync'},
+  {name:'&#x1F916; agent-x',           port:'8093', path:'./Hyper-Agents-Box/agent-x',          status:'hot-sync'},
+  {name:'&#x1F4BB; coder',             port:'8100', path:'./agents/coder',                      status:'running'},
+  {name:'&#x1F9EA; tester',            port:'8101', path:'./agents/tester',                     status:'running'},
+  {name:'&#x1F512; security',          port:'8102', path:'./agents/security',                   status:'running'},
+  {name:'&#x1F4DA; doc-writer',        port:'8103', path:'./agents/doc-writer',                 status:'running'},
+  {name:'&#x1F5C4;&#xFE0F; database',        port:'8104', path:'./agents/database',                   status:'running'},
+  {name:'&#x1F310; api-gateway',       port:'8105', path:'./agents/api-gateway',                status:'running'},
+  {name:'&#x1F4CA; analytics',         port:'8106', path:'./agents/analytics',                  status:'running'},
+  {name:'&#x1F680; deployer',          port:'8107', path:'./agents/deployer',                   status:'running'},
+  {name:'&#x1F527; devops',            port:'8108', path:'./agents/devops',                     status:'running'},
+  {name:'&#x1F9E0; orchestrator',      port:'8081', path:'./agents/orchestrator',               status:'running'},
+  {name:'&#x1F48A; healer',            port:'8008', path:'./agents/healer',                     status:'running'},
+  {name:'&#x1F52C; researcher',        port:'8109', path:'./agents/researcher',                 status:'idle'},
+];
+
+function renderAgents() {
+  const container = document.getElementById('agent-rows');
+  if(!container) return;
+  container.innerHTML = agents.map(a => {
+    const color = a.status === 'hot-sync' ? 'var(--color-primary)' : a.status === 'running' ? 'var(--color-secondary)' : 'var(--color-text-faint)';
+    const anim = a.status === 'hot-sync' ? 'animation:pulse 2s ease infinite;' : '';
+    return '<div style="display:grid;grid-template-columns:2fr 1fr 1.5fr 1fr;padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--color-divider);align-items:center">'
+      + '<div style="font-size:var(--text-sm);font-weight:600">' + a.name + '</div>'
+      + '<div style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--color-text-muted)">' + a.port + '</div>'
+      + '<div style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--color-text-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + a.path + '</div>'
+      + '<div style="display:flex;align-items:center;gap:6px;font-size:var(--text-xs);font-weight:700;color:' + color + '">'
+      + '<div style="width:6px;height:6px;border-radius:50%;background:' + color + ';' + anim + '"></div>'
+      + a.status + '</div></div>';
+  }).join('');
+}
+
+function copyCmd(el) {
+  const full = el.innerText || el.textContent;
+  const clean = full.replace(/\s*(COPY|BG|DEBUG)\s*$/,'').replace(/^\s*\$\s*/,'').trim();
+  navigator.clipboard.writeText(clean).then(() => {
+    showToast();
+  }).catch(() => {});
+}
+
+function copySnippet() {
+  const snippet = '  coder:\n    build: ./agents/coder\n    develop:\n      watch:\n        - action: sync\n          path: ./agents/coder\n          target: /app\n          ignore:\n            - __pycache__\n            - .pytest_cache\n            - "*.pyc"\n        - action: rebuild\n          path: ./agents/coder/requirements.txt';
+  navigator.clipboard.writeText(snippet).then(() => { showToast(); }).catch(() => {});
+}
+
+function showToast() {
+  const t = document.getElementById('copy-toast');
+  if(!t) return;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 2000);
+}
+</script>
+</body>
+</html>

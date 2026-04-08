@@ -1,0 +1,241 @@
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hypercode-alerts
+  namespace: hypercode
+spec:
+  groups:
+  - name: hypercode.rules
+    interval: 30s
+    rules:
+    # Pod Health Alerts
+    - alert: PodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total{namespace="hypercode"}[15m]) > 0.1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod {{ $labels.pod }} is crash looping"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has restarted {{ $value }} times in the last 15 minutes"
+
+    - alert: PodNotHealthy
+      expr: min_over_time(sum by (namespace, pod) (kube_pod_status_phase{namespace="hypercode",phase=~"Pending|Unknown|Failed"})[15m:1m]) > 0
+      for: 15m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.pod }} is not healthy"
+        description: "Pod has been in a non-running state for more than 15 minutes"
+
+    # Database Alerts
+    - alert: PostgreSQLDown
+      expr: pg_up{job="postgres"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "PostgreSQL instance is down"
+        description: "PostgreSQL has been down for more than 1 minute"
+
+    - alert: PostgreSQLConnectionLimitApproaching
+      expr: sum(pg_stat_activity_count) / max(pg_settings_max_connections) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PostgreSQL connection limit approaching"
+        description: "PostgreSQL has {{ $value | humanizePercentage }} of maximum connections in use"
+
+    - alert: PostgreSQLSlowQueries
+      expr: pg_slow_queries > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PostgreSQL slow queries detected"
+        description: "PostgreSQL has {{ $value }} slow queries"
+
+    # Redis Alerts
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Redis instance is down"
+        description: "Redis has been down for more than 1 minute"
+
+    - alert: RedisMemoryHigh
+      expr: (redis_memory_used_bytes / redis_memory_max_bytes) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis memory usage is high"
+        description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+    - alert: RedisEvictionsIncreasing
+      expr: rate(redis_evicted_keys_total[5m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis is evicting keys"
+        description: "Redis is evicting {{ $value }} keys per second"
+
+    # CPU and Memory Alerts
+    - alert: ContainerCpuUsageHigh
+      expr: (sum(rate(container_cpu_usage_seconds_total{namespace="hypercode"}[5m])) by (pod) / sum(container_spec_cpu_quota{namespace="hypercode"}) by (pod)) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.pod }} CPU usage is high"
+        description: "Pod {{ $labels.pod }} CPU usage is {{ $value | humanizePercentage }}"
+
+    - alert: ContainerMemoryUsageHigh
+      expr: (sum(container_memory_rss{namespace="hypercode"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace="hypercode"}) by (pod)) > 0.9
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Pod {{ $labels.pod }} memory usage is high"
+        description: "Pod {{ $labels.pod }} memory usage is {{ $value | humanizePercentage }}"
+
+    - alert: NodeCpuUsageHigh
+      expr: (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node {{ $labels.node }} CPU usage is high"
+        description: "Node {{ $labels.node }} CPU usage is {{ $value | humanizePercentage }}"
+
+    - alert: NodeMemoryUsageHigh
+      expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Node {{ $labels.node }} memory usage is high"
+        description: "Node {{ $labels.node }} memory usage is {{ $value | humanizePercentage }}"
+
+    # Storage Alerts
+    - alert: PersistentVolumeUsageHigh
+      expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.85
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "PersistentVolume {{ $labels.persistentvolumeclaim }} usage is high"
+        description: "PersistentVolume {{ $labels.persistentvolumeclaim }} is {{ $value | humanizePercentage }} full"
+
+    - alert: PersistentVolumeAlmostFull
+      expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.95
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "PersistentVolume {{ $labels.persistentvolumeclaim }} is almost full"
+        description: "PersistentVolume {{ $labels.persistentvolumeclaim }} is {{ $value | humanizePercentage }} full. Immediate action required!"
+
+    # Network Alerts
+    - alert: HighNetworkLatency
+      expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, instance)) > 1
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High network latency detected"
+        description: "Network latency p95 is {{ $value | humanizeDuration }}"
+
+    - alert: HighErrorRate
+      expr: (sum(rate(http_requests_total{status=~"5.."}[5m])) by (job) / sum(rate(http_requests_total[5m])) by (job)) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High error rate in {{ $labels.job }}"
+        description: "Error rate is {{ $value | humanizePercentage }}"
+
+    # Deployment Alerts
+    - alert: DeploymentReplicasMismatch
+      expr: kube_deployment_spec_replicas{namespace="hypercode"} != kube_deployment_status_replicas_available{namespace="hypercode"}
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Deployment {{ $labels.deployment }} replicas mismatch"
+        description: "Deployment {{ $labels.deployment }} has only {{ $value }} available replicas out of {{ $labels.spec_replicas }}"
+
+    - alert: StatefulSetReplicasMismatch
+      expr: kube_statefulset_status_replicas_ready{namespace="hypercode"} != kube_statefulset_status_replicas{namespace="hypercode"}
+      for: 15m
+      labels:
+        severity: critical
+      annotations:
+        summary: "StatefulSet {{ $labels.statefulset }} replicas not ready"
+        description: "StatefulSet {{ $labels.statefulset }} is missing replicas"
+
+---
+# ServiceMonitor for Prometheus (requires prometheus-operator)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: hypercode-apps
+  namespace: hypercode
+spec:
+  selector:
+    matchLabels:
+      app: hypercode-core
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+
+---
+# ServiceMonitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: prometheus-self
+  namespace: hypercode
+spec:
+  selector:
+    matchLabels:
+      app: prometheus
+  endpoints:
+  - port: web
+    interval: 30s
+
+---
+# ServiceMonitor for Node Exporter
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: node-exporter
+  namespace: hypercode
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  endpoints:
+  - port: 9100
+    interval: 30s
+
+---
+# ServiceMonitor for Redis
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis
+  namespace: hypercode
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  endpoints:
+  - port: 6379
+    interval: 30s

@@ -1,0 +1,38 @@
+{
+  "title": "Event Bus Latency & Reliability",
+  "uid": "event-bus-latency",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "heatmap",
+      "title": "Agent Registry SSE Latency",
+      "targets": [
+        {
+          "expr": "sum(rate(agent_registry_register_latency_seconds_bucket[5m])) by (le)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Event Bus Reliability",
+      "targets": [
+        {
+          "expr": "sum(rate(event_bus_requests_total[5m])) / (sum(rate(event_bus_requests_total[5m])) + sum(rate(event_bus_errors_total[5m])))",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Deduplication Efficiency",
+      "targets": [
+        {
+          "expr": "1 - (sum(rate(event_bus_duplicates_total[5m])) / max(sum(rate(event_bus_requests_total[5m])), 1))",
+          "refId": "C"
+        }
+      ]
+    }
+  ]
+}

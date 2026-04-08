@@ -1,0 +1,578 @@
+# BROski Bot v3.0 → v4.0 Migration Guide
+
+This guide provides step-by-step instructions for migrating from the prototype v3.0 to the production-ready v4.0 architecture.
+
+---
+
+## 📋 Pre-Migration Checklist
+
+### Data Backup
+- [ ] Export current SQLite database: `sqlite3 broski.db .dump > backup.sql`
+- [ ] Backup `.env` file
+- [ ] Document current bot token and configuration
+- [ ] Export user balances and streaks
+- [ ] Save active focus sessions
+
+### Environment Preparation
+- [ ] Install PostgreSQL 15+
+- [ ] Install Redis 7+
+- [ ] Install Python 3.11+
+- [ ] Install Docker & Docker Compose
+- [ ] Create new GitHub branch: `git checkout -b v4-refactor`
+
+---
+
+## 🚀 Phase 1: Project Setup (Week 1)
+
+### Step 1.1: Initialize New Structure
+```bash
+# Create new project directory structure
+mkdir -p src/{config,core,models,repositories,services,cogs,utils,migrations}
+mkdir -p tests/{unit,integration,e2e}
+mkdir -p docker k8s scripts docs
+
+# Copy artifacts from this refactoring plan
+cp artifacts/pyproject.toml .
+cp artifacts/src/config/* src/config/
+cp artifacts/src/core/* src/core/
+```
+
+### Step 1.2: Install Dependencies
+```bash
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
+
+# Install project dependencies
+poetry install
+
+# Install pre-commit hooks
+poetry run pre-commit install
+```
+
+### Step 1.3: Setup PostgreSQL
+```bash
+# Create database
+createdb broski_bot
+
+# Create database user
+createuser -P broski
+
+# Grant permissions
+psql -c "GRANT ALL PRIVILEGES ON DATABASE broski_bot TO broski;"
+```
+
+### Step 1.4: Configure Environment
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit with your configuration
+nano .env
+```
+
+**Required `.env` variables:**
+```
+DISCORD_TOKEN=your_bot_token
+DATABASE_URL=postgresql+asyncpg://broski:password@localhost:5432/broski_bot
+REDIS_URL=redis://localhost:6379
+SECRET_KEY=generate_random_secret_key
+ENVIRONMENT=development
+DEBUG=true
+```
+
+### Step 1.5: Initialize Database Schema
+```bash
+# Initialize Alembic
+poetry run alembic init migrations
+
+# Create initial migration
+poetry run alembic revision --autogenerate -m "Initial schema"
+
+# Apply migrations
+poetry run alembic upgrade head
+```
+
+---
+
+## 🔄 Phase 2: Data Migration (Week 2)
+
+### Step 2.1: Extract Data from SQLite
+```python
+# scripts/extract_sqlite_data.py
+import sqlite3
+import json
+from datetime import datetime
+
+# Connect to old database
+conn = sqlite3.connect('broski.db')
+cursor = conn.cursor()
+
+# Extract users
+cursor.execute("SELECT * FROM users")
+users = cursor.fetchall()
+
+# Extract economy data
+cursor.execute("SELECT * FROM economy")
+economy = cursor.fetchall()
+
+# Extract focus sessions
+cursor.execute("SELECT * FROM focus_sessions")
+sessions = cursor.fetchall()
+
+# Save to JSON for migration
+data = {
+    'users': [dict(zip([col[0] for col in cursor.description], row)) for row in users],
+    'economy': [dict(zip([col[0] for col in cursor.description], row)) for row in economy],
+    'sessions': [dict(zip([col[0] for col in cursor.description], row)) for row in sessions],
+}
+
+with open('migration_data.json', 'w') as f:
+    json.dump(data, f, indent=2, default=str)
+
+print(f"Extracted {len(users)} users, {len(economy)} economy records, {len(sessions)} sessions")
+```
+
+### Step 2.2: Import Data to PostgreSQL
+```python
+# scripts/import_to_postgres.py
+import asyncio
+import json
+from datetime import datetime
+
+from src.core.database import db
+from src.models import User, Economy, FocusSession
+
+async def migrate_data():
+    await db.init()
+    
+    # Load migration data
+    with open('migration_data.json', 'r') as f:
+        data = json.load(f)
+    
+    async with db.session() as session:
+        # Migrate users
+        for user_data in data['users']:
+            user = User(
+                id=user_data['id'],
+                username=user_data['username'],
+                discriminator=user_data['discriminator'],
+                level=user_data.get('level', 1),
+                xp=user_data.get('xp', 0),
+                created_at=datetime.fromisoformat(user_data['created_at']),
+            )
+            session.add(user)
+        
+        # Migrate economy
+        for econ_data in data['economy']:
+            economy = Economy(
+                user_id=econ_data['user_id'],
+                balance=econ_data['balance'],
+                lifetime_earned=econ_data.get('lifetime_earned', 0),
+                daily_streak=econ_data.get('daily_streak', 0),
+                last_daily_claim=datetime.fromisoformat(econ_data['last_daily_claim']) if econ_data.get('last_daily_claim') else None,
+            )
+            session.add(economy)
+        
+        # Migrate focus sessions
+        for session_data in data['sessions']:
+            focus_session = FocusSession(
+                id=session_data['id'],
+                user_id=session_data['user_id'],
+                project_name=session_data['project_name'],
+                start_time=datetime.fromisoformat(session_data['start_time']),
+                end_time=datetime.fromisoformat(session_data['end_time']) if session_data.get('end_time') else None,
+                duration_minutes=session_data.get('duration_minutes'),
+                tokens_earned=session_data.get('tokens_earned', 0),
+                is_active=session_data.get('is_active', False),
+            )
+            session.add(focus_session)
+        
+        await session.commit()
+    
+    print("Migration complete!")
+
+if __name__ == "__main__":
+    asyncio.run(migrate_data())
+```
+
+### Step 2.3: Validate Migration
+```bash
+# Run validation script
+poetry run python scripts/validate_migration.py
+
+# Check record counts
+psql broski_bot -c "SELECT 'users' as table, COUNT(*) FROM users
+    UNION ALL SELECT 'economy', COUNT(*) FROM economy
+    UNION ALL SELECT 'focus_sessions', COUNT(*) FROM focus_sessions;"
+```
+
+---
+
+## 🧪 Phase 3: Testing Setup (Week 3)
+
+### Step 3.1: Configure pytest
+```bash
+# Create pytest configuration
+cat > pytest.ini << EOF
+[pytest]
+asyncio_mode = auto
+testpaths = tests
+python_files = test_*.py
+addopts = -v --cov=src --cov-report=html --cov-report=term
+EOF
+```
+
+### Step 3.2: Write Core Tests
+```bash
+# Create test fixtures
+cp artifacts/tests/conftest.py tests/
+
+# Create service tests
+cp artifacts/tests/unit/test_economy_service.py tests/unit/
+
+# Run tests
+poetry run pytest
+```
+
+### Step 3.3: Achieve Coverage Target
+```bash
+# Run coverage report
+poetry run pytest --cov --cov-report=html
+
+# View coverage
+open htmlcov/index.html
+
+# Ensure >= 80% coverage
+poetry run pytest --cov --cov-fail-under=80
+```
+
+---
+
+## 🔧 Phase 4: Bot Refactoring (Week 4-5)
+
+### Step 4.1: Refactor Economy Cog
+```bash
+# Copy new economy cog
+cp artifacts/src/cogs/economy.py src/cogs/
+
+# Update imports
+# Test commands manually
+poetry run python -m src.main
+```
+
+### Step 4.2: Refactor Focus Cog
+```bash
+# Create focus cog with new architecture
+# Implement all focus commands
+# Add integration tests
+```
+
+### Step 4.3: Add Error Handling
+```bash
+# Implement global error handler
+# Add retry logic
+# Configure Sentry
+```
+
+### Step 4.4: Add Rate Limiting
+```python
+# Add rate limiting decorator
+from functools import wraps
+import time
+from collections import defaultdict
+
+user_cooldowns = defaultdict(dict)
+
+def rate_limit(commands_per_minute=10):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(self, interaction, *args, **kwargs):
+            user_id = interaction.user.id
+            now = time.time()
+            
+            # Clean old timestamps
+            if user_id in user_cooldowns:
+                user_cooldowns[user_id] = {
+                    cmd: ts for cmd, ts in user_cooldowns[user_id].items()
+                    if now - ts < 60
+                }
+            
+            # Check rate limit
+            if len(user_cooldowns[user_id]) >= commands_per_minute:
+                await interaction.response.send_message(
+                    "⏰ You're sending commands too fast. Please slow down.",
+                    ephemeral=True
+                )
+                return
+            
+            # Update cooldown
+            user_cooldowns[user_id][func.__name__] = now
+            
+            return await func(self, interaction, *args, **kwargs)
+        return wrapper
+    return decorator
+```
+
+---
+
+## 🐳 Phase 5: Containerization (Week 6)
+
+### Step 5.1: Create Dockerfile
+```bash
+# Copy Dockerfile
+cp artifacts/Dockerfile .
+
+# Build image
+docker build -t broski-bot:latest .
+
+# Test container
+docker run --env-file .env broski-bot:latest
+```
+
+### Step 5.2: Setup Docker Compose
+```bash
+# Copy docker-compose.yml
+cp artifacts/docker-compose.yml .
+
+# Start stack
+docker-compose up -d
+
+# Check health
+docker-compose ps
+docker-compose logs -f
+```
+
+### Step 5.3: Configure Monitoring
+```bash
+# Setup Prometheus
+mkdir -p monitoring
+cat > monitoring/prometheus.yml << EOF
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'broski-bot'
+    static_configs:
+      - targets: ['broski-bot:8000']
+EOF
+
+# Start monitoring stack
+docker-compose up -d prometheus grafana
+```
+
+---
+
+## 🚢 Phase 6: CI/CD Pipeline (Week 7)
+
+### Step 6.1: Setup GitHub Actions
+```bash
+# Create workflow directory
+mkdir -p .github/workflows
+
+# Copy CI workflow
+cp artifacts/.github/workflows/ci.yml .github/workflows/
+
+# Commit and push
+git add .github/
+git commit -m "Add CI/CD pipeline"
+git push
+```
+
+### Step 6.2: Configure Secrets
+```bash
+# Add secrets in GitHub repository settings:
+# - DOCKER_USERNAME
+# - DOCKER_PASSWORD
+# - DEPLOY_HOST
+# - DEPLOY_USER
+# - DEPLOY_KEY
+```
+
+### Step 6.3: Test Pipeline
+```bash
+# Push to trigger pipeline
+git push origin v4-refactor
+
+# Check GitHub Actions tab
+# Verify all tests pass
+# Confirm coverage meets threshold
+```
+
+---
+
+## 📊 Phase 7: Production Deployment (Week 8)
+
+### Step 7.1: Production Environment Setup
+```bash
+# On production server
+sudo apt update
+sudo apt install docker.io docker-compose postgresql-15 redis
+
+# Create app directory
+sudo mkdir -p /opt/broski-bot
+sudo chown $USER:$USER /opt/broski-bot
+cd /opt/broski-bot
+
+# Clone repository
+git clone https://github.com/welshDog/BROski-Bot.git .
+git checkout main
+```
+
+### Step 7.2: Configure Production Environment
+```bash
+# Create production .env
+cat > .env << EOF
+ENVIRONMENT=production
+DEBUG=false
+DISCORD_TOKEN=production_token
+DATABASE_URL=postgresql+asyncpg://broski:prod_pass@localhost:5432/broski_bot_prod
+REDIS_URL=redis://localhost:6379
+SENTRY_DSN=your_sentry_dsn
+EOF
+
+# Set secure permissions
+chmod 600 .env
+```
+
+### Step 7.3: Run Migrations
+```bash
+# Backup production database
+pg_dump broski_bot_prod > backup_pre_v4.sql
+
+# Run migrations
+docker-compose run broski-bot poetry run alembic upgrade head
+```
+
+### Step 7.4: Deploy Application
+```bash
+# Pull and start services
+docker-compose pull
+docker-compose up -d
+
+# Verify deployment
+docker-compose ps
+docker-compose logs -f broski-bot
+
+# Check health
+curl http://localhost:8000/metrics
+```
+
+---
+
+## ✅ Post-Migration Validation
+
+### Functional Testing
+- [ ] Bot responds to commands
+- [ ] `/balance` displays correct balances
+- [ ] `/daily` awards tokens with streaks
+- [ ] `/give` transfers tokens correctly
+- [ ] `/focus` starts and ends sessions
+- [ ] `/leaderboard` displays rankings
+- [ ] Error messages are user-friendly
+- [ ] Rate limiting works
+- [ ] Prometheus metrics exposed
+
+### Performance Testing
+- [ ] Command response time < 100ms
+- [ ] Database queries < 50ms
+- [ ] Memory usage stable
+- [ ] No memory leaks
+- [ ] Connection pooling working
+
+### Monitoring Validation
+- [ ] Prometheus collecting metrics
+- [ ] Grafana dashboards displaying
+- [ ] Sentry capturing errors
+- [ ] Logs structured and searchable
+- [ ] Alerts configured
+
+---
+
+## 🐛 Rollback Procedure
+
+If issues occur during migration:
+
+```bash
+# Stop new version
+docker-compose down
+
+# Restore database backup
+psql broski_bot_prod < backup_pre_v4.sql
+
+# Revert to previous version
+git checkout v3.0
+docker-compose up -d
+
+# Monitor for stability
+docker-compose logs -f
+```
+
+---
+
+## 📝 Migration Checklist Summary
+
+### Critical Path
+1. ✅ Setup new project structure
+2. ✅ Install dependencies
+3. ✅ Configure database
+4. ✅ Migrate data
+5. ✅ Write tests (80%+ coverage)
+6. ✅ Refactor cogs
+7. ✅ Containerize
+8. ✅ Setup CI/CD
+9. ✅ Deploy to production
+10. ✅ Validate and monitor
+
+### Success Metrics
+- [ ] 80%+ test coverage
+- [ ] Zero critical bugs
+- [ ] <100ms command response
+- [ ] 99.9% uptime
+- [ ] All data migrated successfully
+- [ ] Monitoring operational
+- [ ] Documentation complete
+
+---
+
+## 🎯 Go-Live Criteria
+
+Before declaring migration complete:
+
+1. **Code Quality**
+   - [ ] All tests passing
+   - [ ] Coverage ≥ 80%
+   - [ ] No high-severity issues
+   - [ ] Code review approved
+
+2. **Performance**
+   - [ ] Response times acceptable
+   - [ ] Resource usage normal
+   - [ ] No memory leaks
+   - [ ] Database optimized
+
+3. **Operations**
+   - [ ] Monitoring functional
+   - [ ] Alerts configured
+   - [ ] Backups automated
+   - [ ] Rollback tested
+
+4. **Documentation**
+   - [ ] README updated
+   - [ ] API docs complete
+   - [ ] Deployment guide ready
+   - [ ] Troubleshooting guide available
+
+---
+
+## 📞 Support
+
+If you encounter issues during migration:
+
+1. Check logs: `docker-compose logs -f broski-bot`
+2. Review troubleshooting guide: `docs/troubleshooting/`
+3. Check GitHub issues
+4. Contact: [@welshDog](https://github.com/welshDog)
+
+---
+
+**Good luck with your migration! 🚀**

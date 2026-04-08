@@ -1,0 +1,163 @@
+[
+  {
+    "discoveredLabels": {
+      "__address__": "cadvisor:8080",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "cadvisor"
+    },
+    "labels": {
+      "instance": "cadvisor:8080",
+      "job": "cadvisor"
+    },
+    "scrapePool": "cadvisor",
+    "scrapeUrl": "http://cadvisor:8080/metrics",
+    "globalUrl": "http://cadvisor:8080/metrics",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:42.03166272Z",
+    "lastScrapeDuration": 0.052521691,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "celery-exporter:9808",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "celery-exporter"
+    },
+    "labels": {
+      "instance": "celery-exporter:9808",
+      "job": "celery-exporter"
+    },
+    "scrapePool": "celery-exporter",
+    "scrapeUrl": "http://celery-exporter:9808/metrics",
+    "globalUrl": "http://celery-exporter:9808/metrics",
+    "lastError": "Get \"http://celery-exporter:9808/metrics\": dial tcp: lookup celery-exporter on 127.0.0.11:53: no such host",
+    "lastScrape": "2026-03-12T08:59:46.467385071Z",
+    "lastScrapeDuration": 0.016680335,
+    "health": "down",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "crew-orchestrator:8080",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "crew-orchestrator"
+    },
+    "labels": {
+      "instance": "crew-orchestrator:8080",
+      "job": "crew-orchestrator"
+    },
+    "scrapePool": "crew-orchestrator",
+    "scrapeUrl": "http://crew-orchestrator:8080/metrics",
+    "globalUrl": "http://crew-orchestrator:8080/metrics",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:35.83819737Z",
+    "lastScrapeDuration": 0.003136698,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "hypercode-core:8000",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "hypercode-core"
+    },
+    "labels": {
+      "instance": "hypercode-core:8000",
+      "job": "hypercode-core"
+    },
+    "scrapePool": "hypercode-core",
+    "scrapeUrl": "http://hypercode-core:8000/metrics",
+    "globalUrl": "http://hypercode-core:8000/metrics",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:40.243967343Z",
+    "lastScrapeDuration": 0.005703663,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "minio:9000",
+      "__metrics_path__": "/minio/v2/metrics/cluster",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "minio"
+    },
+    "labels": {
+      "instance": "minio:9000",
+      "job": "minio"
+    },
+    "scrapePool": "minio",
+    "scrapeUrl": "http://minio:9000/minio/v2/metrics/cluster",
+    "globalUrl": "http://minio:9000/minio/v2/metrics/cluster",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:36.440284383Z",
+    "lastScrapeDuration": 0.018889872,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "node-exporter:9100",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "node-exporter"
+    },
+    "labels": {
+      "instance": "node-exporter:9100",
+      "job": "node-exporter"
+    },
+    "scrapePool": "node-exporter",
+    "scrapeUrl": "http://node-exporter:9100/metrics",
+    "globalUrl": "http://node-exporter:9100/metrics",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:36.019589984Z",
+    "lastScrapeDuration": 0.075330548,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  },
+  {
+    "discoveredLabels": {
+      "__address__": "localhost:9090",
+      "__metrics_path__": "/metrics",
+      "__scheme__": "http",
+      "__scrape_interval__": "15s",
+      "__scrape_timeout__": "10s",
+      "job": "prometheus"
+    },
+    "labels": {
+      "instance": "localhost:9090",
+      "job": "prometheus"
+    },
+    "scrapePool": "prometheus",
+    "scrapeUrl": "http://localhost:9090/metrics",
+    "globalUrl": "http://471fb1245b98:9090/metrics",
+    "lastError": "",
+    "lastScrape": "2026-03-12T08:59:34.798280619Z",
+    "lastScrapeDuration": 0.034182942,
+    "health": "up",
+    "scrapeInterval": "15s",
+    "scrapeTimeout": "10s"
+  }
+]

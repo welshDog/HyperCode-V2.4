@@ -1,0 +1,136 @@
+{
+  "id": null,
+  "uid": "test-agent-observability",
+  "title": "Test-Agent Observability",
+  "tags": ["hypercode", "agents", "test-agent"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "type": "query",
+        "name": "endpoint",
+        "label": "Endpoint",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "P1809F7CD0C75ACF3"
+        },
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "sort": 1,
+        "query": {
+          "query": "label_values(test_agent_requests_total, endpoint)",
+          "refId": "EndpointVar"
+        },
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": ["$__all"]
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Requests / Second (by endpoint)",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(test_agent_requests_total{endpoint=~\"$endpoint\"}[5m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["lastNotNull", "max"]
+        }
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency P95 (seconds, by endpoint)",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 9 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(test_agent_request_duration_seconds_bucket{endpoint=~\"$endpoint\"}[5m])) by (endpoint, le))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": ["lastNotNull", "max"]
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Error Rate (5xx %) — last 5m",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 18 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(rate(test_agent_requests_total{status=~\"5..\"}[5m])) / sum(rate(test_agent_requests_total[5m]))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "textMode": "auto",
+        "colorMode": "value",
+        "graphMode": "area"
+      }
+    }
+  ]
+}

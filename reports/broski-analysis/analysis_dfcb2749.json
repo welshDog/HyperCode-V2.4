@@ -1,0 +1,2912 @@
+{
+  "scan_id": "dfcb2749",
+  "timestamp": "2026-03-20T10:47:56.828260+00:00",
+  "files_scanned": 390,
+  "health_score": 0.0,
+  "duration_seconds": 347.456935,
+  "counts": {
+    "critical": 3,
+    "high": 41,
+    "medium": 318,
+    "low": 0
+  },
+  "auto_fixable": 270,
+  "issues": [
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/.github/scripts/prom-regression.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`time` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/05-devops-engineer/agent.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/05-devops-engineer/agent.py",
+      "line": 45,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`agents.shared.protocols.evolution.EvolutionStatus` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/08-project-strategist/agent.py",
+      "line": 102,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/09-tips-tricks-writer/agent.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/09-tips-tricks-writer/agent.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/09-tips-tricks-writer/agent.py",
+      "line": 21,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`base_agent.agent.TaskRequest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/agent-factory/main.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/agent-factory/main.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/agent-factory/tests/test_main.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/base-agent/agent.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/base-agent/agent.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/base-agent/agent.py",
+      "line": 21,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`shared.approval_system.ApprovalStatus` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/base-agent/agent.py",
+      "line": 27,
+      "severity": "medium",
+      "category": "lint:E731",
+      "message": "Do not assign a `lambda` expression, use a `def`",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_code_analyzer_implementation.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_code_analyzer_implementation.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Set` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_code_analyzer_implementation.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Tuple` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_code_analyzer_implementation.py",
+      "line": 266,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `file_lower` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_contribution_classifier.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/ai_contribution_classifier.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Tuple` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/bot.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 131,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `os` from line 167: `os` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 167,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 167,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 168,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 170,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 170,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `discord` from line 12: `discord` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 171,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 172,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 174,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 175,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 175,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `settings` from line 18: `settings` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_main.py",
+      "line": 197,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `BroskiBot` from line 16: `BroskiBot` redefined here",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.timedelta` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 13,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.exceptions.DuplicateRecordException` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Quest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.QuestStatus` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.UserQuest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_repositories.py",
+      "line": 299,
+      "severity": "medium",
+      "category": "lint:E712",
+      "message": "Avoid equality comparisons to `True`; use `FocusSession.is_active:` for truth checks",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_services.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Economy` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_services.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.User` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 15,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.FocusSession` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 82,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 83,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 83,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.AsyncMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 83,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.MagicMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 83,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.patch` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 85,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 87,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 92,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 92,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `Economy` from line 15: `Economy` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 93,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 285,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 287,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 287,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `User` from line 15: `User` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 287,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.User` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 287,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `Economy` from line 92: `Economy` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 288,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/broski_tests.py",
+      "line": 288,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `EconomyService` from line 93: `EconomyService` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/community_token_services.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.ai.contribution_classifier.ContributionType` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/community_token_services.py",
+      "line": 17,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.config.settings.settings` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/community_token_services.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.User` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/economy.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/mintme_integration_dashboard.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/mintme_integration_dashboard.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/mintme_integration_dashboard.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/Python files/mintme_integration_dashboard.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`prometheus_client.Histogram` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/bot_legacy.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`discord.app_commands` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/bot_legacy.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/economy_legacy.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.timedelta` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/_archive/economy_legacy.py",
+      "line": 241,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/alembic/env.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/classifier.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/classifier.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Tuple` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/code_analyzer.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/code_analyzer.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Set` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/code_analyzer.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Tuple` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/agents/code_analyzer.py",
+      "line": 266,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `file_lower` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/api/main.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.config.settings.settings` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/api/routes/economy.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`pydantic.Field` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/bot.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/bot.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/ai_relay.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/community.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/focus.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.ext.asyncio.AsyncSession` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/focus.py",
+      "line": 11,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.update` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/mystery_box.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/mystery_box.py",
+      "line": 232,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/quest_system.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/quest_system.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.schemas.UserProfile` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/cogs/shop_system.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/config/settings.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`pydantic.PostgresDsn` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/core/database.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.pool` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/core/quest_engine.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Union` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/integrations/mintme.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/integrations/mintme.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/integrations/mintme.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/integrations/mintme.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`prometheus_client.Histogram` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/main.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`logging` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/main.py",
+      "line": 17,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`discord` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models/economy.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Economy` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models/economy_transaction.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Transaction` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models/focus_session.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.FocusSession` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/models/user.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.User` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.BaseRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.UserRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.EconomyRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.FocusSessionRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.TransactionRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.quest.QuestRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.quest.UserQuestRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.achievement.AchievementRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/__init__.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.achievement.UserAchievementRepository` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.timedelta` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 13,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.exceptions.DuplicateRecordException` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Quest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.QuestStatus` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.UserQuest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/economy.py",
+      "line": 335,
+      "severity": "medium",
+      "category": "lint:E712",
+      "message": "Avoid equality comparisons to `True`; use `FocusSession.is_active:` for truth checks",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/quest.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.database.Base` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/quest.py",
+      "line": 26,
+      "severity": "medium",
+      "category": "lint:E712",
+      "message": "Avoid equality comparisons to `True`; use `Quest.is_active:` for truth checks",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/repositories/quest.py",
+      "line": 27,
+      "severity": "medium",
+      "category": "lint:E711",
+      "message": "Comparison to `None` should be `cond is None`",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/__init__.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.EconomyService` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/__init__.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`.economy.FocusService` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/achievement.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Achievement` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/achievement.py",
+      "line": 61,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `current_month` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/adapter.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Dict` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/adapter.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/analytics.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Dict` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/analytics.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/generator.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/ai/generator.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.QuestStatus` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/community.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.ai.contribution_classifier.ContributionType` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/community.py",
+      "line": 17,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.config.settings.settings` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/community.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.User` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/economy.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.schemas.UserProfile` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/economy.py",
+      "line": 134,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `hours_remaining` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/services/quest.py",
+      "line": 13,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.Quest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/utils/rbac.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/src/utils/rbac.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_agent_handoff.py",
+      "line": 47,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `res` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_agent_handoff.py",
+      "line": 57,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_agent_handoff.py",
+      "line": 61,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_api.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.MagicMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_api.py",
+      "line": 11,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.database.db` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_api.py",
+      "line": 13,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.services.economy.EconomyService` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_api.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.services.achievement.AchievementService` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_service.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.text` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_service.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.database.db` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/integration/test_economy_service.py",
+      "line": 42,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `db_url` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 15,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.models.FocusSession` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 89,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 90,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 90,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.AsyncMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 90,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.MagicMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 90,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.patch` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 92,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 94,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 99,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 99,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `Economy` from line 15: `Economy` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 100,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 395,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 397,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 397,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `User` from line 15: `User` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 397,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `Economy` from line 99: `Economy` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 398,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/test_enterprise.py",
+      "line": 398,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `EconomyService` from line 100: `EconomyService` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/cogs/test_focus.py",
+      "line": 53,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `embed` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/core/test_database.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`src.core.database.db` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/core/test_quest_engine.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/core/test_quest_engine.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.MagicMock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/services/test_expanded_services.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/services/test_expanded_services.py",
+      "line": 30,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `MockUserRepo` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/services/test_expanded_services.py",
+      "line": 31,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `MockQuestRepo` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-bot/tests/unit/services/test_expanded_services.py",
+      "line": 92,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `result` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:E401",
+      "message": "Multiple imports on one line",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 35,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `e` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 40,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 48,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 48,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 52,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 61,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 61,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 66,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 70,
+      "severity": "medium",
+      "category": "lint:E702",
+      "message": "Multiple statements on one line (semicolon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/agent.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/agent.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/agent.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Any` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/agent.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`base_agent.AgentConfig` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/agent.py",
+      "line": 135,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/base_agent.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/base_agent.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/base_agent.py",
+      "line": 21,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`shared.approval_system.ApprovalStatus` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/src/base_agent.py",
+      "line": 27,
+      "severity": "medium",
+      "category": "lint:E731",
+      "message": "Do not assign a `lambda` expression, use a `def`",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/tests/test_agent.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/tests/test_agent.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.patch` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/tests/test_agent.py",
+      "line": 15,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/business/project-strategist/tests/test_agent.py",
+      "line": 16,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`fastapi.HTTPException` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`contextlib.AsyncExitStack` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 46,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 46,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`prometheus_api_client.PrometheusConnect` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 163,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `full_path` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/coder/main.py",
+      "line": 189,
+      "severity": "high",
+      "category": "lint:F821",
+      "message": "Undefined name `SecurityPolicy`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Annotated` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 21,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 385,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 391,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 395,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/langgraph_state_management.py",
+      "line": 399,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/main.py",
+      "line": 532,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `e` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/task_queue.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`arq.create_pool` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/task_queue.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`arq.worker.run_worker` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/task_queue.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/task_queue.py",
+      "line": 53,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `create_pool` from line 1: `create_pool` redefined here",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/tests/conftest.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/tests/conftest.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/crew-orchestrator/tests/test_orchestrator.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`main.app` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/adapters/docker_adapter.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/cli.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/cli.py",
+      "line": 33,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`agents.healer.models.ContainerStatus` imported but unused; consider using `importlib.util.find_spec` to test for availability",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/main.py",
+      "line": 539,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/models.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Dict` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/models.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/tests/test_docker_adapter.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`agents.healer.models.ContainerStatus` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/validator.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/validator.py",
+      "line": 12,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/validator.py",
+      "line": 65,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `start_time` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/healer/validator.py",
+      "line": 80,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/core/evolution_logic.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/logging_config.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/mcp_mixin.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/rag_memory.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/tests/test_evolution.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/shared/tools/deployer.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/super-hyper-broski-agent/main.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/agents/super-hyper-broski-agent/main.py",
+      "line": 14,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`httpx` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/alembic/env.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/alembic/env.py",
+      "line": 17,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/alembic/env.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/cache/multi_tier.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`time` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/cache/multi_tier.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.AsyncCallable` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/core/config.py",
+      "line": 117,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/main.py",
+      "line": 15,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/main.py",
+      "line": 17,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/main.py",
+      "line": 18,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/main.py",
+      "line": 19,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/main.py",
+      "line": 20,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/app/models/broski.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.Boolean` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/hypercode.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/hypercode.py",
+      "line": 53,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/hypercode.py",
+      "line": 117,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/conftest.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Generator` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/conftest.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.AsyncGenerator` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_agents.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`datetime.datetime` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_agents.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`unittest.mock.Mock` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_agents.py",
+      "line": 128,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `task` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_agents.py",
+      "line": 159,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_agents.py",
+      "line": 160,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `agents_dir` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_infrastructure.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.inspect` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_infrastructure.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sqlalchemy.create_engine` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/backend/tests/test_infrastructure.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/cli/jira/generator.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/cli/jira/generator.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/cli/main.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/cli/main.py",
+      "line": 120,
+      "severity": "medium",
+      "category": "lint:E741",
+      "message": "Ambiguous variable name: `l`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/cli/main.py",
+      "line": 148,
+      "severity": "medium",
+      "category": "lint:E741",
+      "message": "Ambiguous variable name: `l`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/examples/api_usage.py",
+      "line": 69,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hypercode.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hyperstudio-platform/api-main.py",
+      "line": 461,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hyperstudio-platform/api-main.py",
+      "line": 498,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hyperstudio-platform/api-main.py",
+      "line": 521,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `avatar_path` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hyperstudio-platform/core-video-generator.py",
+      "line": 11,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`uuid` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/hyperstudio-platform/core-video-generator.py",
+      "line": 16,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`tqdm.tqdm` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/k8s/patch_deployments.py",
+      "line": 47,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `patch_str` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/new-fix-0.1/FIX_2_healer_main_improved.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/new-fix-0.1/FIX_2_healer_main_improved.py",
+      "line": 301,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/run_swarm_test.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/run_swarm_test.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/comprehensive_health_check.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/comprehensive_health_check.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/comprehensive_health_check.py",
+      "line": 20,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/external_smoke_test.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`re` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 46,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `name` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 112,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `e` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 252,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `reservations` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 275,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/generate_health_check_compose.py",
+      "line": 282,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/health_check_controller.py",
+      "line": 57,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/health_check_controller.py",
+      "line": 184,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/health_check_controller.py",
+      "line": 186,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/health_check_controller.py",
+      "line": 189,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/hyper_health.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`re` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/hyper_health.py",
+      "line": 27,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `deps` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/hyper_health.py",
+      "line": 56,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/run_test.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/smoke_test.py",
+      "line": 41,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/smoke_test.py",
+      "line": 43,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/smoke_test.py",
+      "line": 44,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/smoke_test_internal.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/scripts/verify_mcp_setup.py",
+      "line": 16,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/seed_data.py",
+      "line": 2,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/services/mcp-rest-adapter/app.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/templates/agent-python/main.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/test_rag_system.py",
+      "line": 33,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/test_rag_system.py",
+      "line": 45,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/docker_verification.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/docker_verification.py",
+      "line": 8,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/evaluator.py",
+      "line": 66,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/evaluator.py",
+      "line": 89,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/models.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Union` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/models.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`pydantic.Field` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 1,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.List` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Dict` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 7,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`typing.Optional` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 100,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `ports` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/framework/runner.py",
+      "line": 116,
+      "severity": "medium",
+      "category": "lint:E722",
+      "message": "Do not use bare `except`",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/functional/test_coder_capabilities.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`websockets` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/functional/test_coder_capabilities.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/functional/test_coder_capabilities.py",
+      "line": 5,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`uuid` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 22,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 23,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 23,
+      "severity": "high",
+      "category": "lint:F811",
+      "message": "Redefinition of unused `httpx` from line 1: `httpx` redefined here",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 24,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 24,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 25,
+      "severity": "medium",
+      "category": "lint:E402",
+      "message": "Module level import not at top of file",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_agent_crew.py",
+      "line": 25,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`json` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_nd_plugin_manifest_validator.py",
+      "line": 6,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`pytest` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/test_orchestrator_strategist_integration.py",
+      "line": 10,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/unit/test_hypercode.py",
+      "line": 3,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`sys` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/unit/test_hypercode.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`os` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tests/unit/test_hypercode.py",
+      "line": 56,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `mock_stdout` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tools/lean_review.py",
+      "line": 133,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/tools/lean_review.py",
+      "line": 147,
+      "severity": "medium",
+      "category": "lint:E701",
+      "message": "Multiple statements on one line (colon)",
+      "auto_fixable": false
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/use_agents.py",
+      "line": 51,
+      "severity": "medium",
+      "category": "lint:F541",
+      "message": "f-string without any placeholders",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/verification/test_coder_agent_protocol.py",
+      "line": 4,
+      "severity": "medium",
+      "category": "lint:F401",
+      "message": "`asyncio` imported but unused",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/verification/test_coder_agent_protocol.py",
+      "line": 51,
+      "severity": "high",
+      "category": "lint:F841",
+      "message": "Local variable `payload` is assigned to but never used",
+      "auto_fixable": true
+    },
+    {
+      "file": "/mnt/h/HyperStation zone/HyperCode/HyperCode-V2.0/verification/test_coder_agent_protocol.py",
+      "line": 151,
+      "severity": "high",
+      "category": "lint:F821",
+      "message": "Undefined name `sys`",
+      "auto_fixable": false
+    },
+    {
+      "file": "agents/08-project-strategist/agent.py",
+      "line": 102,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/broski-bot/_archive/economy_legacy.py",
+      "line": 241,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 48,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/broski-nemoclaw-agent/analyzer.py",
+      "line": 61,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/business/project-strategist/src/agent.py",
+      "line": 135,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/healer/main.py",
+      "line": 539,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "agents/healer/validator.py",
+      "line": 152,
+      "severity": "critical",
+      "category": "syntax:error",
+      "message": "f-string: f-string: unmatched '[' (<unknown>, line 152)",
+      "auto_fixable": false
+    },
+    {
+      "file": "docs/archive/legacy/HYPERcode-V2/hypercode_organized_v2/hypercode/hypercode_db.py",
+      "line": 82,
+      "severity": "critical",
+      "category": "syntax:error",
+      "message": "unterminated string literal (detected at line 82) (<unknown>, line 82)",
+      "auto_fixable": false
+    },
+    {
+      "file": "docs/archive/legacy/HYPERcode-V2/hypercode_organized_v2/scripts/HYPERCORE_INTERPRETER.py",
+      "line": 398,
+      "severity": "critical",
+      "category": "syntax:error",
+      "message": "invalid character '\ud83e\udde0' (U+1F9E0) (<unknown>, line 398)",
+      "auto_fixable": false
+    },
+    {
+      "file": "examples/api_usage.py",
+      "line": 69,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "hyperstudio-platform/api-main.py",
+      "line": 461,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "new-fix-0.1/FIX_2_healer_main_improved.py",
+      "line": 301,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "scripts/generate_health_check_compose.py",
+      "line": 275,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "scripts/health_check_controller.py",
+      "line": 57,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "scripts/health_check_controller.py",
+      "line": 184,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "scripts/smoke_test.py",
+      "line": 43,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "tests/framework/evaluator.py",
+      "line": 66,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "tests/framework/evaluator.py",
+      "line": 89,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    },
+    {
+      "file": "tests/framework/runner.py",
+      "line": 116,
+      "severity": "medium",
+      "category": "bare_except",
+      "message": "Bare except: catches everything",
+      "auto_fixable": true
+    }
+  ]
+}

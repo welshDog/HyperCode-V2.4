@@ -1,0 +1,46 @@
+# Core Discord Bot
+discord.py>=2.3.0
+py-cord>=2.4.0
+
+# Database
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.0
+SQLAlchemy>=2.0.0
+
+# Caching
+redis>=5.0.0
+hiredis>=2.2.0
+
+# Environment & Config
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Machine Learning
+transformers>=4.30.0
+torch>=2.0.0
+numpy>=1.24.0
+
+# API Clients
+openai>=1.0.0
+anthropic>=0.18.0
+
+# Monitoring & Logging
+sentry-sdk>=1.40.0
+prometheus-client>=0.18.0
+
+# Performance & Utils
+aiohttp>=3.9.0
+orjson>=3.9.0
+uvloop>=0.19.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.0
+
+# Development
+black>=23.0.0
+flake8>=6.0.0
+isort>=5.12.0
+mypy>=1.5.0

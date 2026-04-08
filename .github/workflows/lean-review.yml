@@ -1,0 +1,40 @@
+name: Lean Duplicate Review
+on:
+  push:
+    paths:
+      - '**/*.py'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.cpp'
+      - '**/*.hpp'
+      - '**/*.java'
+      - 'tools/lean_review.py'
+      - '.github/workflows/lean-review.yml'
+  pull_request:
+    paths:
+      - '**/*.py'
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.cpp'
+      - '**/*.hpp'
+      - '**/*.java'
+jobs:
+  lean_review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run Lean Review
+        run: |
+          python tools/lean_review.py --min-lines 5 --top 5 --output json --max-dup-percent 5
+      - name: Produce Badge Summary
+        run: |
+          python tools/lean_review.py --min-lines 5 --top 5 --output plain --max-dup-percent 5 > lean-summary.txt
+          echo "Lean Review Summary:" && tail -n +1 lean-summary.txt

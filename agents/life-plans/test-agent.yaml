@@ -1,0 +1,162 @@
+service_identity:
+  name: "test-agent"
+  codename: "🧬 The Validator"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Executes integration tests, validates system contracts, performs
+    smoke tests, and ensures system health. Focuses on continuous
+    validation and regression prevention.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#test-agents"
+
+responsibility_matrix:
+  primary_role: "VALIDATOR"
+  owns:
+    - "Integration test execution"
+    - "Smoke tests"
+    - "Contract validation"
+    - "Regression detection"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Test targets"
+    - crew-orchestrator:8080 → "Work coordination"
+  
+  critical_dependents:
+    - "ci-cd pipelines (called by GitHub Actions)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "test_framework": "pytest",
+          "last_run": "2024-03-23T12:00:00Z"
+        }
+      latency_slo_ms: 100
+    
+    - "POST /run-tests"
+      request: |
+        {
+          "suite": "integration",
+          "filter": "test_health_check"
+        }
+      response: |
+        {
+          "run_id": "uuid",
+          "passed": 45,
+          "failed": 0,
+          "latency_ms": 480
+        }
+      latency_slo_ms: 600
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    /run-tests_p99_ms: 600
+  
+  reliability:
+    availability_percent: 99.5
+    test_pass_rate: 0.98  # 98% of tests should pass
+  
+  resource_usage:
+    memory_limit_mb: 512
+    cpu_limit_cores: 0.5
+
+failure_modes:
+  
+  - mode_id: "test_dependency_missing"
+    description: "pytest or required test libraries not available"
+    symptoms:
+      - "ImportError: No module named pytest"
+      - "POST /run-tests returns 500"
+    recovery_steps:
+      - "1. Install: pip install -r requirements-test.txt"
+      - "2. Verify: python -m pytest --version"
+    expected_mttr_minutes: 2
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "test_timeout"
+    description: "Tests hang indefinitely, blocking test suite"
+    symptoms:
+      - "Test run takes >10 minutes with no output"
+      - "Likely I/O blocking or deadlock"
+    recovery_steps:
+      - "1. Timeout: Kill long-running tests at 600s"
+      - "2. Log: Capture which test was running"
+      - "3. Fix: Add timeout decorator or fix blocking code"
+    expected_mttr_minutes: 5
+    user_impact: "DEGRADED"
+    sev: "P2"
+  
+  - mode_id: "flaky_test"
+    description: "Test passes sometimes, fails other times"
+    symptoms:
+      - "Same test passes in isolation but fails in suite"
+      - "Non-deterministic behavior"
+    recovery_steps:
+      - "1. Isolate: Run test alone multiple times"
+      - "2. Investigate: Check for race conditions or timing issues"
+      - "3. Fix: Add synchronization or retry logic"
+    expected_mttr_minutes: 20
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "test_pass_rate"
+    prometheus_query: "rate(tests_passed_total{job='test-agent'}[5m]) / rate(tests_total{job='test-agent'}[5m])"
+    alert_if: "... < 0.98"
+  
+  - name: "test_execution_time"
+    prometheus_query: "histogram_quantile(0.99, rate(test_execution_duration_seconds_bucket{job='test-agent'}[5m]))"
+    alert_if: "... > 600"
+  
+  - name: "flaky_tests"
+    prometheus_query: "test_flakiness_score{job='test-agent'}"
+    alert_if: "... > 0.1"  # >10% flakiness
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "test-agent"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "test-agent"
+    container_name: "test-agent"
+    ports:
+      - "8013:8080"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    AGENT_ROLE: "test-agent"
+    PORT: "8080"
+    PYTEST_TIMEOUT: "600"  # 10 minute timeout per test
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_test_failures:
+    trigger: "Pass rate < 98% or >3 failing tests"
+    actions:
+      - "1. Check: Are dependent services running? (docker ps)"
+      - "2. Check: Recent code changes (git log -n 5)"
+      - "3. Investigate: Full test output (pytest -vv)"
+      - "4. Fix: Determine if test bug or code bug"
+  
+  alert_flaky_tests:
+    trigger: ">10% of tests are flaky"
+    actions:
+      - "1. Identify: Which tests are flaky?"
+      - "2. Analyze: Common pattern (timing, I/O, race condition?)"
+      - "3. Fix: Add proper synchronization or retry logic"
+      - "4. Rerun: Verify fix is stable"
+
+support_contacts:
+  primary_engineer: "Lyndz"

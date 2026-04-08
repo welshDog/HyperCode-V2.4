@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "HyperCode V2.0 — Planning API",
+    "description": "Test collection for the planning system endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "token", "value": "YOUR_JWT_TOKEN_HERE" }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "2. Generate Plan — PRD",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"As a user I want to log in with GitHub so I can access my repos. Acceptance criteria: OAuth flow completes, profile stored, session token returned.\",\n  \"document_type\": \"prd\",\n  \"metadata\": { \"source\": \"postman-test\" }\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Generate Plan — Issue (Bug)",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Bug: Agent router crashes when task_type is None. Steps to reproduce: POST /api/v1/tasks with no task_type. Expected: 422. Actual: 500.\",\n  \"document_type\": \"issue\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Generate Plan — Design Doc",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Architecture: BROski Terminal talks to Crew Orchestrator via WebSocket. Component diagram shows Redis pub/sub for real-time agent updates.\",\n  \"document_type\": \"design\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Generate Plan — Auto-detect Type",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Add OAuth login with GitHub. User story: as a dev I want SSO. Acceptance criteria: token returned within 2s.\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Generate Plan + Persist",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{base_url}}/api/v1/planning/generate?persist=true",
+          "query": [{ "key": "persist", "value": "true" }]
+        },
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"User story: As a developer I want cached plan output so agents can reuse it.\",\n  \"document_type\": \"prd\"\n}"
+        }
+      }
+    },
+    {
+      "name": "7. Generate Plan From Task",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate-from-task/REPLACE_WITH_TASK_ID",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ]
+      }
+    },
+    {
+      "name": "8. Schema Validation Test (expect 422)",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/planning/generate",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"document_type\": \"prd\"\n}"
+        }
+      }
+    },
+    {
+      "name": "9. Create Task with generate_plan=true",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/tasks",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"task_type\": \"coding\",\n  \"description\": \"Add a user profile page with avatar upload and bio editing\",\n  \"priority\": 2,\n  \"generate_plan\": true\n}"
+        }
+      }
+    },
+    {
+      "name": "10. Router — Plan Keyword Task",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/api/v1/tasks",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"task_type\": \"generate plan\",\n  \"description\": \"generate plan for the new BROski auth service redesign\",\n  \"priority\": 1\n}"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+service_identity:
+  name: "qa-engineer"
+  codename: "🧪 The Test Guardian"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Designs and generates test cases, validates APIs, performs QA
+    automation, and ensures code quality. Focuses on unit tests,
+    integration tests, and edge case coverage.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#qa-agents"
+
+responsibility_matrix:
+  primary_role: "VALIDATOR"
+  owns:
+    - "Test case generation"
+    - "API validation"
+    - "Integration test design"
+    - "Code quality checks"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+    - backend-specialist:8003 → "APIs to test"
+  
+  critical_dependents:
+    - "crew-orchestrator (receives validation results)"
+
+communication_contract:
+  input_endpoints:
+    - "POST /generate-tests"
+      request: |
+        {
+          "api_spec": "OpenAPI...",
+          "coverage_target": 0.90
+        }
+      response: |
+        {
+          "tests": [...],
+          "coverage": 0.88,
+          "latency_ms": 420
+        }
+      latency_slo_ms: 500
+
+performance_slos:
+  latency_p99_ms: 500
+  error_rate_max: 0.02
+  availability_percent: 99.0
+
+failure_modes:
+  
+  - mode_id: "test_framework_missing"
+    description: "pytest or test dependencies not installed"
+    symptoms:
+      - "ImportError: No module named pytest"
+    recovery_steps:
+      - "1. Install: pip install -r requirements-test.txt"
+      - "2. Verify: python -m pytest --version"
+    expected_mttr_minutes: 2
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "flaky_tests"
+    description: "Tests pass/fail intermittently"
+    symptoms:
+      - "Same test passes once, fails later"
+      - "No deterministic failure pattern"
+    recovery_steps:
+      - "1. Isolate: Run test in isolation"
+      - "2. Log: Capture full output with -vv flag"
+      - "3. Fix: Remove race conditions or timing issues"
+    expected_mttr_minutes: 10
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "test_pass_rate"
+    prometheus_query: "rate(tests_passed_total{job='qa-engineer'}[5m]) / rate(tests_total{job='qa-engineer'}[5m])"
+    alert_if: "... < 0.95"
+  
+  - name: "test_generation_latency"
+    prometheus_query: "histogram_quantile(0.99, rate(test_generation_duration_seconds_bucket[5m]))"
+    alert_if: "... > 0.5"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "qa-engineer"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "qa-engineer"
+    container_name: "qa-engineer"
+    ports:
+      - "8005:8005"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    BACKEND_SPEC_URL: "http://backend-specialist:8003/openapi.json"
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_tests_failing:
+    trigger: "Pass rate < 95%"
+    actions:
+      - "1. Check: Which tests are failing? (pytest --tb=short)"
+      - "2. Investigate: Is it a dependency issue or code bug?"
+      - "3. Fix: Update test or code as needed"
+
+support_contacts:
+  primary_engineer: "Lyndz"

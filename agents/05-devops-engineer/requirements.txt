@@ -1,0 +1,7 @@
+python-json-logger>=2.0.7
+fastapi
+uvicorn
+pydantic
+httpx
+redis
+python-multipart

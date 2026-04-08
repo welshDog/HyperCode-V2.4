@@ -1,0 +1,1 @@
+{"smoke":"pass","mode":"probe_health","latency_ms":47.04,"redis_writes_skipped":2,"approval_skipped":true,"agent":"backend_specialist","agent_http_status":null,"agent_latency_ms":null,"healthy":1,"total":1,"agents":{"backend_specialist":{"status":"healthy","http_status":200,"latency_ms":46.85,"error":null}},"timestamp":"2026-03-12T01:05:08.269156+00:00"}

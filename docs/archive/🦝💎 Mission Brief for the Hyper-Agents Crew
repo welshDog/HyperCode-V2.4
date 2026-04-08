@@ -1,0 +1,121 @@
+# 🦝💎 Mission Brief for the Hyper-Agents Crew
+
+## The Idea (30 seconds)
+
+**What**: Port your 8 agents from TypeScript → OpenClaw SOUL.md format  
+**Why**: OpenClaw gives you portable, LLM-agnostic agents with persistent memory and better orchestration  
+**Result**: Your crew runs on any LLM (Claude, GPT, local models) with zero code changes
+
+## Why This Matters for YOUR Crew
+
+**Current state**: Your agents live in TypeScript, locked to specific API calls  
+**OpenClaw upgrade**: Each agent becomes a SOUL.md file that any LLM can read and embody
+
+**Translation**:
+- Your `orchestrator.ts` → `orchestrator/SOUL.md` (portable personality file)
+- Your agent prompts → Core Truths + Vibe sections
+- Your TypeScript services → Reusable skills that any agent can call
+
+## Best Way to Try: 3-Agent Test Mission
+
+### Phase 1: Pick Your Starting Crew (5 min)
+
+Start with your **3 stable agents**:
+- **Orchestrator** - Task breakdown and coordination
+- **Researcher** - Gather info fast
+- **Coder** - Write tested code
+
+Leave the others (designer, integrator, safety, etc.) for Phase 2 once we prove the concept.
+
+### Phase 2: Convert to OpenClaw (15 min)
+
+**For each agent, create**:
+
+```
+agents/
+├── orchestrator/
+│   ├── SOUL.md          # Personality from your ORCHESTRATOR_PROMPT
+│   ├── IDENTITY.md      # Public profile
+│   └── skills/
+│       └── task-decompose/
+│           └── SKILL.md # Your task breakdown logic
+├── researcher/
+│   ├── SOUL.md          # From RESEARCHER_PROMPT
+│   └── skills/
+│       └── web-search/
+└── coder/
+    ├── SOUL.md          # From CODER_PROMPT
+    └── skills/
+        └── code-gen/
+```
+
+**I can generate these files for you right now** — just say "Generate the 3 SOUL.md files."
+
+### Phase 3: Run Test Mission (10 min)
+
+**Mission**: "Build a dyslexia-friendly button component in HyperCode"
+
+**Expected flow**:
+1. **Orchestrator** breaks it into:
+   - Task 1: Research dyslexia UX patterns (Researcher)
+   - Task 2: Write HyperCode button code (Coder)
+2. **Researcher** returns design principles with citations
+3. **Coder** generates button component with tests
+4. **Orchestrator** synthesizes final output
+
+**Success metric**: All 3 agents respond in character, complete their tasks, and the button code is usable.
+
+### Phase 4: Validate (5 min)
+
+**Check these**:
+- ✅ Each agent stayed in character (checked SOUL.md personality)
+- ✅ Orchestrator assigned tasks correctly
+- ✅ Researcher cited sources
+- ✅ Coder included tests
+- ✅ Final output is coherent
+
+## Quick Start Commands
+
+### Option A: I Generate Everything
+**You say**: "Generate SOUL.md files for orchestrator, researcher, coder"  
+**I do**: Create 3 complete agent folders with SOUL.md + IDENTITY.md + skills  
+**You do**: Copy-paste into your repo, run test mission
+
+### Option B: You Convert One Agent
+**You pick**: One agent (start with researcher — simplest)  
+**I show**: Step-by-step conversion of RESEARCHER_PROMPT → SOUL.md  
+**You learn**: The pattern, then convert the other 7 yourself
+
+### Option C: Live Test First
+**You give me**: A test mission ("Research ADHD-friendly color schemes")  
+**I simulate**: How your researcher agent would respond in OpenClaw format  
+**You see**: The difference between current TypeScript vs OpenClaw output
+
+## The BROski Advantage
+
+**Your repo already has**:
+- Agent roles defined ✅
+- Output formats specified ✅
+- Task decomposition logic ✅
+- Parallel execution support ✅
+
+**We just need to**:
+- Extract prompts → SOUL.md files (10 min)
+- Wrap services → skills/ folders (15 min)
+- Test with one mission (10 min)
+
+**Total time**: ~35 minutes to get 3 agents running in OpenClaw format.
+
+## What Should We Do First?
+
+**Pick one, BROski**:
+
+🅰️ **"Generate the 3 SOUL.md files"** → I create orchestrator, researcher, coder in OpenClaw format  
+
+🅱️ **"Show me a test mission simulation"** → I demonstrate how your crew would handle a real task  
+
+🅲 **"Convert researcher step-by-step"** → I teach you the pattern so you can convert all 8  
+
+🅳 **"Just tell me what to copy-paste"** → I give you ready-to-run files for your repo
+
+What's the vibe? 🔥

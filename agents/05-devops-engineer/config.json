@@ -1,0 +1,13 @@
+{
+  "agent_name": "devops-engineer",
+  "specializations": [
+    "Docker",
+    "Kubernetes",
+    "CI/CD Pipelines",
+    "Infrastructure as Code",
+    "Monitoring"
+  ],
+  "model": "tinyllama",
+  "ollama_host": "http://hypercode-ollama:11434",
+  "temperature": 0.3
+}

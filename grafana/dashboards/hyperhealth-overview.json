@@ -1,0 +1,148 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "9.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "id": 1,
+      "title": "🧠 Overall System Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(hyperhealth_check_status == 0)",
+          "legendFormat": "OK"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red",    "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green",  "value": 5 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "🔴 CRIT Checks",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(hyperhealth_check_status == 2)",
+          "legendFormat": "CRIT"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "🟡 WARN Checks",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(hyperhealth_check_status == 1)",
+          "legendFormat": "WARN"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "🩹 Self-Heals Executed",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(hyperhealth_selfheals_executed_total)",
+          "legendFormat": "Self-Heals"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "📈 Check Latency (p95) by Service",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hyperhealth_check_latency_ms_bucket[5m])) by (le, check_name))",
+          "legendFormat": "{{check_name}} p95"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "custom": { "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "🚨 Open Incidents by Severity",
+      "type": "bargauge",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "hyperhealth_incidents_open",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "🔄 Check Status Grid",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "hyperhealth_check_status",
+          "legendFormat": "{{check_name}} ({{env}})",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        { "id": "organize", "options": { "renameByName": { "Value": "Status" } } }
+      ]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["hyperhealth", "hypercode"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "title": "🧠 HyperHealth Overview",
+  "uid": "hyperhealth-overview",
+  "version": 1
+}

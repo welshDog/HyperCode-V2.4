@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- SEO & Social Media Optimization -->
+    <title>💎⚡ SUPPORT THE HYPERFOCUS EMPIRE ⚡💎 - Donation & Sponsorship Portal</title>
+    <meta name="description" content="Support Hyperfocus Zone—ADHD-friendly productivity tools by Lyndz. Join supporters building the future of neurodivergent development." />
+    <meta name="keywords" content="ADHD, productivity, neurodivergent, support, donation, hyperfocus, development tools" />
+    <meta name="author" content="Chief Lyndz Williams" />
+
+    <!-- Open Graph social sharing tags -->
+    <meta property="og:title" content="💎⚡ Support the Hyperfocus Empire ⚡💎" />
+    <meta property="og:description" content="Join ADHD warriors supporting neurodivergent productivity tools. Your support fuels innovation!" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hyperfocuszone.com/support" />
+    <meta property="og:image" content="https://hyperfocuszone.com/assets/hyperfocus-social-card.png" />
+    <meta property="og:site_name" content="Hyperfocus Zone" />
+
+    <!-- Twitter card tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Support the Hyperfocus Empire" />
+    <meta name="twitter:description" content="Join ADHD warriors supporting neurodivergent productivity tools. Your support matters!" />
+    <meta name="twitter:image" content="https://hyperfocuszone.com/assets/hyperfocus-social-card.png" />
+    <meta name="twitter:creator" content="@hyperfocuszone" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#bf00ff">
+   <meta name="mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-title" content="Hyperfocus Support">
+
+    <!-- Favicon -->
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="css/styles.css" as="style">
+    <link rel="preload" href="js/main.js" as="script">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then((registration) => {
+                        console.log('SW registered: ', registration);
+                    })
+                    .catch((registrationError) => {
+                        console.log('SW registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <!-- Skip Links for Accessibility -->
+    <div class="skip-links">
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#support-tiers" class="skip-link">Skip to support options</a>
+        <a href="#contact" class="skip-link">Skip to contact info</a>
+    </div>
+
+    <!-- Accessibility Controls -->
+    <div class="accessibility-controls">
+        <button id="motionToggle" class="accessibility-btn" aria-label="Toggle reduced motion">
+            <span aria-hidden="true">🎬</span> Motion
+        </button>
+        <button id="fontToggle" class="accessibility-btn" aria-label="Toggle dyslexia-friendly font">
+            <span aria-hidden="true">🔤</span> Font
+        </button>
+        <button id="focusToggle" class="accessibility-btn" aria-label="Toggle focus mode">
+            <span aria-hidden="true">🎯</span> Focus
+        </button>
+    </div>
+
+    <div class="background-animation"></div>
+
+    <header class="header">
+        <h1>
+            <span aria-label="diamond with sparkle" role="img">💎⚡</span> 
+            SUPPORT THE HYPERFOCUS EMPIRE 
+            <span aria-label="lightning bolt with diamond" role="img">⚡💎</span>
+        </h1>
+        <p>Join <strong>ADHD warriors</strong> building the future of neurodivergent-friendly productivity tools! Your support fuels our mission to revolutionize how ADHD minds work, create, and thrive.</p>
+
+        <!-- Quick Impact Stats -->
+        <div class="header-stats">
+            <div class="stat-item">
+                <span class="stat-number" id="live-supporters">3</span>
+                <span class="stat-label">Active Supporters</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">$100</span>
+                <span class="stat-label">Monthly Goal Progress</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">3%</span>
+                <span class="stat-label">Funding Complete</span>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" class="container">
+        <!-- Quick Action Bar -->
+        <section class="quick-actions">
+            <h2 class="sr-only">Quick Support Actions</h2>
+            <div class="quick-action-grid">
+                <a href="https://ko-fi.com/hyperfocuszone" class="quick-btn coffee" target="_blank" rel="noopener noreferrer">
+                    <span aria-label="coffee cup" role="img">☕</span>
+                    <span>Buy Coffee<br><small>$3 - Quick Thanks</small></span>
+                </a>
+                <a href="https://patreon.com/hyperfocuszone" class="quick-btn popular" target="_blank" rel="noopener noreferrer">
+                    <span aria-label="star" role="img">⭐</span>
+                    <span>Most Popular<br><small>$15/mo - Elite Agent</small></span>
+                </a>
+                <a href="mailto:business@hyperfocuszone.com" class="quick-btn business">
+                    <span aria-label="briefcase" role="img">💼</span>
+                    <span>Enterprise<br><small>Custom Partnership</small></span>
+                </a>
+            </div>
+        </section>
+
+        <!-- Impact Section -->
+        <section class="section impact-section">
+            <h2><span aria-label="target" role="img">🎯</span> Your Impact in Action</h2>
+            <div class="impact-grid">
+                <div class="impact-card">
+                    <div class="impact-amount">$5/month</div>
+                    <div class="impact-result">= 2 hours of ADHD-focused development</div>
+                    <div class="impact-detail">Powers new accessibility features</div>
+                </div>
+                <div class="impact-card featured">
+                    <div class="impact-amount">$15/month</div>
+                    <div class="impact-result">= 1 week of dedicated coding time</div>
+                    <div class="impact-detail">Funds major tool improvements</div>
+                </div>
+                <div class="impact-card">
+                    <div class="impact-amount">$50/month</div>
+                    <div class="impact-result">= Full sprint of feature development</div>
+                    <div class="impact-detail">Enables breakthrough innovations</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Monthly Support Tiers -->
+        <section id="support-tiers" class="section fade-in">
+            <h2><span aria-label="rocket" role="img">🚀</span> MONTHLY SUPPORT TIERS</h2>
+            <p class="support-description">
+                Choose your level of empire support and unlock exclusive rewards, early access, and direct impact on our development!
+            </p>
+
+            <div class="tier-grid">
+                <div class="tier-card">
+                    <div class="tier-badge">Warrior</div>
+                    <h3><span aria-label="star" role="img">🌟</span> Focus Warrior</h3>
+                    <div class="tier-price">$5<span class="tier-period">/mo</span></div>
+                    <ul class="tier-features">
+                        <li><span aria-label="check mark" role="img">✅</span> Discord VIP role & channels</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Early access to new tools</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Monthly team updates</li>
+                        <li><span aria-label="check mark" role="img">✅</span> BROski$ bonus rewards</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Community voting rights</li>
+                    </ul>
+                    <a href="https://patreon.com/hyperfocuszone" class="donation-btn" target="_blank" rel="noopener noreferrer" aria-label="Join Focus Warrior tier on Patreon">
+                        Join Warriors
+                    </a>
+                </div>
+
+                <div class="tier-card featured">
+                    <div class="tier-badge popular">Most Popular</div>
+                    <h3><span aria-label="diamond" role="img">💎</span> Elite Agent</h3>
+                    <div class="tier-price">$15<span class="tier-period">/mo</span></div>
+                    <ul class="tier-features">
+                        <li><span aria-label="check mark" role="img">✅</span> Everything in Focus Warrior</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Weekly 1:1 office hours</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Beta testing privileges</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Custom ADHD workflow sessions</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Direct feedback to Chief Lyndz</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Exclusive productivity templates</li>
+                    </ul>
+                    <a href="https://patreon.com/hyperfocuszone" class="donation-btn featured" target="_blank" rel="noopener noreferrer" aria-label="Join Elite Agent tier on Patreon">
+                        Join Elite Now!
+                    </a>
+                </div>
+
+                <div class="tier-card">
+                    <div class="tier-badge">Builder</div>
+                    <h3><span aria-label="crown" role="img">👑</span> Empire Builder</h3>
+                    <div class="tier-price">$50<span class="tier-period">/mo</span></div>
+                    <ul class="tier-features">
+                        <li><span aria-label="check mark" role="img">✅</span> Everything in Elite Agent</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Monthly strategy calls</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Co-development opportunities</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Revenue sharing possibilities</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Your name in credits</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Early access to commercial tools</li>
+                    </ul>
+                    <a href="https://patreon.com/hyperfocuszone" class="donation-btn secondary" target="_blank" rel="noopener noreferrer" aria-label="Join Empire Builder tier on Patreon">
+                        Build Empire
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section class="section testimonials-section fade-in">
+            <h2><span aria-label="speech bubble" role="img">💬</span> What Supporters Say</h2>
+            <div class="testimonials-grid">
+                <blockquote class="testimonial">
+                    <p>"Hyperfocus tools literally changed how I work with ADHD. Worth every penny!"</p>
+                    <cite>– Alex K., Elite Agent</cite>
+                </blockquote>
+                <blockquote class="testimonial">
+                    <p>"Finally, productivity tools that actually understand neurodivergent minds."</p>
+                    <cite>– Jamie R., Focus Warrior</cite>
+                </blockquote>
+                <blockquote class="testimonial">
+                    <p>"The community support alone is incredible. Best investment I've made."</p>
+                    <cite>– Sam L., Empire Builder</cite>
+                </blockquote>
+            </div>
+        </section>
+
+        <!-- One-Time Support -->
+        <section class="section fade-in">
+            <h2><span aria-label="coffee cup" role="img">☕</span> ONE-TIME SUPPORT OPTIONS</h2>
+            <div class="support-grid">
+                <div class="support-card">
+                    <h3><span aria-label="heart" role="img">💖</span> Buy Me A Coffee</h3>
+                    <p>Quick and easy way to say thanks! Every coffee fuels late-night coding sessions and keeps the empire running.</p>
+                    <div class="button-group">
+                        <a href="https://ko-fi.com/hyperfocuszone" class="donation-btn" target="_blank" rel="noopener noreferrer">
+                            <span aria-label="coffee" role="img">☕</span> $3 Coffee
+                        </a>
+                        <a href="https://ko-fi.com/hyperfocuszone" class="donation-btn secondary" target="_blank" rel="noopener noreferrer">
+                            <span aria-label="pizza" role="img">🍕</span> $10 Pizza
+                        </a>
+                    </div>
+                </div>
+
+                <div class="support-card">
+                    <h3><span aria-label="diamond" role="img">💎</span> PayPal Direct</h3>
+                    <p>Send any amount directly via PayPal. Perfect for one-time appreciation or custom contribution amounts.</p>
+                    <div class="button-group">
+                        <a href="https://paypal.me/WelshDog?locale.x=en_GB&country.x=GB" class="donation-btn">
+                            <span aria-label="money bag" role="img">💰</span> Send PayPal
+                        </a>
+                        <a href="https://www.patreon.com/u29188650" class="donation-btn secondary">
+                            <span aria-label="briefcase" role="img">💼</span> Business Inquiry
+                        </a>
+                    </div>
+                </div>
+
+                <div class="support-card">
+                    <h3><span aria-label="shopping cart" role="img">🛒</span> Digital Products</h3>
+                    <p>Support us while getting awesome ADHD productivity tools, templates, and digital resources!</p>
+                    <div class="button-group">
+                        <a href="https://etsy.com/shop/hyperfocuszoneGB" class="donation-btn" target="_blank" rel="noopener noreferrer">
+                            <span aria-label="art palette" role="img">🎨</span> Etsy Shop
+                        </a>
+                        <a href="https://tiktok.com/@hyperfocuszone/shop" class="donation-btn secondary" target="_blank" rel="noopener noreferrer">
+                            <span aria-label="musical note" role="img">🎵</span> TikTok Shop
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Current Goals & Progress -->
+        <section class="section fade-in">
+            <h2><span aria-label="target" role="img">🎯</span> CURRENT FUNDING GOALS</h2>
+            <div class="funding-goal-container">
+                <h3 class="funding-goal-title">
+                    <span aria-label="diamond" role="img">💎</span> Goal: $10,000/month - Infrastructure & Team Expansion
+                </h3>
+                <div class="progress-container">
+                    <div class="progress-bar funding-progress-bar" id="funding-progress" role="progressbar" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100" aria-label="Funding progress: 68% complete"></div>
+                </div>
+                <div class="progress-text" id="funding-text">$100 of $10,000 monthly goal reached (0.8%)</div>
+            </div>
+
+            <div class="goals-grid">
+                <div class="goal-card-blue">
+                    <h4 class="goal-card-title-blue">
+                        <span aria-label="fire" role="img">🔥</span> What Your Support Enables:
+                    </h4>
+                    <ul class="goal-card-list">
+                        <li><span aria-label="check mark" role="img">✅</span> 24/7 server infrastructure</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Advanced AI model training</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Full-time development team</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Global content delivery</li>
+                        <li><span aria-label="check mark" role="img">✅</span> Premium integrations</li>
+                    </ul>
+                </div>
+                <div class="goal-card-purple">
+                    <h4 class="goal-card-title-purple">
+                        <span aria-label="rocket" role="img">🚀</span> Next Milestones:
+                    </h4>
+                    <ul class="goal-card-list">
+                        <li><span aria-label="target" role="img">🎯</span> $15K/mo: Mobile app development</li>
+                        <li><span aria-label="target" role="img">🎯</span> $25K/mo: AI research lab</li>
+                        <li><span aria-label="target" role="img">🎯</span> $50K/mo: Global team expansion</li>
+                        <li><span aria-label="target" role="img">🎯</span> $100K/mo: ADHD research institute</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Community & Contact -->
+        <section id="contact" class="section fade-in">
+            <h2><span aria-label="speech bubble" role="img">💬</span> CONNECT & CONTRIBUTE</h2>
+            <div class="contact-grid">
+                <div class="contact-item">
+                    <span class="contact-icon" aria-label="speech bubble" role="img">💬</span>
+                    <h4>Discord Community</h4>
+                    <p>Join <span id="discord-count">2,000+</span> ADHD warriors</p>
+                    <a href="https://discord.gg/2fpxEsUyfa" class="donation-btn" target="_blank" rel="noopener noreferrer">Join Discord</a>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon" aria-label="star" role="img">⭐</span>
+                    <h4>GitHub Sponsor</h4>
+                    <p>Support development directly</p>
+                    <a href="https://github.com/sponsors/welshDog" class="donation-btn secondary" target="_blank" rel="noopener noreferrer">Sponsor</a>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon" aria-label="envelope" role="img">📧</span>
+                    <h4>Business Inquiries</h4>
+                    <p>Partnership opportunities</p>
+                    <a href="mailto:business@hyperfocuszone.com" class="donation-btn">Contact</a>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon" aria-label="globe" role="img">🌐</span>
+                    <h4>Website & Updates</h4>
+                    <p>Latest news and announcements</p>
+                    <a href="https://hyperfocuszone.com" class="donation-btn secondary" target="_blank" rel="noopener noreferrer">Visit Site</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <h3><span aria-label="rocket" role="img">🚀</span> Thank You for Supporting the HYPERFOCUS Empire! <span aria-label="rocket" role="img">🚀</span></h3>
+        <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">
+            Every contribution, no matter the size, helps us build better tools for ADHD minds worldwide. Together, we're creating a future where neurodivergent developers thrive!
+        </p>
+        <div style="margin-top: 30px;">
+            <a href="https://discord.gg/2fpxEsUyfa" class="donation-btn" target="_blank" rel="noopener noreferrer">
+                <span aria-label="speech bubble" role="img">💬</span> Discord
+            </a>
+            <a href="https://github.com/welshDog" class="donation-btn secondary" target="_blank" rel="noopener noreferrer">
+                <span aria-label="star" role="img">⭐</span> GitHub
+            </a>
+            <a href="mailto:SEND-ME.NFT@ud.me" class="donation-btn">
+                <span aria-label="envelope" role="img">📧</span> Contact
+            </a>
+        </div>
+        <p style="margin-top: 30px; color: #666;">Built with <span aria-label="green heart" role="img">💚</span> by Lyndz and the HYPERFOCUS Community</p>
+    </footer>
+
+    <!-- Load JavaScript -->
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<testsuites id="" name="" tests="7" failures="5" skipped="0" errors="0" time="324.550042">
+<testsuite name="accessibility.spec.ts" timestamp="2026-04-08T14:26:27.103Z" hostname="chromium" tests="3" failures="1" skipped="0" time="62.798" errors="0">
+<testcase name="Accessibility — WCAG 2.1 AA › homepage has no critical accessibility violations" classname="accessibility.spec.ts" time="49.119">
+<failure message="accessibility.spec.ts:5:7 homepage has no critical accessibility violations" type="FAILURE">
+<![CDATA[  [chromium] › accessibility.spec.ts:5:7 › Accessibility — WCAG 2.1 AA › homepage has no critical accessibility violations 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: page.goto: Test timeout of 30000ms exceeded.
+    Call log:
+      - navigating to "http://127.0.0.1:8088/", waiting until "load"
+
+
+      4 | test.describe('Accessibility — WCAG 2.1 AA', () => {
+      5 |   test('homepage has no critical accessibility violations', async ({ page }) => {
+    > 6 |     await page.goto('/')
+        |                ^
+      7 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+      8 |
+      9 |     const results = await new AxeBuilder({ page })
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\accessibility.spec.ts:6:16
+
+    attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\error-context.md]]
+
+[[ATTACHMENT|..\test-results\accessibility-Accessibilit-52548-al-accessibility-violations-chromium\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Accessibility — WCAG 2.1 AA › all interactive elements are keyboard reachable" classname="accessibility.spec.ts" time="6.125">
+</testcase>
+<testcase name="Accessibility — WCAG 2.1 AA › status badges have ARIA roles" classname="accessibility.spec.ts" time="7.554">
+</testcase>
+</testsuite>
+<testsuite name="shell.spec.ts" timestamp="2026-04-08T14:26:27.103Z" hostname="chromium" tests="4" failures="4" skipped="0" time="146.592" errors="0">
+<testcase name="HyperShell Full-Screen Layout › renders full-screen — no scrollbars" classname="shell.spec.ts" time="45.126">
+<failure message="shell.spec.ts:9:7 renders full-screen — no scrollbars" type="FAILURE">
+<![CDATA[  [chromium] › shell.spec.ts:9:7 › HyperShell Full-Screen Layout › renders full-screen — no scrollbars 
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('HyperShell Full-Screen Layout', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     await page.goto('/')
+      6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+      7 |   })
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:4:8
+
+    Error: page.waitForSelector: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="hyper-shell"]') to be visible
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/')
+    > 6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+        |                ^
+      7 |   })
+      8 |
+      9 |   test('renders full-screen — no scrollbars', async ({ page }) => {
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:6:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\error-context.md]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-a63c6-full-screen-—-no-scrollbars-chromium\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="HyperShell Full-Screen Layout › all 4 panes are visible" classname="shell.spec.ts" time="33.328">
+<failure message="shell.spec.ts:18:7 all 4 panes are visible" type="FAILURE">
+<![CDATA[  [chromium] › shell.spec.ts:18:7 › HyperShell Full-Screen Layout › all 4 panes are visible ────────
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('HyperShell Full-Screen Layout', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     await page.goto('/')
+      6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+      7 |   })
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:4:8
+
+    Error: page.waitForSelector: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="hyper-shell"]') to be visible
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/')
+    > 6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+        |                ^
+      7 |   })
+      8 |
+      9 |   test('renders full-screen — no scrollbars', async ({ page }) => {
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:6:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\error-context.md]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-all-4-panes-are-visible-chromium\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="HyperShell Full-Screen Layout › focus toggle works" classname="shell.spec.ts" time="32.863">
+<failure message="shell.spec.ts:25:7 focus toggle works" type="FAILURE">
+<![CDATA[  [chromium] › shell.spec.ts:25:7 › HyperShell Full-Screen Layout › focus toggle works ─────────────
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('HyperShell Full-Screen Layout', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     await page.goto('/')
+      6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+      7 |   })
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:4:8
+
+    Error: page.waitForSelector: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="hyper-shell"]') to be visible
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/')
+    > 6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+        |                ^
+      7 |   })
+      8 |
+      9 |   test('renders full-screen — no scrollbars', async ({ page }) => {
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:6:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\error-context.md]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Screen-Layout-focus-toggle-works-chromium\trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="HyperShell Full-Screen Layout › view mode toggle cycles correctly" classname="shell.spec.ts" time="35.275">
+<failure message="shell.spec.ts:31:7 view mode toggle cycles correctly" type="FAILURE">
+<![CDATA[  [chromium] › shell.spec.ts:31:7 › HyperShell Full-Screen Layout › view mode toggle cycles correctly 
+
+    Test timeout of 30000ms exceeded while running "beforeEach" hook.
+
+      2 |
+      3 | test.describe('HyperShell Full-Screen Layout', () => {
+    > 4 |   test.beforeEach(async ({ page }) => {
+        |        ^
+      5 |     await page.goto('/')
+      6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+      7 |   })
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:4:8
+
+    Error: page.waitForSelector: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('[data-testid="hyper-shell"]') to be visible
+
+
+      4 |   test.beforeEach(async ({ page }) => {
+      5 |     await page.goto('/')
+    > 6 |     await page.waitForSelector('[data-testid="hyper-shell"]')
+        |                ^
+      7 |   })
+      8 |
+      9 |   test('renders full-screen — no scrollbars', async ({ page }) => {
+        at H:\HyperStation zone\HyperCode\HyperCode-V2.4\tests\e2e\shell.spec.ts:6:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    ..\..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\trace.zip
+    Usage:
+
+        npx playwright show-trace ..\..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\video.webm]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\error-context.md]]
+
+[[ATTACHMENT|..\test-results\shell-HyperShell-Full-Scre-b84c5-ode-toggle-cycles-correctly-chromium\trace.zip]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

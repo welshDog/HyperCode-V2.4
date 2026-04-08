@@ -1,0 +1,38 @@
+{
+  "mission_id": "mission-001",
+  "title": "Example Mission: Redis Horizontal Scaling",
+  "status": "pending",
+  "priority": "high",
+  "objectives": [
+    "Design Redis cluster architecture",
+    "Implement Redis Sentinel",
+    "Stress test failover scenarios",
+    "Update documentation"
+  ],
+  "assigned_agents": [
+    "System Architect",
+    "DevOps Engineer",
+    "QA Engineer"
+  ],
+  "steps": [
+    {
+      "step_id": 1,
+      "description": "Draft architecture diagram for Redis Sentinel",
+      "assigned_to": "System Architect",
+      "status": "pending"
+    },
+    {
+      "step_id": 2,
+      "description": "Update docker-compose.yml with Redis Sentinel services",
+      "assigned_to": "DevOps Engineer",
+      "status": "pending"
+    },
+    {
+      "step_id": 3,
+      "description": "Run chaos engineering tests on Redis nodes",
+      "assigned_to": "QA Engineer",
+      "status": "pending"
+    }
+  ],
+  "logs": []
+}

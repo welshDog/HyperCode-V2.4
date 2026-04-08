@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+prometheus-fastapi-instrumentator
+prometheus-client>=0.20.0
+aiohttp
+opentelemetry-sdk
+opentelemetry-exporter-otlp

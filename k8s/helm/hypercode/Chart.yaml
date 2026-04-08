@@ -1,0 +1,25 @@
+apiVersion: v2
+name: hypercode
+description: HyperCode V2.0 — Neurodivergent-first AI Agent Ecosystem
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+keywords:
+  - ai
+  - agents
+  - neurodivergent
+  - fastapi
+  - broski
+home: https://github.com/hyperstation/hypercode
+maintainers:
+  - name: welshDog
+    email: lyndz@hyperstation.zone
+dependencies:
+  - name: postgresql
+    version: "15.5.35"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: "20.6.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

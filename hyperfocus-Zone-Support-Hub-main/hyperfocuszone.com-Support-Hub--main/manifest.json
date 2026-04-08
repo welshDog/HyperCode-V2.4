@@ -1,0 +1,112 @@
+{
+    "name": "Hyperfocus Zone Support",
+    "short_name": "HF Support",
+    "description": "Support the Hyperfocus Empire - ADHD-friendly productivity tools",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0a0f",
+    "theme_color": "#bf00ff",
+    "orientation": "portrait-primary",
+    "categories": ["productivity", "utilities", "lifestyle"],
+    "lang": "en-US",
+    "scope": "/",
+    "icons": [
+        {
+            "src": "assets/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "assets/screenshot-desktop.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Desktop view of Hyperfocus Support page"
+        },
+        {
+            "src": "assets/screenshot-mobile.png",
+            "sizes": "375x812",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Mobile view of Hyperfocus Support page"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Support Tiers",
+            "short_name": "Tiers",
+            "description": "View monthly support options",
+            "url": "/#support-tiers",
+            "icons": [
+                {
+                    "src": "assets/shortcut-tiers.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "One-time Support",
+            "short_name": "Donate",
+            "description": "Make a one-time contribution",
+            "url": "/#one-time",
+            "icons": [
+                {
+                    "src": "assets/shortcut-donate.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "prefer_related_applications": false,
+    "related_applications": [
+        {
+            "platform": "web",
+            "url": "https://hyperfocuszone.com"
+        }
+    ]
+}

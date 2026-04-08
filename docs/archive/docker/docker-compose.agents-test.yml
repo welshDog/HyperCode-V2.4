@@ -1,0 +1,24 @@
+# docker-compose.agents-test.yml
+# Isolated test runner for the hyper_agents package.
+#
+# Run all hyper_agents tests:
+#   docker compose -f docker-compose.agents-test.yml run --rm agents
+#
+# Run the full unit suite:
+#   docker compose -f docker-compose.agents-test.yml run --rm agents pytest tests/unit/ -v
+#
+# Rebuild after dependency changes:
+#   docker compose -f docker-compose.agents-test.yml build
+
+services:
+  agents:
+    build:
+      context: .
+      dockerfile: Dockerfile.agents-test
+    image: hypercode-agents-test:latest
+    # Volume mounts — live code changes reflect without rebuilding the image.
+    # The image layer provides the installed packages; the mounts overlay the source.
+    volumes:
+      - ./src:/app/src
+      - ./tests/unit:/app/tests/unit
+    # No ports, no networks — pure test runner, zero infrastructure required.

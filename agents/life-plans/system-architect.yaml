@@ -1,0 +1,102 @@
+service_identity:
+  name: "system-architect"
+  codename: "🏗️ The System Designer"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Designs system architecture, defines service boundaries, manages
+    scalability strategies, and optimizes distributed system performance.
+    Focuses on microservices, load balancing, and fault tolerance.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#architecture-agents"
+
+responsibility_matrix:
+  primary_role: "ARCHITECT"
+  owns:
+    - "System architecture design"
+    - "Scalability planning"
+    - "Service mesh design"
+    - "Performance optimization"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+  
+  critical_dependents:
+    - "devops-engineer (implements architecture)"
+
+communication_contract:
+  input_endpoints:
+    - "POST /design-system"
+      request: |
+        {
+          "requirements": "1M requests/day, <100ms latency",
+          "constraints": "budget, team size"
+        }
+      response: |
+        {
+          "architecture": "microservices with k8s",
+          "components": [...],
+          "latency_ms": 550
+        }
+      latency_slo_ms: 600
+
+performance_slos:
+  latency_p99_ms: 600
+  error_rate_max: 0.01
+  availability_percent: 99.0
+
+failure_modes:
+  
+  - mode_id: "design_validation_failed"
+    description: "Proposed architecture violates constraints"
+    symptoms:
+      - "Design doesn't meet SLOs or budgets"
+      - "Validation algorithm detects issues"
+    recovery_steps:
+      - "1. Review: Which constraint was violated?"
+      - "2. Iterate: Redesign with tradeoffs"
+      - "3. Revalidate: Check new design against constraints"
+    expected_mttr_minutes: 15
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "design_quality"
+    prometheus_query: "system_architecture_quality_score{job='system-architect'}"
+    alert_if: "... < 0.80"  # Alert if design quality drops
+  
+  - name: "validation_failures"
+    prometheus_query: "rate(design_validation_failures_total[5m])"
+    alert_if: "... > 0"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "system-architect"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "system-architect"
+    container_name: "system-architect"
+    ports:
+      - "8008:8008"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_design_quality_low:
+    trigger: "Design quality score < 0.80"
+    actions:
+      - "1. Review: Latest design outputs"
+      - "2. Analyze: Which metrics are low?"
+      - "3. Improve: Adjust design heuristics"
+
+support_contacts:
+  primary_engineer: "Lyndz"

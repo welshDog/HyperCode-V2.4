@@ -1,0 +1,80 @@
+apiVersion: v2
+name: hypercode
+description: A comprehensive AI agent system built with neurodivergent accessibility in mind
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+
+keywords:
+  - ai
+  - agents
+  - docker
+  - kubernetes
+  - accessibility
+  - neurodivergent
+
+home: https://github.com/welshDog/HyperCode-V2.0
+sources:
+  - https://github.com/welshDog/HyperCode-V2.0
+
+maintainers:
+  - name: welshDog
+    email: lyndz@hyperfocus.zone
+    url: https://github.com/welshDog
+
+dependencies:
+  - name: postgresql
+    version: "12.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  
+  - name: redis
+    version: "17.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+
+values:
+  replicaCount: 3
+  
+  image:
+    repository: hypercode
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  service:
+    type: ClusterIP
+    port: 8000
+  
+  ingress:
+    enabled: false
+    className: "nginx"
+    annotations: {}
+    hosts:
+      - host: hypercode.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  postgresql:
+    enabled: true
+    auth:
+      postgresPassword: changeme
+      database: hypercode
+  
+  redis:
+    enabled: true

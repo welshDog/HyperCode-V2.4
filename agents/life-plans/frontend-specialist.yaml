@@ -1,0 +1,170 @@
+service_identity:
+  name: "frontend-specialist"
+  codename: "🎨 The UI Architect"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Builds and optimizes frontend components, React/Next.js interfaces,
+    and user experience. Handles component design, layout optimization,
+    accessibility, and responsive design strategies.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#frontend-agents"
+
+responsibility_matrix:
+  primary_role: "EXECUTOR"
+  owns:
+    - "React component generation"
+    - "UI/UX optimization"
+    - "Frontend performance tuning"
+    - "Accessibility (a11y) standards"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests and context"
+    - crew-orchestrator:8080 → "Work dispatch and result delivery"
+  
+  critical_dependents:
+    - "dashboard (receives UI components)"
+    - "hyper-mission-ui (consumes frontend builds)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "uptime_seconds": 3600,
+          "version": "2.0.0"
+        }
+      latency_slo_ms: 100
+    
+    - "POST /build"
+      request: |
+        {
+          "component": "LoginForm",
+          "requirements": "React component with form validation",
+          "accessibility": true
+        }
+      response: |
+        {
+          "component_id": "uuid",
+          "code": "...",
+          "latency_ms": 450
+        }
+      latency_slo_ms: 500
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    /build_p99_ms: 500
+  
+  reliability:
+    availability_percent: 99.0
+    error_rate_max: 0.02  # 2%
+  
+  resource_usage:
+    memory_limit_mb: 512
+    cpu_limit_cores: 0.5
+
+failure_modes:
+  
+  - mode_id: "node_modules_missing"
+    description: "npm dependencies not installed or corrupted"
+    symptoms:
+      - "POST /build returns 500 'Module not found'"
+      - "Logs contain 'Cannot find module'"
+    recovery_steps:
+      - "1. Auto: Reinstall via npm ci"
+      - "2. Check: Verify Node.js version compatibility"
+      - "3. Manual: Clear npm cache and rebuild"
+    expected_mttr_minutes: 3
+    user_impact: "DEGRADED"
+    sev: "P2"
+  
+  - mode_id: "build_timeout"
+    description: "Complex component takes >5 seconds to build"
+    symptoms:
+      - "Request hangs for 5+ seconds"
+      - "No response from /build endpoint"
+    recovery_steps:
+      - "1. Timeout: Kill long-running builds at 5s"
+      - "2. Fallback: Return cached version or stub"
+      - "3. Alert: Log slow build for analysis"
+    expected_mttr_minutes: 1
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "build_latency"
+    prometheus_query: "histogram_quantile(0.99, rate(build_duration_seconds_bucket{job='frontend-specialist'}[5m]))"
+    alert_if: "... > 0.5"
+  
+  - name: "error_rate"
+    prometheus_query: "rate(build_errors_total{job='frontend-specialist'}[5m])"
+    alert_if: "... > 0.02"
+  
+  - name: "memory_usage"
+    prometheus_query: "container_memory_usage_bytes{name='frontend-specialist'}"
+    alert_if: "... > 400 * 1024 * 1024"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "frontend-specialist"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "frontend-specialist"
+    container_name: "frontend-specialist"
+    build_context: "./agents/01-frontend-specialist"
+    build_dockerfile: "Dockerfile"
+    ports:
+      - "8012:8012"
+  
+  healthcheck:
+    endpoint: "GET http://localhost:8012/health"
+    interval_seconds: 30
+    timeout_seconds: 10
+    retries: 3
+  
+  resource_allocation:
+    limits:
+      cpus: "0.5"
+      memory: "512M"
+    reservations:
+      cpus: "0.1"
+      memory: "256M"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+    AGENT_ROLE: "frontend-specialist"
+    AGENT_PORT: "8012"
+
+versioning:
+  current_version: "2.0.0"
+  breaking_changes_v2_1_0:
+    - "Component format changed to ES6 exports only"
+  
+  deprecation_schedule:
+    v2_0: "Supported until 2025-12-31"
+
+on_call_playbook:
+  
+  alert_high_error_rate:
+    trigger: "Error rate > 2% for 5 minutes"
+    actions:
+      - "1. Check: npm dependencies (npm ci)"
+      - "2. Check: Node version via node --version"
+      - "3. Check: Disk space for build cache"
+      - "4. Rollback: Downgrade to previous version if recent deploy"
+  
+  alert_build_timeout:
+    trigger: "Requests hang >5s"
+    actions:
+      - "1. Check: CPU usage (might be slow VPS)"
+      - "2. Restart: docker-compose restart frontend-specialist"
+      - "3. Investigate: Which component is slow? Check logs for pattern"
+
+support_contacts:
+  primary_engineer: "Lyndz"

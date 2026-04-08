@@ -1,0 +1,82 @@
+# docker-compose.mcp-full.yml — FIXED (No Build Errors)
+# Full MCP: Gateway + GitHub + Filesystem + Ollama
+# Usage: docker compose -f docker-compose.yml -f docker-compose.mcp-full.yml up -d
+
+services:
+  # ====================
+  # MCP GATEWAY
+  # ====================
+  mcp-gateway:
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    environment:
+      - GATEWAY_HOST=0.0.0.0
+      - GATEWAY_PORT=8820
+      - LOG_LEVEL=info
+      - ENABLE_AUDIT_LOG=true
+      - RATE_LIMIT_PER_MINUTE=1000
+      - AUTH_ENABLED=true
+      - AUTH_TYPE=api_key
+      - AUTO_DISCOVER_TOOLS=true
+      - MCP_GATEWAY_API_KEY=hypercode-broski-001
+      - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:-hypercode123}@postgres:5432/mcp_audit
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./monitoring/mcp-logs:/var/log/mcp
+    ports:
+      - "127.0.0.1:8820:8820"
+    networks:
+      - backend-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-H", "Authorization: Bearer hypercode-broski-001", "http://localhost:8820/health"]
+      interval: 30s
+      retries: 5
+    restart: unless-stopped
+
+  # ====================
+  # GITHUB MCP OFFICIAL
+  # ====================
+  mcp-github:
+    image: ghcr.io/github/github-mcp-server:latest
+    container_name: mcp-github
+    environment:
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN_PRIMARY:-}
+    command: ["http", "--port", "8082"]
+    networks:
+      - backend-net
+    restart: unless-stopped
+    # Runs in HTTP mode to avoid stdio session EOF restart loops in Compose
+
+  # ====================
+  # FILESYSTEM MCP
+  # ====================
+  mcp-filesystem:
+    image: node:20-alpine
+    container_name: mcp-filesystem
+    profiles: ["mcp"]
+    command: >
+      sh -c "npx -y @modelcontextprotocol/server-filesystem 
+      /workspace /data --port 3003 --stdio"
+    volumes:
+      - ./:/workspace:rw
+      - ./data:/data:rw
+    networks:
+      - backend-net
+    restart: "no"
+
+  # ====================
+  # OLLAMA (LLM)
+  # ====================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      backend-net:
+        aliases:
+          - hypercode-ollama
+    restart: unless-stopped

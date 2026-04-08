@@ -1,0 +1,107 @@
+# Root .dockerignore for HyperCode project
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+.next/
+out/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+CHANGELOG.md
+*.md
+docs/
+
+# Tests
+tests/
+test/
+*.test.js
+*.test.py
+*.spec.js
+*.spec.py
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Secrets & Environment
+.env*
+secrets/
+*.key
+*.pem
+*.crt
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# Data & Models
+data/
+models/
+checkpoints/
+*.bin
+*.gguf
+*.safetensors
+*.pt
+*.pth
+*.h5
+*.pkl
+*.joblib
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Project specific
+notes/
+examples/
+tools/
+monitoring/prometheus/
+monitoring/grafana/
+k8s/
+.husky/
+.trae/

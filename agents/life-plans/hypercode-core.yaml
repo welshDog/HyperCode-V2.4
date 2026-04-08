@@ -1,0 +1,466 @@
+service_identity:
+  name: "hypercode-core"
+  codename: "🧠 The Brain"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Central API hub for the HyperCode system. Handles user queries,
+    delegates to agents, maintains conversation context via Redis,
+    stores session history in PostgreSQL, integrates Perplexity API
+    for real-time information retrieval.
+  
+  contact:
+    owner: "Lyndz"
+    slack: "#hyper-agents"
+    oncall_schedule: "hyper-core-oncall"
+
+responsibility_matrix:
+  primary_role: "EXECUTOR"
+  secondary_roles: ["OBSERVER"]
+  owns:
+    - "REST API contract (/health, /chat, /metrics)"
+    - "Session lifecycle (create, retrieve, terminate)"
+    - "Agent delegation logic"
+    - "Conversation context management"
+  
+  critical_dependencies:
+    - redis:6379 → "Context cache (task queue, session temp data). <50ms p99 required."
+    - postgres:5432 → "Persistent session storage, audit logs. <100ms p99 required."
+    - perplexity-api → "Real-time search. External, 5s timeout with fallback."
+  
+  critical_dependents:
+    - "crew-orchestrator (subscribes to task events)"
+    - "all-agents (receive requests from core)"
+    - "dashboard (calls /metrics for realtime viz)"
+    - "celery-worker (receives async tasks)"
+
+communication_contract:
+  input_endpoints:
+    - "GET /health"
+      response: |
+        {
+          "status": "ok",
+          "uptime_seconds": 3600,
+          "version": "2.0.0",
+          "dependencies": {
+            "redis": "ok",
+            "postgres": "ok",
+            "perplexity": "ok"
+          }
+        }
+      latency_slo_ms: 100
+    
+    - "GET /metrics"
+      response: "Prometheus format"
+      latency_slo_ms: 200
+    
+    - "POST /chat"
+      request: |
+        {
+          "message": "What is the latest AI news?",
+          "session_id": "uuid",
+          "user_id": "uuid"
+        }
+      response: |
+        {
+          "response": "...",
+          "sources": ["url1", "url2"],
+          "latency_ms": 423,
+          "tokens_used": 150,
+          "cached": false
+        }
+      latency_slo_ms: 500
+      rate_limit: "100 req/sec per user, 1000 req/sec global"
+    
+    - "POST /execute"
+      request: |
+        {
+          "agent": "coder-agent",
+          "task": "write_function",
+          "params": {...}
+        }
+      response: |
+        {
+          "task_id": "uuid",
+          "status": "queued",
+          "estimated_completion_seconds": 30
+        }
+      latency_slo_ms: 200
+  
+  output_events:
+    - redis://chat-queue → "User messages (transient, TTL 24h)"
+    - redis://task-queue → "Agent tasks (transient, TTL 48h)"
+    - postgres://sessions → "Session state (persistent)"
+    - postgres://audit_log → "All user interactions (immutable)"
+    - loki://{service="hypercode-core"} → "Structured logs"
+
+performance_slos:
+  latency:
+    /health_p99_ms: 100
+    /chat_p99_ms: 500
+    /chat_p95_ms: 300
+    /metrics_p99_ms: 200
+  
+  reliability:
+    availability_percent: 99.9  # 43 minutes downtime/month acceptable
+    error_rate_max: 0.01  # 1% of requests can error
+  
+  resource_usage:
+    memory_limit_mb: 1024
+    memory_warn_mb: 800
+    cpu_limit_cores: 1.0
+    cpu_avg_cores: 0.3
+
+failure_modes:
+  
+  - mode_id: "redis_unavailable"
+    description: "Redis connection lost or unresponsive"
+    symptoms:
+      - "POST /chat returns 503 'Redis unavailable'"
+      - "Logs: '[ERROR] Redis connection refused' in Loki"
+      - "Metric http_requests_total{status='503'} spikes"
+    root_causes:
+      - "Redis container crashed"
+      - "Network partition to Redis"
+      - "Redis memory exhausted (shouldn't happen with maxmemory policy)"
+    recovery_steps:
+      - "1. Monitor: Check redis:6379 connectivity (redis-cli PING)"
+      - "2. Auto: Core reconnects every 1s with exponential backoff"
+      - "3. Auto: Healer detects and restarts Redis container"
+      - "4. Fallback: In-memory cache (session-scoped, user tolerates slower responses)"
+      - "5. Manual: If Healer fails, ops manually restart Redis"
+    expected_mttr_minutes: 2
+    user_impact: "DEGRADED - Responses slower, may use cached results. No data loss."
+    sev: "P2"
+  
+  - mode_id: "postgres_unavailable"
+    description: "PostgreSQL connection lost or database locked"
+    symptoms:
+      - "GET /health returns 503 'Database unavailable'"
+      - "Logs: 'psycopg2.OperationalError' in Loki"
+      - "Metric container_network_receive_errors{name='postgres'} increases"
+    root_causes:
+      - "Postgres container crashed"
+      - "Disk space exhausted"
+      - "Connection pool exhausted (all 20 connections in use)"
+    recovery_steps:
+      - "1. Check: `docker logs postgres` for OOM or disk errors"
+      - "2. Check: `du -sh /var/lib/postgresql/data` for disk usage"
+      - "3. Auto: Healer restarts Postgres (if transient)"
+      - "4. Manual: If disk full, extend volume and restart"
+      - "5. Fallback: Core downgrades to sessionless mode (in-memory only)"
+    expected_mttr_minutes: 5
+    user_impact: "CRITICAL - Session history unavailable. User sessions reset on next request."
+    sev: "P1"
+  
+  - mode_id: "perplexity_api_timeout"
+    description: "Perplexity API is slow or returning errors"
+    symptoms:
+      - "POST /chat latency spikes to >5s"
+      - "Logs: 'PerplexityAPIError: timeout' in Loki"
+      - "Metric http_requests_total{perplexity_status='timeout'} increases"
+    root_causes:
+      - "Perplexity API rate limited (quota exhausted)"
+      - "Perplexity API slow (infrastructure issue on their end)"
+      - "Network latency to Perplexity"
+    recovery_steps:
+      - "1. Timeout: All Perplexity calls timeout at 5s"
+      - "2. Fallback: Return last-known-good answer from cache"
+      - "3. Manual: Check Perplexity status page"
+      - "4. Manual: Check API quota in Perplexity dashboard"
+      - "5. Manual: Escalate to Perplexity support if outage"
+    expected_mttr_minutes: 15
+    user_impact: "DEGRADED - Responses use cached data (older). Accuracy may suffer."
+    sev: "P2"
+  
+  - mode_id: "memory_leak"
+    description: "Core memory grows unbounded, eventually OOMkilled"
+    symptoms:
+      - "container_memory_usage_bytes{name='hypercode-core'} grows >50% over 24h"
+      - "Process resident memory: 900MB → 950MB → 1000MB+ (crashes at 1024MB limit)"
+      - "Kubernetes evicts pod or Docker OOMkills container"
+    root_causes:
+      - "Circular reference in Python session cache (Python GC can't free)"
+      - "Redis client connection pool leak"
+      - "Unclosed file handles accumulating"
+    recovery_steps:
+      - "1. Monitor: Alert at 800MB (80% of limit)"
+      - "2. Alert: Team notified, can preemptively restart"
+      - "3. Auto: Graceful restart at 90% (drain requests, shutdown, restart)"
+      - "4. Investigation: Enable memory profiling (py-spy) on next build"
+      - "5. Fix: Deploy patched version with leak fixed"
+    expected_mttr_minutes: 1
+    user_impact: "CRITICAL - Brief service unavailability during restart (~30s)"
+    sev: "P1"
+  
+  - mode_id: "high_error_rate"
+    description: "Error rate sustained >1%, SLO breach"
+    symptoms:
+      - "Metric: rate(http_requests_total{status=~'5..'}[5m]) > 0.01"
+      - "Grafana alert triggered"
+      - "Users report getting error responses"
+    root_causes:
+      - "Bug introduced in recent deployment"
+      - "Downstream service (Perplexity, agent) returning errors"
+      - "Invalid user input causing exceptions"
+    recovery_steps:
+      - "1. Check: docker logs hypercode-core for exception stack traces"
+      - "2. Alert: Check recent commits (last 30 min)"
+      - "3. Rollback: If recent deploy caused it, `docker-compose up -d hypercode-core` with previous image"
+      - "4. Investigation: Correlate error logs with request patterns in Loki"
+      - "5. Fix: If not deployment-related, debug and patch"
+    expected_mttr_minutes: 10
+    user_impact: "CRITICAL - Some user requests fail"
+    sev: "P1"
+
+metrics_to_monitor:
+  
+  - name: "request_latency"
+    prometheus_query: "http_request_duration_seconds_bucket{job='hypercode-core'}"
+    dashboard_panels:
+      - p50, p95, p99
+    alert_if: "histogram_quantile(0.99, rate(...[5m])) > 0.5 for 5m"
+    alert_name: "HypercodeCore_HighLatency"
+  
+  - name: "error_rate"
+    prometheus_query: "rate(http_requests_total{job='hypercode-core',status=~'5..'}[5m])"
+    dashboard_panels:
+      - error_rate_pct
+    alert_if: "... > 0.01 for 5m"
+    alert_name: "HypercodeCore_HighErrorRate"
+  
+  - name: "redis_connectivity"
+    prometheus_query: "redis_connected_clients{instance='redis:6379'}"
+    dashboard_panels:
+      - connected_clients
+    alert_if: "... == 0 for 1m"
+    alert_name: "Redis_NoClients"
+  
+  - name: "postgres_connectivity"
+    prometheus_query: "pg_up{instance='postgres:5432'}"
+    dashboard_panels:
+      - postgres_up
+    alert_if: "... == 0 for 1m"
+    alert_name: "Postgres_Down"
+  
+  - name: "memory_usage"
+    prometheus_query: "container_memory_usage_bytes{name='hypercode-core'}"
+    dashboard_panels:
+      - memory_mb, memory_percent_of_limit
+      - threshold_line at 800MB (warn), 900MB (critical)
+    alert_if: "... > 800 * 1024 * 1024 for 10m"
+    alert_name: "HypercodeCore_HighMemory"
+  
+  - name: "cpu_usage"
+    prometheus_query: "rate(container_cpu_usage_seconds_total{name='hypercode-core'}[5m])"
+    dashboard_panels:
+      - cpu_cores_avg, cpu_cores_max
+    alert_if: "... > 0.8 for 5m"
+    alert_name: "HypercodeCore_HighCPU"
+  
+  - name: "request_rate"
+    prometheus_query: "rate(http_requests_total{job='hypercode-core'}[1m])"
+    dashboard_panels:
+      - requests_per_second, daily_trend
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "hypercode-core"
+  image_tag: "latest"
+  image_digest_sha256: "sha256:a1b2c3d4..." # Updated after each build
+  
+  docker_compose:
+    service_name: "hypercode-core"
+    container_name: "hypercode-core"
+    build_context: "./backend"
+    build_dockerfile: "Dockerfile"
+    ports:
+      - "127.0.0.1:8000:8000"  # Localhost only (proxy via nginx in prod)
+  
+  healthcheck:
+    endpoint: "GET http://127.0.0.1:8000/health"
+    interval_seconds: 30
+    timeout_seconds: 10
+    retries: 5
+    start_period_seconds: 40
+  
+  restart_policy: "unless-stopped"
+  
+  resource_allocation:
+    limits:
+      cpus: "1"
+      memory: "1G"
+    reservations:
+      cpus: "0.25"
+      memory: "512M"
+  
+  environment_variables:
+    ENVIRONMENT: "production"
+    HYPERCODE_REDIS_URL: "redis://redis:6379/0"
+    HYPERCODE_DB_URL: "postgresql://postgres:5432/hypercode"
+    API_KEY: "${API_KEY}"  # From .env
+    PERPLEXITY_API_KEY: "${PERPLEXITY_API_KEY}"  # From .env
+    OLLAMA_HOST: "http://hypercode-ollama:11434"
+    PROMETHEUS_METRICS_DISABLED: "false"
+    OTLP_ENDPOINT: "http://tempo:4317"
+  
+  logging:
+    driver: "json-file"
+    format: "JSON"
+    retention:
+      max_size: "10m"
+      max_file: "3"
+    log_fields:
+      - timestamp
+      - level (DEBUG, INFO, WARNING, ERROR)
+      - request_id (correlation ID)
+      - user_id (hashed if PII)
+      - endpoint (e.g., "/chat")
+      - method (GET, POST, etc)
+      - status_code (200, 500, etc)
+      - latency_ms
+      - message
+    pii_handling: "User IDs and messages are hashed before logging"
+
+versioning:
+  current_version: "2.0.0"
+  version_history:
+    v2_0_0:
+      date: "2024-03-20"
+      changes:
+        - "Initial stable release"
+        - "Redis context cache"
+        - "PostgreSQL session store"
+        - "Perplexity API integration"
+      deployed_by: "Lyndz"
+    
+    v1_9_5:
+      date: "2024-03-15"
+      changes:
+        - "Bug fix: Race condition in session cache"
+      deprecated_after: "2024-06-01"
+  
+  breaking_changes_v2_1_0:
+    - "POST /execute response format changed (added task_id)"
+    - "Redis key format changed from task:{uuid} to task_v2:{uuid}"
+    - "Requires agent version >=2.0.0"
+  
+  migration_path_v2_0_to_v2_1:
+    - "Deploy v2.1.0 as canary (10% traffic) for 2 hours"
+    - "Monitor error_rate and latency in Grafana"
+    - "Run Redis migration: script to rekey old format to new"
+    - "Full rollout if green lights"
+    - "Rollback window: 24 hours (keep v2.0.0 image in registry)"
+  
+  deprecation_schedule:
+    v2_0: "Supported until 2025-12-31"
+    v1_9: "EOL 2024-09-01"
+
+evolution_roadmap:
+  v2_0: "Stable MVP - Redis + PostgreSQL"
+  v2_1:
+    timeline: "Q2 2024"
+    features:
+      - "Streaming responses (Server-Sent Events)"
+      - "WebSocket support for real-time chat"
+      - "Request batching"
+  v2_2:
+    timeline: "Q3 2024"
+    features:
+      - "LLM-swap interface (OpenAI-compatible /v1/chat/completions)"
+      - "Claude, Mistral, Ollama support"
+  v3_0:
+    timeline: "Q1 2025"
+    features:
+      - "Kubernetes-native (StatefulSet, ConfigMap per version)"
+      - "Horizontal scaling (stateless read replicas)"
+      - "HA PostgreSQL (multi-zone)"
+
+integration_checklist:
+  - "[x] Service builds without errors"
+  - "[x] Starts and passes healthcheck"
+  - "[x] /health endpoint responds <100ms"
+  - "[x] POST /chat works end-to-end"
+  - "[x] Prometheus /metrics endpoint exported"
+  - "[x] Logs structured JSON, shipped to Loki"
+  - "[x] Traces exported to Tempo"
+  - "[x] SLOs defined and monitored in Grafana"
+  - "[x] Runbook written (this document)"
+  - "[x] On-call playbook available"
+  - "[x] Rollback procedure documented"
+
+on_call_playbook:
+  
+  alert_high_latency:
+    trigger: "Latency p99 > 500ms for 5 minutes"
+    immediate_actions:
+      - "1. Check: Is it during known deployment? (check Slack #deploys)"
+      - "2. Check: Perplexity API latency in Grafana (external?)"
+      - "3. Check: Redis latency (if >50ms p99, investigate)"
+      - "4. Check: Postgres latency (if >100ms p99, investigate)"
+    escalation:
+      - "No improvement in 10min → Page Tier 2 (Senior SRE)"
+      - "No improvement in 30min → Page Tier 3 (Architect)"
+  
+  alert_high_error_rate:
+    trigger: "Error rate > 1% for 5 minutes"
+    immediate_actions:
+      - "1. Check: Last 10 commits in Slack #deploys"
+      - "2. Check: Exception logs in Loki (filter service=hypercode-core)"
+      - "3. Check: Downstream services (redis, postgres, perplexity) status"
+      - "4. Decide: Rollback or fix?"
+    escalation:
+      - "If rollback: `docker-compose up -d hypercode-core` (reverts to prev image)"
+      - "No improvement in 5min → Page Tier 2"
+  
+  alert_high_memory:
+    trigger: "Memory usage > 800MB for 10 minutes"
+    immediate_actions:
+      - "1. Monitor: Watch if still growing"
+      - "2. Check: Recent traffic spikes (user sessions × size)"
+      - "3. Decision: Graceful restart vs wait"
+    escalation:
+      - "At 900MB: Trigger graceful restart (drain requests, stop, start)"
+      - "At 1000MB: OOM kill imminent, immediate restart"
+  
+  alert_redis_down:
+    trigger: "Redis connection down for 1 minute"
+    immediate_actions:
+      - "1. Check: `redis-cli PING` from inside container"
+      - "2. Check: `docker ps | grep redis` (is it running?)"
+      - "3. Check: `docker logs redis` (crash reason?)"
+      - "4. Auto: Healer should restart it automatically"
+    escalation:
+      - "If Healer didn't restart: Manual `docker-compose up -d redis`"
+      - "If restart fails: Investigate disk space, corrupted data"
+  
+  alert_postgres_down:
+    trigger: "PostgreSQL down for 1 minute"
+    immediate_actions:
+      - "1. Critical: Sessions will be lost"
+      - "2. Check: `docker logs postgres` (OOM? disk full?)"
+      - "3. Check: `du -sh /var/lib/postgresql/data` (disk usage?)"
+      - "4. Auto: Healer should restart it"
+    escalation:
+      - "Manual restart: `docker-compose up -d postgres`"
+      - "If disk full: `docker exec postgres VACUUM;` or extend volume"
+
+communication_with_teams:
+  status_page:
+    url: "https://status.hypercode.io"
+    update_when: "Any P1/P2 incident affecting /chat endpoint"
+  
+  on_call_slack:
+    channel: "#hypercore-incidents"
+    escalation_users: "@hypercore-oncall"
+  
+  incident_postmortem:
+    template: "Use incident template in Slack"
+    timeline: "document by, what failed, why, root cause, fix"
+    review_within: "24 hours of incident resolution"
+
+support_contacts:
+  primary_engineer: "Lyndz (lyndz@hypercode.io)"
+  backup_engineer: "TBD"
+  manager: "TBD"
+  business_stakeholder: "TBD"

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperCode Quantum Esoteric Compiler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+        header h1 {
+            font-size: 3rem;
+            background: linear-gradient(90deg, #00f260, #0575e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        header p {
+            color: #a0a0a0;
+            font-size: 1.2rem;
+        }
+        .compiler-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .panel h2 {
+            margin-bottom: 16px;
+            color: #00f260;
+            font-size: 1.3rem;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #00f260;
+        }
+        .output-panel textarea {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00f260;
+        }
+        .btn {
+            background: linear-gradient(90deg, #00f260, #0575e6);
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 242, 96, 0.3);
+        }
+        .examples {
+            margin-top: 30px;
+        }
+        .examples h3 {
+            margin-bottom: 16px;
+            color: #a0a0a0;
+        }
+        .example-btns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .example-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.2s;
+        }
+        .example-btn:hover {
+            background: rgba(0, 242, 96, 0.2);
+            border-color: #00f260;
+        }
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border-left: 4px solid #00f260;
+        }
+        .info h3 {
+            margin-bottom: 12px;
+            color: #00f260;
+        }
+        .info code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .status.success {
+            background: rgba(0, 242, 96, 0.2);
+            color: #00f260;
+        }
+        .status.error {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6b6b;
+        }
+        @media (max-width: 768px) {
+            .compiler-section {
+                grid-template-columns: 1fr;
+            }
+            header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚛️ HyperCode Quantum Compiler</h1>
+            <p>Brainfuck → Qiskit Quantum Circuit Compiler</p>
+        </header>
+
+        <div class="compiler-section">
+            <div class="panel">
+                <h2>🧠 Brainfuck Input</h2>
+                <textarea id="bfInput" placeholder="Enter Brainfuck code here...&#10;&#10;Example: ++++[>++<-]"></textarea>
+                <button class="btn" onclick="compile()">⚡ Compile to Quantum</button>
+                <div id="status"></div>
+            </div>
+            <div class="panel output-panel">
+                <h2>⚛️ Qiskit Output</h2>
+                <textarea id="qOutput" readonly placeholder="Quantum circuit will appear here..."></textarea>
+                <button class="btn" onclick="copyOutput()">📋 Copy Output</button>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>📚 Example Programs</h3>
+            <div class="example-btns">
+                <button class="example-btn" onclick="loadExample('++++[>++<-]')">Loop Test</button>
+                <button class="example-btn" onclick="loadExample('++>+<-')">Simple Ops</button>
+                <button class="example-btn" onclick="loadExample(',.')">Input/Output</button>
+                <button class="example-btn" onclick="loadExample('++++++++[>++++[>++<-]<-]')">Nested Loop</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <h3>📖 Brainfuck to Quantum Mapping</h3>
+            <p><code>+</code> → <code>qc.rx(math.pi / 8, qr[0])</code> - Increment (rotation)</p>
+            <p><code>-</code> → <code>qc.rx(-math.pi / 8, qr[0])</code> - Decrement (negative rotation)</p>
+            <p><code>&gt;</code> → <code>qc.swap(qr[0], qr[1])</code> - Move right (swap qubits)</p>
+            <p><code>&lt;</code> → <code>qc.swap(qr[0], qr[1])</code> - Move left (swap qubits)</p>
+            <p><code>[</code> → <code>// loop start</code> - Loop start</p>
+            <p><code>]</code> → <code>// loop end</code> - Loop end</p>
+            <p><code>.</code> → <code>qc.measure(qr[0], cr[0])</code> - Output (measure)</p>
+            <p><code>,</code> → <code>qc.h(qr[0])</code> - Input (Hadamard gate)</p>
+        </div>
+
+        <div class="info">
+            <h3>🔌 API Usage</h3>
+            <p><strong>GET:</strong> <code>/quantum-compiler/compile?code=&lt;brainfuck&gt;</code></p>
+            <p><strong>POST:</strong> <code>/quantum-compiler/compile</code> with JSON body <code>{"code": "++++[>++<-]"}</code></p>
+            <p><strong>Health:</strong> <code>/quantum-compiler/health</code></p>
+        </div>
+    </div>
+
+    <script>
+        function compileBF(source) {
+            const quantum = [];
+            quantum.push("from __future__ import annotations");
+            quantum.push("");
+            quantum.push("import math");
+            quantum.push("");
+            quantum.push("from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister");
+            quantum.push("from qiskit.quantum_info import Statevector");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_plus(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.rx(math.pi / 8, qr[0])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_minus(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.rx(-math.pi / 8, qr[0])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_move_right(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.swap(qr[0], qr[1])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_move_left(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.swap(qr[0], qr[1])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_output(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.measure(qr[0], cr[0])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_input(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    qc.h(qr[0])");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_loop_start(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    return");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def _bf_loop_end(qc: QuantumCircuit, qr: QuantumRegister, cr: ClassicalRegister) -> None:");
+            quantum.push("    return");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("_INSTR = {");
+            quantum.push("    '+': _bf_plus,");
+            quantum.push("    '-': _bf_minus,");
+            quantum.push("    '>': _bf_move_right,");
+            quantum.push("    '<': _bf_move_left,");
+            quantum.push("    '.': _bf_output,");
+            quantum.push("    ',': _bf_input,");
+            quantum.push("    '[': _bf_loop_start,");
+            quantum.push("    ']': _bf_loop_end,");
+            quantum.push("}");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("def build_circuit(source: str) -> QuantumCircuit:");
+            quantum.push("    qr = QuantumRegister(2, 'q')");
+            quantum.push("    cr = ClassicalRegister(2, 'c')");
+            quantum.push("    qc = QuantumCircuit(qr, cr, name='brainfuck_compiled')");
+            quantum.push("");
+            quantum.push("    for ch in source:");
+            quantum.push("        fn = _INSTR.get(ch)");
+            quantum.push("        if fn is not None:");
+            quantum.push("            fn(qc, qr, cr)");
+            quantum.push("");
+            quantum.push("    qc.measure(qr, cr)");
+            quantum.push("    return qc");
+            quantum.push("");
+            quantum.push("");
+            quantum.push("if __name__ == '__main__':");
+            quantum.push(`    SOURCE = ${JSON.stringify(source)}`);
+            quantum.push("    circuit = build_circuit(SOURCE)");
+            quantum.push("    state = Statevector.from_instruction(");
+            quantum.push("        circuit.remove_final_measurements(inplace=False)");
+            quantum.push("    )");
+            quantum.push("    print(state)");
+
+            return quantum.join("\n");
+        }
+
+        function compile() {
+            const input = document.getElementById('bfInput').value;
+            const output = document.getElementById('qOutput');
+            const status = document.getElementById('status');
+
+            if (!input.trim()) {
+                status.innerHTML = '<div class="status error">⚠️ Please enter Brainfuck code</div>';
+                return;
+            }
+
+            try {
+                const result = compileBF(input);
+                output.value = result;
+                status.innerHTML = '<div class="status success">✅ Compilation successful!</div>';
+            } catch (err) {
+                status.innerHTML = `<div class="status error">❌ Error: ${err.message}</div>`;
+            }
+        }
+
+        function loadExample(code) {
+            document.getElementById('bfInput').value = code;
+            compile();
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('qOutput');
+            output.select();
+            document.execCommand('copy');
+            alert('Quantum code copied to clipboard!');
+        }
+
+        // Load default example on page load
+        window.onload = () => {
+            loadExample('++++[>++<-]');
+        };
+    </script>
+</body>
+</html>

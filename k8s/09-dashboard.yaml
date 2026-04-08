@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard
+  namespace: hypercode
+  labels:
+    app: dashboard
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  selector:
+    app: dashboard
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  namespace: hypercode
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        fsGroup: 101
+      containers:
+      - name: dashboard
+        image: nginx:1.26-alpine
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: dashboard-content
+          mountPath: /usr/share/nginx/html
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 5
+      volumes:
+      - name: dashboard-content
+        configMap:
+          name: dashboard-html
+          optional: true
+---
+# Note: You'll need to create a ConfigMap with your dashboard HTML
+# kubectl create configmap dashboard-html --from-file=agents/dashboard/ -n hypercode

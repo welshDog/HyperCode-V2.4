@@ -1,0 +1,20 @@
+groups:
+  - name: event-bus.rules
+    interval: 30s
+    rules:
+      - alert: EventBusHighLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(event_bus_latency_seconds_bucket[5m])) by (le)) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Event Bus p99 latency > 500 ms"
+          description: "Event bus p99 latency breached for 5 minutes"
+      - alert: EventBusErrorRateHigh
+        expr: (sum(rate(event_bus_errors_total[5m])) / max(sum(rate(event_bus_requests_total[5m])), 1)) * 100 > 1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Event Bus error rate > 1%"
+          description: "Event bus error rate above 1% for 5 minutes"

@@ -1,0 +1,53 @@
+# HyperStudio Requirements
+# Built for neurodivergent-first video generation with Wav2Lip + Azure TTS
+
+# Core Framework
+fastapi==0.135.3
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+pydantic==2.6.1
+pydantic-settings==2.13.1
+
+# Async & Background Tasks
+aiofiles==23.2.1
+python-dotenv==1.0.1
+
+# AI/ML Models
+torch==2.2.0
+torchvision==0.17.0
+torchaudio==2.2.0
+opencv-python==4.9.0.80
+opencv-contrib-python==4.9.0.80
+numpy==2.4.2
+Pillow==10.2.0
+scipy==1.12.0
+scikit-image==0.22.0
+librosa==0.10.1
+soundfile==0.12.1
+
+# Wav2Lip Dependencies
+wyn-wav2lip==0.1.0
+face-alignment==1.4.1
+dlib==19.24.2
+
+# Azure TTS
+azure-cognitiveservices-speech==1.35.0
+
+# Supabase
+supabase==2.3.4
+postgrest==0.13.2
+
+# Video Processing
+ffmpeg-python==0.2.0
+moviepy==2.2.1
+
+# Utilities
+tqdm==4.66.1
+requests==2.31.0
+httpx==0.26.0
+
+# Development
+pytest==9.0.2
+pytest-asyncio>=0.23.0
+black==24.1.1
+ruff==0.2.1

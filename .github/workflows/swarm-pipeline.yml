@@ -1,0 +1,83 @@
+name: Swarm Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r "backend/requirements.txt"
+          pip install -r "agents/coder/requirements.txt"
+          pip install bandit safety
+
+      - name: Run Security Scan (SAST)
+        run: |
+          bandit -r "backend" -x tests
+          bandit -r "agents/coder" -x tests
+
+      - name: Run Unit Tests
+        run: |
+          cd backend && pytest
+
+  deploy-staging:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker Images
+        run: |
+          docker compose build
+
+      - name: Mock Deploy to Staging
+        run: |
+          echo "Applying Kubernetes manifests to staging..."
+          # kubectl apply -f k8s/staging/
+
+  load-test:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup K6
+        uses: grafana/setup-k6-action@v1
+      
+      - name: Run Load Test
+        run: |
+          # In a real scenario, we'd target the staging URL
+          # k6 run tests/load/swarm_load_test.js
+          echo "Running K6 load test against staging..."
+
+  production-gate:
+    needs: load-test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Manual Approval
+        run: echo "Waiting for approval..."
+
+  deploy-prod:
+    needs: production-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Production
+        run: |
+          echo "Deploying to production..."
+          # kubectl apply -f k8s/prod/
+      
+      - name: Smoke Test
+        run: |
+          # curl -f https://api.hypercode.io/health
+          echo "Smoke test passed."

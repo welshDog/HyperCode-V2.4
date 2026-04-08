@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hypercode": {
+      "type": "sse",
+      "url": "http://localhost:8823/sse",
+      "description": "HyperCode AI agent stack — manage agents, tasks, plans, logs and BROski$ economy"
+    }
+  }
+}

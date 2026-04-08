@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  broski-bot:
+    build: .
+    container_name: broski-bot-v3
+    restart: unless-stopped
+    volumes:
+      - ./database:/app/database
+      - ./logs:/app/logs
+      - ./backups:/app/backups
+    env_file:
+      - .env
+    networks:
+      - broski-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: broski-redis
+    restart: unless-stopped
+    networks:
+      - broski-net
+
+networks:
+  broski-net:
+    driver: bridge

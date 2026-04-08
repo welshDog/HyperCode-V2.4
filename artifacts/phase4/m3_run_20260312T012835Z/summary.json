@@ -1,0 +1,7 @@
+{
+  "detection_latency_seconds": -63908875732.6,
+  "success_remediation_sla": true,
+  "evidence_dir": "artifacts/phase4/m3_run_20260312T012835Z",
+  "success_detection_sla": true,
+  "remediation_latency_seconds": 0.0
+}

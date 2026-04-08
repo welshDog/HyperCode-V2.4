@@ -1,0 +1,345 @@
+# docker-compose.agents.yml — HyperCode V2.0 Full Agent Stack
+# Self-contained: brings up infra + all agents. No external networks required.
+# Run: docker compose -f docker-compose.agents.yml up -d
+#
+# HOT-RELOAD: Add --watch flag for live code updates:
+#   docker compose -f docker-compose.agents.yml up --watch
+# This enables develop.watch on all agent services for sync-on-change.
+
+networks:
+  hypercode-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+
+services:
+
+  # ── INFRA ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine          # I2 fix: aligned with main docker-compose.yml
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: hypercode
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+
+  docker-socket-proxy:
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: "1"
+      IMAGES: "1"
+      BUILD: "0"
+      VOLUMES: "1"
+      NETWORKS: "1"
+      INFO: "1"
+      PING: "1"
+      VERSION: "1"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /run
+      - /var/lib/haproxy
+    read_only: true
+
+  docker-socket-proxy-build:
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    restart: unless-stopped
+    networks: [hypercode-net]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: "1"
+      IMAGES: "1"
+      BUILD: "1"
+      VOLUMES: "1"
+      NETWORKS: "1"
+      INFO: "1"
+      PING: "1"
+      VERSION: "1"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /run
+      - /var/lib/haproxy
+    read_only: true
+
+  # ── CORE AGENTS ───────────────────────────────────────────
+  healer-agent:                        # H4 fix: renamed from 'healer' to match main compose + lite file
+    build: ./agents/healer
+    restart: always                    # 🩺 ALWAYS — cannot die
+    ports: ["127.0.0.1:8008:8008"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
+      interval: 15s
+      retries: 3
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
+    develop:
+      watch:
+        - path: ./agents/healer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/healer/requirements.txt
+          action: rebuild
+
+  architect:
+    build: ./agents/architect
+    restart: unless-stopped
+    ports: ["127.0.0.1:8080:8080"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    depends_on:
+      healer-agent: {condition: service_healthy}   # H4 fix: updated reference
+      docker-socket-proxy: {condition: service_started}
+    healthcheck:                       # M2 fix: added health check so system-architect can depend on it
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      REDIS_URL: redis://redis:6379
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
+
+  crew-orchestrator:
+    build: ./agents/crew-orchestrator
+    restart: unless-stopped
+    ports: ["127.0.0.1:8081:8081"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
+    develop:
+      watch:
+        - path: ./agents/crew-orchestrator
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/crew-orchestrator/requirements.txt
+          action: rebuild
+
+  # ── SPECIALIST AGENTS ─────────────────────────────────────
+  coder:
+    build: ./agents/coder
+    restart: unless-stopped
+    ports: ["127.0.0.1:8002:8000"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+    develop:
+      watch:
+        - path: ./agents/coder
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/coder/requirements.txt
+          action: rebuild
+    environment:
+      CORE_URL: http://crew-orchestrator:8081
+      AGENT_PORT: "8000"
+
+  agent-x:
+    build: ./agents/agent-x
+    restart: unless-stopped
+    ports: ["127.0.0.1:8083:8000"]
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+      docker-socket-proxy-build: {condition: service_started}
+    develop:
+      watch:
+        - path: ./agents/agent-x
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/agent-x/requirements.txt
+          action: rebuild
+    environment:
+      AGENT_NAME: agent-x-01
+      AGENT_PORT: "8000"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+    volumes:
+      - .:/workspace
+
+  frontend-specialist:
+    build: ./agents/01-frontend-specialist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+    develop:
+      watch:
+        - path: ./agents/01-frontend-specialist
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/01-frontend-specialist/requirements.txt
+          action: rebuild
+
+  backend-specialist:
+    build: ./agents/02-backend-specialist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+    develop:
+      watch:
+        - path: ./agents/02-backend-specialist
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/02-backend-specialist/requirements.txt
+          action: rebuild
+
+  database-architect:
+    build: ./agents/03-database-architect
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on:
+      postgres: {condition: service_healthy}
+    develop:
+      watch:
+        - path: ./agents/03-database-architect
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/03-database-architect/requirements.txt
+          action: rebuild
+
+  qa-engineer:
+    build: ./agents/04-qa-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+    develop:
+      watch:
+        - path: ./agents/04-qa-engineer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/04-qa-engineer/requirements.txt
+          action: rebuild
+
+  devops-engineer:
+    build: ./agents/05-devops-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    develop:
+      watch:
+        - path: ./agents/05-devops-engineer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/05-devops-engineer/requirements.txt
+          action: rebuild
+    environment:
+      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+    depends_on:
+      docker-socket-proxy-build: {condition: service_started}
+
+  security-engineer:
+    build: ./agents/06-security-engineer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    develop:
+      watch:
+        - path: ./agents/06-security-engineer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/06-security-engineer/requirements.txt
+          action: rebuild
+
+  system-architect:
+    build: ./agents/07-system-architect
+    restart: unless-stopped
+    networks: [hypercode-net]
+    develop:
+      watch:
+        - path: ./agents/07-system-architect
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/07-system-architect/requirements.txt
+          action: rebuild
+    depends_on:                        # M1 fix: modern map syntax (was deprecated list syntax)
+      architect:
+        condition: service_started
+
+  project-strategist:
+    build: ./agents/08-project-strategist
+    restart: unless-stopped
+    networks: [hypercode-net]
+    develop:
+      watch:
+        - path: ./agents/08-project-strategist
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/08-project-strategist/requirements.txt
+          action: rebuild
+    depends_on:
+      crew-orchestrator: {condition: service_started}
+
+  tips-tricks-writer:                  # H4 fix: renamed from 'tips-writer' to match lite file
+    build: ./agents/09-tips-tricks-writer
+    restart: unless-stopped
+    networks: [hypercode-net]
+    develop:
+      watch:
+        - path: ./agents/09-tips-tricks-writer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/09-tips-tricks-writer/requirements.txt
+          action: rebuild
+
+  # ── INTERFACE LAYER ───────────────────────────────────────
+  broski-terminal:
+    build: ./agents/broski-bot
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:3000"]    # I3 fix: localhost-only
+    networks: [hypercode-net]
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN}

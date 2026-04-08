@@ -1,0 +1,202 @@
+# docker-compose.hyper-agents.yml — HyperCode V2.0 Hyper Agents Layer
+# ======================================================================
+# Adds ArchitectAgent, ObserverAgent, and WorkerAgent to the stack.
+#
+# Standalone (includes its own infra):
+#   docker compose -f docker-compose.agents.yml -f docker-compose.hyper-agents.yml up -d
+#
+# Overlay only (hyper-agents on top of already-running agents stack):
+#   docker compose -f docker-compose.agents.yml -f docker-compose.hyper-agents.yml up -d \
+#     hyper-architect hyper-observer hyper-worker
+#
+# HOT-RELOAD (with live code sync):
+#   docker compose -f docker-compose.agents.yml -f docker-compose.hyper-agents.yml up --watch
+#
+# All three agents:
+#   - Build from repo root (context: .) so they can COPY src/agents/hyper_agents/
+#   - Expose /health, /info, plus agent-specific REST endpoints
+#   - Register with Crew Orchestrator on startup (non-blocking)
+#   - Restart unless-stopped (healer will recover them if they crash)
+# ======================================================================
+
+networks:
+  hypercode-net:
+    driver: bridge
+
+
+services:
+
+  # ── 🧠 Architect Agent — Goal Planning & Dependency Resolution ────────────
+  hyper-architect:
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/architect/Dockerfile
+    hostname: hyper-architect
+    ports:
+      - "127.0.0.1:8091:8091"
+    develop:
+      watch:
+        - path: ./agents/hyper-agents/architect
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./src/agents/hyper_agents
+          action: sync+restart
+          target: /app/src/agents/hyper_agents
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/hyper-agents/architect/requirements.txt
+          action: rebuild
+    environment:
+      AGENT_NAME: lead-architect-01
+      AGENT_PORT: "8091"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - hypercode-net
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "architect"
+      hypercode.version: "2.0"
+
+  # ── 👁️ Observer Agent — Metrics, Alerting & Pattern Detection ─────────────
+  hyper-observer:
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/observer/Dockerfile
+    hostname: hyper-observer
+    ports:
+      - "127.0.0.1:8092:8092"
+    develop:
+      watch:
+        - path: ./agents/hyper-agents/observer
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./src/agents/hyper_agents
+          action: sync+restart
+          target: /app/src/agents/hyper_agents
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/hyper-agents/observer/requirements.txt
+          action: rebuild
+    environment:
+      AGENT_NAME: sys-observer-01
+      AGENT_PORT: "8092"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      REDIS_URL: redis://redis:6379
+      OBSERVER_WINDOW_SIZE: "200"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - hypercode-net
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "observer"
+      hypercode.version: "2.0"
+
+  # ── ⚡ Worker Agent — Task Execution with Retry & Priority Queue ──────────
+  hyper-worker:
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/worker/Dockerfile
+    hostname: hyper-worker
+    ports:
+      - "127.0.0.1:8093:8093"
+    develop:
+      watch:
+        - path: ./agents/hyper-agents/worker
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./src/agents/hyper_agents
+          action: sync+restart
+          target: /app/src/agents/hyper_agents
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/hyper-agents/worker/requirements.txt
+          action: rebuild
+    environment:
+      AGENT_NAME: task-worker-01
+      AGENT_PORT: "8093"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERFOCUS_MODE: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - hypercode-net
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "worker"
+      hypercode.version: "2.0"
+
+  # ── 🦅 Agent X — Meta-Architect (Design / Deploy / Evolve) ───────────────
+  agent-x:
+    build:
+      context: .
+      dockerfile: agents/agent-x/Dockerfile
+    hostname: agent-x
+    ports:
+      - "127.0.0.1:8084:8080"
+    develop:
+      watch:
+        - path: ./agents/agent-x
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/agent-x/requirements.txt
+          action: rebuild
+    environment:
+      AGENT_NAME: agent-x-01
+      AGENT_PORT: "8080"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
+      OLLAMA_HOST: http://hypercode-ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}  # upgraded from phi3 — 2GB, fast JSON, code-focused
+      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+      WORKSPACE_PATH: /workspace
+      HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
+      AGENTS_COMPOSE: /workspace/docker-compose.agents.yml
+      OBSERVER_URL: http://hyper-observer:8092
+      WORKER_URL: http://hyper-worker:8093
+      ARCHITECT_URL: http://hyper-architect:8091
+      AGENT_HEALTH_THRESHOLD: "60"
+      LLM_TIMEOUT_SECONDS: "120"
+    volumes:
+      # Repo root — required for reading/writing agent code and Dockerfiles
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - hypercode-net
+    depends_on:
+      - hyper-architect
+      - hyper-observer
+      - hyper-worker
+      - docker-socket-proxy-build
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "architect"
+      hypercode.version: "2.0"
+      hypercode.role: "meta-architect"

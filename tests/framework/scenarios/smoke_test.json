@@ -1,0 +1,50 @@
+{
+  "id": "smoke_test_001",
+  "name": "Orchestrator Smoke Test",
+  "description": "Basic health and status checks for the Orchestrator",
+  "cases": [
+    {
+      "id": "health_check",
+      "name": "Check System Health",
+      "agent": "orchestrator",
+      "endpoint": "/health",
+      "method": "GET",
+      "payload": {},
+      "expected_results": [
+        {
+          "method": "status_code",
+          "value": 200
+        },
+        {
+          "method": "contains",
+          "value": "healthy"
+        }
+      ]
+    },
+    {
+      "id": "agents_status",
+      "name": "Check Agents Status",
+      "agent": "orchestrator",
+      "endpoint": "/agents/status",
+      "method": "GET",
+      "payload": {},
+      "expected_results": [
+        {
+          "method": "status_code",
+          "value": 200
+        },
+        {
+            "method": "json_schema",
+            "value": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "required": ["agent", "status"]
+                }
+            },
+            "description": "Response should be a list of agents"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+# 🔴 COPY-PASTE FIX #1: Redis with Memory Cap
+# Replace lines 29-44 in your docker-compose.yml with this:
+
+redis:
+  image: redis:7-alpine
+  container_name: redis
+  command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis-data:/data
+  networks:
+    - backend-net
+    - data-net
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+  restart: unless-stopped
+  deploy:
+    resources:
+      limits:
+        cpus: "0.5"
+        memory: 512M
+      reservations:
+        cpus: "0.25"
+        memory: 256M
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+  security_opt:
+    - no-new-privileges:true
+
+# ✅ What This Adds:
+# - Memory cap at 512MB (prevents OOM kills)
+# - LRU eviction (auto-removes old keys when full)
+# - Persistence (saves data every 60s if 1000+ keys changed)
+# - Docker-level resource limits (CPU + memory)
+# - Logging and security (already good, keeping consistent)
+
+# 🧪 Test It Works:
+# docker-compose up -d redis
+# docker exec redis redis-cli CONFIG GET maxmemory
+# # Should show: 536870912 (512MB in bytes)

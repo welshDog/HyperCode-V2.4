@@ -1,0 +1,114 @@
+service_identity:
+  name: "security-engineer"
+  codename: "🔒 The Guardian"
+  version: "2.0.0"
+  created: "2024-03-23"
+  core_purpose: |
+    Performs security audits, vulnerability scanning, penetration testing,
+    and compliance checks. Focuses on OWASP top 10, data protection,
+    authentication, and threat modeling.
+
+  contact:
+    owner: "Lyndz"
+    slack: "#security-agents"
+
+responsibility_matrix:
+  primary_role: "VALIDATOR"
+  owns:
+    - "Security audits"
+    - "Vulnerability scanning"
+    - "Compliance checks (OWASP, GDPR)"
+    - "Threat modeling"
+  
+  critical_dependencies:
+    - hypercode-core:8000 → "Task requests"
+  
+  critical_dependents:
+    - "crew-orchestrator (receives security reports)"
+
+communication_contract:
+  input_endpoints:
+    - "POST /audit"
+      request: |
+        {
+          "target": "hypercode-core:8000",
+          "scan_type": "owasp-top-10"
+        }
+      response: |
+        {
+          "vulnerabilities": [...],
+          "severity": "low",
+          "latency_ms": 480
+        }
+      latency_slo_ms: 600
+
+performance_slos:
+  latency_p99_ms: 600
+  error_rate_max: 0.01
+  availability_percent: 99.0
+
+failure_modes:
+  
+  - mode_id: "scan_tool_missing"
+    description: "OWASP ZAP or scanning tool not installed"
+    symptoms:
+      - "Command not found: zap, trivy, or other tools"
+    recovery_steps:
+      - "1. Install: apt-get install <tool>"
+      - "2. Verify: <tool> --version"
+    expected_mttr_minutes: 2
+    user_impact: "CRITICAL"
+    sev: "P1"
+  
+  - mode_id: "network_access_denied"
+    description: "Cannot reach target endpoint for scanning"
+    symptoms:
+      - "Connection refused to target service"
+      - "Firewall blocks access"
+    recovery_steps:
+      - "1. Check: Target service running? (curl http://target:port/health)"
+      - "2. Check: Network routing (docker network inspect)"
+      - "3. Check: Firewall rules (iptables or cloud provider)"
+    expected_mttr_minutes: 5
+    user_impact: "DEGRADED"
+    sev: "P2"
+
+metrics_to_monitor:
+  
+  - name: "vulnerabilities_found"
+    prometheus_query: "security_vulnerabilities_total{job='security-engineer'}"
+    alert_if: "... > 0"  # Alert on any vulnerabilities
+  
+  - name: "scan_completion_rate"
+    prometheus_query: "rate(scans_completed_total{job='security-engineer'}[5m]) / rate(scans_requested_total{job='security-engineer'}[5m])"
+    alert_if: "... < 0.95"
+
+deployment:
+  image_repository: "ghcr.io/welshdog"
+  image_name: "security-engineer"
+  image_tag: "latest"
+  
+  docker_compose:
+    service_name: "security-engineer"
+    container_name: "security-engineer"
+    ports:
+      - "8007:8007"
+  
+  environment_variables:
+    CORE_URL: "http://hypercode-core:8000"
+
+versioning:
+  current_version: "2.0.0"
+
+on_call_playbook:
+  
+  alert_vulnerabilities_found:
+    trigger: "Any vulnerability detected"
+    actions:
+      - "1. Severity: Check vulnerability CVSS score"
+      - "2. Impact: Determine if exploitable in production"
+      - "3. Fix: Apply patch or workaround"
+      - "4. Rescan: Verify fix resolves issue"
+
+support_contacts:
+  primary_engineer: "Lyndz"

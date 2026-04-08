@@ -1,0 +1,42 @@
+{
+  "title": "SSE Agent Registry",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "SSE Clients (rate 5m)",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "job:agent_stream_clients_total:rate_5m" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Latency p50/p95/p99 (ms)",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "job:agent_stream_latency_ms:hist_p50", "legendFormat": "p50" },
+        { "expr": "job:agent_stream_latency_ms:hist_p95", "legendFormat": "p95" },
+        { "expr": "job:agent_stream_latency_ms:hist_p99", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Registry Errors (rate by op)",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "job:agent_registry_errors_total:rate_5m", "legendFormat": "{{operation}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Stream Throughput",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "sum(rate(agent_stream_latency_ms_count[5m]))", "legendFormat": "events/s" }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "version": 1
+}

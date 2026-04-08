@@ -1,0 +1,95 @@
+# HyperCode V2.4 — Pre-commit Hook Configuration
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+# Update hooks: pre-commit autoupdate
+
+repos:
+
+  # ── General file hygiene ─────────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: check-added-large-files
+        args: [--maxkb=2000]
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # ── Python: Ruff (lint + format) ─────────────────────────────────────────
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        files: ^(backend|agents|tools|tests)/
+      - id: ruff-format
+        args: [--check]
+        files: ^(backend|agents|tools|tests)/
+
+  # ── Python: Bandit (SAST) ────────────────────────────────────────────────
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        name: bandit (security)
+        args: ["-ll", "-ii", "--skip", "B101,B601"]
+        files: ^(backend|agents|tools)/
+        exclude: tests/
+
+  # ── Secret detection ─────────────────────────────────────────────────────
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          (?x)^(
+            package-lock\.json|
+            \.secrets\.baseline|
+            .*\.lock
+          )$
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.0
+    hooks:
+      - id: gitleaks
+        name: gitleaks (secrets)
+
+  # ── Dockerfile linting ───────────────────────────────────────────────────
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        name: hadolint (Dockerfile lint)
+        args:
+          - --ignore=DL3008   # pin apt versions — too strict for dev images
+          - --ignore=DL3009   # delete apt lists — handled in prod Dockerfile
+          - --ignore=DL3018   # pin apk — same rationale
+          - --failure-threshold=warning
+
+  # ── YAML linting ─────────────────────────────────────────────────────────
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        name: yamllint
+        args:
+          - -d
+          - "{extends: relaxed, rules: {line-length: {max: 160}, truthy: {allowed-values: ['true','false','on','off']}}}"
+        files: \.(yaml|yml)$
+        exclude: ^(helm/|\.github/workflows/)
+
+  # ── Commit message lint ──────────────────────────────────────────────────
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.4.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

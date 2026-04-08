@@ -1,0 +1,43 @@
+{
+  "title": "Voice Coding Observability",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "STT Latency p50/p95/p99",
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(stt_latency_seconds_bucket[5m])) by (le))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(stt_latency_seconds_bucket[5m])) by (le))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(stt_latency_seconds_bucket[5m])) by (le))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "STT Error Rate by Provider",
+      "targets": [
+        { "expr": "sum(rate(stt_errors_total[5m])) by (provider)", "legendFormat": "{{provider}}" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Transcription Confidence Distribution",
+      "targets": [
+        { "expr": "sum(rate(stt_confidence_bucket[5m])) by (le)", "legendFormat": "confidence" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Voice Command Exec Duration Avg",
+      "targets": [
+        { "expr": "rate(voice_command_exec_duration_seconds_sum[5m]) / rate(voice_command_exec_duration_seconds_count[5m])", "legendFormat": "avg" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Active Voice WS Connections",
+      "targets": [
+        { "expr": "sum(rate(voice_ws_connections_total[5m]))", "legendFormat": "connections/s" }
+      ]
+    }
+  ]
+}

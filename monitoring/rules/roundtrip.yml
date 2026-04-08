@@ -1,0 +1,14 @@
+groups:
+  - name: roundtrip_worker_alerts
+    interval: 5m
+    rules:
+      - alert: RoundtripLatencyHigh
+        expr: histogram_quantile(0.99, sum by (le) (rate(roundtrip_latency_seconds_bucket{job="roundtrip-worker"}[5m]))) > 5
+        labels:
+          severity: critical
+          service: roundtrip-worker
+          team: platform
+        annotations:
+          summary: "Roundtrip worker latency p99 above threshold"
+          description: "p99 latency exceeded 5s for roundtrip-worker. Investigate Ollama availability, network, and worker load."
+          runbook: "Check Prometheus targets for roundtrip-worker, inspect Jaeger traces for generate span, and verify Ollama logs."

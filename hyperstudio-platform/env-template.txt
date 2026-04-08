@@ -1,0 +1,47 @@
+# HyperStudio Environment Configuration
+# Copy this to .env and fill in your values!
+
+# ===== Azure Speech Services =====
+# Get free tier (500k characters/month) at: https://portal.azure.com
+AZURE_SPEECH_KEY=your_azure_key_here
+AZURE_SPEECH_REGION=uksouth
+
+# ===== Supabase =====
+# From your Supabase project settings
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=your_supabase_anon_key_here
+SUPABASE_SERVICE_KEY=your_service_role_key_here
+
+# ===== Application Settings =====
+ENVIRONMENT=development
+DEBUG=True
+
+# ===== GPU Settings =====
+# Which GPU to use (0 for first GPU)
+GPU_DEVICE=0
+# Max parallel video processing jobs
+MAX_WORKERS=2
+
+# ===== Paths =====
+# These are inside the Docker container
+MODELS_DIR=models
+AVATARS_DIR=avatars
+TEMP_DIR=/tmp/hyperstudio
+
+# ===== Model Settings =====
+WAV2LIP_MODEL_PATH=models/wav2lip_gan.pth
+FACE_DETECTION_MODEL=models/face_detection/s3fd.pth
+WAV2LIP_QUALITY=Enhanced
+
+# ===== Video Settings =====
+VIDEO_FPS=25
+VIDEO_CODEC=libx264
+AUDIO_CODEC=aac
+VIDEO_BITRATE=2000k
+
+# ===== Defaults =====
+DEFAULT_VOICE_ID=en-GB-RyanNeural
+DEFAULT_AVATAR_ID=broski_default
+
+# ===== Processing =====
+PROCESSING_TIMEOUT=300

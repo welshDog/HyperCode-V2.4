@@ -1,0 +1,8 @@
+# CI Smoke Check
+# This file exists purely to trigger the full CI pipeline for validation.
+# Safe to delete after confirming:
+#   - quality-gate.yml runs and passes
+#   - CodeQL appears in the PR Checks tab
+#   - All required checks are green
+#
+# Created: 2026-04-07

@@ -1,0 +1,91 @@
+{
+	"info": {
+		"_postman_id": "b3e3e3e3-e3e3-e3e3-e3e3-e3e3e3e3e3e3",
+		"name": "Hyper-Mission API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Tasks",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/tasks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Task",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"New Mission\",\n    \"description\": \"Test\",\n    \"impact\": 8,\n    \"effort\": 3,\n    \"urgency\": \"high\",\n    \"due_date\": \"2024-12-31\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/tasks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Mark Done",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"evidence_link\": \"http://github.com/pr/1\",\n    \"peer_review_checked\": true\n}"
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/tasks/1/done",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"tasks",
+						"1",
+						"done"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

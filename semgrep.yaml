@@ -1,0 +1,39 @@
+# HyperCode V2.4 — Semgrep SAST Configuration
+# Docs: https://semgrep.dev/docs/running-rules/
+# Run locally: semgrep --config semgrep.yaml .
+
+rules: []   # project-specific rules live here; rulesets pulled via CI
+
+# ── CI invocation (reference) ────────────────────────────────────────────
+# semgrep scan \
+#   --config "p/python"            \   # Python security rules
+#   --config "p/flask"             \   # Flask/FastAPI patterns
+#   --config "p/secrets"           \   # Hardcoded secrets
+#   --config "p/jwt"               \   # JWT misuse
+#   --config "p/docker"            \   # Docker security
+#   --config "p/owasp-top-ten"     \   # OWASP Top 10
+#   --config semgrep.yaml          \   # this file (project overrides)
+#   --sarif --output reports/semgrep.sarif \
+#   --error                        \   # non-zero exit on findings
+#   --severity ERROR               \   # only block on ERROR severity
+#   --exclude "tests/"             \
+#   --exclude "*.lock"             \
+#   --exclude "node_modules/"
+
+# ── Severity mapping ─────────────────────────────────────────────────────
+# ERROR   → blocks CI (injection, RCE, secrets, auth bypass)
+# WARNING → reported, does not block CI
+# INFO    → informational only
+
+# ── False-positive suppressions ──────────────────────────────────────────
+# Add inline: # nosemgrep: rule-id
+# Add path-level below under paths.exclude
+paths:
+  exclude:
+    - tests/
+    - "**/*.lock"
+    - node_modules/
+    - .venv/
+    - migrations/
+    - "agents/broski-bot/_archive/"
+    - "new-fix-0.1/"

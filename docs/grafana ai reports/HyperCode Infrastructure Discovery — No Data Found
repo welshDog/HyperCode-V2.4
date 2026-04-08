@@ -1,0 +1,14 @@
+# HyperCode Infrastructure Discovery — No Data Found
+
+All HyperCode datasources are empty during the discovery window (2026-03-22T18:09:24Z to 2026-03-22T19:09:24Z). Comprehensive scans of grafanacloud-prom, grafanacloud-ml-metrics, grafanacloud-logs, grafanacloud-traces, and grafanacloud-profiles found zero metrics, logs, traces, or profiling data. No Redis, PostgreSQL, Docker, or FastAPI infrastructure could be discovered. The observability stack is provisioned but not ingesting data—likely due to unconfigured exporters or future timestamp mismatch.
+
+
+## Recommendations
+
+- Install metric exporters to populate grafanacloud-prom: - Redis exporter: Expose redis_* metrics (connections, memory, keyspace) - PostgreSQL exporter: Expose pg_* metrics (connections, query performance, table statistics) - cAdvisor or node-exporter: Expose container_* metrics (CPU, memory, network per container)
+- Add Prometheus client libraries to FastAPI services to expose: - http_requests_total (counter by method, endpoint, status) - http_request_duration_seconds (histogram for latency tracking) - Custom business metrics for HyperCode-specific operations
+- Deploy OpenTelemetry collectors to populate grafanacloud-traces with service topology and dependency graphs for Redis, PostgreSQL, and FastAPI interactions.
+- Investigation timestamp (March 2026) may be in the future. Confirm current system time matches data ingestion period, or query historical data if metrics exist outside this window.
+
+
+<https://hypercode.grafana.net/a/grafana-assistant-app/investigations/39267c9e-f7bc-4e3a-814f-ea9f28e66c3d#summary|View investigation in Grafana>

@@ -1,0 +1,60 @@
+name: \uD83E\uDDEA Unit Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  python-unit:
+    name: Python Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt pytest pytest-asyncio pytest-cov
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ \
+            --asyncio-mode=auto \
+            --cov=backend \
+            --cov=agents/shared \
+            --cov-report=xml:reports/coverage-python.xml \
+            --cov-report=html:reports/coverage-html \
+            --junitxml=reports/junit-python.xml \
+            -v
+      - name: Upload Python coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage
+          path: reports/
+
+  frontend-unit:
+    name: Frontend Unit Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agents/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: agents/dashboard/package-lock.json
+      - run: npm ci
+      - name: Run Vitest
+        run: |
+          npx vitest run \
+            --reporter=verbose \
+            --reporter=junit \
+            --outputFile=../../reports/junit-frontend.xml \
+            --coverage \
+            --coverage.reporter=lcov \
+            --coverage.reportsDirectory=../../reports/coverage-frontend
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: reports/

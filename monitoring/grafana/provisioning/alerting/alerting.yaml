@@ -1,0 +1,35 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: "HyperCode Discord"
+    receivers:
+      - uid: "broski_discord"
+        type: discord
+        settings:
+          url: "https://discord.com/api/webhooks/1476536263669579797/_7MOawyw66xXk2JSQOoe38paWH-KnIyHE4mUoRVlUGS2WOdEpRU0h1jh4FzbPJfbuCH2"
+          message: |
+            {{ template "broski.alert" . }}
+        disableResolveMessage: false
+
+templates:
+  - orgId: 1
+    name: "broski.alert"
+    template: |
+      {{ define "broski.alert" }}
+      🤖 YO! {{ .CommonLabels.alertname }} just fired on {{ .CommonLabels.container }}
+      Status: {{ .Status | toUpper }}
+      {{ range .Alerts }}
+        🔥 {{ .Annotations.summary }}
+        Value: {{ .Values.A }}
+        Started: {{ .StartsAt }}
+      {{ end }}
+      {{ end }}
+
+policies:
+  - orgId: 1
+    receiver: "HyperCode Discord"
+    group_by: ["alertname"]
+    group_wait: "10s"
+    group_interval: "5m"
+    repeat_interval: "4h"

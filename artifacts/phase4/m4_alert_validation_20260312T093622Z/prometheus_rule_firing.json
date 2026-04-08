@@ -1,0 +1,35 @@
+{
+  "state": "firing",
+  "name": "CrewOrchestratorDown",
+  "query": "up{job=\"crew-orchestrator\"} == 0",
+  "duration": 60,
+  "keepFiringFor": 0,
+  "labels": {
+    "severity": "critical"
+  },
+  "annotations": {
+    "description": "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute.",
+    "summary": "Crew Orchestrator metrics target is down"
+  },
+  "alerts": [
+    {
+      "labels": {
+        "alertname": "CrewOrchestratorDown",
+        "instance": "crew-orchestrator:8080",
+        "job": "crew-orchestrator",
+        "severity": "critical"
+      },
+      "annotations": {
+        "description": "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute.",
+        "summary": "Crew Orchestrator metrics target is down"
+      },
+      "state": "firing",
+      "activeAt": "2026-03-12T09:36:42.304220504Z",
+      "value": "0e+00"
+    }
+  ],
+  "health": "ok",
+  "evaluationTime": 0.001194782,
+  "lastEvaluation": "2026-03-12T09:37:57.291728002Z",
+  "type": "alerting"
+}

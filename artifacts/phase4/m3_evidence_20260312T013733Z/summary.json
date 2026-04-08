@@ -1,0 +1,11 @@
+{
+  "recovered_utc": "2026-03-12T01:37:55.7950974Z",
+  "evidence_dir": "artifacts/phase4/m3_evidence_20260312T013733Z",
+  "success_detection_sla": true,
+  "kill_utc": "2026-03-12T01:37:39.1516728Z",
+  "remediation_latency_seconds": 7.3,
+  "success_remediation_sla": true,
+  "detect_utc": "2026-03-12T01:37:48.4612594Z",
+  "detection_latency_seconds": 9.3,
+  "baseline_utc": "2026-03-12T01:37:36.7686543Z"
+}
