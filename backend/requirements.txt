@@ -291,7 +291,7 @@ strawberry-graphql==0.311.3
 streamlit==1.48.0
 structlog==24.1.0
 sympy==1.14.0
-tenacity==9.1.2
+tenacity==9.1.4
 threadpoolctl==3.6.0
 tokenizers==0.21.4
 toml==0.10.2
