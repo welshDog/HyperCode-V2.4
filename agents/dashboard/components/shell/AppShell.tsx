@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NDToggle } from '@/components/ui/NDToggle'
 import { ViewModeToggle, type ViewMode } from '@/components/shell/ViewModeToggle'
+import { ToastProvider } from '@/components/ui/ToastProvider'
 
 type ShellContextValue = {
   ndMode: string
@@ -46,41 +47,43 @@ export function AppShell({ children }: { children: React.ReactNode }): React.JSX
 
   return (
     <ShellContext.Provider value={ctx}>
-      <div className="hc-app">
-        <header className="hc-topbar">
-          <div className="hc-topbar-left">
-            <span className="hc-brand">
-              <span className="hc-brand-mark">🦅</span>
-              <span className="hc-brand-text">WelshDog HyperCode IDE</span>
-            </span>
-          </div>
-          <div className="hc-topbar-right">
-            <NDToggle value={ndMode} onChange={setNdMode} />
-            {isMission && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
-          </div>
-        </header>
+      <ToastProvider>
+        <div className="hc-app">
+          <header className="hc-topbar">
+            <div className="hc-topbar-left">
+              <span className="hc-brand">
+                <span className="hc-brand-mark">🦅</span>
+                <span className="hc-brand-text">WelshDog HyperCode IDE</span>
+              </span>
+            </div>
+            <div className="hc-topbar-right">
+              <NDToggle value={ndMode} onChange={setNdMode} />
+              {isMission && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
+            </div>
+          </header>
 
-        <aside className="hc-sidebar" aria-label="Primary navigation">
-          <nav className="hc-nav">
-            {NAV_ITEMS.map((item) => {
-              const active = pathname === item.href
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`hc-nav-item${active ? ' active' : ''}`}
-                >
-                  {item.label}
-                </Link>
-              )
-            })}
-          </nav>
-        </aside>
+          <aside className="hc-sidebar" aria-label="Primary navigation">
+            <nav className="hc-nav">
+              {NAV_ITEMS.map((item) => {
+                const active = pathname === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`hc-nav-item${active ? ' active' : ''}`}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+          </aside>
 
-        <main className="hc-main" role="main">
-          {children}
-        </main>
-      </div>
+          <main className="hc-main" role="main">
+            {children}
+          </main>
+        </div>
+      </ToastProvider>
     </ShellContext.Provider>
   )
 }

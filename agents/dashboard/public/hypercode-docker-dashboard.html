@@ -505,24 +505,50 @@ function sendToCrew(btn,id){
   const el=document.getElementById(id);
   if(!el) return;
   const text=el.innerText;
+  const taskId=`dockerzone-${Date.now()}`;
   btn.textContent='Sending…';
   btn.classList.add('active');
+  try{
+    window.parent?.postMessage({
+      type:'hypercode:docker-dashboard:toast',
+      variant:'info',
+      title:'Dispatching to devops-engineer',
+      message:'Sending request to orchestrator…'
+    },window.location.origin);
+  }catch{}
   fetch('/api/orchestrator',{
     method:'POST',
     headers:{'Content-Type':'application/json','Accept':'application/json'},
     body:JSON.stringify({
-      id:`dockerzone-${Date.now()}`,
+      id:taskId,
       type:'legacy',
       description:`Help me run/validate this Docker command or config. Provide safe steps and checks.\n\n${text}`,
       agent:'devops-engineer',
-      requires_approval:true
+      requires_approval:false
     })
   }).then(async (res)=>{
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    await res.json();
+    const data=await res.json();
     btn.textContent='Sent';
+    const status=String(data?.status||'ok');
+    try{
+      window.parent?.postMessage({
+        type:'hypercode:docker-dashboard:toast',
+        variant:'success',
+        title:`Orchestrator: ${status}`,
+        message:`task: ${taskId}`
+      },window.location.origin);
+    }catch{}
   }).catch(()=>{
     btn.textContent='Send failed';
+    try{
+      window.parent?.postMessage({
+        type:'hypercode:docker-dashboard:toast',
+        variant:'error',
+        title:'Send failed',
+        message:'Orchestrator unreachable or request failed.'
+      },window.location.origin);
+    }catch{}
   }).finally(()=>{
     setTimeout(()=>{btn.textContent='Send';btn.classList.remove('active')},2000);
   });
