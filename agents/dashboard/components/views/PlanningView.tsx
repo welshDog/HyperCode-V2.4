@@ -65,7 +65,7 @@ export function PlanningView(): React.JSX.Element {
       const data = await res.json()
       // Response may be { plan: ... } or the plan directly
       setPlan(data.plan ?? data)
-      toast({ type: 'success', message: '✅ Plan generated successfully' })
+      toast({ type: 'success', message: '✅ Plan generated successfully', action: { label: 'View', href: '/mission' } })
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Plan generation failed'
       setError(msg)

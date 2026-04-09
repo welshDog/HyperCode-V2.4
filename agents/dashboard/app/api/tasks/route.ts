@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       headers: { Authorization: token, Accept: 'application/json' },
     })
     const text = await res.text()
-    let data: any = null
+    let data: unknown = null
     try {
       data = JSON.parse(text)
     } catch {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     })
     const text = await res.text()
-    let data: any = null
+    let data: unknown = null
     try {
       data = JSON.parse(text)
     } catch {

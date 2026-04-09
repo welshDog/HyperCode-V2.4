@@ -97,7 +97,7 @@ export function TasksView(): React.JSX.Element {
         throw new Error(pickApiErrorMessage(data, `Create task failed (HTTP ${res.status})`))
       }
       setNewDesc('')
-      toast({ variant: 'success', title: 'Task created' })
+      toast({ variant: 'success', title: 'Task created', action: { label: 'View', href: '/' } })
       refetch()
     } catch (err) {
       const msg = toErrorMessage(err, 'Create task failed')
@@ -125,7 +125,7 @@ export function TasksView(): React.JSX.Element {
       })
       const data: unknown = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(pickApiErrorMessage(data, `Complete failed (HTTP ${res.status})`))
-      toast({ variant: 'success', title: 'Task completed', message: label })
+      toast({ variant: 'success', title: 'Task completed', message: label, action: { label: 'View', href: '/' } })
       refetch()
     } catch (err) {
       const msg = toErrorMessage(err, 'Complete failed')
@@ -157,7 +157,7 @@ export function TasksView(): React.JSX.Element {
       })
       const data: unknown = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(pickApiErrorMessage(data, `Dispatch failed (HTTP ${res.status})`))
-      toast({ variant: 'success', title: 'Task dispatched', message: label })
+      toast({ variant: 'success', title: 'Task dispatched', message: label, action: { label: 'View', href: '/' } })
 
       const updateRes = await fetch(`/api/tasks/${encodeURIComponent(String(taskId))}`, {
         method: 'PUT',
