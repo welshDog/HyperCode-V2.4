@@ -23,10 +23,11 @@ async function fetchFromCore(path: string, init?: RequestInit) {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const taskIdNum = Number(params.taskId)
+    const { taskId } = await params
+    const taskIdNum = Number(taskId)
     if (!Number.isFinite(taskIdNum) || taskIdNum <= 0) {
       return NextResponse.json({ error: 'Invalid task id' }, { status: 400 })
     }
