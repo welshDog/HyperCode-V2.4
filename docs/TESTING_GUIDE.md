@@ -1,4 +1,4 @@
-# \uD83E\uDDEA HyperCode V2.0 — Testing Guide
+# 🧪 HyperCode V2.4 — Testing Guide
 
 ## Test Layers
 
@@ -7,7 +7,7 @@
 | Python Unit | pytest | `pytest tests/unit/` | `reports/junit-python.xml` |
 | Frontend Unit | Vitest | `npm run test` | `reports/junit-frontend.xml` |
 | Integration | pytest + httpx | `pytest tests/integration/` | `reports/junit-integration.xml` |
-| E2E UI | Playwright | `npx playwright test` | `reports/e2e-html/` |
+| E2E UI | Playwright | `npx playwright test` | `playwright-report/` |
 | Performance | k6 | `k6 run tests/performance/k6-api-load.js` | `reports/k6-report.json` |
 | Security | Bandit + npm audit | `bash tests/security/run_security.sh` | `reports/bandit-report.json` |
 
@@ -34,10 +34,10 @@ pytest tests/integration/ --asyncio-mode=auto -v -m integration
 
 ### E2E Tests (requires dashboard running)
 ```bash
-docker compose up -d
-npx playwright install
+cd "h:\HyperStation zone\HyperCode\HyperCode-V2.4"
+npx playwright install chromium
 npx playwright test
-npx playwright show-report reports/e2e-html
+npx playwright show-report
 ```
 
 ### Performance Tests

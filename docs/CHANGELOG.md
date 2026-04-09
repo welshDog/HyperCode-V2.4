@@ -2,7 +2,7 @@
 
 > **built with WelshDog + BROski 🚀🌙**
 
-**Doc Tag:** v2.1.0 | **Last Updated:** 2026-03-25
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-04-09
 
 All notable changes to this project will be documented in this file.
 
@@ -37,6 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 🐳 **`docker-compose.yml`** — Pinned `grafana/tempo` image from `latest` to `2.4.2`
 - SQLAlchemy Base migrated to `DeclarativeBase` with SQLAlchemy 2.0 typed models (`Mapped[]`, `mapped_column`)
 - Test suite stability improved via deterministic mocks and reduced external side effects during imports
+
+## [2.4.0] - 2026-04-09
+
+### Added
+- 🐳 **Docker Zone** in Mission Control (`/docker-zone`) with native chrome + live agent status + dispatch buttons
+- 🍞 **Toast system** across dashboard views with action links (e.g., “View”) and a notification history panel + unread badge
+- 🎭 **Playwright E2E** dashboard suite (5 tests) + GitHub Actions workflow
+
+### Changed
+- 🧪 Updated testing docs to reflect Playwright config + report locations
+- 📊 Prometheus: reduced `node-exporter` scrape noise by increasing scrape interval/timeout
 
 ## [2.0.0] - 2026-01-15
 

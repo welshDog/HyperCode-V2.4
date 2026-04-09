@@ -1,6 +1,6 @@
 # 👁️ Observability & Monitoring Guide
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-04-09
 
 HyperCode V2.0 ships an observability stack built on **Prometheus**, **Grafana**, **Loki**, **Promtail**, and **Tempo**.
 
@@ -18,6 +18,21 @@ The system automatically scrapes metrics from all core services.
 *   `minio:9000` (Object Storage Metrics)
 *   `node-exporter:9100` (Host System Metrics)
 *   `cadvisor:8080` (Container Metrics)
+
+### Node Exporter "broken pipe" logs
+If you see noisy `broken pipe` / `connection reset by peer` logs from `node-exporter`, it’s usually Prometheus scrapes being cut mid-response. It is typically harmless, but you can reduce noise by scraping `node-exporter` less frequently:
+
+```yaml
+- job_name: "node-exporter"
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  static_configs:
+    - targets: ["node-exporter:9100"]
+```
+
+Config locations in this repo:
+- `prometheus.yml`
+- `monitoring/prometheus/prometheus.yml`
 
 ### Dashboard Highlights
 *   **HyperStation Mission Control**: Real-time view of active agents, tasks, and system health.

@@ -1,5 +1,8 @@
 🦅 HyperCode V2.0 — Session Report
 Tuesday 24 March 2026 | 21:30 → 22:30 GMT
+
+## Newer Sessions
+- [Session Report (2026-04-09)](session-report-2026-04-09.md)
 ✅ Fleet Status — END OF SESSION
 Container	Status	Port
 hypercode-core	✅ Healthy	:8000

@@ -1,23 +1,23 @@
-# HyperCode V2.0 Documentation
+# HyperCode V2.4 Documentation
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-04-09
 
-Welcome to the **HyperCode V2.0** documentation hub. HyperCode is a next-generation "Cognitive Architecture" designed to help you build, deploy, and evolve AI agent swarms.
+Welcome to the **HyperCode V2.4** documentation hub.
 
 ## 📚 Core Documentation
 
 ### 🚀 Getting Started
-*   [**Installation Guide**](getting-started/installation.md) - Set up the full stack in 2 minutes.
-*   [**Architecture Overview**](architecture/architecture.md) - Understand the system design.
+*   [**Start Here**](START_HERE.md) - Boot the stack and open the dashboards.
+*   [**Quickstart**](guides/QUICKSTART.md) - Fast setup for local dev.
+*   [**Architecture Overview**](ARCHITECTURE.md) - Understand the system design.
 
 ### 🧠 AI & Cognitive Engine
 *   **[The Brain (LLM Routing)](ai/brain-architecture.md)** - How the cognitive core routes local LLM runtime and optional cloud fallback.
 *   **[Cognitive Uplink](ai/cognitive-uplink.md)** - The neural interface for agent communication.
-*   **[AI Integration Notes](notes/ai-integration-notes.md)** - Local LLM runtime options and integration notes.
+*   **[MCP Architecture Notes](notes/MCP_ARCHITECTURE.md)** - Tool gateway design + integration.
 
 ### 🛠️ Development & Engineering
-*   **[MinIO Integration](architecture/minio-integration.md)** - Object storage for long-term memory.
-*   **[Testing Guide](development/testing-guide.md)** - Writing tests and running CI/CD.
+*   **[Testing Guide](TESTING_GUIDE.md)** - Unit + integration + Playwright E2E.
 
 ### 👁️ Observability & Operations
 *   [**Monitoring Guide**](observability/monitoring-guide.md) - Prometheus, Grafana, and Celery.
@@ -35,8 +35,9 @@ These are internal working documents and scratchpads. They may be incomplete, in
 ---
 
 ## 🔗 External Resources
-*   [GitHub Repository](https://github.com/welshDog/HyperCode-V2.0)
+*   [GitHub Repository](https://github.com/welshDog/HyperCode-V2.4)
 *   Local (after startup): [Mission Control Dashboard](http://localhost:8088)
+*   Local (after startup): [Docker Zone](http://localhost:8088/docker-zone)
 *   Local (after startup): [Grafana](http://localhost:3001)
 
 ---

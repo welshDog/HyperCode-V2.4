@@ -201,6 +201,7 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 ### Access the Interfaces
 
 - 🚀 **Mission Control Dashboard**: `http://localhost:8088`
+- 🐳 **Docker Zone**: `http://localhost:8088/docker-zone`
 - 🖥️ **BROski Terminal**: `http://localhost:3000`
 - 🧠 **Crew Orchestrator**: `http://localhost:8081`
 - ❤️ **Healer Agent**: `http://localhost:8010`
@@ -255,6 +256,8 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 | [QUICKSTART.md](QUICKSTART.md) | Fast setup guide |
 | [START_HERE.md](START_HERE.md) | MCP Gateway + Model Runner |
 | [RUNBOOK.md](RUNBOOK.md) | Stack won't boot? Fix it here |
+| [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Unit/integration/e2e test commands (Playwright included) |
+| [Session Report (2026-04-09)](docs/reviews/session-report-2026-04-09.md) | Docker Zone + toasts + notification log + Playwright E2E recap |
 
 *   [Architecture Overview](docs/ARCHITECTURE.md) · [CLI Manual](docs/CLI.md) · [API Reference](docs/API.md)
 *   [Troubleshooting](docs/TROUBLESHOOTING.md) · [Tips & Tricks](docs/tips-and-tricks/README.md)
