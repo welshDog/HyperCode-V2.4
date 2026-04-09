@@ -27,6 +27,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/agents',  label: 'Agents' },
   { href: '/mission', label: 'Mission' },
   { href: '/mcp',     label: 'MCP' },
+  { href: '/docker-zone', label: 'Docker Zone' },
   { href: '/health',  label: 'Health' },
 ]
 

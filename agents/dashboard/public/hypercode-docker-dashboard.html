@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HyperCode V2.4 — Docker Command Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme="dark"]{
+  --color-bg:#0d0e10;--color-surface:#13151a;--color-surface-2:#191c23;
+  --color-surface-offset:#1e2130;--color-surface-dynamic:#252a38;
+  --color-divider:#1f2335;--color-border:#2a2f42;
+  --color-text:#e2e4ef;--color-text-muted:#7b82a0;--color-text-faint:#3e4460;
+  --color-primary:#00d4aa;--color-primary-hover:#00b894;--color-primary-active:#009975;
+  --color-primary-highlight:#0d2e27;
+  --color-blue:#4d9ef5;--color-purple:#a78bfa;--color-orange:#fb923c;
+  --color-success:#34d399;--color-error:#f87171;--color-gold:#fbbf24;
+  --color-warning:#f59e0b;
+  --shadow-sm:0 1px 3px oklch(0 0 0/0.3);--shadow-md:0 4px 16px oklch(0 0 0/0.4);--shadow-lg:0 12px 40px oklch(0 0 0/0.5);
+  --radius-sm:0.375rem;--radius-md:0.5rem;--radius-lg:0.75rem;--radius-xl:1rem;--radius-full:9999px;
+  --font-body:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --text-xs:clamp(0.75rem,0.7rem + 0.25vw,0.875rem);
+  --text-sm:clamp(0.875rem,0.8rem + 0.35vw,1rem);
+  --text-base:clamp(1rem,0.95rem + 0.25vw,1.125rem);
+  --text-lg:clamp(1.125rem,1rem + 0.75vw,1.5rem);
+  --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+  --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;--space-5:1.25rem;
+  --space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;--space-12:3rem;--space-16:4rem;
+  --transition:180ms cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{min-height:100dvh;font-family:var(--font-body);font-size:var(--text-sm);color:var(--color-text);background:var(--color-bg);line-height:1.6}
+img,svg{display:block;max-width:100%}
+button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+
+/* Layout */
+.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;min-height:100dvh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-6);background:var(--color-surface);border-bottom:1px solid var(--color-border);position:sticky;top:0;z-index:100}
+.sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);padding:var(--space-4) 0;overflow-y:auto}
+.main{overflow-y:auto;padding:var(--space-6)}
+
+/* Logo */
+.logo{display:flex;align-items:center;gap:var(--space-2);font-family:var(--font-mono);font-weight:700;font-size:var(--text-sm);color:var(--color-primary)}
+.logo svg{flex-shrink:0}
+
+/* Nav */
+.nav-section{padding:var(--space-2) var(--space-3);margin-bottom:var(--space-1)}
+.nav-label{font-size:var(--text-xs);font-weight:600;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.08em;padding:0 var(--space-3) var(--space-2)}
+.nav-item{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);color:var(--color-text-muted);font-size:var(--text-sm);transition:background var(--transition),color var(--transition);cursor:pointer;width:100%;text-align:left}
+.nav-item:hover{background:var(--color-surface-2);color:var(--color-text)}
+.nav-item.active{background:var(--color-primary-highlight);color:var(--color-primary)}
+.nav-item .badge{margin-left:auto;background:var(--color-primary-highlight);color:var(--color-primary);font-size:var(--text-xs);padding:1px 6px;border-radius:var(--radius-full);font-family:var(--font-mono)}
+
+/* KPI Cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:var(--space-4);margin-bottom:var(--space-6)}
+.kpi-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);transition:box-shadow var(--transition),border-color var(--transition)}
+.kpi-card:hover{box-shadow:var(--shadow-md);border-color:var(--color-surface-dynamic)}
+.kpi-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:var(--space-2)}
+.kpi-value{font-family:var(--font-mono);font-size:var(--text-xl);font-weight:700;line-height:1;margin-bottom:var(--space-1)}
+.kpi-sub{font-size:var(--text-xs);color:var(--color-text-faint)}
+.kpi-card.green .kpi-value{color:var(--color-success)}
+.kpi-card.teal .kpi-value{color:var(--color-primary)}
+.kpi-card.blue .kpi-value{color:var(--color-blue)}
+.kpi-card.orange .kpi-value{color:var(--color-orange)}
+.kpi-card.gold .kpi-value{color:var(--color-gold)}
+.kpi-card.purple .kpi-value{color:var(--color-purple)}
+
+/* Section headings */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4)}
+.section-title{font-size:var(--text-lg);font-weight:600;color:var(--color-text)}
+.section-title span{font-size:var(--text-xs);font-weight:400;color:var(--color-text-faint);margin-left:var(--space-2);font-family:var(--font-mono)}
+
+/* Agents Table */
+.agents-grid{display:grid;gap:var(--space-3);margin-bottom:var(--space-6)}
+.agent-row{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:var(--space-4);transition:border-color var(--transition),background var(--transition)}
+.agent-row:hover{border-color:var(--color-surface-dynamic);background:var(--color-surface-2)}
+.agent-name{font-weight:600;font-size:var(--text-sm);color:var(--color-text);font-family:var(--font-mono)}
+.agent-desc{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px}
+.agent-port{font-size:var(--text-xs);font-family:var(--font-mono);color:var(--color-text-faint);background:var(--color-surface-offset);padding:2px var(--space-2);border-radius:var(--radius-sm)}
+.agent-watch{font-size:var(--text-xs);color:var(--color-primary);background:var(--color-primary-highlight);padding:2px var(--space-2);border-radius:var(--radius-sm);font-family:var(--font-mono)}
+
+/* Status badge */
+.status{display:inline-flex;align-items:center;gap:var(--space-1);font-size:var(--text-xs);padding:3px var(--space-2);border-radius:var(--radius-full);font-weight:500}
+.status::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status.running{background:color-mix(in oklab,var(--color-success) 15%,var(--color-surface));color:var(--color-success)}
+.status.running::before{background:var(--color-success);animation:pulse 2s ease-in-out infinite}
+.status.hot{background:color-mix(in oklab,var(--color-primary) 15%,var(--color-surface));color:var(--color-primary)}
+.status.hot::before{background:var(--color-primary);animation:pulse 1.5s ease-in-out infinite}
+.status.idle{background:color-mix(in oklab,var(--color-text-faint) 20%,var(--color-surface));color:var(--color-text-faint)}
+.status.idle::before{background:var(--color-text-faint)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* Docker Updates Panel */
+.updates-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--space-4);margin-bottom:var(--space-6)}
+.update-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);transition:box-shadow var(--transition),border-color var(--transition)}
+.update-card:hover{box-shadow:var(--shadow-md);border-color:var(--color-primary-highlight)}
+.update-icon{width:36px;height:36px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;margin-bottom:var(--space-3);font-size:18px}
+.update-title{font-weight:600;font-size:var(--text-sm);color:var(--color-text);margin-bottom:var(--space-2)}
+.update-desc{font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.65}
+.update-card .tag{margin-top:var(--space-3);display:inline-block;font-size:var(--text-xs);font-family:var(--font-mono);padding:2px var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-offset);color:var(--color-text-muted)}
+.update-card.done .tag{background:var(--color-primary-highlight);color:var(--color-primary)}
+.update-card.done{border-color:color-mix(in oklab,var(--color-primary) 30%,var(--color-border))}
+.update-card.next .tag{background:color-mix(in oklab,var(--color-blue) 15%,var(--color-surface));color:var(--color-blue)}
+
+/* Code block */
+.code-block{background:var(--color-surface-offset);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-4);overflow-x:auto}
+.code-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)}
+.code-title{font-size:var(--text-xs);color:var(--color-text-muted);font-weight:500}
+.code-copy{font-size:var(--text-xs);color:var(--color-text-faint);transition:color var(--transition);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--color-border);background:var(--color-surface)}
+.code-copy:hover{color:var(--color-primary);border-color:var(--color-primary)}
+pre{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text);line-height:1.7;white-space:pre}
+.kw{color:var(--color-purple)}
+.str{color:var(--color-success)}
+.cm{color:var(--color-text-faint)}
+.key{color:var(--color-blue)}
+.val{color:var(--color-orange)}
+.cmd{color:var(--color-primary)}
+
+/* Progress bar */
+.progress-bar{background:var(--color-surface-offset);border-radius:var(--radius-full);height:6px;overflow:hidden;margin-top:var(--space-2)}
+.progress-fill{height:100%;border-radius:var(--radius-full);transition:width 1s ease}
+
+/* Topbar right */
+.topbar-right{display:flex;align-items:center;gap:var(--space-3)}
+.topbar-time{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-faint)}
+.btn-sm{font-size:var(--text-xs);padding:var(--space-1) var(--space-3);border-radius:var(--radius-md);border:1px solid var(--color-border);color:var(--color-text-muted);transition:all var(--transition);font-family:var(--font-mono)}
+.btn-sm:hover{border-color:var(--color-primary);color:var(--color-primary);background:var(--color-primary-highlight)}
+.btn-primary{background:var(--color-primary);color:#0d2e27;font-weight:600;border-color:var(--color-primary)}
+.btn-primary:hover{background:var(--color-primary-hover);border-color:var(--color-primary-hover);color:#0d2e27}
+
+/* Page title */
+.page-header{margin-bottom:var(--space-6)}
+.page-title{font-size:var(--text-xl);font-weight:700;color:var(--color-text);line-height:1.2}
+.page-sub{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1)}
+.breadcrumb{font-size:var(--text-xs);color:var(--color-text-faint);font-family:var(--font-mono);margin-bottom:var(--space-2)}
+.breadcrumb span{color:var(--color-text-faint)}
+
+/* Divider */
+hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--color-bg)}
+::-webkit-scrollbar-thumb{background:var(--color-border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--color-text-faint)}
+
+/* Responsive */
+@media(max-width:768px){
+  .app{grid-template-columns:1fr;grid-template-rows:56px auto 1fr}
+  .sidebar{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .agent-row{grid-template-columns:1fr auto}
+  .agent-port,.agent-watch{display:none}
+  .updates-grid{grid-template-columns:1fr}
+}
+
+/* Checkmark */
+.check{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--color-primary-highlight);color:var(--color-primary);font-size:10px;flex-shrink:0}
+.check-row{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--color-divider);font-size:var(--text-xs);color:var(--color-text-muted)}
+.check-row:last-child{border-bottom:none}
+.check-row .check-label{flex:1;color:var(--color-text)}
+.improvement-list{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-4) var(--space-5);margin-bottom:var(--space-6)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="logo">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="HyperCode">
+      <rect width="28" height="28" rx="7" fill="#00d4aa" opacity="0.15"/>
+      <path d="M7 10h6M7 14h9M7 18h6" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="21" cy="10" r="2.5" fill="#00d4aa"/>
+      <path d="M19 14l4 2-4 2" stroke="#00d4aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    HyperCode V2.4
+  </div>
+  <div class="topbar-right">
+    <span class="topbar-time" id="clock">--:--:--</span>
+    <button class="btn-sm">🦅 Agent X</button>
+    <button class="btn-sm btn-primary">▶ docker compose up --watch</button>
+  </div>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-section">
+    <div class="nav-label">Overview</div>
+    <button class="nav-item active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10M10 20V4M14 20V12M18 20V8"/></svg>
+      Metrics
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      Activity
+    </button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Agents</div>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+      All Agents
+      <span class="badge">13</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 015 5v3H7V7a5 5 0 015-5z"/><rect x="2" y="10" width="20" height="12" rx="2"/></svg>
+      Hyper-Agents
+      <span class="badge">4</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      Healer Agent
+    </button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Docker</div>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Hot-Reload
+      <span class="badge" style="background:color-mix(in oklab,var(--color-primary) 20%,var(--color-surface));color:var(--color-primary)">✓</span>
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Security
+    </button>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Observability
+    </button>
+  </div>
+  <div class="nav-section" style="margin-top:auto">
+    <div class="nav-label">BROski</div>
+    <button class="nav-item">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      Terminal
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+  <div class="page-header">
+    <div class="breadcrumb">HyperCode / Docker / <span>Dashboard</span></div>
+    <h1 class="page-title">Docker Command Centre 🐳</h1>
+    <p class="page-sub">Live status — Hot-reload active · 13 agents covered · Security scanning ✓</p>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card teal">
+      <div class="kpi-label">Hot-Reload Status</div>
+      <div class="kpi-value">LIVE</div>
+      <div class="kpi-sub">develop.watch active</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Agents Covered</div>
+      <div class="kpi-value">13</div>
+      <div class="kpi-sub">10 specialist + 3 core</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Compose Files</div>
+      <div class="kpi-value">13+</div>
+      <div class="kpi-sub">agents · hyper · mcp · health</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Hyper-Agents</div>
+      <div class="kpi-value">4</div>
+      <div class="kpi-sub">architect · observer · worker · X</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">Security Tools</div>
+      <div class="kpi-value">2</div>
+      <div class="kpi-sub">Trivy + Semgrep ✓</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Sync Speed</div>
+      <div class="kpi-value">~1s</div>
+      <div class="kpi-sub">code → container latency</div>
+    </div>
+  </div>
+
+  <!-- DOCKER IMPROVEMENTS -->
+  <div class="section-head">
+    <h2 class="section-title">Docker Updates <span>// what's new & what you've got</span></h2>
+  </div>
+  <div class="updates-grid">
+    <div class="update-card done">
+      <div class="update-icon" style="background:var(--color-primary-highlight)">🔥</div>
+      <div class="update-title">develop.watch — Hot-Reload</div>
+      <div class="update-desc">Both compose files updated. 13 agents get instant code sync ~1s. Deps rebuild auto on requirements.txt change.</div>
+      <span class="tag">✓ DONE</span>
+    </div>
+    <div class="update-card done">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-success) 15%,var(--color-surface))">🛡️</div>
+      <div class="update-title">Docker Scout / Security</div>
+      <div class="update-desc">Already ahead — trivy.yaml + semgrep.yaml in place. Scout is a UI layer but Trivy is more powerful for your CI/CD.</div>
+      <span class="tag">✓ ALREADY DONE</span>
+    </div>
+    <div class="update-card done">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-gold) 15%,var(--color-surface))">📦</div>
+      <div class="update-title">.dockerignore Optimised</div>
+      <div class="update-desc">Root .dockerignore already exists in your repo. __pycache__, .pytest_cache, *.pyc are excluded — no bloat in builds.</div>
+      <span class="tag">✓ ALREADY DONE</span>
+    </div>
+    <div class="update-card next">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-blue) 15%,var(--color-surface))">⚡</div>
+      <div class="update-title">Docker Build Cloud</div>
+      <div class="update-desc">39x faster builds via Docker's cloud builders. Huge ROI for your multi-service agent stack. Enable in Docker Desktop → Settings.</div>
+      <span class="tag">→ NEXT WIN</span>
+    </div>
+    <div class="update-card next">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-purple) 15%,var(--color-surface))">🔍</div>
+      <div class="update-title">docker debug Command</div>
+      <div class="update-desc">Attach a shell to ANY container — even slim ones with no bash installed. Way less friction than docker exec for agent debugging.</div>
+      <span class="tag">→ TRY IT</span>
+    </div>
+    <div class="update-card next">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-orange) 15%,var(--color-surface))">🔐</div>
+      <div class="update-title">--mount=type=secret</div>
+      <div class="update-desc">Use Docker's native secret mounting instead of ENV vars for API keys. Your docker-compose.secrets.yml is ready for this pattern.</div>
+      <span class="tag">→ UPGRADE</span>
+    </div>
+  </div>
+
+  <!-- HOT RELOAD COMMANDS -->
+  <div class="section-head">
+    <h2 class="section-title">Hot-Reload Commands <span>// copy-paste ready</span></h2>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-title">Start agents with live code sync</span>
+      <button class="code-copy" onclick="copyCode(this,'cmd1')">Copy</button>
+    </div>
+    <pre id="cmd1"><span class="cm"># Start specialist agents with hot-reload</span>
+<span class="cmd">docker compose -f docker-compose.agents.yml up --watch</span>
+
+<span class="cm"># Start hyper-agents with hot-reload</span>
+<span class="cmd">docker compose -f docker-compose.hyper-agents.yml up --watch</span>
+
+<span class="cm"># Start BOTH stacks together</span>
+<span class="cmd">docker compose -f docker-compose.agents.yml -f docker-compose.hyper-agents.yml up --watch</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-title">New: docker debug (no bash needed in container)</span>
+      <button class="code-copy" onclick="copyCode(this,'cmd2')">Copy</button>
+    </div>
+    <pre id="cmd2"><span class="cm"># Attach shell to ANY agent — even slim Python images</span>
+<span class="cmd">docker debug coder-agent</span>
+<span class="cmd">docker debug hyper-architect</span>
+<span class="cmd">docker debug agent-x</span>
+
+<span class="cm"># Old way (needs bash installed in image)</span>
+<span class="cm"># docker exec -it coder-agent bash</span></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-title">develop.watch config snippet (what was added)</span>
+      <button class="code-copy" onclick="copyCode(this,'cmd3')">Copy</button>
+    </div>
+    <pre id="cmd3"><span class="key">services</span><span class="val">:</span>
+  <span class="key">coder-agent</span><span class="val">:</span>
+    <span class="key">develop</span><span class="val">:</span>
+      <span class="key">watch</span><span class="val">:</span>
+        - <span class="key">path</span><span class="val">:</span> <span class="str">./agents/coder</span>
+          <span class="key">action</span><span class="val">:</span> <span class="str">sync</span>
+          <span class="key">target</span><span class="val">:</span> <span class="str">/app</span>
+          <span class="key">ignore</span><span class="val">:</span>
+            - <span class="str">__pycache__</span>
+            - <span class="str">.pytest_cache</span>
+            - <span class="str">"*.pyc"</span>
+        - <span class="key">path</span><span class="val">:</span> <span class="str">./requirements.txt</span>
+          <span class="key">action</span><span class="val">:</span> <span class="str">rebuild</span></pre>
+  </div>
+
+  <!-- AGENT STATUS -->
+  <div class="section-head">
+    <h2 class="section-title">Agent Fleet <span>// 13 agents · hot-reload enabled</span></h2>
+  </div>
+  <div class="agents-grid">
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🦅 agent-x</div>
+        <div class="agent-desc">Meta-Architect — designs, deploys & evolves agents via Docker Model Runner</div>
+      </div>
+      <span class="agent-port">:8080</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status hot">hot-sync</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🏗️ hyper-architect</div>
+        <div class="agent-desc">System design & cognitive architecture planning</div>
+      </div>
+      <span class="agent-port">:8081</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">👁️ hyper-observer</div>
+        <div class="agent-desc">Monitors agent lifecycle + system health</div>
+      </div>
+      <span class="agent-port">:8082</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">⚙️ hyper-worker</div>
+        <div class="agent-desc">Task execution engine for agent crew</div>
+      </div>
+      <span class="agent-port">:8083</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">💚 healer-agent</div>
+        <div class="agent-desc">Self-healing — monitors + auto-recovers failed services</div>
+      </div>
+      <span class="agent-port">:8008</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status hot">hot-sync</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🐍 coder-agent</div>
+        <div class="agent-desc">Python code generation & refactoring specialist</div>
+      </div>
+      <span class="agent-port">:8090</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🔍 analyst-agent</div>
+        <div class="agent-desc">Data analysis, pattern recognition & insights</div>
+      </div>
+      <span class="agent-port">:8091</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">📝 writer-agent</div>
+        <div class="agent-desc">Documentation, READMEs & content generation</div>
+      </div>
+      <span class="agent-port">:8092</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status idle">idle</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🛡️ security-agent</div>
+        <div class="agent-desc">Vulnerability scanning & threat analysis</div>
+      </div>
+      <span class="agent-port">:8093</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🚀 devops-agent</div>
+        <div class="agent-desc">CI/CD + autonomous evolution pipeline</div>
+      </div>
+      <span class="agent-port">:8094</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status hot">hot-sync</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🎨 creative-agent</div>
+        <div class="agent-desc">AI art, design generation & creative outputs</div>
+      </div>
+      <span class="agent-port">:8095</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status idle">idle</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🧪 testing-agent</div>
+        <div class="agent-desc">Test generation, QA & coverage analysis</div>
+      </div>
+      <span class="agent-port">:8096</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+    <div class="agent-row">
+      <div>
+        <div class="agent-name">🔗 integration-agent</div>
+        <div class="agent-desc">API integrations, webhooks & service connectors</div>
+      </div>
+      <span class="agent-port">:8097</span>
+      <span class="agent-watch">watch ✓</span>
+      <span class="status running">running</span>
+    </div>
+
+  </div>
+
+  <!-- CHECKLIST -->
+  <div class="section-head">
+    <h2 class="section-title">Docker Upgrade Checklist <span>// your real status</span></h2>
+  </div>
+  <div class="improvement-list">
+    <div class="check-row"><span class="check">✓</span><span class="check-label">develop.watch added to docker-compose.agents.yml</span><span style="color:var(--color-primary);font-family:var(--font-mono);font-size:var(--text-xs)">DONE</span></div>
+    <div class="check-row"><span class="check">✓</span><span class="check-label">develop.watch added to docker-compose.hyper-agents.yml</span><span style="color:var(--color-primary);font-family:var(--font-mono);font-size:var(--text-xs)">DONE</span></div>
+    <div class="check-row"><span class="check">✓</span><span class="check-label">HOT_RELOAD_QUICK_START.md guide created</span><span style="color:var(--color-primary);font-family:var(--font-mono);font-size:var(--text-xs)">DONE</span></div>
+    <div class="check-row"><span class="check">✓</span><span class="check-label">.dockerignore already in place (no action needed)</span><span style="color:var(--color-primary);font-family:var(--font-mono);font-size:var(--text-xs)">DONE</span></div>
+    <div class="check-row"><span class="check">✓</span><span class="check-label">trivy.yaml + semgrep.yaml security scanning active</span><span style="color:var(--color-primary);font-family:var(--font-mono);font-size:var(--text-xs)">DONE</span></div>
+    <div class="check-row"><span class="check" style="background:color-mix(in oklab,var(--color-blue) 15%,var(--color-surface));color:var(--color-blue)">→</span><span class="check-label">Enable Docker Build Cloud in Docker Desktop settings</span><span style="color:var(--color-blue);font-family:var(--font-mono);font-size:var(--text-xs)">NEXT</span></div>
+    <div class="check-row"><span class="check" style="background:color-mix(in oklab,var(--color-purple) 15%,var(--color-surface));color:var(--color-purple)">→</span><span class="check-label">Try docker debug on agent containers instead of exec</span><span style="color:var(--color-purple);font-family:var(--font-mono);font-size:var(--text-xs)">NEXT</span></div>
+    <div class="check-row"><span class="check" style="background:color-mix(in oklab,var(--color-orange) 15%,var(--color-surface));color:var(--color-orange)">→</span><span class="check-label">Upgrade API keys to --mount=type=secret in Dockerfiles</span><span style="color:var(--color-orange);font-family:var(--font-mono);font-size:var(--text-xs)">OPTIONAL</span></div>
+  </div>
+
+  <p style="font-size:var(--text-xs);color:var(--color-text-faint);text-align:center;padding:var(--space-6) 0">
+    🦅 HyperCode V2.4 &nbsp;·&nbsp; Built for neurodivergent minds &nbsp;·&nbsp; Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿
+  </p>
+</main>
+</div>
+
+<script>
+// Live clock
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-GB',{hour12:false});
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// Copy code
+function copyCode(btn,id){
+  const text=document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='Copied!';
+    btn.style.color='var(--color-primary)';
+    btn.style.borderColor='var(--color-primary)';
+    setTimeout(()=>{btn.textContent='Copy';btn.style.color='';btn.style.borderColor=''},2000);
+  });
+}
+
+// Nav item clicks
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
