@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useId } from 'react';
+import { useToast } from '@/components/ui/ToastProvider';
 import {
   chunkBrainDump,
   MicroTask,
@@ -16,11 +17,14 @@ export default function BrainDumpChunker() {
   const announcerRef = useRef<HTMLDivElement>(null);
   const inputId = useId();
   const labelId = useId();
+  const { toast } = useToast();
 
   function handleChunk() {
+    toast({ type: 'info', message: '⏳ Chunking brain dump…' });
     const res = chunkBrainDump(raw);
     setResult(res);
     setDismissed(new Set());
+    toast({ type: 'success', message: `✅ Found ${res.tasks.length} task${res.tasks.length > 1 ? 's' : ''}` });
     // Announce result count to screen readers
     if (announcerRef.current) {
       announcerRef.current.textContent = '';

@@ -1,13 +1,16 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export function MCPGatewayView(): React.JSX.Element {
   const [health, setHealth] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isManual = false) => {
+    if (isManual) toast({ type: 'info', message: '⏳ Checking MCP Gateway…' })
     setLoading(true)
     setError(null)
     let t: ReturnType<typeof setTimeout> | null = null
@@ -17,8 +20,10 @@ export function MCPGatewayView(): React.JSX.Element {
       const h = await fetch('/api/mcp/health', { signal: controller.signal })
       const hBody: unknown = await h.json().catch(() => null)
       setHealth(hBody)
+      if (isManual) toast({ type: 'success', message: '✅ Gateway connected' })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
+      if (isManual) toast({ type: 'error', message: '❌ Gateway unreachable' })
       if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('signal')) {
         setError('MCP server did not respond in time. Check that hypercode-mcp-server is running: docker compose up -d hypercode-mcp-server')
       } else {
@@ -28,7 +33,7 @@ export function MCPGatewayView(): React.JSX.Element {
       if (t) clearTimeout(t)
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     load()
@@ -59,7 +64,7 @@ export function MCPGatewayView(): React.JSX.Element {
             {(typeof healthObj.status === 'string' ? healthObj.status : null) ?? 'unknown'}
           </div>
         </div>
-        <button className="btn" onClick={load}>↻ Refresh</button>
+        <button className="btn" onClick={() => load(true)}>↻ Refresh</button>
       </div>
 
       <div style={{

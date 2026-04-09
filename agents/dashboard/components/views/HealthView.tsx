@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 
 type Status = 'healthy' | 'degraded' | 'down' | 'unknown'
 
@@ -51,8 +52,10 @@ export function HealthView(): React.JSX.Element {
   const [orchestrator, setOrchestrator] = useState<unknown>(null)
   const [healer, setHealer] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (isManual = false) => {
+    if (isManual) toast({ type: 'info', message: '⏳ Sweeping health endpoints…' })
     setLoading(true)
     try {
       const coreRes = await fetch('/api/health')
@@ -66,14 +69,17 @@ export function HealthView(): React.JSX.Element {
 
       const healerRes = await fetch('/api/healer/health')
       setHealer(await healerRes.json().catch(() => null))
+      if (isManual) toast({ type: 'success', message: '✅ Sweep complete' })
+    } catch {
+      if (isManual) toast({ type: 'error', message: '❌ Sweep failed' })
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
-    load()
-    const t = setInterval(load, 20_000)
+    load(false)
+    const t = setInterval(() => load(false), 20_000)
     return () => clearInterval(t)
   }, [load])
 
@@ -91,7 +97,7 @@ export function HealthView(): React.JSX.Element {
         <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
           Live checks via <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>/api/*</span>
         </div>
-        <button className="btn" onClick={load}>↻ Refresh</button>
+        <button className="btn" onClick={() => load(true)}>↻ Refresh</button>
       </div>
 
       <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>

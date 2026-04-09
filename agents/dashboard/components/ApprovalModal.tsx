@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { getApprovalsWebSocketUrl, respondToApproval } from "@/lib/api";
 import { LiveRegion } from "@/components/a11y/LiveRegion";
+import { useToast } from "@/components/ui/ToastProvider";
 
 interface ApprovalRequest {
   id: string;
@@ -18,6 +19,7 @@ interface ApprovalRequest {
 
 export function ApprovalModal() {
   const [requests, setRequests] = useState<ApprovalRequest[]>([]);
+  const { toast } = useToast();
   
   useEffect(() => {
     const wsUrl = getApprovalsWebSocketUrl();
@@ -78,8 +80,14 @@ export function ApprovalModal() {
   const handleRespond = async (id: string, status: "approved" | "rejected") => {
       // Optimistically remove
       setRequests(prev => prev.filter(r => r.id !== id));
+      toast({ type: 'info', message: '⏳ Sending response…' });
       
-      await respondToApproval(id, status);
+      try {
+        await respondToApproval(id, status);
+        toast({ type: 'success', message: status === 'approved' ? '✅ Approved' : '✅ Rejected' });
+      } catch {
+        toast({ type: 'error', message: '❌ Failed to send response' });
+      }
   };
 
   if (requests.length === 0) return null;

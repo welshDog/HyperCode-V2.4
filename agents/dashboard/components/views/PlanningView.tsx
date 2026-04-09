@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useToast } from '@/components/ui/ToastProvider'
 
 interface PlanPhase {
   phase_number: number
@@ -34,12 +35,14 @@ export function PlanningView(): React.JSX.Element {
   const [loading, setLoading] = useState(false)
   const [plan, setPlan]       = useState<GeneratedPlan | null>(null)
   const [error, setError]     = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleGenerate = async () => {
     if (!input.trim()) return
     setLoading(true)
     setError(null)
     setPlan(null)
+    toast({ type: 'info', message: '⏳ Generating plan…' })
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') ?? '' : ''
@@ -62,8 +65,11 @@ export function PlanningView(): React.JSX.Element {
       const data = await res.json()
       // Response may be { plan: ... } or the plan directly
       setPlan(data.plan ?? data)
+      toast({ type: 'success', message: '✅ Plan generated successfully' })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Plan generation failed')
+      const msg = err instanceof Error ? err.message : 'Plan generation failed'
+      setError(msg)
+      toast({ type: 'error', message: '❌ Plan generation failed' })
     } finally {
       setLoading(false)
     }

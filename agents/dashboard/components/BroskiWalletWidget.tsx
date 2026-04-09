@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Coins, GraduationCap } from "lucide-react";
 import { fetchBroskiWallet, type BroskiWallet } from "@/lib/api";
+import { useToast } from "@/components/ui/ToastProvider";
 
 const XP_LEVELS = [0, 100, 250, 500, 1000, 2000, 5000];
 
@@ -26,12 +27,26 @@ export function BroskiWalletWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
+  const prevBalance = useRef<number | null>(null);
+  const { toast } = useToast();
 
   const load = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true;
     try {
       const data = await fetchBroskiWallet();
+      
+      // Toast if balance changed (and we had a previous balance)
+      if (prevBalance.current !== null && data.balance !== prevBalance.current) {
+        const diff = data.balance - prevBalance.current;
+        if (diff > 0) {
+          toast({ type: 'success', message: `✅ Earned ${diff} BROski$` });
+        } else {
+          toast({ type: 'info', message: `💸 Spent ${Math.abs(diff)} BROski$` });
+        }
+      }
+      prevBalance.current = data.balance;
+
       setWallet(data);
       setError(null);
     } catch (e) {
@@ -41,7 +56,7 @@ export function BroskiWalletWidget() {
       setLoading(false);
       inFlight.current = false;
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     load();
