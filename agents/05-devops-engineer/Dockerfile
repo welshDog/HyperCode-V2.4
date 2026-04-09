@@ -61,7 +61,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Copy application code
 COPY agents/05-devops-engineer/agent.py .
-COPY agents/base-agent/agent.py ./base_agent.py
+COPY agents/05-devops-engineer/base_agent.py .
 COPY agents/05-devops-engineer/config.json .
 
 # Copy Shared Modules (Evolution Protocol)

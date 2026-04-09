@@ -50,14 +50,14 @@ VERSION = "2.0.0"
 
 # ── Import sub-modules ────────────────────────────────────────────────────────────
 
-from agentx.designer import (
+from .designer import (
     AgentSpec,
     design_agent_spec,
     generate_agent_code,
     ollama_available,
     suggest_improvement,
 )
-from agentx.docker_ops import (
+from .docker_ops import (
     COMPOSE_FILE,
     WORKSPACE,
     build_image,
@@ -67,7 +67,7 @@ from agentx.docker_ops import (
     restart_service,
     write_agent_file,
 )
-from agentx.pipeline import EvolutionaryPipeline, KNOWN_AGENTS
+from .pipeline import EvolutionaryPipeline, KNOWN_AGENTS
 
 # ── App + state ───────────────────────────────────────────────────────────────
 
@@ -418,7 +418,7 @@ class AgentX:
                 }
 
                 if build.success:
-                    from agentx.docker_ops import wait_for_healthy
+                    from .docker_ops import wait_for_healthy
                     deploy = await deploy_service(
                         service_name=manifest["service_name"],
                         compose_file=COMPOSE_FILE,
@@ -559,7 +559,7 @@ class AgentX:
         @app.get("/llm/status")
         async def llm_status() -> dict[str, Any]:
             import httpx
-            from agentx.designer import OLLAMA_HOST, OLLAMA_MODEL
+            from .designer import OLLAMA_HOST, OLLAMA_MODEL
 
             available = await ollama_available()
             models: list[str] = []

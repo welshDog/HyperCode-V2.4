@@ -20,15 +20,15 @@ class BackendSpecialist(BaseAgent):
         if self.project_memory:
             project_context = self.project_memory.get_project_context()
 
-        # 3. Generate Plan
-        plan = await self.generate_backend_plan(task, rag_context, project_context)
+        # 3. Generate LLM Output (plan)
+        plan_text = await self.generate_backend_plan(task, rag_context, project_context)
         
         # 4. Approval
         if requires_approval and self.approval_system:
             approval = await self.approval_system.request_approval(
                 self.config.name,
                 "implement_feature",
-                {"task": task, "plan": plan},
+                {"task": task, "plan": plan_text},
                 timeout=300
             )
             
@@ -37,11 +37,11 @@ class BackendSpecialist(BaseAgent):
                 
             # Use modified plan if provided
             if approval.get('modifications'):
-                plan = approval['modifications']
+                plan_text = approval['modifications']
 
         # 5. Execute Plan (Mock execution for now)
         if self.logger:
-            self.logger.info("executing_plan", plan=plan)
+            self.logger.info("executing_plan", plan=plan_text)
             
         # Mock implementation for Test 1
         if "hello" in task.lower() and "endpoint" in task.lower():
@@ -99,15 +99,11 @@ async def get_user(user_id: str):
                  if self.logger:
                      self.logger.info("project_memory_updated", key="available_apis", endpoint="GET /api/user/:id")
 
-        # Update Project Memory
-        if self.project_memory and "new_endpoint" in plan:
-            self.project_memory.add_api_endpoint(plan['new_endpoint'])
-            
-        return {"status": "completed", "executed_plan": plan}
+        return {"status": "completed", "output": plan_text}
 
     async def generate_backend_plan(self, task, rag_context, project_context):
         if not self.client:
-            return {"action": "mock_plan", "reason": "no_llm_client"}
+            return "No LLM client configured (set ANTHROPIC_API_KEY)."
 
         system_prompt = f"""
         You are the Backend Specialist.
@@ -135,7 +131,7 @@ async def get_user(user_id: str):
         except Exception as e:
             if self.logger:
                 self.logger.error("llm_generation_failed", error=str(e))
-            return {"action": "mock_plan", "reason": f"llm_failed: {str(e)}", "plan": "Mock implementation plan due to LLM error."}
+            return f"LLM generation failed: {e}"
 
 if __name__ == "__main__":
     config = AgentConfig()

@@ -29,7 +29,7 @@ from typing import Any, Optional
 
 import httpx
 
-from agentx.docker_ops import (
+from .docker_ops import (
     build_image,
     container_health,
     deploy_service,
@@ -38,7 +38,7 @@ from agentx.docker_ops import (
     WORKSPACE,
     COMPOSE_FILE,
 )
-from agentx.designer import suggest_improvement
+from .designer import suggest_improvement
 
 logger = logging.getLogger(__name__)
 
@@ -415,7 +415,7 @@ class EvolutionaryPipeline:
                     )
                     record.rollbacks_triggered.append(agent_name)
                     if old_image:
-                        from agentx.docker_ops import rollback_to_image
+                        from .docker_ops import rollback_to_image
                         await rollback_to_image(manifest["container_name"], old_image)
 
             record.stage = PipelineStage.COMPLETE

@@ -19,15 +19,15 @@ class DatabaseArchitect(BaseAgent):
         if self.project_memory:
             project_context = self.project_memory.get_project_context()
             
-        # 3. Generate Plan
-        plan = await self.generate_db_plan(task, rag_context, project_context)
+        # 3. Generate LLM Output (plan)
+        plan_text = await self.generate_db_plan(task, rag_context, project_context)
         
         # 4. Approval
         if requires_approval and self.approval_system:
             approval = await self.approval_system.request_approval(
                 self.config.name,
                 "design_schema",
-                {"task": task, "plan": plan},
+                {"task": task, "plan": plan_text},
                 timeout=300
             )
             
@@ -35,11 +35,11 @@ class DatabaseArchitect(BaseAgent):
                 raise Exception(f"Task rejected: {approval.get('reason')}")
                 
             if approval.get('modifications'):
-                plan = approval['modifications']
+                plan_text = approval['modifications']
 
         # 5. Execute Plan (Mock)
         if self.logger:
-            self.logger.info("executing_plan", plan=plan)
+            self.logger.info("executing_plan", plan=plan_text)
 
         # Mock Implementation for Test 3 (TODO List)
         if "todo" in task.lower() and "table" in task.lower():
@@ -64,16 +64,18 @@ DROP TABLE todos;
             if self.logger:
                 self.logger.info("file_created", path=file_path)
                 
-            # Update Project Memory
+            # Update Project Memory (KV stub; do not use project_memory.redis)
             if self.project_memory:
-                # Store schema info for other agents
-                self.project_memory.redis.set("project:schema:todos", "id, title, completed, created_at")
+                self.project_memory.set_value(
+                    "project:schema:todos",
+                    "id, title, completed, created_at",
+                )
 
-        return {"status": "completed", "executed_plan": plan}
+        return {"status": "completed", "output": plan_text}
 
     async def generate_db_plan(self, task, rag_context, project_context):
         if not self.client:
-            return {"action": "mock_plan", "reason": "no_llm_client"}
+            return "No LLM client configured (set ANTHROPIC_API_KEY)."
             
         system_prompt = self.build_system_prompt()
         
@@ -88,7 +90,7 @@ DROP TABLE todos;
         except Exception as e:
             if self.logger:
                  self.logger.error("llm_generation_failed", error=str(e))
-            return {"action": "mock_plan", "reason": f"llm_failed: {str(e)}", "plan": "Mock DB plan due to LLM error."}
+            return f"LLM generation failed: {e}"
 
     def build_system_prompt(self) -> str:
         base_prompt = """You are an AI agent.""" 

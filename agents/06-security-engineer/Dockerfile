@@ -52,6 +52,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Copy application code (after deps for better caching)
 COPY agent.py .
+COPY base_agent.py .
 COPY config.json .
 
 # Mount point for Hive Mind

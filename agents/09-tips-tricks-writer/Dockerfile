@@ -35,6 +35,7 @@ ENV PATH=/root/.local/bin:$PATH
 # We assume the project root is mounted or copied in the build process
 # For local dev, we copy the current directory
 COPY agent.py .
+COPY base_agent.py .
 
 # Health check (port 8009 for this agent)
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

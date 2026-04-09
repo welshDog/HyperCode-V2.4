@@ -7,17 +7,8 @@ import os
 import sys
 from typing import Dict, Any
 
-# Add project root to path for shared modules
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import BaseAgent and necessary classes
-# Note: In the container, /app will be the project root
-sys.path.append('/app')
-try:
-    from agents.base_agent.agent import BaseAgent, AgentConfig
-except ImportError:
-    # Local development fallback
-    from base_agent.agent import BaseAgent, AgentConfig
+sys.path.append("/app")
+from base_agent import BaseAgent, AgentConfig
 
 class TipsTricksWriterAgent(BaseAgent):
     def __init__(self, config: AgentConfig):
@@ -34,12 +25,12 @@ class TipsTricksWriterAgent(BaseAgent):
         # 1. Gather context
         rag_context = ""
         if self.agent_memory:
-            rag_context = await self.agent_memory.query_relevant_context(task)
+            rag_context = self.agent_memory.query_relevant_context(task)
             
         # 2. Project context
         project_context = {}
         if self.project_memory:
-            project_context = await self.project_memory.get_project_context()
+            project_context = self.project_memory.get_project_context()
 
         # 3. Generate the Guide
         guide_content = await self.generate_neurodivergent_guide(task, rag_context, project_context)
@@ -47,19 +38,14 @@ class TipsTricksWriterAgent(BaseAgent):
         # 4. Save the guide to a file (optional, but good for persistence)
         # We'll return it as the result for now
         
-        return {
-            "title": f"Tips & Tricks: {task}",
-            "content": guide_content,
-            "format": "neurodivergent-friendly",
-            "status": "draft"
-        }
+        return {"status": "completed", "title": f"Tips & Tricks: {task}", "output": guide_content}
 
     async def generate_neurodivergent_guide(self, topic: str, rag_context: str, project_context: Dict[str, Any]):
         """
         Uses the LLM to generate a chunked, bulleted, bolded guide.
         """
         if not self.client:
-            return "No LLM client configured. Bro, check your API keys!"
+            return "No LLM client configured (set ANTHROPIC_API_KEY)."
 
         system_prompt = f"""
         You are the {self.config.name}, a specialist in the HyperCode V2.0 ecosystem.
