@@ -6,7 +6,8 @@ export type ToastVariant = 'info' | 'success' | 'error'
 
 export type ToastInput = {
   variant?: ToastVariant
-  title: string
+  type?: ToastVariant
+  title?: string
   message?: string
   durationMs?: number
 }
@@ -19,6 +20,7 @@ type ToastItem = {
 }
 
 type ToastContextValue = {
+  toast: (toast: ToastInput) => void
   pushToast: (toast: ToastInput) => void
 }
 
@@ -43,11 +45,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
 
   const pushToast = useCallback((input: ToastInput) => {
     const id = `toast-${Date.now()}-${Math.random().toString(16).slice(2)}`
+    const title = (input.title ?? input.message ?? '').trim()
+    if (!title) return
     const item: ToastItem = {
       id,
-      variant: input.variant ?? 'info',
-      title: input.title,
-      message: input.message,
+      variant: input.variant ?? input.type ?? 'info',
+      title,
+      message: input.title ? input.message : undefined,
     }
     setToasts((prev) => [item, ...prev].slice(0, 4))
     const duration = typeof input.durationMs === 'number' ? input.durationMs : 3500
@@ -55,7 +59,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
     timeoutsRef.current.set(id, timeoutId)
   }, [remove])
 
-  const value = useMemo<ToastContextValue>(() => ({ pushToast }), [pushToast])
+  const value = useMemo<ToastContextValue>(() => ({ toast: pushToast, pushToast }), [pushToast])
 
   return (
     <ToastContext.Provider value={value}>
@@ -76,4 +80,3 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
     </ToastContext.Provider>
   )
 }
-

@@ -1,16 +1,16 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Radio, Terminal } from 'lucide-react';
 
 import { formatTime } from '@/lib/format';
 import { hypersyncHandoff, hypersyncRedeem } from '@/lib/api';
-
-// FIX #1: type field must be 'execute' | 'ping' — crew-orchestrator /ws/uplink
-// does NOT handle 'command'. Was broken since initial implementation.
+import { useToast } from '@/components/ui/ToastProvider';
 interface UplinkMessage {
   id: string;
   timestamp: string;
-  type: 'execute' | 'ping';  // ← was 'command', caused "Unknown message type" on every send
+  type: 'execute' | 'ping';
   source: string;
   target: string;
   payload: unknown;
@@ -35,6 +35,9 @@ export default function CognitiveUplink() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const lastConnectToastAtRef = useRef(0);
+  const lastWsErrorToastAtRef = useRef(0);
+  const { pushToast } = useToast();
 
   const getClientId = useCallback(() => {
     if (typeof window === 'undefined') return 'server';
@@ -60,6 +63,7 @@ export default function CognitiveUplink() {
     if (syncStatus === 'syncing' || syncStatus === 'complete') return;
     setSyncStatus('syncing');
     setSyncError(null);
+    pushToast({ variant: 'info', title: 'Syncing session state…' });
     try {
       const clientId = getClientId();
       const safeReason = reason.replace(/[^a-zA-Z0-9]/g, '').slice(0, 32) || 'sync';
@@ -82,6 +86,7 @@ export default function CognitiveUplink() {
 
           setResumeToken(response.resume_token);
           setSyncStatus('complete');
+          pushToast({ variant: 'success', title: 'Sync complete' });
           setMessages(prev => [...prev, {
             role: 'system',
             content: 'Sync complete—continue here.',
@@ -101,6 +106,7 @@ export default function CognitiveUplink() {
       const msg = lastError instanceof Error ? lastError.message : String(lastError);
       setSyncStatus('error');
       setSyncError(`HyperSync failed after ${maxAttempts} attempts. ${msg ? `Reason: ${msg}` : ''}`);
+      pushToast({ variant: 'error', title: 'Sync failed', message: msg || undefined });
       setMessages(prev => [...prev, {
         role: 'system',
         content: 'Sync failed. Use Retry, or keep going (context may degrade).',
@@ -110,13 +116,14 @@ export default function CognitiveUplink() {
       setSyncStatus('error');
       const msg = e instanceof Error ? e.message : String(e);
       setSyncError(`HyperSync failed. ${msg ? `Reason: ${msg}` : ''}`);
+      pushToast({ variant: 'error', title: 'Sync failed', message: msg || undefined });
       setMessages(prev => [...prev, {
         role: 'system',
         content: 'Sync failed. Use Retry, or keep going (context may degrade).',
         timestamp: Date.now()
       }]);
     }
-  }, [currentSizeChars, getClientId, getUserPreferences, messages, syncStatus]);
+  }, [currentSizeChars, getClientId, getUserPreferences, messages, pushToast, syncStatus]);
 
   const connect = useCallback(() => {
     if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
@@ -127,11 +134,16 @@ export default function CognitiveUplink() {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? `ws://${hostname}:8081/ws/uplink`;
 
     console.log(`[CognitiveUplink] Connecting to ${wsUrl}...`);
+    if (Date.now() - lastConnectToastAtRef.current > 8000) {
+      lastConnectToastAtRef.current = Date.now();
+      pushToast({ variant: 'info', title: 'Connecting uplink…' });
+    }
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       console.log('[CognitiveUplink] Connected');
       setIsConnected(true);
+      pushToast({ variant: 'success', title: 'Uplink connected' });
       setMessages(prev => [...prev, {
         role: 'system',
         content: 'SECURE CHANNEL ESTABLISHED. NEURAL NET ONLINE.',
@@ -141,11 +153,16 @@ export default function CognitiveUplink() {
 
     ws.onerror = (error) => {
       console.error('[CognitiveUplink] WebSocket Error:', error);
+      if (Date.now() - lastWsErrorToastAtRef.current > 5000) {
+        lastWsErrorToastAtRef.current = Date.now();
+        pushToast({ variant: 'error', title: 'Uplink error', message: 'WebSocket connection failed.' });
+      }
     };
 
     ws.onclose = () => {
       console.log('[CognitiveUplink] Disconnected');
       setIsConnected(false);
+      pushToast({ variant: 'info', title: 'Uplink disconnected' });
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -159,9 +176,11 @@ export default function CognitiveUplink() {
           }]);
           setIsTyping(false);
         } else if (data.type === 'error') {
+          const message = String(data.data ?? 'Unknown error');
+          pushToast({ variant: 'error', title: 'Dispatch error', message });
           setMessages(prev => [...prev, {
             role: 'system',
-            content: `Error: ${data.data ?? 'Unknown error'}`,
+            content: `Error: ${message}`,
             timestamp: Date.now()
           }]);
           setIsTyping(false);
@@ -172,7 +191,7 @@ export default function CognitiveUplink() {
     };
 
     wsRef.current = ws;
-  }, []);
+  }, [pushToast]);
 
   useEffect(() => {
     if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
@@ -204,28 +223,44 @@ export default function CognitiveUplink() {
     if (!resume) return;
     (async () => {
       try {
+        pushToast({ variant: 'info', title: 'Resuming session…' });
         const clientId = getClientId();
         const redeemed = await hypersyncRedeem(resume, clientId);
-        const state = redeemed.state as any;
-        const restored = Array.isArray(state.messages) ? state.messages : [];
+        const state: unknown = (redeemed as { state?: unknown } | null)?.state;
+        const restoredRaw = (() => {
+          if (!state || typeof state !== 'object') return null;
+          const r = state as Record<string, unknown>;
+          return r.messages ?? null;
+        })();
+        const restored = Array.isArray(restoredRaw) ? restoredRaw : [];
         setMessages([
           { role: 'system', content: 'Resumed from HyperSync handoff.', timestamp: Date.now() },
-          ...restored.map((m: any) => ({
-            role: (m.role === 'user' || m.role === 'system' || m.role === 'agent') ? m.role : 'system',
-            content: String(m.content ?? ''),
-            timestamp: Number(m.timestamp ?? Date.now()),
-          }))
+          ...restored
+            .map((m): MessageUI | null => {
+              if (!m || typeof m !== 'object') return null
+              const mr = m as Record<string, unknown>
+              const role = mr.role
+              const normalizedRole: MessageUI['role'] =
+                role === 'user' || role === 'system' || role === 'agent' ? role : 'system'
+              const content = typeof mr.content === 'string' ? mr.content : String(mr.content ?? '')
+              const rawTs = mr.timestamp
+              const timestamp = typeof rawTs === 'number' ? rawTs : Number(rawTs ?? Date.now())
+              return { role: normalizedRole, content, timestamp: Number.isFinite(timestamp) ? timestamp : Date.now() }
+            })
+            .filter((m): m is MessageUI => m !== null)
         ]);
+        pushToast({ variant: 'success', title: 'Session resumed' });
         setSyncStatus('idle');
         setResumeToken(null);
         const url = new URL(window.location.href);
         url.searchParams.delete('resume');
         window.history.replaceState({}, '', url.toString());
       } catch (e) {
+        pushToast({ variant: 'error', title: 'Resume failed', message: e instanceof Error ? e.message : String(e) });
         setMessages(prev => [...prev, { role: 'system', content: `Resume failed: ${String(e)}`, timestamp: Date.now() }]);
       }
     })();
-  }, [getClientId]);
+  }, [getClientId, pushToast]);
 
   useEffect(() => {
     const MAX_CHARS = 12000;
@@ -244,11 +279,10 @@ export default function CognitiveUplink() {
     setMessages(prev => [...prev, { role: 'user', content: content, timestamp: Date.now() }]);
     setIsTyping(true);
 
-    // FIX #1 APPLIED: type is now 'execute' — matches crew-orchestrator WS handler
     const message: UplinkMessage = {
       id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
-      type: 'execute',  // ← THE FIX. Was 'command'. Orchestrator lines 796–866.
+      type: 'execute',
       source: 'user',
       target: 'orchestrator',
       payload: { command: content }
@@ -256,7 +290,13 @@ export default function CognitiveUplink() {
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
+      pushToast({
+        variant: 'success',
+        title: 'Directive dispatched',
+        message: content.length > 120 ? `${content.slice(0, 120)}…` : content,
+      });
     } else {
+      pushToast({ variant: 'error', title: 'Uplink offline', message: 'Unable to dispatch directive.' });
       setMessages(prev => [...prev, { role: 'system', content: 'Error: Uplink offline.', timestamp: Date.now() }]);
       setIsTyping(false);
     }

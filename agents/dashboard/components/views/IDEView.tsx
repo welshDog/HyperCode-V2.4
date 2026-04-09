@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Pane } from '@/components/shell/Pane'
 import { MetricsView } from '@/components/views/MetricsView'
 import { BROskiPulseView } from '@/components/views/BROskiPulseView'
+import { useToast } from '@/components/ui/ToastProvider'
 
 type FileEntry = { name: string; path: string; type: 'file' | 'directory' }
 
@@ -41,6 +42,7 @@ export function IDEView(): React.JSX.Element {
   const [editorText, setEditorText] = useState<string>('Select a file to view details.')
   const [terminalInput, setTerminalInput] = useState('')
   const [terminalLog, setTerminalLog] = useState<string[]>([])
+  const { toast } = useToast()
 
   const gridTemplate = focusedPaneId
     ? `"${focusedPaneId} ${focusedPaneId} ${focusedPaneId}" 1fr / 1fr 1fr 1fr`
@@ -52,6 +54,7 @@ export function IDEView(): React.JSX.Element {
 
   const fetchDir = useCallback(async (path: string) => {
     setFileTreeError(null)
+    toast({ variant: 'info', title: 'Loading directory', message: path })
     const controller = new AbortController()
     const t = setTimeout(() => controller.abort(), 5_000)
     try {
@@ -66,17 +69,24 @@ export function IDEView(): React.JSX.Element {
       setEntries(items)
       if (!res.ok) {
         setFileTreeError('Filesystem tools unavailable (MCP adapter offline).')
+        toast({ variant: 'error', title: 'Directory load failed', message: 'Filesystem tools unavailable (MCP adapter offline).' })
       } else if (items.length === 0) {
         setFileTreeError('No files returned. /workspace may not be mounted in the container.')
+        toast({ variant: 'error', title: 'No files returned', message: '/workspace may not be mounted in the container.' })
+      } else {
+        toast({ variant: 'success', title: 'Directory loaded', message: `${items.length} entries` })
       }
     } catch (err) {
+      if (controller.signal.aborted) return
       setEntries([])
-      setFileTreeError(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      setFileTreeError(msg)
+      toast({ variant: 'error', title: 'Directory load failed', message: msg })
     } finally {
       clearTimeout(t)
       controller.abort()
     }
-  }, [])
+  }, [toast])
 
   useEffect(() => {
     fetchDir(cwd).catch(() => setEntries([]))
@@ -94,17 +104,24 @@ export function IDEView(): React.JSX.Element {
     if (e.type === 'directory') {
       setCwd(e.path)
       setEditorText(`Directory: ${e.path}`)
+      toast({ variant: 'info', title: 'Changed directory', message: e.path })
       return
     }
 
     setEditorText(`Loading: ${e.path}`)
     try {
+      toast({ variant: 'info', title: 'Opening file', message: e.path })
       const res = await fetch('/api/mcp/tools/call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tool: 'filesystem:read_file', params: { path: e.path } }),
       })
       const data: unknown = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast({ variant: 'error', title: 'File open failed', message: `${res.status} ${res.statusText}`.trim() })
+      } else {
+        toast({ variant: 'success', title: 'File opened', message: e.path })
+      }
       const obj = asRecord(data)
       const result = asRecord(obj?.result)
       const content = (result?.content ?? obj?.content ?? obj?.result) as unknown
@@ -114,9 +131,11 @@ export function IDEView(): React.JSX.Element {
         setEditorText(JSON.stringify(data, null, 2))
       }
     } catch (err) {
-      setEditorText(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      setEditorText(msg)
+      toast({ variant: 'error', title: 'File open failed', message: msg })
     }
-  }, [])
+  }, [toast])
 
   const runTerminal = useCallback(async () => {
     const line = terminalInput.trim()
@@ -125,6 +144,7 @@ export function IDEView(): React.JSX.Element {
     setTerminalInput('')
 
     try {
+      toast({ variant: 'info', title: 'Sending task', message: line })
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') ?? '' : ''
       const res = await fetch('/api/orchestrator', {
         method: 'POST',
@@ -136,10 +156,17 @@ export function IDEView(): React.JSX.Element {
       })
       const data: unknown = await res.json().catch(() => ({}))
       setTerminalLog((prev) => [...prev, JSON.stringify(data, null, 2)])
+      if (!res.ok) {
+        toast({ variant: 'error', title: 'Task failed', message: `${res.status} ${res.statusText}`.trim() })
+      } else {
+        toast({ variant: 'success', title: 'Task sent', message: line })
+      }
     } catch (err) {
-      setTerminalLog((prev) => [...prev, String(err)])
+      const msg = err instanceof Error ? err.message : String(err)
+      setTerminalLog((prev) => [...prev, msg])
+      toast({ variant: 'error', title: 'Task failed', message: msg })
     }
-  }, [terminalInput])
+  }, [toast, terminalInput])
 
   return (
     <div className="hyper-shell" style={{ gridTemplate }}>
