@@ -101,11 +101,18 @@ function AppShellInner({
   const closeRef = useRef<HTMLButtonElement | null>(null)
 
   const isMission = pathname === '/mission'
-  const count = history.length
+  
+  // Track the most recent timestamp we have "seen"
+  const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(Date.now())
+  
+  // Unread = items added after our lastSeenTimestamp
+  const unreadCount = history.filter(t => t.createdAt > lastSeenTimestamp).length
 
   useEffect(() => {
     if (!open) return
     closeRef.current?.focus()
+    // When panel opens, we mark everything up to "now" as seen
+    setLastSeenTimestamp(Date.now())
   }, [open])
 
   useEffect(() => {
@@ -144,7 +151,7 @@ function AppShellInner({
           <div className="hc-notify">
             <button
               ref={btnRef}
-              className="btn hc-notify-btn"
+              className={`btn hc-notify-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
               onClick={() => setOpen((v) => !v)}
               aria-label="Notification history"
               aria-haspopup="dialog"
@@ -152,7 +159,7 @@ function AppShellInner({
               title="Notifications"
             >
               <BellIcon />
-              {count > 0 && <span className="hc-notify-badge" aria-label={`${count} notifications`}>{count}</span>}
+              {unreadCount > 0 && <span className="hc-notify-badge" aria-label={`${unreadCount} unread notifications`}>{unreadCount > 9 ? '9+' : unreadCount}</span>}
             </button>
             {open && (
               <div ref={panelRef} className="pane hc-notify-panel" role="dialog" aria-label="Notification history">

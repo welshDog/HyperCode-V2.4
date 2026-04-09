@@ -1,10 +1,26 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { useMetrics } from '@/hooks/useMetrics'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export function MetricsView(): React.JSX.Element {
-  const { metrics, loading } = useMetrics()
+  const { toast } = useToast()
+
+  const onRefetchComplete = useCallback((success: boolean) => {
+    if (success) {
+      toast({ type: 'success', message: '✅ Metrics refreshed' })
+    } else {
+      toast({ type: 'error', message: '❌ Failed to refresh metrics' })
+    }
+  }, [toast])
+
+  const { metrics, loading, refetch } = useMetrics(onRefetchComplete)
+
+  const handleManualRefetch = () => {
+    toast({ type: 'info', message: '⏳ Polling metrics…' })
+    refetch()
+  }
 
   if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>\u23F3 Loading metrics...</div>
 
@@ -19,6 +35,9 @@ export function MetricsView(): React.JSX.Element {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="metrics">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+        <button className="btn" onClick={handleManualRefetch} style={{ fontSize: 10, padding: '2px 8px' }}>↻ Refresh</button>
+      </div>
       {rows.map((r) => (
         <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--pane-border)' }}>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{r.label}</span>

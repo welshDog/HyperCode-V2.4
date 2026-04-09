@@ -2,10 +2,23 @@
 
 import React, { useRef, useEffect } from 'react'
 import { useLogs, levelColour } from '@/hooks/useLogs'
+import { useToast } from '@/components/ui/ToastProvider'
 
 export function LogsView(): React.JSX.Element {
   const { logs, loading, liveWs } = useLogs(80)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+
+  // Track previous connection state to notify when live stream connects/drops
+  const prevLiveWs = useRef(liveWs)
+  useEffect(() => {
+    if (prevLiveWs.current === false && liveWs === true) {
+      toast({ type: 'success', message: '✅ Live logs connected' })
+    } else if (prevLiveWs.current === true && liveWs === false) {
+      toast({ type: 'error', message: '❌ Live logs disconnected, polling...' })
+    }
+    prevLiveWs.current = liveWs
+  }, [liveWs, toast])
 
   useEffect(() => {
     if (bottomRef.current && typeof bottomRef.current.scrollIntoView === 'function') {

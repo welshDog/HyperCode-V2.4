@@ -52,12 +52,12 @@ function normaliseAgent(raw: unknown): Agent | null {
   }
 }
 
-export function useAgentSwarm() {
+export function useAgentSwarm(onRefetchComplete?: (success: boolean) => void) {
   const [agents, setAgents]   = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState<string | null>(null)
 
-  const fetchAgents = useCallback(async () => {
+  const fetchAgents = useCallback(async (isManual = false) => {
     try {
       const res = await fetch('/api/agents', { next: { revalidate: 0 } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -66,18 +66,20 @@ export function useAgentSwarm() {
       const mapped = rawAgents.map(normaliseAgent).filter((x): x is Agent => x != null)
       setAgents(mapped)
       setError(null)
+      if (isManual && onRefetchComplete) onRefetchComplete(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
+      if (isManual && onRefetchComplete) onRefetchComplete(false)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [onRefetchComplete])
 
   useEffect(() => {
-    fetchAgents()
-    const timer = setInterval(fetchAgents, POLL_MS)
+    fetchAgents(false)
+    const timer = setInterval(() => fetchAgents(false), POLL_MS)
     return () => clearInterval(timer)
   }, [fetchAgents])
 
-  return { agents, loading, error, refetch: fetchAgents }
+  return { agents, loading, error, refetch: () => fetchAgents(true) }
 }
