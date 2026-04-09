@@ -1,0 +1,41 @@
+name: Playwright Dashboard E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "agents/dashboard/**"
+      - "tests/e2e/dashboard/**"
+      - "playwright.config.ts"
+      - "scripts/e2e/**"
+  pull_request:
+    paths:
+      - "agents/dashboard/**"
+      - "tests/e2e/dashboard/**"
+      - "playwright.config.ts"
+      - "scripts/e2e/**"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        env:
+          CI: "1"
+          DASHBOARD_PORT: "3010"
+        run: npx playwright test
+
