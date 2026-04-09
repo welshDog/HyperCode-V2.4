@@ -12,11 +12,11 @@ route:
       group_interval: 30s
       repeat_interval: 1h
       matchers:
-        - alertname=~"CrewOrchestratorDown|SmokeFailuresDetected"
+        - alertname=~"CrewOrchestratorDown|SmokeFailuresDetected|ContainerMemoryHigh|ContainerMemoryCritical"
 
 receivers:
   - name: blackhole
   - name: webhook
     webhook_configs:
-      - url: http://alert-webhook:8080/alerts
+      - url: http://healer-agent:8008/alerts/webhook
         send_resolved: true
