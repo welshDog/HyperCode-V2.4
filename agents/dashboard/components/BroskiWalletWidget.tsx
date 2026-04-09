@@ -27,7 +27,7 @@ export function BroskiWalletWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
-  const prevBalance = useRef<number | null>(null);
+  const prevCoins = useRef<number | null>(null);
   const { toast } = useToast();
 
   const load = useCallback(async () => {
@@ -35,17 +35,17 @@ export function BroskiWalletWidget() {
     inFlight.current = true;
     try {
       const data = await fetchBroskiWallet();
-      
-      // Toast if balance changed (and we had a previous balance)
-      if (prevBalance.current !== null && data.balance !== prevBalance.current) {
-        const diff = data.balance - prevBalance.current;
+
+      // Toast if coins changed (and we had a previous value)
+      if (prevCoins.current !== null && data.coins !== prevCoins.current) {
+        const diff = data.coins - prevCoins.current;
         if (diff > 0) {
           toast({ type: 'success', message: `✅ Earned ${diff} BROski$` });
         } else {
           toast({ type: 'info', message: `💸 Spent ${Math.abs(diff)} BROski$` });
         }
       }
-      prevBalance.current = data.balance;
+      prevCoins.current = data.coins;
 
       setWallet(data);
       setError(null);
@@ -170,4 +170,3 @@ export function BroskiWalletWidget() {
     </div>
   );
 }
-
