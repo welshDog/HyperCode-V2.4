@@ -89,6 +89,8 @@ button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 .status.hot::before{background:var(--color-primary);animation:pulse 1.5s ease-in-out infinite}
 .status.idle{background:color-mix(in oklab,var(--color-text-faint) 20%,var(--color-surface));color:var(--color-text-faint)}
 .status.idle::before{background:var(--color-text-faint)}
+.status.error{background:color-mix(in oklab,var(--color-error) 15%,var(--color-surface));color:var(--color-error)}
+.status.error::before{background:var(--color-error);animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Docker Updates Panel */
@@ -109,6 +111,10 @@ button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 .code-title{font-size:var(--text-xs);color:var(--color-text-muted);font-weight:500}
 .code-copy{font-size:var(--text-xs);color:var(--color-text-faint);transition:color var(--transition);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--color-border);background:var(--color-surface)}
 .code-copy:hover{color:var(--color-primary);border-color:var(--color-primary)}
+.code-actions{display:flex;align-items:center;gap:var(--space-2)}
+.code-run{font-size:var(--text-xs);color:var(--color-text-faint);transition:color var(--transition);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);border:1px solid var(--color-border);background:var(--color-surface)}
+.code-run:hover{color:var(--color-blue);border-color:var(--color-blue)}
+.code-run.active{color:var(--color-primary);border-color:var(--color-primary)}
 pre{font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text);line-height:1.7;white-space:pre}
 .kw{color:var(--color-purple)}
 .str{color:var(--color-success)}
@@ -259,7 +265,10 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
   <div class="code-block">
     <div class="code-header">
       <span class="code-title">Start agents with live code sync</span>
-      <button class="code-copy" onclick="copyCode(this,'cmd1')">Copy</button>
+      <span class="code-actions">
+        <button class="code-copy" onclick="copyCode(this,'cmd1')">Copy</button>
+        <button class="code-run" onclick="sendToCrew(this,'cmd1')">Send</button>
+      </span>
     </div>
     <pre id="cmd1"><span class="cm"># Start specialist agents with hot-reload</span>
 <span class="cmd">docker compose -f docker-compose.agents.yml up --watch</span>
@@ -274,7 +283,10 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
   <div class="code-block">
     <div class="code-header">
       <span class="code-title">New: docker debug (no bash needed in container)</span>
-      <button class="code-copy" onclick="copyCode(this,'cmd2')">Copy</button>
+      <span class="code-actions">
+        <button class="code-copy" onclick="copyCode(this,'cmd2')">Copy</button>
+        <button class="code-run" onclick="sendToCrew(this,'cmd2')">Send</button>
+      </span>
     </div>
     <pre id="cmd2"><span class="cm"># Attach shell to ANY agent — even slim Python images</span>
 <span class="cmd">docker debug coder-agent</span>
@@ -288,7 +300,10 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
   <div class="code-block">
     <div class="code-header">
       <span class="code-title">develop.watch config snippet (what was added)</span>
-      <button class="code-copy" onclick="copyCode(this,'cmd3')">Copy</button>
+      <span class="code-actions">
+        <button class="code-copy" onclick="copyCode(this,'cmd3')">Copy</button>
+        <button class="code-run" onclick="sendToCrew(this,'cmd3')">Send</button>
+      </span>
     </div>
     <pre id="cmd3"><span class="key">services</span><span class="val">:</span>
   <span class="key">coder-agent</span><span class="val">:</span>
@@ -307,7 +322,7 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
 
   <!-- AGENT STATUS -->
   <div class="section-head">
-    <h2 class="section-title">Agent Fleet <span>// 13 agents · hot-reload enabled</span></h2>
+    <h2 class="section-title">Agent Fleet <span>// 13 agents · hot-reload enabled · live: <span id="agents-live">--</span></span></h2>
   </div>
   <div class="agents-grid">
 
@@ -486,13 +501,105 @@ function copyCode(btn,id){
   });
 }
 
-// Nav item clicks
-document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-    item.classList.add('active');
+function sendToCrew(btn,id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const text=el.innerText;
+  btn.textContent='Sending…';
+  btn.classList.add('active');
+  fetch('/api/orchestrator',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({
+      id:`dockerzone-${Date.now()}`,
+      type:'legacy',
+      description:`Help me run/validate this Docker command or config. Provide safe steps and checks.\n\n${text}`,
+      agent:'devops-engineer',
+      requires_approval:true
+    })
+  }).then(async (res)=>{
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    await res.json();
+    btn.textContent='Sent';
+  }).catch(()=>{
+    btn.textContent='Send failed';
+  }).finally(()=>{
+    setTimeout(()=>{btn.textContent='Send';btn.classList.remove('active')},2000);
   });
-});
+}
+
+function applyParentTheme(){
+  try{
+    const root=window.parent.document.documentElement;
+    const cs=getComputedStyle(root);
+    const shellBg=cs.getPropertyValue('--shell-bg').trim();
+    const paneBg=cs.getPropertyValue('--pane-bg').trim();
+    const paneBorder=cs.getPropertyValue('--pane-border').trim();
+    const textPrimary=cs.getPropertyValue('--text-primary').trim();
+    const textSecondary=cs.getPropertyValue('--text-secondary').trim();
+    const fontPrimary=cs.getPropertyValue('--font-primary').trim();
+    const fontMono=cs.getPropertyValue('--font-mono').trim();
+
+    if(shellBg) document.documentElement.style.setProperty('--color-bg',shellBg);
+    if(paneBg){
+      document.documentElement.style.setProperty('--color-surface',paneBg);
+      document.documentElement.style.setProperty('--color-surface-2',paneBg);
+      document.documentElement.style.setProperty('--color-surface-offset',paneBg);
+    }
+    if(paneBorder){
+      document.documentElement.style.setProperty('--color-border',paneBorder);
+      document.documentElement.style.setProperty('--color-divider',paneBorder);
+    }
+    if(textPrimary){
+      document.documentElement.style.setProperty('--color-text',textPrimary);
+    }
+    if(textSecondary){
+      document.documentElement.style.setProperty('--color-text-muted',textSecondary);
+      document.documentElement.style.setProperty('--color-text-faint',textSecondary);
+    }
+    if(fontPrimary) document.documentElement.style.setProperty('--font-body',fontPrimary);
+    if(fontMono) document.documentElement.style.setProperty('--font-mono',fontMono);
+  }catch{}
+}
+
+applyParentTheme();
+try{
+  new MutationObserver(()=>applyParentTheme()).observe(window.parent.document.documentElement,{attributes:true,attributeFilter:['data-nd-mode']});
+}catch{}
+
+function normalizeAgentName(raw){
+  return String(raw||'').replace(/^[^a-zA-Z0-9]+/,'').trim().toLowerCase();
+}
+
+async function refreshAgentStatus(){
+  try{
+    const res=await fetch('/api/agents',{cache:'no-store',headers:{'Accept':'application/json'}});
+    const data=await res.json();
+    const agents=Array.isArray(data?.agents)?data.agents:[];
+    const map=new Map(agents.map(a=>[String(a?.name||'').toLowerCase(),a]));
+    document.querySelectorAll('.agent-row').forEach(row=>{
+      const nameEl=row.querySelector('.agent-name');
+      const statusEl=row.querySelector('.status');
+      if(!nameEl||!statusEl) return;
+      const name=normalizeAgentName(nameEl.textContent);
+      const agent=map.get(name);
+      if(!agent) return;
+      const st=String(agent.status||'').toLowerCase();
+      statusEl.classList.remove('running','hot','idle','error');
+      if(st==='online'){statusEl.classList.add('running');statusEl.textContent='online';return;}
+      if(st==='busy'){statusEl.classList.add('hot');statusEl.textContent='busy';return;}
+      if(st==='error'){statusEl.classList.add('error');statusEl.textContent='error';return;}
+      statusEl.classList.add('idle');statusEl.textContent=st||'offline';
+    });
+    const badge=document.getElementById('agents-live');
+    if(badge) badge.textContent=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  }catch{
+    const badge=document.getElementById('agents-live');
+    if(badge) badge.textContent='offline';
+  }
+}
+setInterval(refreshAgentStatus,5000);
+refreshAgentStatus();
 
 function postHeight(){
   const height=document.documentElement.scrollHeight;
