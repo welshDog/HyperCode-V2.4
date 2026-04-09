@@ -30,5 +30,10 @@ limits_config:
   ingestion_rate_mb: 16
   ingestion_burst_size_mb: 32
 
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
 ruler:
   alertmanager_url: http://localhost:9093
