@@ -1,5 +1,5 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import models
@@ -40,7 +40,21 @@ def execute_command(
     Maps to the standard Task creation flow.
     """
     description = request.task.description
-    
+
+    # Resolve the user's own project — superusers may use any project
+    if current_user.is_superuser:
+        project = db.query(models.Project).first()
+    else:
+        project = db.query(models.Project).filter(
+            models.Project.owner_id == current_user.id
+        ).first()
+
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No project found for this user. Create a project first.",
+        )
+
     # Simple logic to determine task type from description
     task_type = "general"
     if "research" in description.lower():
@@ -55,8 +69,7 @@ def execute_command(
         title=f"Dashboard Command: {description[:30]}...",
         description=description,
         priority="high",
-        project_id=1, # Default project
-        # status="pending" # Default
+        project_id=project.id,
     )
     db.add(task)
     db.commit()
@@ -70,7 +83,7 @@ def execute_command(
         "description": task.description,
         "priority": "high",
         "status": "pending",
-        "project_id": 1
+        "project_id": project.id,
     }
     
     from app.core.celery_app import celery_app

@@ -58,35 +58,63 @@ backup_redis() {
 # Backup Docker volumes
 backup_volumes() {
     echo "Backing up Docker volumes..."
-    
-    local volumes=$(docker volume ls --format "{{.Name}}" | grep hypercode || true)
-    
+
+    # Enumerate volumes from compose config to avoid silent "no volumes backed up"
+    # when volume names don't match a simple grep pattern.
+    local volumes
+    volumes=$(docker compose -f "$COMPOSE_FILE" config --volumes 2>/dev/null || true)
+
     if [ -z "$volumes" ]; then
-        echo "No HyperCode volumes found"
+        echo "${YELLOW}⚠ No volumes found via compose config; falling back to docker volume ls${NC}"
+        # Compose prefixes volumes with the project name; use that prefix
+        local project
+        project=$(docker compose -f "$COMPOSE_FILE" config --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('name',''))" 2>/dev/null || true)
+        if [ -n "$project" ]; then
+            volumes=$(docker volume ls --format "{{.Name}}" | grep "^${project}_" || true)
+        fi
+    fi
+
+    if [ -z "$volumes" ]; then
+        echo "No volumes found to back up"
         return
     fi
-    
+
     for volume in $volumes; do
-        echo "  Backing up volume: $volume"
-        docker run --rm \
-            -v "$volume:/data" \
-            -v "$PWD/$BACKUP_DIR/$TIMESTAMP:/backup" \
-            alpine tar czf "/backup/${volume}.tar.gz" -C /data .
+        # Resolve the fully-qualified volume name if compose returned a short name
+        local fq_volume="$volume"
+        if ! docker volume inspect "$volume" > /dev/null 2>&1; then
+            local project
+            project=$(docker compose -f "$COMPOSE_FILE" config --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('name',''))" 2>/dev/null || true)
+            fq_volume="${project}_${volume}"
+        fi
+
+        if docker volume inspect "$fq_volume" > /dev/null 2>&1; then
+            echo "  Backing up volume: $fq_volume"
+            docker run --rm \
+                -v "$fq_volume:/data:ro" \
+                -v "$PWD/$BACKUP_DIR/$TIMESTAMP:/backup" \
+                alpine tar czf "/backup/${fq_volume}.tar.gz" -C /data .
+        else
+            echo "${YELLOW}  ⚠ Volume '$fq_volume' not found, skipping${NC}"
+        fi
     done
-    
+
     echo -e "${GREEN}✓ Volume backups complete${NC}"
 }
 
 # Backup configurations
 backup_configs() {
     echo "Backing up configurations..."
-    
-    # Copy important config files
+
+    # Copy compose files (safe — no secrets)
     cp docker-compose*.yml "$BACKUP_DIR/$TIMESTAMP/" 2>/dev/null || true
-    cp .env* "$BACKUP_DIR/$TIMESTAMP/" 2>/dev/null || true
     cp -r Configuration_Kit "$BACKUP_DIR/$TIMESTAMP/" 2>/dev/null || true
     cp -r monitoring "$BACKUP_DIR/$TIMESTAMP/" 2>/dev/null || true
-    
+
+    # SECURITY: .env files contain live credentials — never copy them into backups.
+    # Rotate secrets before restoring to a new environment; use .env.example as the template.
+    echo "${YELLOW}  ⚠ Skipping .env files — they contain live secrets. Use .env.example as the restore template.${NC}"
+
     echo -e "${GREEN}✓ Configuration backup complete${NC}"
 }
 

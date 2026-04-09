@@ -1,16 +1,16 @@
 <div align="center">
 
-# 🦅 HyperCode V2.0
+# 🦅 HyperCode V2.4
 
 ### *A Self-Evolving Cognitive AI Architecture*
 
 **Neurodivergent-First · Open Source · Autonomously Alive**
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![CI](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/ci.yml)
-[![Docker Build](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.0/actions/workflows/docker.yml)
+[![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
 [![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
-[![System Health](https://img.shields.io/badge/health-GREEN-brightgreen)](docs/notes/HyperCode_Health_Check_Report_2026-02-28.md)
+[![System Health](https://img.shields.io/badge/health-GREEN-brightgreen)](ULTIMATE_HEALTH_REPORT_2026-04-01.md)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](docs/screenshots-gallery.md)
@@ -25,9 +25,9 @@
 
 </div>
 
-## 🧠 What Is HyperCode V2.0?
+## 🧠 What Is HyperCode V2.4?
 
-**HyperCode V2.0 is not a starter template. Not a boilerplate. Not a framework.**
+**HyperCode V2.4 is not a starter template. Not a boilerplate. Not a framework.**
 
 It is a **living cognitive architecture** — a swarm of AI agents that autonomously design, deploy, heal, and evolve themselves inside a Docker-based infrastructure.
 
@@ -35,7 +35,7 @@ Think of it this way:
 
 ```
 Traditional dev tools → You manage the system
-HyperCode V2.0        → The system manages itself
+HyperCode V2.4        → The system manages itself
 ```
 
 **Agent X** designs new agents. The **Healer** fixes broken ones. The **Crew Orchestrator** runs missions. The **DevOps Agent** updates CI/CD pipelines. **You direct the vision. The system does the building.**
@@ -61,8 +61,8 @@ This was built for a specific kind of mind: **ADHD, dyslexic, and autistic devel
 ## ⚡ Three Commands. Fully Alive.
 
 ```bash
-git clone https://github.com/welshDog/HyperCode-V2.0
-cd HyperCode-V2.0
+git clone https://github.com/welshDog/HyperCode-V2.4
+cd HyperCode-V2.4
 cp .env.example .env   # Add your API keys
 docker compose up -d   # Everything boots. All agents online. 🚀
 ```
@@ -100,7 +100,7 @@ That's BROski. My ride or die. 🔥
 
 > **TL;DR:** Do stuff. Earn coins. Level up. Unlock achievements. Be legendary. ♾️
 
-HyperCode V2.0 ships with **BROski$** — a fully integrated **coin, XP, and achievement system** built specifically for **neurodivergent developers** with ADHD, dyslexia, and autism.
+HyperCode V2.4 ships with **BROski$** — a fully integrated **coin, XP, and achievement system** built specifically for **neurodivergent developers** with ADHD, dyslexia, and autism.
 
 Instead of a generic points system, BROski$ is **wired directly into your daily workflow**: create tasks, complete missions, log in every day, and your brain gets **constant small wins** to stay in hyperfocus. Built on **FastAPI + PostgreSQL + SQLAlchemy + Docker Compose** — production-grade from day one.
 
@@ -173,8 +173,8 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 
 1. **Clone the repository**
    ```powershell
-   git clone https://github.com/welshDog/HyperCode-V2.0.git
-   cd HyperCode-V2.0
+   git clone https://github.com/welshDog/HyperCode-V2.4.git
+   cd HyperCode-V2.4
    ```
 
 2. **Configure Environment**
@@ -204,7 +204,7 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 - 🐳 **Docker Zone**: `http://localhost:8088/docker-zone`
 - 🖥️ **BROski Terminal**: `http://localhost:3000`
 - 🧠 **Crew Orchestrator**: `http://localhost:8081`
-- ❤️ **Healer Agent**: `http://localhost:8010`
+- ❤️ **Healer Agent**: `http://localhost:8008`
 - 📝 **Core API Docs**: `http://localhost:8000/docs`
 - 📊 **Grafana**: `http://localhost:3001`
 
@@ -214,9 +214,9 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 
 ## 📸 Live System Screenshots
 
-See HyperCode V2.0 in action with full observability:
+See HyperCode V2.4 in action with full observability:
 
-[![Grafana Dashboards](HyperFocus%20Images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211404.png)](docs/screenshots-gallery.md)
+[![Grafana Dashboards](hyperfocus-images/Grafana%20DashBoards%20pics/Screenshot%202026-03-02%20211404.png)](docs/screenshots-gallery.md)
 
 **Full gallery with 10+ dashboards:** [View Screenshot Gallery](docs/screenshots-gallery.md)
 
@@ -224,7 +224,7 @@ See HyperCode V2.0 in action with full observability:
 
 ## 🏗️️ Architecture
 
-See [docs/architecture/architecture.md](docs/architecture/architecture.md) for detailed system design.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design.
 
 ### Key Components
 
@@ -241,7 +241,7 @@ See [docs/architecture/architecture.md](docs/architecture/architecture.md) for d
 
 ## 🛡️ Health & Status
 
-Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report_2026-02-28.md](docs/notes/HyperCode_Health_Check_Report_2026-02-28.md)
+Check the latest system health report: [ULTIMATE_HEALTH_REPORT_2026-04-01.md](ULTIMATE_HEALTH_REPORT_2026-04-01.md)
 
 ---
 
@@ -257,7 +257,8 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 | [START_HERE.md](START_HERE.md) | MCP Gateway + Model Runner |
 | [RUNBOOK.md](RUNBOOK.md) | Stack won't boot? Fix it here |
 | [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Unit/integration/e2e test commands (Playwright included) |
-| [Session Report (2026-04-09)](docs/reviews/session-report-2026-04-09.md) | Docker Zone + toasts + notification log + Playwright E2E recap |
+| [SECURITY.md](SECURITY.md) | Security policy and audit artifacts |
+| [Session Report (2026-04-09)](docs/reviews/session-report-2026-04-09.md) | Dashboard + E2E + observability hardening recap |
 
 *   [Architecture Overview](docs/ARCHITECTURE.md) · [CLI Manual](docs/CLI.md) · [API Reference](docs/API.md)
 *   [Troubleshooting](docs/TROUBLESHOOTING.md) · [Tips & Tricks](docs/tips-and-tricks/README.md)
@@ -269,10 +270,10 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 
 We welcome contributions from everyone, especially neurodivergent developers!
 
-- Start here: [Contributing Guide](.github/CONTRIBUTING.md)
+- Start here: [Contributing Guide](CONTRIBUTING.md)
 - High-impact areas: [Developer Call to Action](docs/DEVELOPER_CALL_TO_ACTION.md)
-- Ideas + discussion: [GitHub Discussions](https://github.com/welshDog/HyperCode-V2.0/discussions)
-- Bugs + requests: [GitHub Issues](https://github.com/welshDog/HyperCode-V2.0/issues)
+- Ideas + discussion: [GitHub Discussions](https://github.com/welshDog/HyperCode-V2.4/discussions)
+- Bugs + requests: [GitHub Issues](https://github.com/welshDog/HyperCode-V2.4/issues)
 
 ---
 

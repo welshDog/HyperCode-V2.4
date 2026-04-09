@@ -28,8 +28,7 @@ jobs:
       run: |
         cp .env.example .env
         echo "PERPLEXITY_API_KEY=${{ secrets.PERPLEXITY_API_KEY }}" >> .env
-        docker compose -f docker-compose.agents.yml up -d
-        sleep 30  # Wait for services to be ready
+        docker compose -f docker-compose.agents.yml up -d --wait --wait-timeout 120
     
     - name: Run tests
       run: |
@@ -46,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'

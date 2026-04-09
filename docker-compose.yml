@@ -72,6 +72,19 @@ volumes:
       type: none
       o: bind
       device: ${HC_DATA_ROOT}/tempo
+  loki-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/loki
+  alertmanager-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/alertmanager
+  promtail-positions:
 
 services:
   # ====================
@@ -312,6 +325,8 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}'
+      - '--storage.tsdb.retention.size=${PROMETHEUS_RETENTION_SIZE:-10GB}'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     ports:
@@ -525,10 +540,15 @@ services:
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
+      - loki-data:/loki
     networks:
       - backend-net
     healthcheck:
-      disable: true
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
@@ -559,10 +579,11 @@ services:
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "echo OK"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3200/ready || exit 1"]
       interval: 60s
-      timeout: 5s
-      retries: 2
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     deploy:
       resources:
@@ -584,14 +605,16 @@ services:
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - promtail-positions:/run/promtail
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - backend-net
     healthcheck:
-      test: ["CMD-SHELL", "echo OK"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9080/ready || exit 1"]
       interval: 60s
-      timeout: 5s
-      retries: 2
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -1633,6 +1656,7 @@ services:
       retries: 3
     volumes:
       - ./monitoring/alertmanager:/etc/alertmanager
+      - alertmanager-data:/alertmanager
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'

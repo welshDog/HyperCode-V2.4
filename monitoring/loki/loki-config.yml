@@ -36,4 +36,4 @@ compactor:
   delete_request_store: filesystem
 
 ruler:
-  alertmanager_url: http://localhost:9093
+  alertmanager_url: http://alertmanager:9093

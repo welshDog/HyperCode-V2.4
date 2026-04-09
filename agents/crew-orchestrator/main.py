@@ -25,6 +25,7 @@ import logging
 import asyncio
 import os
 import hashlib
+import secrets
 from time import perf_counter
 from contextlib import asynccontextmanager
 from task_queue import get_redis_pool
@@ -159,8 +160,11 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def require_api_key(api_key: str = Security(api_key_header)) -> str:
     expected = settings.api_key
     if not expected:
-        return "dev_mode"
-    if not api_key or api_key != expected:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service misconfigured: ORCHESTRATOR_API_KEY is not set",
+        )
+    if not api_key or not secrets.compare_digest(api_key, expected):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or missing API key",
@@ -544,12 +548,15 @@ async def execute_task(
                     "agent": agent_name,
                 }
 
-        # Determine agent URL
+        # Determine agent URL — only allowlisted agents are permitted
         agent_key = agent_name.replace("-", "_")
         agent_url = settings.agents.get(agent_key)
 
         if not agent_url:
-            agent_url = f"http://{agent_name}:8000"
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
+            )
 
         # Call the agent
         try:
@@ -634,7 +641,12 @@ async def dispatch_task(
         raise HTTPException(status_code=422, detail="Unable to route task type")
 
     agent_key = agent_name.replace("-", "_")
-    agent_url = settings.agents.get(agent_key) or f"http://{agent_name}:8000"
+    agent_url = settings.agents.get(agent_key)
+    if not agent_url:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
+        )
 
     payload = {
         "id": task_id,

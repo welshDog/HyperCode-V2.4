@@ -2,21 +2,28 @@ global:
   resolve_timeout: 30s
 
 route:
-  receiver: blackhole
+  receiver: alert-webhook-fallback
   group_wait: 10s
   group_interval: 5m
   repeat_interval: 2h
   routes:
-    - receiver: webhook
+    - receiver: healer-webhook
       group_wait: 5s
       group_interval: 30s
       repeat_interval: 1h
       matchers:
         - alertname=~"CrewOrchestratorDown|SmokeFailuresDetected|ContainerMemoryHigh|ContainerMemoryCritical"
+      # Falls through to alert-webhook-fallback if healer is unreachable
 
 receivers:
-  - name: blackhole
-  - name: webhook
+  - name: healer-webhook
     webhook_configs:
       - url: http://healer-agent:8008/alerts/webhook
+        send_resolved: true
+        http_config:
+          # Short timeout so a dead healer-agent doesn't hold up routing
+          tls_config: {}
+  - name: alert-webhook-fallback
+    webhook_configs:
+      - url: http://alert-webhook:9099/alert
         send_resolved: true
