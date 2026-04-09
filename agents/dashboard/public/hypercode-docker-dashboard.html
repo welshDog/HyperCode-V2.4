@@ -32,15 +32,13 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
-body{min-height:100dvh;font-family:var(--font-body);font-size:var(--text-sm);color:var(--color-text);background:var(--color-bg);line-height:1.6}
+body{min-height:0;font-family:var(--font-body);font-size:var(--text-sm);color:var(--color-text);background:transparent;line-height:1.6}
 img,svg{display:block;max-width:100%}
 button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
 
 /* Layout */
-.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;min-height:100dvh}
-.topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 var(--space-6);background:var(--color-surface);border-bottom:1px solid var(--color-border);position:sticky;top:0;z-index:100}
-.sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);padding:var(--space-4) 0;overflow-y:auto}
-.main{overflow-y:auto;padding:var(--space-6)}
+.app{display:block}
+.main{overflow:visible;padding:var(--space-6)}
 
 /* Logo */
 .logo{display:flex;align-items:center;gap:var(--space-2);font-family:var(--font-mono);font-weight:700;font-size:var(--text-sm);color:var(--color-primary)}
@@ -167,83 +165,6 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
 </head>
 <body>
 <div class="app">
-
-<!-- TOPBAR -->
-<header class="topbar">
-  <div class="logo">
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="HyperCode">
-      <rect width="28" height="28" rx="7" fill="#00d4aa" opacity="0.15"/>
-      <path d="M7 10h6M7 14h9M7 18h6" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="21" cy="10" r="2.5" fill="#00d4aa"/>
-      <path d="M19 14l4 2-4 2" stroke="#00d4aa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    HyperCode V2.4
-  </div>
-  <div class="topbar-right">
-    <span class="topbar-time" id="clock">--:--:--</span>
-    <button class="btn-sm">🦅 Agent X</button>
-    <button class="btn-sm btn-primary">▶ docker compose up --watch</button>
-  </div>
-</header>
-
-<!-- SIDEBAR -->
-<nav class="sidebar">
-  <div class="nav-section">
-    <div class="nav-label">Overview</div>
-    <button class="nav-item active">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-      Dashboard
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20M6 20V10M10 20V4M14 20V12M18 20V8"/></svg>
-      Metrics
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Activity
-    </button>
-  </div>
-  <div class="nav-section">
-    <div class="nav-label">Agents</div>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-      All Agents
-      <span class="badge">13</span>
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 015 5v3H7V7a5 5 0 015-5z"/><rect x="2" y="10" width="20" height="12" rx="2"/></svg>
-      Hyper-Agents
-      <span class="badge">4</span>
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-      Healer Agent
-    </button>
-  </div>
-  <div class="nav-section">
-    <div class="nav-label">Docker</div>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      Hot-Reload
-      <span class="badge" style="background:color-mix(in oklab,var(--color-primary) 20%,var(--color-surface));color:var(--color-primary)">✓</span>
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Security
-    </button>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
-      Observability
-    </button>
-  </div>
-  <div class="nav-section" style="margin-top:auto">
-    <div class="nav-label">BROski</div>
-    <button class="nav-item">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-      Terminal
-    </button>
-  </div>
-</nav>
 
 <!-- MAIN CONTENT -->
 <main class="main">
@@ -547,7 +468,9 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
 // Live clock
 function updateClock(){
   const now=new Date();
-  document.getElementById('clock').textContent=now.toLocaleTimeString('en-GB',{hour12:false});
+  const el=document.getElementById('clock');
+  if(!el) return;
+  el.textContent=now.toLocaleTimeString('en-GB',{hour12:false});
 }
 setInterval(updateClock,1000);
 updateClock();
@@ -570,6 +493,14 @@ document.querySelectorAll('.nav-item').forEach(item=>{
     item.classList.add('active');
   });
 });
+
+function postHeight(){
+  const height=document.documentElement.scrollHeight;
+  window.parent?.postMessage({type:'hypercode:docker-dashboard:height',height},window.location.origin);
+}
+new ResizeObserver(()=>requestAnimationFrame(postHeight)).observe(document.body);
+window.addEventListener('load',postHeight);
+window.addEventListener('resize',postHeight);
 </script>
 </body>
 </html>
