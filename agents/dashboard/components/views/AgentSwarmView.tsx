@@ -25,8 +25,8 @@ export function AgentSwarmView(): React.JSX.Element {
     refetch()
   }
 
-  if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>\u23F3 Loading agents...</div>
-  if (error)   return <div style={{ color: 'var(--status-error)',   padding: 16 }}>\u26A0\uFE0F {error}</div>
+  if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>⏳ Loading agents...</div>
+  if (error)   return <div style={{ color: 'var(--status-error)',   padding: 16 }}>⚠️ {error}</div>
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="agent-swarm">

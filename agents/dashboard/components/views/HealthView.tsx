@@ -90,6 +90,10 @@ export function HealthView(): React.JSX.Element {
   const coreObj = asRecord(core) ?? {}
   const orchObj = asRecord(orchestrator) ?? {}
   const healerObj = asRecord(healer) ?? {}
+  const orchStatus = toStatus(orchObj.status ?? orchObj.healthy)
+  const orchDetail = orchStatus === 'unknown'
+    ? `Unreachable — start crew-orchestrator${orchObj.error ? ` (${String(orchObj.error).slice(0, 60)})` : ''}`
+    : (orchObj.error ? String(orchObj.error).slice(0, 80) : '—')
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -114,10 +118,10 @@ export function HealthView(): React.JSX.Element {
         <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontWeight: 800, fontSize: 12 }}>Crew Orchestrator</div>
-            {badge(toStatus(orchObj.status ?? orchObj.healthy))}
+            {badge(orchStatus)}
           </div>
           <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            {orchObj.error ? String(orchObj.error).slice(0, 80) : '—'}
+            {orchDetail}
           </div>
         </div>
 

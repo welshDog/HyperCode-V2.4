@@ -32,6 +32,8 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/health',  label: 'Health' },
 ]
 
+const INITIAL_LAST_SEEN_TIMESTAMP = Date.now()
+
 export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
   const pathname = usePathname()
   const [ndMode, setNdMode] = useState<string>('default')
@@ -103,7 +105,7 @@ function AppShellInner({
   const isMission = pathname === '/mission'
   
   // Track the most recent timestamp we have "seen"
-  const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(Date.now())
+  const [lastSeenTimestamp, setLastSeenTimestamp] = useState<number>(INITIAL_LAST_SEEN_TIMESTAMP)
   
   // Unread = items added after our lastSeenTimestamp
   const unreadCount = history.filter(t => t.createdAt > lastSeenTimestamp).length
@@ -111,8 +113,6 @@ function AppShellInner({
   useEffect(() => {
     if (!open) return
     closeRef.current?.focus()
-    // When panel opens, we mark everything up to "now" as seen
-    setLastSeenTimestamp(Date.now())
   }, [open])
 
   useEffect(() => {
@@ -152,7 +152,13 @@ function AppShellInner({
             <button
               ref={btnRef}
               className={`btn hc-notify-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => {
+                setOpen((v) => {
+                  const next = !v
+                  if (next) setLastSeenTimestamp(Date.now())
+                  return next
+                })
+              }}
               aria-label="Notification history"
               aria-haspopup="dialog"
               aria-expanded={open}
@@ -248,4 +254,3 @@ function AppShellInner({
     </div>
   )
 }
-
