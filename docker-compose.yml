@@ -220,7 +220,7 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 1G
+          memory: 1.5G
         reservations:
           cpus: "0.25"
           memory: 512M
@@ -534,10 +534,10 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: 512M
+          memory: 768M
         reservations:
           cpus: "0.1"
-          memory: 128M
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -638,10 +638,10 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 1G
+          memory: 1.5G
         reservations:
           cpus: "0.25"
-          memory: 256M
+          memory: 384M
     logging:
       driver: "json-file"
       options:

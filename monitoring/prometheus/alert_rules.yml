@@ -54,3 +54,33 @@ groups:
     annotations:
       summary: "High error rate on {{ $labels.instance }}"
       description: "Error rate is above 5%."
+
+- name: hypercode-memory-pressure
+  rules:
+  - alert: ContainerMemoryHigh
+    expr: |
+      (
+        container_memory_usage_bytes{name=~"hypercode-core|celery-worker|loki"}
+        /
+        container_spec_memory_limit_bytes{name=~"hypercode-core|celery-worker|loki"}
+      ) > 0.85
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "{{ $labels.name }} memory > 85%"
+      description: "Container {{ $labels.name }} is at {{ $value | humanizePercentage }} memory"
+
+  - alert: ContainerMemoryCritical
+    expr: |
+      (
+        container_memory_usage_bytes{name=~"hypercode-core|celery-worker|loki"}
+        /
+        container_spec_memory_limit_bytes{name=~"hypercode-core|celery-worker|loki"}
+      ) > 0.95
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "{{ $labels.name }} CRITICAL memory"
+      description: "OOM kill imminent on {{ $labels.name }}"
