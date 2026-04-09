@@ -248,9 +248,9 @@ Check the latest system health report: [docs/notes/HyperCode_Health_Check_Report
 
 | Document | What's Inside |
 |---|---|
-| [README_HEALTH_REPORTS.md](README_HEALTH_REPORTS.md) | System health report format + agent status logs |
-| [README_INFRASTRUCTURE_UPGRADE.md](README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide |
-| [README_OBSERVABILITY.md](README_OBSERVABILITY.md) | Grafana + Prometheus setup + alerting |
+| [README_HEALTH_REPORTS.md](docs/root-docs/README_HEALTH_REPORTS.md) | System health report format + agent status logs |
+| [README_INFRASTRUCTURE_UPGRADE.md](docs/root-docs/README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide |
+| [README_OBSERVABILITY.md](docs/root-docs/README_OBSERVABILITY.md) | Grafana + Prometheus setup + alerting |
 | [SUPER_HYPER_BROSKI_AGENT_README.md](SUPER_HYPER_BROSKI_AGENT_README.md) | Super Hyper BROski Agent guide |
 | [QUICKSTART.md](QUICKSTART.md) | Fast setup guide |
 | [START_HERE.md](START_HERE.md) | MCP Gateway + Model Runner |
