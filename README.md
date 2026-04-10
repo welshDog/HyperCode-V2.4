@@ -10,7 +10,7 @@
 [![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
 [![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
-[![System Health](https://img.shields.io/badge/health-GREEN-brightgreen)](ULTIMATE_HEALTH_REPORT_2026-04-01.md)
+[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2043%2F46-brightgreen)](STATUS_REPORT.md)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](docs/screenshots-gallery.md)
@@ -41,6 +41,26 @@ HyperCode V2.4        → The system manages itself
 **Agent X** designs new agents. The **Healer** fixes broken ones. The **Crew Orchestrator** runs missions. The **DevOps Agent** updates CI/CD pipelines. **You direct the vision. The system does the building.**
 
 This was built for a specific kind of mind: **ADHD, dyslexic, and autistic developers** who see whole systems in patterns, hyperfocus on what matters, and need tools that move at the speed of thought — not bureaucracy.
+
+---
+
+## 🟢 Live System Status — April 2026
+
+> Full report: [STATUS_REPORT.md](STATUS_REPORT.md) | Assessed by Gordon Docker AI + BROski Brain
+
+| Category | Grade | Status |
+|---|---|---|
+| 🐳 Infrastructure | 100% | 43/46 containers healthy |
+| 🤖 Agent Crew | 11/12 online | All core agents operational |
+| 📡 Observability | A+ | Prometheus + Grafana + Loki + Tempo live |
+| 🔐 Security | A | Non-root, cap drops, no-new-privileges |
+| 🧬 Autonomy | A+ | Self-healing, auto-cleanup, agent evolution |
+| 🏗️ Architecture | A+ | Multi-network isolation, modular Dockerfiles |
+
+```bash
+# Quick health cleanup (reclaims ~54GB)
+docker container prune -f && docker image prune -a -f && docker builder prune -af
+```
 
 ---
 
@@ -241,7 +261,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design.
 
 ## 🛡️ Health & Status
 
-Check the latest system health report: [ULTIMATE_HEALTH_REPORT_2026-04-01.md](ULTIMATE_HEALTH_REPORT_2026-04-01.md)
+Check the latest system health report: [STATUS_REPORT.md](STATUS_REPORT.md)
 
 ---
 
@@ -249,6 +269,7 @@ Check the latest system health report: [ULTIMATE_HEALTH_REPORT_2026-04-01.md](UL
 
 | Document | What's Inside |
 |---|---|
+| [STATUS_REPORT.md](STATUS_REPORT.md) | 🆕 Live infrastructure health + agent status (April 2026) |
 | [README_HEALTH_REPORTS.md](docs/root-docs/README_HEALTH_REPORTS.md) | System health report format + agent status logs |
 | [README_INFRASTRUCTURE_UPGRADE.md](docs/root-docs/README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide |
 | [README_OBSERVABILITY.md](docs/root-docs/README_OBSERVABILITY.md) | Grafana + Prometheus setup + alerting |
@@ -258,7 +279,6 @@ Check the latest system health report: [ULTIMATE_HEALTH_REPORT_2026-04-01.md](UL
 | [RUNBOOK.md](RUNBOOK.md) | Stack won't boot? Fix it here |
 | [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Unit/integration/e2e test commands (Playwright included) |
 | [SECURITY.md](SECURITY.md) | Security policy and audit artifacts |
-| [Session Report (2026-04-09)](docs/reviews/session-report-2026-04-09.md) | Dashboard + E2E + observability hardening recap |
 
 *   [Architecture Overview](docs/ARCHITECTURE.md) · [CLI Manual](docs/CLI.md) · [API Reference](docs/API.md)
 *   [Troubleshooting](docs/TROUBLESHOOTING.md) · [Tips & Tricks](docs/tips-and-tricks/README.md)
