@@ -1,8 +1,11 @@
 from typing import Any, List, Optional
+import logging
 
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
 from app.models import models
@@ -59,8 +62,12 @@ async def create_task(
     db.commit()
     db.refresh(task)
 
-    from app.services import broski_service
-    broski_service.award_coins(current_user.id, 2, "Task created", db)
+    try:
+        from app.services import broski_service
+        broski_service.award_coins(current_user.id, 2, "Task created", db)
+    except Exception as exc:
+        # BROski$ is non-critical — never let it fail a task creation
+        logger.warning("[TASKS] broski_service.award_coins failed (non-fatal): %s", exc)
 
     plan_reference: Optional[str] = None
 
