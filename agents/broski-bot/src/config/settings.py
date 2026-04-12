@@ -93,6 +93,11 @@ class Settings(BaseSettings):
         default="http://hypercode-core:8000",
         description="HyperCode Core API base URL",
     )
+    # Phase 1: Identity Bridge — Supabase edge function URL
+    course_profile_edge_url: str = Field(
+        default="",
+        description="Supabase edge function URL for course-profile (set in .env)",
+    )
     ollama_host: str = Field(
         default="http://hypercode-ollama:11434",
         description="Ollama LLM service URL (Docker service name in stack)",

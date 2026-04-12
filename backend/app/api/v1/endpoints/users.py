@@ -67,3 +67,19 @@ def read_user_me(
     Get current user.
     """
     return current_user
+
+
+@router.get("/by-discord/{discord_id}", response_model=schemas.User)
+def get_user_by_discord(
+    discord_id: str,
+    db: Session = Depends(get_db),
+) -> Any:
+    """
+    Look up a HyperCode user by their Discord snowflake ID.
+    Used by the Identity Bridge to join HyperCode ↔ Course profiles.
+    No auth required — discord_id is not a secret.
+    """
+    user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="No HyperCode user linked to that Discord ID")
+    return user

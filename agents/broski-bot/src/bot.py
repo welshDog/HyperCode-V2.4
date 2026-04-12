@@ -62,6 +62,7 @@ class BroskiBot(commands.Bot):
             "src.cogs.admin",
             "src.cogs.life_engine",
             "src.cogs.profile",
+            "src.cogs.course_stats",
         ]
     
     async def setup_hook(self) -> None:

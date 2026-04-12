@@ -24,6 +24,7 @@ class TaskStatus(str, Enum):
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
+    discord_id: Optional[str] = None
     is_active: Optional[bool] = True
     role: Optional[UserRole] = UserRole.DEVELOPER
 

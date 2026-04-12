@@ -33,6 +33,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    discord_id: Mapped[Optional[str]] = mapped_column(String(32), unique=True, index=True, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.DEVELOPER)
