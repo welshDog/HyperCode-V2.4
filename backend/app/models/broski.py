@@ -5,7 +5,7 @@ import enum
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, JSON
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, JSON, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -97,3 +97,21 @@ class BROskiUserAchievement(Base):
 
     wallet: Mapped[BROskiWallet] = relationship(back_populates="earned_achievements")
     achievement: Mapped[BROskiAchievement] = relationship(back_populates="earned_by")
+
+
+class CourseSyncEvent(Base):
+    """Idempotency log for Phase 2 Token Sync.
+
+    Every award coming from the Course fires once and only once.
+    The UNIQUE constraint on source_id is the last line of defence
+    against double-counting — the app layer checks first, the DB enforces.
+    """
+    __tablename__ = "course_sync_events"
+    __table_args__ = (UniqueConstraint("source_id", name="uq_course_sync_source_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    discord_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    tokens_awarded: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning, hypersync
+from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning, hypersync, economy, access
 from app.ws import metrics_broadcaster, agents_broadcaster, events_broadcaster, logs_broadcaster
 from app.routes import reliability, tasks as public_tasks
 
@@ -16,6 +16,8 @@ api_router.include_router(orchestrator.router, prefix="/orchestrator", tags=["or
 api_router.include_router(broski.router, prefix="/broski", tags=["broski"])  # 🔥 BROski$ Token System
 api_router.include_router(planning.router, prefix="/planning", tags=["planning"])  # 🗺️ Planning System
 api_router.include_router(hypersync.router, prefix="/hypersync", tags=["hypersync"])
+api_router.include_router(economy.router, prefix="/economy", tags=["economy"])  # Phase 2: Token Sync
+api_router.include_router(access.router,  prefix="/access",  tags=["access"])   # Phase 3: Shop Bridge
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics
 api_router.include_router(metrics_broadcaster.router, prefix="", tags=["metrics"])

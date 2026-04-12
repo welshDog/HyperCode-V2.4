@@ -25,6 +25,14 @@ class Settings(BaseSettings):
 
     ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
     ORCHESTRATOR_API_KEY: Optional[str] = None
+
+    # Phase 2: Token Sync — shared secret between Supabase edge fn and this API
+    COURSE_SYNC_SECRET: Optional[str] = None
+
+    # Phase 3: Agent Access + Shop Bridge
+    SHOP_SYNC_SECRET: Optional[str] = None          # shared secret for provision-access edge fn
+    DISCORD_BOT_TOKEN: Optional[str] = None         # bot token — used to send DMs via HTTP API
+    MISSION_CONTROL_URL: str = "http://localhost:8088"  # URL sent to students in DM
     
     # AI
     PERPLEXITY_API_KEY: Optional[str] = None
