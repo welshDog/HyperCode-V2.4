@@ -6,7 +6,7 @@ import logging
 log = logging.getLogger(__name__)
 
 OPS_ALERTS_CHANNEL_NAME = "ops-alerts"
-HEALTH_URL = "http://api:8000/api/v1/health"  # internal Docker network
+HEALTH_URL = "http://hypercode-core:8000/api/v1/health"  # internal Docker network
 
 
 class OpsAlerts(commands.Cog):

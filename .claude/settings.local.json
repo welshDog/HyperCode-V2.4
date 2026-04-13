@@ -140,7 +140,10 @@
       "Bash(docker container:*)",
       "Bash(xargs -r docker rm -f)",
       "Bash(powershell:*)",
-      "Bash(Select-String -NotMatch \"GET /|POST /\")"
+      "Bash(Select-String -NotMatch \"GET /|POST /\")",
+      "Bash(echo \"Build PID: $!\")",
+      "Bash(jobs -l)",
+      "Bash(tasklist)"
     ]
   },
   "enableAllProjectMcpServers": true,
