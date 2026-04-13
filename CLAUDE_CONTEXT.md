@@ -35,8 +35,8 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 0 | Hard Conflict Fixes | ✅ DONE |
 | 1 | Identity Bridge | ✅ DONE + VERIFIED LIVE |
 | 2 | Token Sync | ✅ DONE + VERIFIED LIVE |
-| **3** | **Agent Access + Shop Bridge** | **👈 CURRENT MISSION** |
-| 4 | npm run graduate 🔥 | 🔜 |
+| 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE |
+| **4** | **npm run graduate 🔥** | **👈 CURRENT MISSION** |
 | 5 | Observability | 🔜 |
 | 6 | Terminal Tools Integration | 🔜 |
 
@@ -75,57 +75,51 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 6. `supabase/functions/sync-tokens-to-v24/index.ts`
 **Dedup:** App-level 409 check + DB UNIQUE constraint on source_id ✅
 
+### Phase 3 ✅ DONE + VERIFIED
+1. `backend/alembic/versions/005_add_access_provisions.py`
+2. `backend/app/models/models.py` — AccessProvision ORM model added
+3. `backend/app/api/v1/endpoints/access.py` — POST /api/v1/access/provision
+4. `backend/app/core/config.py` — SHOP_SYNC_SECRET, DISCORD_BOT_TOKEN, MISSION_CONTROL_URL
+5. `supabase/functions/provision-access/index.ts` — fires on shop_purchases INSERT
+6. Router wired in `backend/app/api/api.py`
+**Verified:** Buy "Agent Sandbox Access" in course shop → Discord DM arrives with api_key + mission_control_url ✅
+**Dedup:** Same source_id pattern as Phase 2. X-Sync-Secret auth ✅
+
 ### Bot Consolidation ✅ DONE
 - Old Replit bot stopped + token reset
 - `broski-bot` (HyperCode V2.4, Docker) is the ONE BOT
 
 ---
 
-## 🎯 CURRENT MISSION — Phase 3: Agent Access + Shop Bridge
+## 🎯 CURRENT MISSION — Phase 4: npm run graduate 🔥
 
-**Goal:** Buy item in Course shop → get real V2.4 sandbox access automatically.
+**Goal:** Full graduation flow — student completes course → automatic real-world rewards + portfolio unlock.
 
 **Architecture:**
 ```
-Course: student buys "Agent Sandbox Access" (300 tokens)
+Course: student hits graduation threshold (all modules complete)
         ↓
-Course: shop_purchases INSERT → provision-access edge function fires
+Course: graduation_events INSERT → graduate-student edge function fires
         ↓
-V2.4: POST /api/v1/access/provision
-      (deduped via source_id)
-      generates api_key, stores access_provisions record
-      sends Discord DM via Discord HTTP API
+V2.4: POST /api/v1/graduate/trigger
+      awards graduation badge + BROski$ bonus
+      unlocks portfolio access
+      sends Discord DM + channel announcement
         ↓
-Student receives DM: { api_key, mission_control_url }
-```
-
-**New table needed in V2.4:**
-```sql
-CREATE TABLE access_provisions (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  discord_id VARCHAR(32),
-  api_key TEXT UNIQUE NOT NULL,       -- hc_ prefixed, urlsafe(32)
-  provision_type VARCHAR(64),         -- 'agent_sandbox'
-  source_id TEXT UNIQUE,              -- idempotency key = shop_purchases.id
-  mission_control_url TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT NOW(),
-  expires_at TIMESTAMP                -- NULL = no expiry
-);
+Student receives: badge, bonus tokens, portfolio URL, Discord Graduate role
 ```
 
 **Files to build:**
-1. V2.4 migration — `005_add_access_provisions.py`
-2. V2.4 `AccessProvision` ORM model (in `backend/app/models/models.py`)
-3. V2.4 `backend/app/api/v1/endpoints/access.py` — POST /api/v1/access/provision
-4. V2.4 config — SHOP_SYNC_SECRET, DISCORD_BOT_TOKEN, MISSION_CONTROL_URL
-5. Course `supabase/functions/provision-access/index.ts` — fires on shop_purchases INSERT
+1. V2.4 migration — `006_add_graduation_events.py`
+2. V2.4 `GraduationEvent` ORM model
+3. V2.4 `backend/app/api/v1/endpoints/graduate.py` — POST /api/v1/graduate/trigger
+4. Course `supabase/functions/graduate-student/index.ts` — fires on completion
+5. Discord role assignment via bot on graduation
 6. Wire router in `backend/app/api/api.py`
 
-**Done when:** Buy "Agent Sandbox Access" in course shop → Discord DM arrives with `api_key` + `mission_control_url` ✅
+**Done when:** Complete all course modules → Discord Graduate role assigned + bonus tokens + portfolio unlocked ✅
 
-**Critical:** Same source_id dedup pattern as Phase 2. Same X-Sync-Secret auth.
+**Critical:** Same source_id dedup pattern as Phases 2 & 3. Same X-Sync-Secret auth.
 
 ---
 
