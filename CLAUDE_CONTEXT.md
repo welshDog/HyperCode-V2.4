@@ -38,7 +38,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE |
 | 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE |
 | 5 | Observability | ✅ DONE + VERIFIED LIVE |
-| **6** | **Terminal Tools Integration** | **👈 CURRENT MISSION** |
+| **6** | **Terminal Tools** | **🚧 IN PROGRESS — 4/5 commands working** |
 
 ---
 
@@ -105,12 +105,29 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 8. Redis metrics pipeline — req counts, response times, error counts per minute
 9. Agent heartbeat loop — hypercode-core publishes to Redis every 10s
 **Verified 2026-04-13 16:18 BST:**
-- `curl http://localhost:8000/health` → `{"status":"ok","service":"hypercode-core","version":"2.0.0","environment":"development"}` ✅
+- `curl http://localhost:8000/health` → `{"status":"ok"}` ✅
 - `curl http://localhost:8000/metrics` → Full Prometheus output ✅
-- `hypercode_http_requests_total{endpoint="/health"}` — 25 hits tracked ✅
 - All /health responses under 5ms ⚡
-- CPython 3.11.15 confirmed ✅
-- RSS ~840MB (expected with Ollama deps)
+
+### Phase 6 🚧 IN PROGRESS (2026-04-13)
+**CLI files pushed to HyperAgent-SDK:**
+1. `cli/commands/status.js` — ✅ WORKING
+2. `cli/commands/logs.js` — 🔧 needs /api/v1/logs endpoint built in V2.4
+3. `cli/commands/tokens.js` — ✅ WORKING (after import fix below)
+4. `cli/commands/agents.js` — ✅ WORKING — shows healer-agent, hypercode-core, celery-worker online
+5. `cli/commands/graduate.js` — ✅ WORKING (after import fix below)
+6. `cli/index.js` — updated, all 5 commands registered
+
+**Import bug found + fixed 2026-04-13 17:29 BST:**
+- `backend/app/api/v1/endpoints/graduate.py` lines 8-11 — `from backend.app.db.*` → `from app.db.*`
+- `backend/app/models/graduate.py` line 2 — `from backend.app.db.base` → `from app.db.base`
+- economy.py and access.py were already correct
+- `_HAS_PHASE234 = True` confirmed in running process ✅
+- `POST /api/v1/economy/award-from-course` → 422 (route registered, Pydantic validation firing) ✅
+
+**Remaining for Phase 6 completion:**
+- Build `GET /api/v1/logs?tail=N` endpoint in V2.4 (logs_broadcaster.py or new endpoint)
+- `node cli/index.js logs --tail 10` — currently 404
 
 ### Bot Consolidation ✅ DONE
 - Old Replit bot stopped + token reset
@@ -118,51 +135,13 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
-## ⚠️ Known Issues (non-blocking)
+## ⚠️ Known Issues / Rules (never re-debate these)
 
-### Backend Module Path Warning
-- **Symptom:** `No module named 'backend'` fires at startup in Docker logs
-- **Impact:** Phase 2/3/4 endpoints show as unavailable in old image — graceful fallback only, does NOT crash anything
-- **Root cause:** Import path inside Docker container uses `app.*` not `backend.app.*` — the scaffold files used `backend.app.*` style imports
-- **Fix:** Replace `from backend.app.X import Y` → `from app.X import Y` in any new Phase 4/5 files
-- **Status:** Non-blocking 🔜 — fix when tackling Phase 6
-
----
-
-## 🎯 CURRENT MISSION — Phase 6: Terminal Tools Integration
-
-**Goal:** CLI tools that let Lyndz (and agents) control HyperCode V2.4 from the terminal — status, logs, token awards, agent management.
-
-**Architecture:**
-```
-Terminal: npx @w3lshdog/hyper-agent <command>
-          ↓
-CLI: calls V2.4 REST API endpoints
-     → pretty-prints results
-     → supports --json flag for agent consumption
-```
-
-**Commands to build:**
-- `hyper status` — hits /health, shows all service statuses
-- `hyper logs [--tail N]` — streams recent logs
-- `hyper tokens award <discord_id> <amount>` — calls economy endpoint
-- `hyper agents list` — shows all agent heartbeats from Redis
-- `hyper graduate <discord_id>` — manually trigger graduation
-
-**Files to build:**
-1. `HyperAgent-SDK/cli/commands/status.js`
-2. `HyperAgent-SDK/cli/commands/logs.js`
-3. `HyperAgent-SDK/cli/commands/tokens.js`
-4. `HyperAgent-SDK/cli/commands/agents.js`
-5. `HyperAgent-SDK/cli/commands/graduate.js`
-6. Update `HyperAgent-SDK/cli/index.js` — register all commands
-
-**Done when:** `npx @w3lshdog/hyper-agent status` returns live V2.4 health in terminal ✅
-
----
-
-## Key Technical Decisions (don't re-debate these)
-
+- **Docker imports:** Always use `from app.X import Y` — NEVER `from backend.app.X import Y` inside container
+- **Alembic down_revision:** Must match EXACT revision string in previous migration file — not just the number
+- **CLI folder:** `hyper-agent` commands run from `H:\HyperAgent-SDK` — NOT from HyperCode-V2.4
+- **Tokens 404:** If discord_id isn't linked to a V2.4 user — expected, not a bug
+- **logs CLI:** Needs `GET /api/v1/logs?tail=N` endpoint built — Phase 6 remaining task
 - Port convention: 3100-3199 writing, 3200-3299 code, 3300-3399 data, 3400-3499 discord, 3500-3599 automation
 - `mcp_compatible: true` requires `port` — enforced in spec
 - Supabase schema ↔ V2.4 Postgres NEVER merge — incompatible tooling
@@ -171,30 +150,34 @@ CLI: calls V2.4 REST API endpoints
 - Windows PowerShell first, bash second — always
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`
 - One bot: broski-bot. Old Replit bot = dead.
-- Discord DM delivery: V2.4 endpoint calls Discord HTTP API directly (bot token in settings, no extra pub/sub)
 - API keys: `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars, URL-safe
-- Alembic down_revision must match the EXACT revision string in the previous migration file — not just the number
-- Docker container imports use `app.*` NOT `backend.app.*` — always use short form inside container
 
 ---
 
 ## Paths (copy-paste ready)
 
 ```powershell
-# HyperAgent-SDK
+# HyperAgent-SDK (CLI lives here!)
 cd "H:\HyperAgent-SDK"
 
-# HyperCode V2.4
+# HyperCode V2.4 (Docker + API)
 cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4"
-cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4\backend"
 
-# Hyper-Vibe-Coding-Course
+# Hyper-Vibe-Coding-Course (Supabase + Vercel)
 cd "H:\the hyper vibe coding hub"
 
 # V2.4 Docker commands
 docker compose up -d
 docker compose exec api alembic upgrade head
-docker compose exec api alembic history --verbose
+docker compose logs api --tail 50
+
+# CLI commands (run from H:\HyperAgent-SDK)
+$env:HYPERCODE_API_URL = "http://localhost:8000"
+node cli/index.js status
+node cli/index.js agents list
+node cli/index.js tokens award <discord_id> <amount>
+node cli/index.js graduate <discord_id> --tokens 100
+node cli/index.js logs --tail 10
 ```
 
 ---
