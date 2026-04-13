@@ -204,6 +204,9 @@ services:
       - PROMETHEUS_METRICS_DISABLED=false
       - DB_AUTO_CREATE=true
       - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000}
+      - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
+      - SHOP_SYNC_SECRET=${SHOP_SYNC_SECRET:-}
+      - MISSION_CONTROL_URL=${MISSION_CONTROL_URL:-}
     volumes:
       - ./backend/alembic:/app/alembic:ro
       - ./backend/alembic.ini:/app/alembic.ini:ro
