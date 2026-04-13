@@ -138,7 +138,8 @@
       "Bash(timeout 25 docker logs -f broski-bot)",
       "Bash(2>&1)",
       "Bash(docker container:*)",
-      "Bash(xargs -r docker rm -f)"
+      "Bash(xargs -r docker rm -f)",
+      "Bash(powershell:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

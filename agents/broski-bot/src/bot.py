@@ -63,6 +63,7 @@ class BroskiBot(commands.Bot):
             "src.cogs.life_engine",
             "src.cogs.profile",
             "src.cogs.course_stats",
+            "src.cogs.ops_alerts",  # Phase 5: health-poll → #ops-alerts Discord alerts
         ]
     
     async def setup_hook(self) -> None:

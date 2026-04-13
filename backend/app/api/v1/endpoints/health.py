@@ -6,8 +6,8 @@ from pydantic import BaseModel
 from typing import Dict, Any
 import redis as redis_lib
 
-from backend.app.db.session import get_db
-from backend.app.core.config import settings
+from app.db.session import get_db
+from app.core.config import settings
 
 router = APIRouter()
 

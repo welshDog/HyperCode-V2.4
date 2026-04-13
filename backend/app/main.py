@@ -5,9 +5,11 @@ from fastapi import Request
 from prometheus_fastapi_instrumentator import Instrumentator
 from opentelemetry import trace
 from app.core.config import settings
+from app.core.logging import setup_logging
 from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
 from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
+from app.middleware.metrics import MetricsMiddleware
 from app.db.base_class import Base
 from app.db.session import engine
 import app.models.models as _models
@@ -34,8 +36,8 @@ print("Starting HyperCode Core API...", file=sys.stderr)
 # Licensed under the GNU Affero General Public License v3.0 (AGPL-3.0)
 # See LICENSE file for details.
 
-# Configure Logging
-logging.basicConfig(level=logging.INFO)
+# Configure structured JSON logging
+setup_logging(log_level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI Application
@@ -120,6 +122,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+app.add_middleware(MetricsMiddleware)
 app.add_middleware(SecurityHeadersMiddleware, enable_hsts=True)
 app.add_middleware(
     RateLimitMiddleware,
