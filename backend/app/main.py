@@ -25,10 +25,12 @@ import app.models.dashboard_task as _dashboard_task
 del _dashboard_task
 import asyncio
 import datetime
+import json
 import logging
 import os
 import sys
 import time
+import uuid
 import redis.asyncio as aioredis
 
 # Shared async Redis client for metrics middleware (initialised at startup)
@@ -172,6 +174,19 @@ async def _http_metrics_middleware(request: Request, call_next):
                 if response.status_code >= 400:
                     pipe.incr(f"error_count:{minute_key}")
                     pipe.expire(f"error_count:{minute_key}", 120)
+                # Publish to hypercode:logs — skip noisy health/metrics pings
+                _SKIP_LOG_PATHS = {"/health", "/metrics", "/"}
+                if request.url.path not in _SKIP_LOG_PATHS:
+                    _level = "error" if response.status_code >= 500 else "warn" if response.status_code >= 400 else "info"
+                    _entry = json.dumps({
+                        "id": str(uuid.uuid4())[:8],
+                        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "agent": "hypercode-core",
+                        "level": _level,
+                        "msg": f"{request.method} {request.url.path} \u2192 {response.status_code} ({elapsed_ms}ms)",
+                    })
+                    pipe.rpush("hypercode:logs", _entry)
+                    pipe.ltrim("hypercode:logs", -1000, -1)
                 await pipe.execute()
         except Exception:
             pass  # Never let metrics writing break a real request

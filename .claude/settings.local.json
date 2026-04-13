@@ -144,7 +144,10 @@
       "Bash(echo \"Build PID: $!\")",
       "Bash(jobs -l)",
       "Bash(tasklist)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(cat \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/monitoring/grafana/provisioning/datasources/\"*.yml)",
+      "Bash(awk 'NR>1 {printf \"%d\\\\n\", strtonum\\(\"0x\" substr\\($2,index\\($2,\":\"\\)+1\\)\\)}')",
+      "Bash(node:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
