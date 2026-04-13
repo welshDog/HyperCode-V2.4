@@ -139,7 +139,8 @@
       "Bash(2>&1)",
       "Bash(docker container:*)",
       "Bash(xargs -r docker rm -f)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(Select-String -NotMatch \"GET /|POST /\")"
     ]
   },
   "enableAllProjectMcpServers": true,
