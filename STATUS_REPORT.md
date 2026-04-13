@@ -165,4 +165,4 @@ The `.env.example` file contains `change_me_` placeholder values. Before deployi
 Built in Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿 by Lyndz Williams ([@welshDog](https://github.com/welshDog)).
 Open source. Community powered. Future-proof by design.
 
-**Repository:** [github.com/welshDog/HyperCode-V2.4](https://github.com/welshDog/HyperCode-V2.4)
+**Repository: [github.com/welshDog/HyperCode-V2.4](https://github.com/welshDog/HyperCode-V2.4)
