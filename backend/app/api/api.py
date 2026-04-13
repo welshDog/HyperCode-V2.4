@@ -21,7 +21,6 @@ api_router.include_router(projects.router, prefix="/projects", tags=["projects"]
 api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(memory.router, prefix="/memory", tags=["memory"])
-api_router.include_router(dashboard.router, prefix="", tags=["dashboard_compat"])  # /execute and /logs compat
 api_router.include_router(orchestrator.router, prefix="/orchestrator", tags=["orchestrator"])
 api_router.include_router(broski.router, prefix="/broski", tags=["broski"])  # 🔥 BROski$ Token System
 api_router.include_router(planning.router, prefix="/planning", tags=["planning"])  # 🗺️ Planning System
@@ -41,8 +40,12 @@ api_router.include_router(agents_broadcaster.router, prefix="", tags=["agents-st
 # Dashboard live data — Task 5: GET /api/v1/events SSE + WS /api/v1/ws/events
 api_router.include_router(events_broadcaster.router, prefix="", tags=["events"])
 
-# Dashboard live data — Task 6: GET /api/v1/logs + WS /api/v1/ws/logs
+# Dashboard live data — Task 6: GET /api/v1/logs (no auth) + WS /api/v1/ws/logs
+# Must be registered BEFORE dashboard compat so the public route wins on /logs
 api_router.include_router(logs_broadcaster.router, prefix="", tags=["logs"])
+
+# Dashboard compat — /execute endpoint; /logs here is shadowed by logs_broadcaster above
+api_router.include_router(dashboard.router, prefix="", tags=["dashboard_compat"])
 
 # Dashboard live data — Tasks 7 & 8: GET /api/v1/error-budget + GET /api/v1/system/state
 api_router.include_router(reliability.router, prefix="", tags=["reliability"])
