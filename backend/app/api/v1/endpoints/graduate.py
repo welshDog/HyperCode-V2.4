@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
 
-from backend.app.db.session import get_db
-from backend.app.models.graduate import GraduationEvent
-from backend.app.models.models import User
-from backend.app.core.config import settings
+from app.db.session import get_db
+from app.models.graduate import GraduationEvent
+from app.models.models import User
+from app.core.config import settings
 
 router = APIRouter()
 

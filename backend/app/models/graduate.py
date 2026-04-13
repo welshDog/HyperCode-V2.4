@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, Boolean, TIMESTAMP, ForeignKey, func
-from backend.app.db.base import Base
+from app.db.base import Base
 
 
 class GraduationEvent(Base):
