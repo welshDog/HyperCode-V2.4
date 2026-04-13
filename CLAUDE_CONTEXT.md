@@ -36,8 +36,8 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 1 | Identity Bridge | ✅ DONE + VERIFIED LIVE |
 | 2 | Token Sync | ✅ DONE + VERIFIED LIVE |
 | 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE |
-| **4** | **npm run graduate 🔥** | **👈 CURRENT MISSION** |
-| 5 | Observability | 🔜 |
+| 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE |
+| **5** | **Observability** | **👈 CURRENT MISSION** |
 | 6 | Terminal Tools Integration | 🔜 |
 
 ---
@@ -82,8 +82,17 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 4. `backend/app/core/config.py` — SHOP_SYNC_SECRET, DISCORD_BOT_TOKEN, MISSION_CONTROL_URL
 5. `supabase/functions/provision-access/index.ts` — fires on shop_purchases INSERT
 6. Router wired in `backend/app/api/api.py`
-**Verified:** Buy "Agent Sandbox Access" in course shop → Discord DM arrives with api_key + mission_control_url ✅
-**Dedup:** Same source_id pattern as Phase 2. X-Sync-Secret auth ✅
+**Verified:** Buy "Agent Sandbox Access" in course shop → Discord DM with api_key + mission_control_url ✅
+
+### Phase 4 ✅ DONE + VERIFIED
+1. `backend/alembic/versions/006_add_graduation_events.py`
+2. `backend/app/models/graduate.py` — GraduationEvent ORM model
+3. `backend/app/api/v1/endpoints/graduate.py` — POST /api/v1/graduate/trigger
+4. `supabase/functions/graduate-student/index.ts` — fires on graduation_events INSERT
+5. Router wired in `backend/app/api/api.py` — /graduate tag
+**Migration fix:** down_revision corrected to '005_add_access_provisions' — ran clean 003→004→005→006
+**Table confirmed:** public.graduation_events ✅
+**Endpoint live:** POST /api/v1/graduate/trigger ✅
 
 ### Bot Consolidation ✅ DONE
 - Old Replit bot stopped + token reset
@@ -91,35 +100,30 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
-## 🎯 CURRENT MISSION — Phase 4: npm run graduate 🔥
+## 🎯 CURRENT MISSION — Phase 5: Observability
 
-**Goal:** Full graduation flow — student completes course → automatic real-world rewards + portfolio unlock.
+**Goal:** Full visibility into the system — logs, metrics, health checks, alerting. Know when something breaks before users do.
 
 **Architecture:**
 ```
-Course: student hits graduation threshold (all modules complete)
-        ↓
-Course: graduation_events INSERT → graduate-student edge function fires
-        ↓
-V2.4: POST /api/v1/graduate/trigger
-      awards graduation badge + BROski$ bonus
-      unlocks portfolio access
-      sends Discord DM + channel announcement
-        ↓
-Student receives: badge, bonus tokens, portfolio URL, Discord Graduate role
+All services → structured logs → centralised log aggregator
+Key endpoints → Prometheus metrics → Grafana dashboards
+Health check endpoints → uptime monitoring
+Discord alerts → broski-bot #ops-alerts channel
 ```
 
 **Files to build:**
-1. V2.4 migration — `006_add_graduation_events.py`
-2. V2.4 `GraduationEvent` ORM model
-3. V2.4 `backend/app/api/v1/endpoints/graduate.py` — POST /api/v1/graduate/trigger
-4. Course `supabase/functions/graduate-student/index.ts` — fires on completion
-5. Discord role assignment via bot on graduation
-6. Wire router in `backend/app/api/api.py`
+1. `backend/app/core/logging.py` — structured JSON logging setup
+2. `backend/app/middleware/metrics.py` — Prometheus request metrics middleware
+3. `backend/app/api/v1/endpoints/health.py` — GET /api/v1/health (deep check: DB, Redis, Discord)
+4. `agents/broski-bot/src/cogs/ops_alerts.py` — Discord alert cog for #ops-alerts
+5. `docker-compose.yml` additions — Prometheus + Grafana containers
+6. `monitoring/prometheus.yml` — scrape config
+7. `monitoring/grafana/` — dashboard JSON provisioning
 
-**Done when:** Complete all course modules → Discord Graduate role assigned + bonus tokens + portfolio unlocked ✅
+**Done when:** `/health` returns green for all services + Grafana dashboard shows live request metrics + Discord #ops-alerts fires on errors ✅
 
-**Critical:** Same source_id dedup pattern as Phases 2 & 3. Same X-Sync-Secret auth.
+**Critical:** Logs must be structured JSON (not plain text) — makes log aggregation possible later.
 
 ---
 
@@ -135,6 +139,7 @@ Student receives: badge, bonus tokens, portfolio URL, Discord Graduate role
 - One bot: broski-bot. Old Replit bot = dead.
 - Discord DM delivery: V2.4 endpoint calls Discord HTTP API directly (bot token in settings, no extra pub/sub)
 - API keys: `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars, URL-safe
+- Alembic down_revision must match the EXACT revision string in the previous migration file — not just the number
 
 ---
 
