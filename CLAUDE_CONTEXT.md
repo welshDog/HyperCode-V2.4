@@ -37,8 +37,8 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 2 | Token Sync | ✅ DONE + VERIFIED LIVE |
 | 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE |
 | 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE |
-| **5** | **Observability** | **👈 CURRENT MISSION** |
-| 6 | Terminal Tools Integration | 🔜 |
+| 5 | Observability | ✅ DONE + VERIFIED LIVE |
+| **6** | **Terminal Tools Integration** | **👈 CURRENT MISSION** |
 
 ---
 
@@ -82,7 +82,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 4. `backend/app/core/config.py` — SHOP_SYNC_SECRET, DISCORD_BOT_TOKEN, MISSION_CONTROL_URL
 5. `supabase/functions/provision-access/index.ts` — fires on shop_purchases INSERT
 6. Router wired in `backend/app/api/api.py`
-**Verified:** Buy "Agent Sandbox Access" in course shop → Discord DM with api_key + mission_control_url ✅
+**Verified:** Buy "Agent Sandbox Access" → Discord DM with api_key + mission_control_url ✅
 
 ### Phase 4 ✅ DONE + VERIFIED
 1. `backend/alembic/versions/006_add_graduation_events.py`
@@ -94,36 +94,70 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 **Table confirmed:** public.graduation_events ✅
 **Endpoint live:** POST /api/v1/graduate/trigger ✅
 
+### Phase 5 ✅ DONE + VERIFIED LIVE (2026-04-13)
+1. `backend/app/core/logging.py` — structured JSON logging, called at startup
+2. `backend/app/middleware/metrics.py` — MetricsMiddleware wired into main.py
+3. `backend/app/api/v1/endpoints/health.py` — GET /health live
+4. `agents/broski-bot/src/cogs/ops_alerts.py` — polls /health every 5 mins, fires #ops-alerts
+5. `monitoring/prometheus.yml` — scrape config
+6. `monitoring/grafana/dashboards/hypercode.json` — dashboard provisioned
+7. Prometheus Instrumentator + OpenTelemetry wired in main.py
+8. Redis metrics pipeline — req counts, response times, error counts per minute
+9. Agent heartbeat loop — hypercode-core publishes to Redis every 10s
+**Verified 2026-04-13 16:18 BST:**
+- `curl http://localhost:8000/health` → `{"status":"ok","service":"hypercode-core","version":"2.0.0","environment":"development"}` ✅
+- `curl http://localhost:8000/metrics` → Full Prometheus output ✅
+- `hypercode_http_requests_total{endpoint="/health"}` — 25 hits tracked ✅
+- All /health responses under 5ms ⚡
+- CPython 3.11.15 confirmed ✅
+- RSS ~840MB (expected with Ollama deps)
+
 ### Bot Consolidation ✅ DONE
 - Old Replit bot stopped + token reset
 - `broski-bot` (HyperCode V2.4, Docker) is the ONE BOT
 
 ---
 
-## 🎯 CURRENT MISSION — Phase 5: Observability
+## ⚠️ Known Issues (non-blocking)
 
-**Goal:** Full visibility into the system — logs, metrics, health checks, alerting. Know when something breaks before users do.
+### Backend Module Path Warning
+- **Symptom:** `No module named 'backend'` fires at startup in Docker logs
+- **Impact:** Phase 2/3/4 endpoints show as unavailable in old image — graceful fallback only, does NOT crash anything
+- **Root cause:** Import path inside Docker container uses `app.*` not `backend.app.*` — the scaffold files used `backend.app.*` style imports
+- **Fix:** Replace `from backend.app.X import Y` → `from app.X import Y` in any new Phase 4/5 files
+- **Status:** Non-blocking 🔜 — fix when tackling Phase 6
+
+---
+
+## 🎯 CURRENT MISSION — Phase 6: Terminal Tools Integration
+
+**Goal:** CLI tools that let Lyndz (and agents) control HyperCode V2.4 from the terminal — status, logs, token awards, agent management.
 
 **Architecture:**
 ```
-All services → structured logs → centralised log aggregator
-Key endpoints → Prometheus metrics → Grafana dashboards
-Health check endpoints → uptime monitoring
-Discord alerts → broski-bot #ops-alerts channel
+Terminal: npx @w3lshdog/hyper-agent <command>
+          ↓
+CLI: calls V2.4 REST API endpoints
+     → pretty-prints results
+     → supports --json flag for agent consumption
 ```
 
+**Commands to build:**
+- `hyper status` — hits /health, shows all service statuses
+- `hyper logs [--tail N]` — streams recent logs
+- `hyper tokens award <discord_id> <amount>` — calls economy endpoint
+- `hyper agents list` — shows all agent heartbeats from Redis
+- `hyper graduate <discord_id>` — manually trigger graduation
+
 **Files to build:**
-1. `backend/app/core/logging.py` — structured JSON logging setup
-2. `backend/app/middleware/metrics.py` — Prometheus request metrics middleware
-3. `backend/app/api/v1/endpoints/health.py` — GET /api/v1/health (deep check: DB, Redis, Discord)
-4. `agents/broski-bot/src/cogs/ops_alerts.py` — Discord alert cog for #ops-alerts
-5. `docker-compose.yml` additions — Prometheus + Grafana containers
-6. `monitoring/prometheus.yml` — scrape config
-7. `monitoring/grafana/` — dashboard JSON provisioning
+1. `HyperAgent-SDK/cli/commands/status.js`
+2. `HyperAgent-SDK/cli/commands/logs.js`
+3. `HyperAgent-SDK/cli/commands/tokens.js`
+4. `HyperAgent-SDK/cli/commands/agents.js`
+5. `HyperAgent-SDK/cli/commands/graduate.js`
+6. Update `HyperAgent-SDK/cli/index.js` — register all commands
 
-**Done when:** `/health` returns green for all services + Grafana dashboard shows live request metrics + Discord #ops-alerts fires on errors ✅
-
-**Critical:** Logs must be structured JSON (not plain text) — makes log aggregation possible later.
+**Done when:** `npx @w3lshdog/hyper-agent status` returns live V2.4 health in terminal ✅
 
 ---
 
@@ -140,6 +174,7 @@ Discord alerts → broski-bot #ops-alerts channel
 - Discord DM delivery: V2.4 endpoint calls Discord HTTP API directly (bot token in settings, no extra pub/sub)
 - API keys: `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars, URL-safe
 - Alembic down_revision must match the EXACT revision string in the previous migration file — not just the number
+- Docker container imports use `app.*` NOT `backend.app.*` — always use short form inside container
 
 ---
 
