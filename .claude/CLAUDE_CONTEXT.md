@@ -1,7 +1,7 @@
 # 🧠⚡ HYPER SUPER CLAUDE DEV — HyperCode V2.4 Boot File
 > You are Claude. You just loaded into the most sophisticated solo-dev AI-native OS ever built.
 > Read every word. Then execute with precision. BROski♾ mode: ON.
-> **Last updated: April 14, 2026 — Phases 0–9 ALL COMPLETE ✅**
+> **Last updated: April 14, 2026 — Phases 0–9 ALL COMPLETE ✅ + Known Bugs logged**
 
 ---
 
@@ -31,7 +31,7 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
                             Path: H:\HyperAgent-SDK
 ```
 
-### V2.0 vs V2.4 — The One-Line Clarification
+### V2.0 vs V2.4 — One-Line Clarification
 > **V2.4 IS the live system.** V2.0 was the origin. Skills in `.claude/skills/` were written for V2.0 but apply to V2.4 — ports, paths and agent names are the same. Always work in V2.4.
 
 ---
@@ -64,6 +64,15 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 
 ---
 
+## 🐛 Known Open Issues
+
+| Bug | File | Line | Fix |
+|-----|------|------|-----|
+| WS message type wrong | `CognitiveUplink.tsx` | ~130 | `"command"` → `"execute"` |
+| starlette HIGH CVE | `requirements.txt` (all agents) | — | `fastapi>=0.117` — Phase 10A |
+
+---
+
 ## ✅ Phase 9 — CVE Elimination Results (April 14, 2026)
 
 | Metric | Before | After |
@@ -76,7 +85,7 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 - `libexpat1`, `libncursesw6`, `libnghttp2`, `libsystemd0` — no Debian patch yet
 - `starlette` HIGH — **fixable**: `fastapi>=0.117` → Phase 10 Option A
 
-### What Was Applied Across All 19 Agents
+### Phase 9 Pattern — Applied Across ALL 20 Dockerfiles (19 agents + broski-discord-bot-skill)
 
 **Part A — OS hardening (every runtime stage):**
 ```dockerfile
@@ -103,7 +112,7 @@ RUN pip install --upgrade --no-cache-dir \
 
 ---
 
-## 🧠 The Skills System — 15 Active Skills
+## 🧠 The Skills System — 16 Active Skills
 
 Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 
@@ -124,6 +133,7 @@ Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 | `hypercode-agent-spawner` | Spawn new agents |
 | `hypercode-new-agent-onboarding` | Agent onboarding flow |
 | `technical-skills-audit` | Audit methodology |
+| `hyper-terminal-analyser` | Terminal tool research, debug, ecosystem fit |
 
 > **Skill hierarchy:** Technical audit skills (knowledge) → Operational skills (how to DO) → Meta skills (self-improvement loop). That's progressive disclosure architecture.
 
@@ -141,14 +151,15 @@ Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 - **`.env` files:** Never committed — use Docker secrets in production
 - **One bot:** broski-bot. Old Replit bot = dead.
 - **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)`
-- **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 standard
+- **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 standard (ALL 20 Dockerfiles)
 - **Trivy target:** 0 CRITICAL ✅. 14 HIGH remaining = no Debian fix available
 - **GitHub Actions builds:** Always `--no-cache --pull` in security workflows
 - **jaraco.* packages:** Always pin explicitly — Trivy HIGH via setuptools transitive
 - **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli`, NOT `docker.io`
 - **starlette HIGH:** Fix = `fastapi>=0.117` — Phase 10 Option A
 - **V2.0 references in skills:** Apply to V2.4 — same ports, same agent names
-- **npm package:** `@w3lshdog/hyper-agent@0.1.4` — errorMessage bug = FIXED, all 6 CLI commands LIVE
+- **npm package:** `@w3lshdog/hyper-agent@0.1.4` — errorMessage bug FIXED, all 6 CLI commands LIVE
+- **CognitiveUplink.tsx ~130:** WS message type = `"execute"` NOT `"command"` — open bug!
 
 ---
 
@@ -203,7 +214,7 @@ node cli/index.js graduate <discord_id> --tokens 100
 |-------|--------|
 | CRITICAL CVEs | 0 ✅ |
 | HIGH CVEs | 14 (Debian-unfixable) |
-| Non-root users | All 19 agents ✅ |
+| Non-root users | All 20 Dockerfiles ✅ |
 | Multi-stage builds | All agents ✅ |
 | pip pinned | All agents ✅ |
 | CI Trivy gate | PR-blocking ✅ |
