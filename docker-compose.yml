@@ -142,7 +142,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
       POSTGRES_DB: ${POSTGRES_DB:-hypercode}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -191,7 +191,7 @@ services:
       - ENVIRONMENT=development
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
@@ -280,12 +280,12 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/broski
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-}@postgres:5432/broski
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=broski
       - DB_USER=postgres
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-}
       - REDIS_URL=redis://redis:6379/0
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -376,7 +376,7 @@ services:
     container_name: grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD must be set (avoid default admin/admin)}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana-data:/var/lib/grafana
@@ -414,7 +414,6 @@ services:
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.1}
     container_name: node-exporter
-    # privileged: true # Required for some filesystem metrics in Docker Desktop
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -424,11 +423,10 @@ services:
       - '--path.rootfs=/rootfs'
       - '--path.sysfs=/host/sys'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
-      # Explicitly enable collectors that might be failing or disabled by default
       - '--collector.filesystem'
       - '--collector.cpu'
       - '--collector.meminfo'
-      - '--collector.netclass.ignored-devices=^$' # Try to catch all devices
+      - '--collector.netclass.ignored-devices=^$'
     ports:
       - "127.0.0.1:9100:9100"
     networks:
@@ -448,18 +446,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # cAdvisor - Container Metrics
   cadvisor:
     image: ${CADVISOR_IMAGE:-gcr.io/cadvisor/cadvisor:v0.47.2}
     container_name: cadvisor
     cap_add:
       - SYS_ADMIN
-    # privileged: true # Required for cAdvisor to access Docker internals
-    # Using specific mounts instead of privileged mode for better security
     command:
-      - '--disable_metrics=disk,diskIO'   # WSL2/Windows path scanning causes 10-17min scans + OOM
-      - '--housekeeping_interval=120s'    # Reduce scan frequency: 60s → 120s
-      - '--storage_duration=1h'           # Trim in-memory retention window
+      - '--disable_metrics=disk,diskIO'
+      - '--housekeeping_interval=120s'
+      - '--storage_duration=1h'
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -467,7 +462,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
     ports:
-      - "127.0.0.1:8090:8080" # Localhost only
+      - "127.0.0.1:8090:8080"
     networks:
       - obs-net
     restart: unless-stopped
@@ -489,7 +484,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # MinIO - S3 Compatible Object Storage
   minio:
     image: minio/minio:latest
     container_name: minio
@@ -501,8 +495,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "127.0.0.1:9000:9000"  # API
-      - "127.0.0.1:9001:9001"  # Console
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     networks:
       - data-net
     restart: unless-stopped
@@ -519,7 +513,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ChromaDB - Vector Database (RAG)
   chroma:
     image: chromadb/chroma:latest
     container_name: chroma
@@ -529,7 +522,7 @@ services:
     volumes:
       - chroma_data:/chroma/chroma
     ports:
-      - "127.0.0.1:8009:8000" # Mapped to 8009 to avoid conflict with everything else (8000, 8001, 8002 taken)
+      - "127.0.0.1:8009:8000"
     networks:
       - data-net
     restart: unless-stopped
@@ -585,10 +578,10 @@ services:
       - ./monitoring/tempo/tempo.yaml:/etc/tempo.yaml
       - tempo-data:/var/lib/tempo
     ports:
-      - "127.0.0.1:3200:3200"   # tempo
-      - "127.0.0.1:4317:4317"   # otlp grpc
-      - "127.0.0.1:4318:4318"   # otlp http
-      - "127.0.0.1:9412:9411"   # zipkin (changed from 9411 to avoid conflict with Jaeger)
+      - "127.0.0.1:3200:3200"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:9412:9411"
     networks:
       - obs-net
       - agents-net
@@ -636,7 +629,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Worker
   celery-worker:
     build:
       context: ./backend
@@ -652,7 +644,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
-      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
@@ -717,8 +709,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # Docker Janitor (DISABLED - meltwater/docker-cleanup has Docker API version mismatch)
-  # Replaced by auto-prune below which uses docker:cli and is always version-compatible
   docker-janitor:
     profiles: ["disabled"]
     image: meltwater/docker-cleanup:latest
@@ -735,7 +725,6 @@ services:
       - CLEAN_UNUSED_VOLUMES=false
 
   docker-socket-proxy:
-    # WATCH: small project - change to latest if pull fails
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
     container_name: docker-socket-proxy
     healthcheck:
@@ -768,7 +757,6 @@ services:
 
   docker-socket-proxy-build:
     profiles: ["ops", "hyper"]
-    # WATCH: small project - change to latest if pull fails
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
     container_name: docker-socket-proxy-build
     restart: unless-stopped
@@ -794,8 +782,6 @@ services:
       - /var/lib/haproxy
     read_only: true
 
-  # Auto Prune - Smart Docker cleanup (replaces docker-janitor)
-  # Runs every hour: prunes stopped containers, old images (48h+), keeps 5GB build cache max
   auto-prune:
     profiles: ["ops", "health"]
     image: ${DOCKER_CLI_IMAGE:-docker:27.3.1-cli}
@@ -816,7 +802,6 @@ services:
         max-size: "5m"
         max-file: "2"
 
-  # Security Scanner (Trivy)
   security-scanner:
     profiles: ["ops", "health"]
     image: ${TRIVY_IMAGE:-aquasec/trivy:0.56.2}
@@ -845,7 +830,7 @@ services:
   # ====================
   # AGENTS
   # ====================
-  
+
   coder-agent:
     profiles: ["agents"]
     build:
@@ -904,7 +889,7 @@ services:
       - NEXT_PUBLIC_CORE_WS_HOST=localhost
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
-      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:?ORCHESTRATOR_API_KEY must be set in .env}
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
@@ -915,7 +900,7 @@ services:
       retries: 3
       start_period: 90s
     ports:
-      - "127.0.0.1:8088:3000" # Public facing dashboard
+      - "127.0.0.1:8088:3000"
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -1018,8 +1003,8 @@ services:
       - ORCHESTRATOR_REDIS_PORT=6379
       - ORCHESTRATOR_ENABLED_AGENTS=${ORCHESTRATOR_ENABLED_AGENTS:-}
       - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:?ORCHESTRATOR_API_KEY must be set in .env}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
       - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-900}
@@ -1033,14 +1018,14 @@ services:
       - agents-net
       - data-net
     ports:
-      - "127.0.0.1:8081:8080" # Localhost only
+      - "127.0.0.1:8081:8080"
     depends_on:
       hypercode-core:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"] # Check internal port 8080
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1399,9 +1384,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-
-
-
   test-agent:
     profiles: ["agents"]
     build:
@@ -1627,8 +1609,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ── 🩺 Healer Agent — Self-Healing & Recovery ─────────────────────────────
-  # Merged from docker-compose.agents.yml
   healer-agent:
     build:
       context: ./agents
@@ -1662,8 +1642,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ── 🔔 Alertmanager — Alert Routing to Healer ─────────────────────────────
-  # Merged from docker-compose.monitoring.yml
   alertmanager:
     image: ${ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}
     container_name: alertmanager
@@ -1689,10 +1667,6 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
-
-  # ── 🧠 Hyper Agents — profile: hyper ──────────────────────────────────────
-  # Merged from docker-compose.hyper-agents.yml
-  # Start with: docker compose --profile hyper up -d
 
   hyper-architect:
     build:
@@ -1857,10 +1831,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # ── 🏥 HyperHealth — profile: health ──────────────────────────────────────
-  # Merged from docker-compose.hyperhealth.yml
-  # Start with: docker compose --profile health up -d
-
   hyperhealth-api:
     build:
       context: ./agents/hyperhealth
@@ -1873,14 +1843,14 @@ services:
       - "127.0.0.1:8095:8090"
     environment:
       - PORT=8090
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
       - REDIS_URL=redis://redis:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
       - GRAFANA_URL=http://grafana:3000
       - CREW_URL=http://crew-orchestrator:8080
-      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - API_KEY=${API_KEY:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
@@ -1930,11 +1900,11 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "worker"]
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
       - REDIS_URL=redis://redis:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
-      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - API_KEY=${API_KEY:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - WORKER_CONCURRENCY=50
       - CHECK_BATCH_SIZE=100
@@ -1982,4 +1952,3 @@ services:
     labels:
       - "hypercode.service=hyperhealth-worker"
       - "hypercode.role=check-executor"
-
