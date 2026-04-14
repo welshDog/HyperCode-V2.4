@@ -1,6 +1,6 @@
 # 🤖 HyperAgent-SDK + Hyperfocus Zone — Claude Context Handoff
 > Read this first. Every word. Then start the mission.
-> **Last updated: April 14, 2026 — Phase 9 COMPLETE: CVE Elimination ✅**
+> **Last updated: April 14, 2026 — Phase 10B COMPLETE: Network Isolation ✅**
 
 ---
 
@@ -47,18 +47,25 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
-## 🎯 NEXT UP — Phase 10 Candidates
+## 🎯 NEXT UP — Phase 10C+ Candidates
 
-Choose one to start next:
-
-| Option | Phase 10 | Why Now |
-|--------|----------|----------|
-| A | **FastAPI / Starlette upgrade** | Trivy flagged starlette HIGH — `fastapi>=0.117` fixes it. Quick win. |
-| B | **Docker Compose network hardening** | Lock agents to internal networks, no accidental internet exposure |
+| Option | Phase | Why Now |
+|--------|-------|----------|
 | C | **Secrets management** (Docker secrets / Vault) | `.env` files still used locally — productionise secrets |
-| D | **Agent-level rate limiting + auth** | Agents currently trust internal network — add per-agent API keys |
+| D | **Agent-level rate limiting + auth** | Agents trust internal network — add per-agent API keys |
+| E | **Open bug: CognitiveUplink.tsx ~130** | WS message type `"command"` → `"execute"` |
 
-**Recommended: Option A first** (30 min job) then Option B.
+### ✅ Phase 10A — FastAPI / Starlette upgrade — DONE
+### ✅ Phase 10B — Docker Compose Network Isolation — DONE (April 14, 2026)
+
+**Phase 10B topology:**
+- `frontend-net` (bridge, internet) — dashboard, mission-ui, mcp-server
+- `backend-net` (bridge, internet) — hypercode-core only (bridges all layers)
+- `agents-net` (bridge, internet) — all AI agents, LLM API calls
+- `data-net` (bridge, `internal: true`) — redis + postgres + minio + chroma
+- `obs-net` (bridge, `internal: true`) — prometheus, grafana, loki, tempo, promtail
+
+**Script:** `scripts/network-migrate.sh` — run to tear down and recreate networks safely.
 
 ---
 
@@ -127,7 +134,8 @@ RUN pip install --upgrade --no-cache-dir \
 - **GitHub Actions builds:** Always `--no-cache --pull` in security scanning workflows
 - **jaraco.* packages:** Always pin explicitly — Trivy HIGH via setuptools transitive
 - **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli` repo, NOT `docker.io`
-- **starlette HIGH:** Fix = `fastapi>=0.117` — scheduled for Phase 10
+- **starlette HIGH:** Fixed in Phase 10A (`fastapi>=0.117`) ✅
+- **Network isolation:** Phase 10B complete — `data-net` + `obs-net` are `internal: true`
 
 ---
 

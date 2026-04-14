@@ -1,20 +1,32 @@
 networks:
+  # ── Internet-accessible networks ──────────────────────────────────────────
   frontend-net:
     driver: bridge
     name: hypercode_frontend_net
-    external: true
+    # Ingress layer: dashboard, mission-ui, MCP server
+
   backend-net:
     driver: bridge
-    name: hypercode_public_net
-    external: true
+    name: hypercode_backend_net
+    # Core app layer: hypercode-core, celery-worker, broski-bot, ollama
+    # Internet access required for Claude / Perplexity / Discord external APIs
+
+  agents-net:
+    driver: bridge
+    name: hypercode_agents_net
+    # Agent + core layer: all AI agents communicate with hypercode-core here
+    # Internet access required for LLM API calls (Anthropic, Perplexity, OpenAI)
+
+  # ── Internal networks (no internet gateway — container-to-container only) ─
   data-net:
     driver: bridge
     name: hypercode_data_net
-    external: true
-  hypercode-agents-net:               
+    internal: true  # postgres + redis — NEVER internet-accessible
+
+  obs-net:
     driver: bridge
-    name: hypercode-v20_hypercode-net
-    external: true
+    name: hypercode_obs_net
+    internal: true  # observability stack — isolated from agent network
 
 volumes:
   trivy-cache:
@@ -97,7 +109,6 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - backend-net
       - data-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -136,7 +147,6 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - backend-net
       - data-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -220,6 +230,7 @@ services:
     networks:
       - backend-net
       - data-net
+      - agents-net
     ports:
       - "127.0.0.1:8000:8000" # Localhost only for security
     healthcheck:
@@ -293,7 +304,7 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - backend-net
+      - agents-net
       - data-net
     restart: unless-stopped
     security_opt:
@@ -335,7 +346,8 @@ services:
     ports:
       - "127.0.0.1:9090:9090"
     networks:
-      - backend-net
+      - obs-net
+      - agents-net
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -372,7 +384,7 @@ services:
     ports:
       - "127.0.0.1:3001:3000" # Localhost only
     networks:
-      - backend-net
+      - obs-net
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
@@ -420,7 +432,7 @@ services:
     ports:
       - "127.0.0.1:9100:9100"
     networks:
-      - backend-net
+      - obs-net
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9100/metrics"]
       interval: 30s
@@ -457,7 +469,7 @@ services:
     ports:
       - "127.0.0.1:8090:8080" # Localhost only
     networks:
-      - backend-net
+      - obs-net
     restart: unless-stopped
     devices:
       - /dev/kmsg
@@ -492,7 +504,6 @@ services:
       - "127.0.0.1:9000:9000"  # API
       - "127.0.0.1:9001:9001"  # Console
     networks:
-      - backend-net
       - data-net
     restart: unless-stopped
     healthcheck:
@@ -520,7 +531,6 @@ services:
     ports:
       - "127.0.0.1:8009:8000" # Mapped to 8009 to avoid conflict with everything else (8000, 8001, 8002 taken)
     networks:
-      - backend-net
       - data-net
     restart: unless-stopped
     healthcheck:
@@ -545,7 +555,7 @@ services:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
       - loki-data:/loki
     networks:
-      - backend-net
+      - obs-net
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3100/ready || exit 1"]
       interval: 30s
@@ -580,7 +590,8 @@ services:
       - "127.0.0.1:4318:4318"   # otlp http
       - "127.0.0.1:9412:9411"   # zipkin (changed from 9411 to avoid conflict with Jaeger)
     networks:
-      - backend-net
+      - obs-net
+      - agents-net
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3200/ready || exit 1"]
       interval: 60s
@@ -611,7 +622,7 @@ services:
       - promtail-positions:/run/promtail
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
-      - backend-net
+      - obs-net
     healthcheck:
       test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9080/ready || exit 1"]
       interval: 60s
@@ -657,7 +668,7 @@ services:
       hypercode-core:
         condition: service_healthy
     networks:
-      - backend-net
+      - agents-net
       - data-net
     restart: unless-stopped
     deploy:
@@ -683,7 +694,7 @@ services:
     ports:
       - "127.0.0.1:9808:9808"
     networks:
-      - backend-net
+      - obs-net
       - data-net
     environment:
       - REDIS_HOST=redis
@@ -734,7 +745,7 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -762,7 +773,7 @@ services:
     container_name: docker-socket-proxy-build
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -795,7 +806,7 @@ services:
       sh -c "echo '0 * * * * docker container prune -f && docker image prune -f --filter until=48h && docker builder prune -f --keep-storage=5gb' > /etc/crontabs/root && crond -f"
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
     depends_on:
       docker-socket-proxy-build:
         condition: service_started
@@ -817,7 +828,7 @@ services:
       - ./reports/security:/reports
       - trivy-cache:/root/.cache/trivy
     networks:
-      - backend-net
+      - agents-net
     restart: unless-stopped
     depends_on:
       docker-socket-proxy-build:
@@ -858,7 +869,7 @@ services:
     ports:
       - "127.0.0.1:8002:8002"
     networks:
-      - backend-net
+      - agents-net
     depends_on:
       hypercode-core:
         condition: service_healthy
@@ -910,7 +921,7 @@ services:
         condition: service_healthy
     networks:
       - frontend-net
-      - backend-net
+      - agents-net
     restart: unless-stopped
     deploy:
       resources:
@@ -943,7 +954,8 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - backend-net
+      - agents-net
+      - data-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"]
@@ -977,7 +989,7 @@ services:
         condition: service_healthy
     networks:
       - frontend-net
-      - backend-net
+      - agents-net
     restart: unless-stopped
     deploy:
       resources:
@@ -1018,7 +1030,8 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8081:8080" # Localhost only
     depends_on:
@@ -1069,7 +1082,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8001:8001"
     depends_on:
@@ -1108,7 +1121,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8012:8012"
     depends_on:
@@ -1145,7 +1158,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8003:8003"
     depends_on:
@@ -1182,7 +1195,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8004:8004"
     depends_on:
@@ -1219,7 +1232,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8005:8005"
     depends_on:
@@ -1256,7 +1269,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8006:8006"
     depends_on:
@@ -1284,7 +1297,7 @@ services:
     environment:
       - PORT=8015
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8015:8015"
     healthcheck:
@@ -1330,7 +1343,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8007:8007"
     depends_on:
@@ -1367,7 +1380,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8094:8008"
     depends_on:
@@ -1409,7 +1422,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8013:8080"
     depends_on:
@@ -1467,7 +1480,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8014:8014"
     depends_on:
@@ -1519,7 +1532,7 @@ services:
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
     networks:
-      - backend-net
+      - agents-net
     ports:
       - "127.0.0.1:8011:8009"
     depends_on:
@@ -1556,7 +1569,7 @@ services:
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       - HYPERCODE_ORCH_URL=http://crew-orchestrator:8080
     networks:
-      - backend-net
+      - agents-net
       - frontend-net
     ports:
       - "127.0.0.1:8823:8823"
@@ -1592,8 +1605,7 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     networks:
-     - backend-net        
-     - hypercode-agents-net 
+      - agents-net
     deploy:
       resources:
         limits:
@@ -1626,7 +1638,7 @@ services:
     ports:
       - "127.0.0.1:8008:8008"
     networks:
-      - backend-net
+      - agents-net
       - data-net
     depends_on:
       redis:
@@ -1669,7 +1681,8 @@ services:
     ports:
       - "127.0.0.1:9093:9093"
     networks:
-      - backend-net
+      - obs-net
+      - agents-net
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -1689,7 +1702,7 @@ services:
     hostname: hyper-architect
     profiles: ["hyper"]
     ports:
-      - "8091:8091"
+      - "127.0.0.1:8091:8091"
     environment:
       AGENT_NAME: lead-architect-01
       AGENT_PORT: "8091"
@@ -1704,7 +1717,8 @@ services:
       start_period: 20s
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
+      - data-net
     labels:
       hypercode.agent: "true"
       hypercode.archetype: "architect"
@@ -1725,7 +1739,7 @@ services:
     hostname: hyper-observer
     profiles: ["hyper"]
     ports:
-      - "8092:8092"
+      - "127.0.0.1:8092:8092"
     environment:
       AGENT_NAME: sys-observer-01
       AGENT_PORT: "8092"
@@ -1740,7 +1754,8 @@ services:
       start_period: 20s
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
+      - data-net
     labels:
       hypercode.agent: "true"
       hypercode.archetype: "observer"
@@ -1761,7 +1776,7 @@ services:
     hostname: hyper-worker
     profiles: ["hyper"]
     ports:
-      - "8093:8093"
+      - "127.0.0.1:8093:8093"
     environment:
       AGENT_NAME: task-worker-01
       AGENT_PORT: "8093"
@@ -1777,7 +1792,8 @@ services:
       start_period: 20s
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
+      - data-net
     labels:
       hypercode.agent: "true"
       hypercode.archetype: "worker"
@@ -1798,7 +1814,7 @@ services:
     hostname: agent-x
     profiles: ["hyper"]
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     environment:
       AGENT_NAME: agent-x-01
       AGENT_PORT: "8080"
@@ -1824,7 +1840,7 @@ services:
       start_period: 20s
     restart: unless-stopped
     networks:
-      - backend-net
+      - agents-net
     depends_on:
       - hyper-architect
       - hyper-observer
@@ -1869,8 +1885,9 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
     networks:
-      - backend-net
+      - agents-net
       - data-net
+      - obs-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -1924,7 +1941,7 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
     networks:
-      - backend-net
+      - agents-net
       - data-net
     depends_on:
       hyperhealth-api:
