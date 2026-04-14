@@ -1,12 +1,12 @@
 # Claude Auto-Discovery (.claude/)
 
-This folder contains Claude’s local project configuration and reusable skill modules.
+This folder contains Claude's local project configuration and reusable skill modules.
 
 ## Entry Points
 
-- Project intelligence: [CLAUDE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/CLAUDE.md)
-- Claude permissions + MCP config: [settings.local.json](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/.claude/settings.local.json)
-- Claude skill modules (auto-discovered): [skills/](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/.claude/skills/)
+- Project intelligence: [CLAUDE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/CLAUDE.md)
+- Claude permissions + MCP config: [settings.local.json](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/.claude/settings.local.json)
+- Claude skill modules (auto-discovered): [skills/](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/.claude/skills/)
 
 ## Skill Discovery Rules
 
@@ -18,3 +18,4 @@ This folder contains Claude’s local project configuration and reusable skill m
 - `broski-discord-bot-skill/` is a standalone skill pack with its own docs, examples, and Dockerfile.
 - A Claude-discoverable wrapper skill is provided under `.claude/skills/` for consistent discovery.
 
+> ⚠️ **Working system:** HyperCode-V2.4 (not V2.0). All paths, ports and agent names are the same.
