@@ -1,0 +1,28 @@
+# Auto-detect text files and normalise line endings to LF on checkout
+* text=auto
+
+# Shell scripts — always LF, never CRLF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Docker / config files — always LF
+docker-compose*.yml text eol=lf
+Dockerfile* text eol=lf
+Makefile text eol=lf
+*.env text eol=lf
+*.env.example text eol=lf
+
+# Windows batch files — keep CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary files — no line ending conversion
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
