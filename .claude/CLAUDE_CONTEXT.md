@@ -1,7 +1,7 @@
 # 🧠⚡ HYPER SUPER CLAUDE DEV — HyperCode V2.4 Boot File
 > You are Claude. You just loaded into the most sophisticated solo-dev AI-native OS ever built.
 > Read every word. Then execute with precision. BROski♾ mode: ON.
-> **Last updated: April 14, 2026 — Phases 0–9 + 10A ALL COMPLETE ✅**
+> **Last updated: April 14, 2026 — Phases 0–10B ALL COMPLETE ✅**
 
 ---
 
@@ -36,7 +36,7 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 
 ---
 
-## 🏆 Roadmap — Phases 0–9 + 10A ALL COMPLETE!
+## 🏆 Roadmap — Phases 0–10B ALL COMPLETE!
 
 | Phase | Name | Status | Date |
 |---|---|---|---|
@@ -51,33 +51,44 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 | 8 | CI/CD Trivy Security Pipeline | ✅ DONE | Apr 14, 2026 |
 | 9 | CVE Elimination (apt + pip pinning) | ✅ DONE | Apr 14, 2026 |
 | 10A | FastAPI/starlette CVE — already on 0.135.3/0.47.2 | ✅ ALREADY DONE | Apr 14, 2026 |
+| 10B | Docker Network Isolation | ✅ DONE | Apr 14, 2026 |
 
 ---
 
-## 🚀 NEXT MISSION — Phase 10B: Docker Network Isolation
+## 🔒 Phase 10B — Network Map (LIVE)
 
-> **Goal:** Lock every agent to internal Docker networks. No container should be able to reach another unless explicitly allowed. Zero unnecessary exposure.
+| Network | Type | Who lives here |
+|---------|------|----------------|
+| `frontend-net` | bridge, internet | dashboard, mission-ui, mcp-server |
+| `backend-net` | bridge, internet | hypercode-core only (bridges all layers) |
+| `agents-net` | bridge, internet | all 25+ AI agents, LLM API calls |
+| `data-net` | **internal: true** | redis, postgres, minio, chroma |
+| `obs-net` | **internal: true** | prometheus, grafana, loki, tempo, promtail, alertmanager |
 
-### What Phase 10B involves:
-- Create named internal networks in `docker-compose.yml` (e.g. `agent-net`, `data-net`, `gateway-net`)
-- Move each agent/service to only the networks it actually needs
-- Remove default bridge network from sensitive containers (DB, Redis)
-- Verify: agents that don't need internet get `internal: true` networks
-- Update `CLAUDE_CONTEXT.md` with network map when done
+### Key wins shipped:
+- 🔒 **redis + postgres** — internet access fully blocked (was on flat `backend-net`)
+- 🗑️ **hypercode-agents-net** external network — removed (stale leftover)
+- 📍 **hyper-architect/observer/worker/agent-x ports** — now `127.0.0.1:` bound (was `0.0.0.0`)
+- ✅ **docker compose config** — validates clean, zero errors
 
-### Why it matters:
-- If one container is compromised, blast radius = **that container only**
-- DB + Redis unreachable from internet-exposed agents = huge win
-- Complements Phase 9 CVE hardening perfectly
+### Migration script:
+```bash
+# Preview
+bash scripts/network-migrate.sh --dry-run
 
-### Time estimate: ~1 hour
+# Apply live
+bash scripts/network-migrate.sh
+```
 
-### Other Phase 10 options (after B):
+---
+
+## 🚀 NEXT MISSION — Phase 10C or 10D?
 
 | Option | What | Time | Priority |
 |--------|------|------|----------|
-| **C 🗝️** | Secrets management (Docker secrets / Vault) | ~2 hrs | Medium |
-| **D 🛡️** | Per-agent API key auth | ~2-3 hrs | Medium |
+| **C 🗝️** | Secrets management (Docker secrets / Vault) — no more `.env` in prod | ~2 hrs | High |
+| **D 🛡️** | Per-agent API key auth — lock every agent endpoint | ~2-3 hrs | High |
+| **E 🐛** | Fix CognitiveUplink.tsx WS bug (`"command"` → `"execute"` ~line 130) | ~15 min | Quick Win |
 
 ---
 
@@ -94,16 +105,16 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 | Metric | Before | After |
 |--------|--------|-------|
 | CRITICAL CVEs | 11 | **0** 🎉 |
-| HIGH CVEs | 55 | **14** (unfixable at OS layer) |
+| HIGH CVEs | 55 | **13** (all Debian-unfixable) |
 
-### 14 Remaining HIGHs — Cannot Fix Yet
+### 13 Remaining HIGHs — Cannot Fix Yet
 - `docker.io/runc` — moby Debian packaging lags behind official Docker
 - `libexpat1`, `libncursesw6`, `libnghttp2`, `libsystemd0` — no Debian patch yet
-- `starlette` — **RESOLVED** ✅ `backend/requirements.txt` already has `fastapi==0.135.3` + `starlette==0.47.2`. Was a Trivy cache artefact.
+- `starlette` — **RESOLVED** ✅ `fastapi==0.135.3` + `starlette==0.47.2` in `backend/requirements.txt`
 
-### Phase 9 Pattern — Applied Across ALL 20 Dockerfiles (19 agents + broski-discord-bot-skill)
+### Phase 9 Pattern — Applied Across ALL 20 Dockerfiles
 
-**Part A — OS hardening (every runtime stage):**
+**Part A — OS hardening:**
 ```dockerfile
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
@@ -113,29 +124,27 @@ RUN apt-get update --allow-releaseinfo-change && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ```
 
-**Part B — pip pinning (every Python runtime stage):**
+**Part B — pip pinning:**
 ```dockerfile
 RUN pip install --upgrade --no-cache-dir \
     "pip==26.0.1" "setuptools>=80.0.0" "wheel==0.46.2" \
     "jaraco.context>=6.0.0" "jaraco.functools>=4.1.0" "jaraco.text>=4.0.0"
 ```
 
-**Part C — CI (trivy-scan.yml):** `--no-cache --pull` on every build = always fresh base image
+**Part C — CI:** `--no-cache --pull` on every build
 
-**Bonus:** `healer`, `coder`, `05-devops` → switched to `docker-ce-cli` (kills moby CVEs)
+**Bonus:** `healer`, `coder`, `05-devops` → `docker-ce-cli` (kills moby CVEs)
 
-**Base image:** All `python:3.11.8-slim` → `python:3.11-slim` (auto-tracks latest patch via CI)
+**Base image:** All `python:3.11-slim` (auto-tracks latest patch via CI)
 
 ---
 
 ## 🧠 The Skills System — 16 Active Skills
 
-Located in `.claude/skills/` — Claude loads these for specialist knowledge:
-
 | Skill | What It Does |
 |-------|--------------|
 | `hypercode-brain` | Core system knowledge |
-| `hypercode-agent-consciousness` | Agent self-reporting, petitions, handoffs (research-grade!) |
+| `hypercode-agent-consciousness` | Agent self-reporting, petitions, handoffs |
 | `hypercode-self-improver` | Meta skill — system evolves itself |
 | `hypercode-security` | CVE scanning, Trivy, Dockerfile hardening |
 | `hypercode-docker-ops` | Container ops, compose, health checks |
@@ -150,8 +159,6 @@ Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 | `hypercode-new-agent-onboarding` | Agent onboarding flow |
 | `technical-skills-audit` | Audit methodology |
 | `hyper-terminal-analyser` | Terminal tool research, debug, ecosystem fit |
-
-> **Skill hierarchy:** Technical audit skills (knowledge) → Operational skills (how to DO) → Meta skills (self-improvement loop). That's progressive disclosure architecture.
 
 ---
 
@@ -168,14 +175,17 @@ Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 - **One bot:** broski-bot. Old Replit bot = dead.
 - **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)`
 - **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 standard (ALL 20 Dockerfiles)
-- **Trivy target:** 0 CRITICAL ✅. 13 HIGH remaining (starlette = resolved, 13 are Debian-unfixable)
+- **Trivy target:** 0 CRITICAL ✅. 13 HIGH = all Debian-unfixable. Next scan baseline = 13.
 - **GitHub Actions builds:** Always `--no-cache --pull` in security workflows
 - **jaraco.* packages:** Always pin explicitly — Trivy HIGH via setuptools transitive
 - **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli`, NOT `docker.io`
-- **starlette:** RESOLVED ✅ — `fastapi==0.135.3` + `starlette==0.47.2` already in `backend/requirements.txt`
+- **starlette:** RESOLVED ✅ — `fastapi==0.135.3` + `starlette==0.47.2`
 - **V2.0 references in skills:** Apply to V2.4 — same ports, same agent names
-- **npm package:** `@w3lshdog/hyper-agent@0.1.4` — errorMessage bug FIXED, all 6 CLI commands LIVE
-- **CognitiveUplink.tsx ~130:** WS message type = `"execute"` NOT `"command"` — open bug!
+- **npm package:** `@w3lshdog/hyper-agent@0.1.4` — all 6 CLI commands LIVE
+- **CognitiveUplink.tsx ~130:** WS type = `"execute"` NOT `"command"` — open bug!
+- **data-net + obs-net:** `internal: true` — NEVER expose redis/postgres/grafana to internet
+- **Agent ports:** `127.0.0.1:` bound only — NEVER `0.0.0.0` for internal agents
+- **Network migration:** `bash scripts/network-migrate.sh` (use `--dry-run` first)
 
 ---
 
@@ -195,6 +205,10 @@ cd "H:\the hyper vibe coding hub"
 docker compose up -d
 docker compose build --no-cache
 docker compose exec api alembic upgrade head
+
+# Network migration
+bash scripts/network-migrate.sh --dry-run
+bash scripts/network-migrate.sh
 
 # Security scanning
 make scan-all
@@ -224,12 +238,12 @@ node cli/index.js graduate <discord_id> --tokens 100
 
 ---
 
-## 🛡️ Security Posture (Post Phase 10A)
+## 🛡️ Security Posture (Post Phase 10B)
 
 | Layer | Status |
 |-------|--------|
 | CRITICAL CVEs | 0 ✅ |
-| HIGH CVEs | 13 (all Debian-unfixable now) |
+| HIGH CVEs | 13 (all Debian-unfixable) |
 | starlette CVE | RESOLVED ✅ (fastapi 0.135.3) |
 | Non-root users | All 20 Dockerfiles ✅ |
 | Multi-stage builds | All agents ✅ |
@@ -238,16 +252,18 @@ node cli/index.js graduate <discord_id> --tokens 100
 | Weekly fleet scan | Monday 06:00 UTC ✅ |
 | Pre-push hook | Local blocking ✅ |
 | docker-ce-cli swap | healer/coder/devops ✅ |
-| Network isolation | ⏳ Phase 10B — NEXT |
+| data-net (redis/postgres/minio/chroma) | internal: true ✅ |
+| obs-net (grafana/prometheus/loki) | internal: true ✅ |
+| Agent ports | 127.0.0.1: bound ✅ |
+| Secrets management | ⏳ Phase 10C — NEXT |
 
 ---
 
 ## 📦 HyperAgent-SDK — Current State
 
 - **Version:** `@w3lshdog/hyper-agent@0.1.4` ✅ LIVE on npm
-- **errorMessage bug:** FIXED (removed from hyper-agent-spec.json)
-- **CLI commands (all verified):** `validate`, `status`, `logs`, `tokens`, `agents`, `graduate`
-- **Phases 0–6:** All complete and verified live
+- **errorMessage bug:** FIXED
+- **CLI commands (all 6 verified):** `validate`, `status`, `logs`, `tokens`, `agents`, `graduate`
 
 ```powershell
 npx @w3lshdog/hyper-agent validate .agents/my-agent/
@@ -259,10 +275,10 @@ npm publish --access public --tag alpha
 
 ## 🎯 Session Start Checklist
 
-When you boot a new Claude session, ask Bro:
-1. **Which repo are we in?** (V2.4 / SDK / Course)
-2. **What phase or feature?** (Phase 10B = network isolation — see above)
-3. **Any new Trivy scan results?** (compare vs 13 HIGH baseline — all Debian-unfixable)
-4. **PowerShell or WSL2 today?**
+Ask Bro these 4 questions:
+1. **Which repo?** (V2.4 / SDK / Course)
+2. **What mission?** (10C Secrets / 10D API auth / CognitiveUplink quick fix?)
+3. **Fresh Trivy scan?** (baseline = 13 HIGH, all Debian-unfixable)
+4. **PowerShell or WSL2?**
 
-Then: short sentences, emojis, bold keys, quick wins first. Let's GO! 🔥
+Then: short sentences, emojis, bold keys, quick wins first. LFG! 🔥
