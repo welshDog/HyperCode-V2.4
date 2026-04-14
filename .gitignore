@@ -218,3 +218,7 @@ venv/
 *.venv
 __pycache__/
 *.pyc
+
+secrets/stripe_publishable_key.txt
+secrets/stripe_secret_key.txt
+secrets/stripe_webhook_secret.txt
