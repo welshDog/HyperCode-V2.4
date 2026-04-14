@@ -2,7 +2,19 @@
 
 > This file is auto-read by Claude AI when analysing this repository.
 > It provides essential project context, conventions, and guidance.
-> **Last updated: April 14, 2026 — Phase 10C COMPLETE ✅**
+> **Last updated: April 14, 2026 — Phase 10F COMPLETE ✅ | Stripe Checkout API LIVE 💳**
+> **Single source of truth — merged from CLAUDE.md + CLAUDE_CONTEXT.md**
+
+---
+
+## 🧠 Who You're Talking To
+
+- **Lyndz** aka BROski♾️ (GitHub: @welshDog, npm: @w3lshdog) — Llanelli, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿
+- Autistic + dyslexic + ADHD — chunked output, quick wins first, no waffle
+- Windows primary (PowerShell), WSL2 + Raspberry Pi + Docker secondary
+- Call them **"Bro"** — that's how we roll
+- Short sentences. Emojis. Bold the key stuff. Celebrate wins! 🎉
+- **Brain style:** Pattern thinker + Big vision + Neurodivergent-first
 
 ---
 
@@ -11,10 +23,26 @@
 **HyperCode V2.4** is a neurodivergent-first, AI-powered, open-source programming ecosystem.
 
 - **Creator:** Lyndz Williams (@welshDog), Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿
-- **Brain style:** ADHD + Dyslexia + Pattern thinker + Big vision
 - **Core mission:** Build a cognitive AI architecture that evolves itself
 - **License:** See LICENSE file
 - **Communication style:** Short sentences, emojis, bold keys, quick wins first. Call Lyndz "Bro".
+
+---
+
+## 🌐 The Ecosystem
+
+```
+Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
+github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
+Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
+(Supabase + Vercel)                    │                  (Docker, 26 containers)
+Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStation zone\
+                                       │                       HyperCode\HyperCode-V2.4
+                              HyperAgent-SDK
+                          github.com/welshDog/HyperAgent-SDK
+                          npm: @w3lshdog/hyper-agent@0.1.4
+                          Path: H:\HyperAgent-SDK
+```
 
 ---
 
@@ -22,9 +50,26 @@
 
 > 🟢 ALL 23 CONTAINERS HEALTHY — Stack is LIVE!
 
-### Phase 10C — Docker Secrets — COMPLETE ✅
+### 🏆 Full Phase Roadmap
 
-All infrastructure is running. Full stack confirmed healthy on April 14, 2026.
+| Phase | Name | Status |
+|---|---|---|
+| 0 | Hard Conflict Fixes | ✅ DONE |
+| 1 | Identity Bridge | ✅ DONE + VERIFIED LIVE |
+| 2 | Token Sync | ✅ DONE + VERIFIED LIVE |
+| 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE |
+| 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE |
+| 5 | Observability | ✅ DONE + VERIFIED LIVE |
+| 6 | Terminal Tools Integration | ✅ DONE + VERIFIED LIVE |
+| 7 | Dockerfile Security Hardening | ✅ DONE — April 14, 2026 |
+| 8 | CI/CD Trivy Security Pipeline | ✅ DONE — April 14, 2026 |
+| 9 | CVE Elimination (apt + pip pinning) | ✅ DONE — April 14, 2026 |
+| 10A | FastAPI / Starlette upgrade | ✅ DONE |
+| 10B | Docker Compose Network Isolation | ✅ DONE — April 14, 2026 |
+| 10C | Docker Secrets | ✅ DONE — April 14, 2026 |
+| 10F | **Stripe Checkout API** | ✅ DONE — April 14, 2026 💳 |
+
+### Container Health
 
 | Container | Status |
 |---|---|
@@ -68,14 +113,19 @@ In WSL: `/mnt/h/HyperStation zone/HyperCode/volumes/`
 
 ---
 
-## 🚀 NEXT PHASE: Agents Security Upgrade
+## 🎯 NEXT UP — Phase 10G+
+
+| Phase | Task | Why |
+|---|---|---|
+| **10G** | DB — save subscription to Postgres on webhook fire | Hook `checkout.session.completed` → update users table |
+| **10H** | Frontend — Pricing page + checkout button | Next.js UI wired to `/api/stripe/checkout` |
+| **10I** | Stripe CLI end-to-end local testing | `stripe listen --forward-to localhost:8000/api/stripe/webhook` |
+| **10D** | Agent-level rate limiting + auth | Per-agent API keys for internal network |
+| **10E** | Open bug: CognitiveUplink.tsx ~130 | WS message type `"command"` → `"execute"` |
+
+### Agents Security Upgrade
 
 > ⚠️ READ THIS BEFORE TOUCHING ANY DOCKERFILE OR AGENT FILE!
-
-### Mission Objective
-Patch all 12 agent Docker images to eliminate CRITICAL CVEs found in Trivy scan (April 14, 2026).
-
-### Agent Image Scan Results — Priority Order
 
 | Priority | Image | CRITICAL | HIGH | Action |
 |----------|-------|----------|------|--------|
@@ -83,23 +133,52 @@ Patch all 12 agent Docker images to eliminate CRITICAL CVEs found in Trivy scan 
 | 🔴 2 | `hypercode-v24-celery-worker` | TBC | HIGH | Patch |
 | 🔴 3 | `hypercode-v24-crew-orchestrator` | TBC | HIGH | Patch |
 | 🔴 4 | `hypercode-v24-healer-agent` | TBC | HIGH | Patch |
-| 🟡 5 | `hypercode-v24-broski-bot` | 0 | 51 | Patch |
-| 🟡 6 | `hypercode-v24-hyper-architect` | TBC | - | Patch |
-| 🟡 7 | `hypercode-v24-hyper-observer` | TBC | - | Patch |
-| 🟡 8 | `hypercode-v24-hyper-worker` | TBC | - | Patch |
-| 🟡 9 | `hypercode-v24-hypercode-mcp-server` | TBC | - | Patch |
-| 🟡 10 | `hypercode-v24-test-agent` | TBC | - | Patch |
-| 🟡 11 | `hypercode-v24-throttle-agent` | TBC | - | Patch |
-| 🟡 12 | `hypercode-v24-tips-tricks-writer` | TBC | - | Patch |
+| 🟡 5-12 | All remaining agent images | TBC | - | Patch |
 
-### Key CVEs Found
-- `libexpat1` — **CRITICAL** CVE-2024-45491, CVE-2024-45492 (Integer Overflow)
-- `libc6` / `libc-bin` — **HIGH** CVE-2024-2961 (glibc out-of-bounds write)
-- `libssl3` / `openssl` — **HIGH** multiple CVEs
-- `docker.io` (moby) — **HIGH** CVE-2024-24557, CVE-2024-29018
-- `gpgv` — **HIGH** CVE-2025-68973 (fixed — needs apt upgrade)
+**Target: ZERO CRITICAL, <5 HIGH after patch phase**
 
-### Target: ZERO CRITICAL, <5 HIGH after patch phase
+---
+
+## 💳 Phase 10F — Stripe Checkout API (LIVE)
+
+### Live Endpoints
+```
+POST /api/stripe/checkout    → creates Stripe Checkout Session, returns URL
+GET  /api/stripe/plans       → lists available plan names
+POST /api/stripe/webhook     → handles Stripe events (signature verified)
+```
+
+### Webhook events handled
+- `checkout.session.completed` → subscription activated (TODO 10G: write to DB)
+- `customer.subscription.deleted` → subscription cancelled
+- `invoice.payment_failed` → payment failed warning
+- `customer.subscription.updated` → status change logged
+
+### 🔒 Stripe Prices — LOCKED (April 14, 2026)
+
+| Pack | Price | Tokens | Stripe Product |
+|---|---|---|---|
+| Starter | £5 GBP | 200 | BROski Starter Pack |
+| Builder | £15 GBP | 800 | BROski Builder Pack |
+| Hyper | £35 GBP | 2500 | BROski Hyper Pack |
+
+| Tier | Monthly | Yearly |
+|---|---|---|
+| Pro | £9/mo | £90/yr |
+| Hyper | £29/mo | £290/yr |
+
+### .env keys to add
+```env
+STRIPE_SECRET_KEY=sk_live_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+STRIPE_PRICE_STARTER=price_xxx
+STRIPE_PRICE_BUILDER=price_xxx
+STRIPE_PRICE_HYPER=price_xxx
+STRIPE_PRICE_PRO_MONTHLY=price_xxx
+STRIPE_PRICE_PRO_YEARLY=price_xxx
+STRIPE_PRICE_HYPER_MONTHLY=price_xxx
+STRIPE_PRICE_HYPER_YEARLY=price_xxx
+```
 
 ---
 
@@ -109,43 +188,39 @@ Patch all 12 agent Docker images to eliminate CRITICAL CVEs found in Trivy scan 
 
 ### Rule 1 — Base Image
 ```dockerfile
-# ✅ CORRECT — always use pinned slim bookworm
+# ✅ CORRECT
 FROM python:3.11-slim
 
-# ❌ NEVER use untagged latest or old images
+# ❌ NEVER
 FROM python:latest
-FROM python:3.11  # (without -slim)
 ```
 
-### Rule 2 — OS Package Hardening (add to EVERY Dockerfile after FROM)
+### Rule 2 — OS Package Hardening (Part A — every runtime stage)
 ```dockerfile
-RUN apt-get update && \
+RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-        ca-certificates && \
+        ca-certificates curl libexpat1 openssl && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ```
 
-### Rule 3 — Pip Tool Hardening
+### Rule 3 — Pip Tool Hardening (Part B — every Python runtime stage)
 ```dockerfile
 RUN pip install --upgrade --no-cache-dir \
-    pip==26.0.1 \
-    setuptools>=80.0.0 \
-    wheel==0.46.2
+    "pip==26.0.1" "setuptools>=80.0.0" "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" "jaraco.functools>=4.1.0" "jaraco.text>=4.0.0"
 ```
 
 ### Rule 4 — Never Run as Root
 ```dockerfile
-# Always create and use a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 USER appuser
 ```
 
 ### Rule 5 — Security Scanner
 - Tool: **Trivy** (running as `hyper-shield-scanner` container)
-- Scan command: `docker exec hyper-shield-scanner trivy image --scanners vuln --severity HIGH,CRITICAL --quiet <image>`
-- Run after EVERY Dockerfile change to verify fix
+- Scan: `docker exec hyper-shield-scanner trivy image --scanners vuln --severity HIGH,CRITICAL --quiet <image>`
 - Target: **ZERO CRITICAL, <5 HIGH**
 
 ---
@@ -165,13 +240,25 @@ USER appuser
 | Grafana Observability | 3001 | Metrics, alerts, dashboards |
 
 ### Infrastructure Stack
-- **Containers:** Docker Compose (multi-file strategy) — 23 containers active
+- **Containers:** Docker Compose (multi-file strategy) — 23-26 containers active
 - **Databases:** Redis (pub/sub + cache) + PostgreSQL (persistent memory)
 - **Observability:** Prometheus + Grafana + custom health reports
 - **Secrets:** `docker-compose.secrets.yml` + `./secrets/*.txt` files
+- **Networks:** 5 isolated networks — `data-net` + `obs-net` are `internal: true`
 - **MCP Gateway:** Full Model Context Protocol server integration
 - **Kubernetes:** Helm charts in `k8s/` and `helm/` (scale path)
 - **Security:** Trivy scanner (`hyper-shield-scanner`) — scans all 12 agent images
+- **Stripe:** LIVE at `/api/stripe/checkout` — Phase 10F ✅
+
+### 🌐 Phase 10B — Docker Network Topology
+
+- `frontend-net` (bridge, internet) — dashboard, mission-ui, mcp-server
+- `backend-net` (bridge, internet) — hypercode-core (bridges all layers)
+- `agents-net` (bridge, internet) — all AI agents, LLM API calls
+- `data-net` (bridge, **internal: true**) — redis + postgres + minio + chroma
+- `obs-net` (bridge, **internal: true**) — prometheus, grafana, loki, tempo, promtail
+
+Script: `scripts/network-migrate.sh`
 
 ---
 
@@ -191,39 +278,16 @@ HyperCode-V2.4/
 ├── docs/                       # Documentation
 ├── grafana/                    # Grafana dashboards & config
 ├── hyper-mission-system/       # Mission/quest gamification engine
-├── Hyper-Agents-Box/           # Agent sandbox & experiments
-├── hyperstudio-platform/       # Creative platform components
 ├── k8s/                        # Kubernetes manifests
 ├── helm/                       # Helm charts
 ├── mcp/                        # MCP server implementations
 ├── monitoring/                 # Prometheus config & alert rules
-├── nginx/                      # Nginx reverse proxy config
-├── quantum-compiler/           # Quantum computing experiments
 ├── scripts/                    # Dev & ops shell scripts
 ├── security/                   # Security scanning & secrets
 ├── services/                   # Microservice implementations
-├── src/                        # Shared source modules
-├── templates/                  # Jinja/HTML templates
 ├── tests/                      # Test suite (pytest)
-│   ├── unit/                   # Unit tests
-│   ├── integration/            # Integration tests
-│   └── framework/              # LLM eval stubs
-├── tools/                      # Developer tooling
-└── verification/               # Deployment verification scripts
+└── tools/                      # Developer tooling
 ```
-
----
-
-## 🧭 Claude Auto-Discovery Map
-
-When working in this repo, treat these as the "always read first" entrypoints:
-
-- Claude project context: [CLAUDE.md](CLAUDE.md)
-- Claude full context + history: [CLAUDE_CONTEXT.md](CLAUDE_CONTEXT.md)
-- Claude config + skills: [.claude/README.md](.claude/README.md)
-- Agents overview + conventions: [agents/README.md](agents/README.md)
-- Ops/dev scripts index: [scripts/README.md](scripts/README.md)
-- Documentation hub: [docs/index.md](docs/index.md)
 
 ---
 
@@ -231,25 +295,35 @@ When working in this repo, treat these as the "always read first" entrypoints:
 
 ### Quick Start
 ```bash
-# Core stack — ALWAYS use secrets override
+# Core stack
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
 # Core + all agents
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents up -d
 
-# Core + hyper agents
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile hyper up -d
-
-# Full stack (everything)
+# Full stack
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents --profile hyper --profile health --profile mission up -d
 ```
 
+### Docker Compose Profiles
+
+| Profile | Services |
+|---------|---------|
+| *(none)* | Core infra + observability + MCP server |
+| `agents` | All specialist agents |
+| `hyper` | Hyper-architect, observer, worker, agent-x |
+| `health` | HyperHealth API + worker |
+| `mission` | HyperMission API + UI |
+| `discord` | Broski Discord bot |
+
 ### Security Scanning
 ```bash
-# Scan a single image
-docker exec hyper-shield-scanner trivy image --scanners vuln --severity HIGH,CRITICAL --quiet hypercode-v24-agent-x
+make scan-all
+make scan-agent AGENT=healer
+make scan-build AGENT=agent-x
+make build-secure
 
-# Scan ALL 12 agent images (PowerShell)
+# PowerShell — scan ALL 12 agent images
 $images = @("hypercode-v24-agent-x","hypercode-v24-broski-bot","hypercode-v24-celery-worker",
              "hypercode-v24-crew-orchestrator","hypercode-v24-healer-agent","hypercode-v24-hyper-architect",
              "hypercode-v24-hyper-observer","hypercode-v24-hyper-worker","hypercode-v24-hypercode-mcp-server",
@@ -259,14 +333,38 @@ foreach ($img in $images) { docker exec hyper-shield-scanner trivy image --scann
 
 ### Testing
 ```bash
-# All tests
 python -m pytest tests/ --tb=short -q
-
-# Unit tests only
 python -m pytest tests/unit/ -v --tb=short
+pytest backend/tests/test_stripe.py -v
+```
 
-# Integration tests
-python -m pytest tests/integration/ -q
+### Paths (copy-paste ready)
+```powershell
+cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4"
+cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4\backend"
+cd "H:\HyperAgent-SDK"
+cd "H:\the hyper vibe coding hub"
+```
+
+### CLI (from H:\HyperAgent-SDK)
+```powershell
+$env:HYPERCODE_API_URL = "http://localhost:8000"
+node cli/index.js status
+node cli/index.js agents list
+node cli/index.js logs --tail 20
+node cli/index.js tokens award <discord_id> <amount>
+node cli/index.js graduate <discord_id> --tokens 100
+```
+
+### Stripe Testing (Phase 10F)
+```bash
+# Test checkout
+curl -X POST http://localhost:8000/api/stripe/checkout \
+  -H "Content-Type: application/json" \
+  -d '{"price_id": "starter", "user_id": "broski_test"}'
+
+# Local webhook testing (Phase 10I)
+stripe listen --forward-to localhost:8000/api/stripe/webhook
 ```
 
 ---
@@ -277,9 +375,9 @@ python -m pytest tests/integration/ -q
 - **Formatter:** Ruff (`ruff.toml`)
 - **Linter:** Pylint (`.pylintrc`) + Ruff
 - **Type checker:** Pyright (`pyrightconfig.json`)
-- **Test runner:** pytest (`pytest.ini`)
+- **Test runner:** pytest
 - **Python version:** 3.11 in Docker images (3.13+ in devcontainer)
-- **Package manager:** pip with `requirements.lock` for deterministic builds
+- **Package manager:** pip with `requirements.lock`
 
 ### Async Patterns
 - All agent communication uses `async/await`
@@ -291,43 +389,9 @@ python -m pytest tests/integration/ -q
 - Agent classes: `PascalCaseAgent`
 - Agent endpoints: `/agents/{agent_name}/{action}`
 
-### Docker Compose Strategy
-
-**Multi-file strategy** — always combine base + secrets override.
-
-| Profile | Command | Services |
-|---------|---------|---------|
-| *(none)* | `docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d` | Core infra + observability + MCP server |
-| `agents` | add `--profile agents` | All specialist agents |
-| `hyper` | add `--profile hyper` | Hyper-architect, observer, worker, agent-x |
-| `health` | add `--profile health` | HyperHealth API + worker |
-| `mission` | add `--profile mission` | HyperMission API + UI |
-| `discord` | add `--profile discord` | Broski Discord bot |
-
----
-
-## 🔑 Key Dependencies
-
-### Python (from requirements files)
-- `fastapi` + `uvicorn` — async web framework
-- `pydantic` — data validation & settings
-- `redis` / `aioredis` — Redis async client
-- `sqlalchemy` / `asyncpg` — PostgreSQL async ORM
-- `openai` — OpenAI-compatible API client
-- `anthropic` — Claude API client
-- `mcp` — Model Context Protocol SDK
-- `pytest` + `fakeredis` — testing
-
-### Node.js (dashboard)
-- `next.js` — React framework for Mission Control
-- `vitest` — unit testing
-- TypeScript throughout
-
 ---
 
 ## 🚀 MCP Integration
-
-HyperCode exposes its own MCP server (`hypercode` in `.mcp.json`).
 
 Available MCP tools:
 - `mcp__hypercode__hypercode_system_health` — full system health check
@@ -337,17 +401,38 @@ Available MCP tools:
 
 ---
 
+## 🚨 Key Technical Rules (never re-debate these)
+
+- **Docker imports:** `from app.X import Y` — NEVER `from backend.app.X import Y`
+- **FastAPI routing:** First-match wins — public routes BEFORE auth-gated compat routes
+- **Alembic down_revision:** Must match EXACT revision string
+- **CLI folder:** All `hyper-agent` commands run from `H:\HyperAgent-SDK`
+- **Logs empty on fresh boot:** Normal — Redis `hypercode:logs` populates as agents run
+- **Port convention:** 3100-3199 writing, 3200-3299 code, 3300-3399 data, 3400-3499 discord, 3500-3599 automation
+- **Supabase ↔ V2.4 Postgres:** NEVER merge schemas
+- **`.env` files:** Never committed — use Docker secrets in production
+- **One bot:** broski-bot. Old Replit bot = dead.
+- **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars, URL-safe
+- **GitHub Actions:** Always `--no-cache --pull` in security scanning workflows
+- **jaraco.* packages:** Always pin explicitly
+- **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli` repo, NOT `docker.io`
+- **Stripe webhook:** `/api/stripe/webhook` is rate-limit exempt — do NOT add rate limiting
+- **Stripe dev mode:** Missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
+- **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
+- **Windows PowerShell first**, bash second
+- **`apps/web/`:** Archived, never migrate
+
+---
+
 ## ⚠️ Known Issues & Gotchas
 
-1. **Windows path handling** — Use `docker-compose.windows.yml` override on Windows
-2. **Secrets management** — Never commit `.env` files; secrets live in `./secrets/*.txt`
-3. **POSTGRES_PASSWORD** — Must be plain in `.env` (quoted if it contains special chars). Do NOT use `POSTGRES_PASSWORD_FILE` alongside it — postgres treats them as exclusive.
-4. **Agent boot order** — Redis and PostgreSQL must be healthy before agents start
-5. **Port conflicts** — Ensure ports 3000, 3001, 8000, 8008, 8080, 8081, 8088 are free
+1. **Windows path handling** — Use `docker-compose.windows.yml` on Windows
+2. **Secrets management** — Never commit `.env`; secrets in `./secrets/*.txt`
+3. **POSTGRES_PASSWORD** — Plain in `.env` (quoted if special chars). No `POSTGRES_PASSWORD_FILE` alongside.
+4. **Agent boot order** — Redis + PostgreSQL must be healthy before agents start
+5. **Port conflicts** — Ensure 3000, 3001, 8000, 8008, 8080, 8081, 8088 are free
 6. **Test environment** — `fakeredis` used in tests; import via `fakeredis.aioredis`
-7. **Docker imports** — ALWAYS `from app.X import Y` — NEVER `from backend.app.X import Y`
-8. **FastAPI routing** — First-match wins — public routes BEFORE auth-gated compat routes
-9. **Volumes wipe** — Use Alpine container trick (no sudo needed): `docker run --rm -v "/path":/target alpine sh -c "rm -rf /target/*"`
+7. **Volumes wipe** — Alpine trick: `docker run --rm -v "/path":/target alpine sh -c "rm -rf /target/*"`
 
 ---
 
@@ -355,16 +440,45 @@ Available MCP tools:
 
 - **BROski$ coins** — earned by completing tasks, agent milestones, commits
 - **XP levels** — track developer + system progression
-- **Achievements** — unlocked by specific actions in the hyper-mission-system
-- **Mission Control** — real-time dashboard showing all active quests
+- **Achievements** — unlocked by specific actions in hyper-mission-system
+- **Digital Shop:** Prompt Packs (200 BROski$), Templates (150 BROski$), Bonus Lessons (100 BROski$)
 - 🏆 Celebrate wins! Every patched CVE = BROski$ earned!
+
+### BROski$ Token Economy
+- `public.users.broski_tokens` — balance column
+- `token_transactions` — append-only ledger with idempotency guards
+- `award_tokens()` + `spend_tokens()` — SECURITY DEFINER, server-side only
+- `shop_items` + `shop_purchases` — JSONB metadata fields
+
+---
+
+## 🔑 Key Dependencies
+
+### Python
+- `fastapi` + `uvicorn`, `pydantic`, `redis`/`aioredis`, `sqlalchemy`/`asyncpg`
+- `openai`, `anthropic`, `mcp`, `pytest` + `fakeredis`
+
+### Node.js (dashboard)
+- `next.js`, `vitest`, TypeScript throughout
 
 ---
 
 ## 📚 Further Reading
 
 - [README.md](README.md) — Main project overview
-- [CLAUDE_CONTEXT.md](CLAUDE_CONTEXT.md) — Full history, rules, paths
 - [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution guidelines
 - [SECURITY.md](SECURITY.md) — Security policy
+- [.claude/](.claude/) — Claude AI config, skills & settings
 - [docs/claude-integration/](docs/claude-integration/) — Claude AI integration guide
+
+---
+
+<div align="center">
+
+**Built for ADHD brains. Fast feedback. Real tools. No fluff.** 🧠⚡
+
+*by @welshDog — Lyndz Williams, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿*
+
+**A BROski is ride or die. We build this together. 🐶♾️🔥**
+
+</div>
