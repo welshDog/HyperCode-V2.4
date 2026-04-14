@@ -2,7 +2,7 @@
 
 > This file is auto-read by Claude AI when analysing this repository.
 > It provides essential project context, conventions, and guidance.
-> **Last updated: April 14, 2026 — Pre-Agents Upgrade Phase**
+> **Last updated: April 14, 2026 — Phase 10C COMPLETE ✅**
 
 ---
 
@@ -18,7 +18,57 @@
 
 ---
 
-## 🚀 CURRENT PHASE: Agents Security Upgrade (April 2026)
+## ✅ CURRENT STATUS: FULLY OPERATIONAL (April 14, 2026)
+
+> 🟢 ALL 23 CONTAINERS HEALTHY — Stack is LIVE!
+
+### Phase 10C — Docker Secrets — COMPLETE ✅
+
+All infrastructure is running. Full stack confirmed healthy on April 14, 2026.
+
+| Container | Status |
+|---|---|
+| postgres | ✅ Healthy |
+| redis | ✅ Healthy |
+| hypercode-core | ✅ Healthy |
+| celery-worker | ✅ Healthy |
+| prometheus | ✅ Healthy |
+| grafana | ✅ Running |
+| hypercode-ollama | ✅ Healthy |
+| healer-agent | ✅ Running |
+| hypercode-dashboard | ✅ Running |
+| hypercode-mcp-server | ✅ Running |
+| minio, chroma, loki, tempo, promtail | ✅ All Running |
+| cadvisor, node-exporter, alertmanager | ✅ All Running |
+| docker-socket-proxy | ✅ Running |
+
+### What Fixed The Stack (For Claude's Reference)
+
+1. **`POSTGRES_PASSWORD_FILE` + `POSTGRES_PASSWORD` conflict** — Removed `_FILE` override from postgres in `docker-compose.secrets.yml`. Postgres uses plain env var from `.env` only.
+2. **`.env` broken line** — `POSTGRES_PASSWORD` was concatenated onto `MISSION_CONTROL_URL` with no newline. Fixed manually in nano.
+3. **Special chars in password** — Password contains `/`, `+`, `=` — must be quoted in `.env`: `POSTGRES_PASSWORD="..."`
+4. **Stale postgres data volume** — Wiped using Alpine container (no sudo): `docker run --rm -v "/path/to/volumes/postgres":/target alpine sh -c "rm -rf /target/*"`
+5. **`POSTGRES_USER` missing** — Added `POSTGRES_USER=postgres` to `.env`
+
+### Core API Confirmed Working
+```json
+{"status":"ok","service":"hypercode-core","version":"2.0.0","environment":"development"}
+```
+
+### Start Command (Always Use This)
+```bash
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+```
+
+### Volumes Location
+```
+H:/HyperStation zone/HyperCode/volumes/
+```
+In WSL: `/mnt/h/HyperStation zone/HyperCode/volumes/`
+
+---
+
+## 🚀 NEXT PHASE: Agents Security Upgrade
 
 > ⚠️ READ THIS BEFORE TOUCHING ANY DOCKERFILE OR AGENT FILE!
 
@@ -115,11 +165,10 @@ USER appuser
 | Grafana Observability | 3001 | Metrics, alerts, dashboards |
 
 ### Infrastructure Stack
-- **Containers:** Docker Compose (multi-file strategy) — 26 containers total
+- **Containers:** Docker Compose (multi-file strategy) — 23 containers active
 - **Databases:** Redis (pub/sub + cache) + PostgreSQL (persistent memory)
 - **Observability:** Prometheus + Grafana + custom health reports
-- **Reverse Proxy:** Nginx
-- **CI/CD:** GitHub Actions (`.github/`), Husky pre-commit hooks
+- **Secrets:** `docker-compose.secrets.yml` + `./secrets/*.txt` files
 - **MCP Gateway:** Full Model Context Protocol server integration
 - **Kubernetes:** Helm charts in `k8s/` and `helm/` (scale path)
 - **Security:** Trivy scanner (`hyper-shield-scanner`) — scans all 12 agent images
@@ -182,20 +231,17 @@ When working in this repo, treat these as the "always read first" entrypoints:
 
 ### Quick Start
 ```bash
-# Core stack (infra + observability + MCP)
-docker compose up -d
+# Core stack — ALWAYS use secrets override
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
 # Core + all agents
-docker compose --profile agents up -d
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents up -d
 
-# Core + hyper agents (architect, observer, worker, agent-x)
-docker compose --profile hyper up -d
+# Core + hyper agents
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile hyper up -d
 
 # Full stack (everything)
-docker compose --profile agents --profile hyper --profile health --profile mission up -d
-
-# Windows path overrides
-docker compose -f docker-compose.yml -f docker-compose.windows.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents --profile hyper --profile health --profile mission up -d
 ```
 
 ### Security Scanning
@@ -223,14 +269,6 @@ python -m pytest tests/unit/ -v --tb=short
 python -m pytest tests/integration/ -q
 ```
 
-### Make Targets
-```bash
-make help              # List all make targets
-make dev               # Start dev environment
-make test              # Run test suite
-make observability     # Start Grafana/Prometheus stack
-```
-
 ---
 
 ## 🧠 Code Conventions
@@ -255,17 +293,16 @@ make observability     # Start Grafana/Prometheus stack
 
 ### Docker Compose Strategy
 
-**Single-file with profiles** — `docker-compose.yml` is the canonical stack.
+**Multi-file strategy** — always combine base + secrets override.
 
 | Profile | Command | Services |
 |---------|---------|---------|
-| *(none)* | `docker compose up -d` | Core infra + observability + MCP server |
-| `agents` | `docker compose --profile agents up -d` | All specialist agents |
-| `hyper` | `docker compose --profile hyper up -d` | Hyper-architect, observer, worker, agent-x |
-| `health` | `docker compose --profile health up -d` | HyperHealth API + worker |
-| `mission` | `docker compose --profile mission up -d` | HyperMission API + UI |
-| `discord` | `docker compose --profile discord up -d` | Broski Discord bot |
-| `nim` | `docker compose --profile nim up -d` | NVIDIA NIM LLM service |
+| *(none)* | `docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d` | Core infra + observability + MCP server |
+| `agents` | add `--profile agents` | All specialist agents |
+| `hyper` | add `--profile hyper` | Hyper-architect, observer, worker, agent-x |
+| `health` | add `--profile health` | HyperHealth API + worker |
+| `mission` | add `--profile mission` | HyperMission API + UI |
+| `discord` | add `--profile discord` | Broski Discord bot |
 
 ---
 
@@ -303,12 +340,14 @@ Available MCP tools:
 ## ⚠️ Known Issues & Gotchas
 
 1. **Windows path handling** — Use `docker-compose.windows.yml` override on Windows
-2. **Secrets management** — Never commit `.env` files; use `docker-compose.secrets.yml` + Docker secrets in production
-3. **Agent boot order** — Redis and PostgreSQL must be healthy before agents start
-4. **Port conflicts** — Ensure ports 3000, 3001, 8000, 8008, 8080, 8081, 8088 are free before starting
-5. **Test environment** — `fakeredis` used in tests; import via `fakeredis.aioredis`
-6. **Docker imports** — ALWAYS `from app.X import Y` — NEVER `from backend.app.X import Y`
-7. **FastAPI routing** — First-match wins — public routes BEFORE auth-gated compat routes
+2. **Secrets management** — Never commit `.env` files; secrets live in `./secrets/*.txt`
+3. **POSTGRES_PASSWORD** — Must be plain in `.env` (quoted if it contains special chars). Do NOT use `POSTGRES_PASSWORD_FILE` alongside it — postgres treats them as exclusive.
+4. **Agent boot order** — Redis and PostgreSQL must be healthy before agents start
+5. **Port conflicts** — Ensure ports 3000, 3001, 8000, 8008, 8080, 8081, 8088 are free
+6. **Test environment** — `fakeredis` used in tests; import via `fakeredis.aioredis`
+7. **Docker imports** — ALWAYS `from app.X import Y` — NEVER `from backend.app.X import Y`
+8. **FastAPI routing** — First-match wins — public routes BEFORE auth-gated compat routes
+9. **Volumes wipe** — Use Alpine container trick (no sudo needed): `docker run --rm -v "/path":/target alpine sh -c "rm -rf /target/*"`
 
 ---
 
