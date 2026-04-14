@@ -156,7 +156,10 @@ async def _award_tokens(db, user_id: str, amount: int, session_id: str) -> bool:
 async def handle_webhook_event(event: stripe.Event) -> dict:
     """Process Stripe webhook events with full DB writes (Phase 10G)."""
     event_type = event["type"]
-    data = event["data"]["object"]
+    raw = event["data"]["object"]
+    # StripeObject.__getattr__ shadows Mapping.get() in newer stripe SDKs.
+    # .to_dict() converts the object (and nested StripeObjects) to plain dicts.
+    data: dict = raw.to_dict() if hasattr(raw, "to_dict") else {}
     logger.info(f"📨 Stripe webhook: {event_type}")
 
     # ── checkout.session.completed ────────────────────────────────

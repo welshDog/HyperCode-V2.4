@@ -118,6 +118,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not self._config.enabled:
             return await call_next(request)
 
+        # Phase 10D — internal agents present X-Agent-Key and are governed by
+        # per-agent Redis rate limits instead of the global IP-based limit.
+        if request.headers.get("x-agent-key"):
+            return await call_next(request)
+
         path = _normalize_path(request.url.path)
         for prefix in self._exempt_paths:
             if path.startswith(prefix):

@@ -30,6 +30,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/mcp',     label: 'MCP' },
   { href: '/docker-zone', label: 'Docker Zone' },
   { href: '/health',  label: 'Health' },
+  { href: '/pricing', label: '💳 Pricing' },
 ]
 
 const INITIAL_LAST_SEEN_TIMESTAMP = Date.now()
