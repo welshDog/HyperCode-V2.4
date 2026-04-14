@@ -4,18 +4,19 @@
 # ========================================
 # Stage 1: Builder
 # ========================================
-FROM python:3.11.8-slim AS builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
+# OS package hardening in builder stage
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+        gcc \
+        g++ \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Python dependencies (leverage cache)
 COPY requirements.txt .
@@ -25,17 +26,29 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # ========================================
 # Stage 2: Runtime
 # ========================================
-FROM python:3.11.8-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (curl for healthcheck)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    apt-get update && \
+# OS package hardening — upgrade all + force-install patched packages
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+        ca-certificates \
+        curl \
+        libexpat1 \
+        openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Pip tool hardening — pin safe versions
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -46,8 +59,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install wheels from builder
 COPY --from=builder /wheels /wheels
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir /wheels/* && \
+RUN pip install --no-cache-dir /wheels/* && \
     rm -rf /wheels
 
 # Copy application code (after deps for better caching)

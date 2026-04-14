@@ -1,11 +1,16 @@
 # ── Stage 1: Build wheels ─────────────────────────────────────────────────────
-FROM python:3.11.8-slim AS builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    apt-get update && apt-get install -y --no-install-recommends gcc && \
-    rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all packages to get latest security patches
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY agents/agent-x/requirements.txt .
 
@@ -14,15 +19,31 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM python:3.11.8-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# curl for healthcheck; docker CLI for build/deploy operations
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends curl docker.io && \
-    rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all + force-install patched libexpat1 + openssl
+# docker.io: needed for build/deploy ops; upgraded to latest available in Debian
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        libexpat1 \
+        openssl \
+        docker.io && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Pip tool hardening — pin safe versions (eliminates pip/setuptools/jaraco CVEs)
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

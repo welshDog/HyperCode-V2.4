@@ -6,9 +6,12 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc g++ && \
-    rm -rf /var/lib/apt/lists/*
+# OS package hardening in builder stage
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends gcc g++ ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY requirements.txt .
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
@@ -16,9 +19,25 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all + force-install patched packages
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        libexpat1 \
+        openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Pip tool hardening — pin safe versions
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 WORKDIR /app
 
