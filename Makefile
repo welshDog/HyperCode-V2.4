@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install
 
 # Default target
 help:
@@ -26,6 +26,12 @@ help:
 	@echo "  make scan-licenses     - License compliance audit"
 	@echo "  make scan-report       - Regenerate HTML dashboard"
 	@echo "  make pre-commit-install - Install pre-commit hooks (once)"
+	@echo ""
+	@echo "Trivy Image Scanning (Phase 8):"
+	@echo "  make scan-agent AGENT=healer  - Scan one live agent image"
+	@echo "  make scan-all                 - Scan entire fleet"
+	@echo "  make scan-build AGENT=healer  - Build + scan from Dockerfile"
+	@echo "  make trivy-hook-install       - Install pre-push CVE hook"
 	@echo ""
 	@echo "Individual agent commands:"
 	@echo "  make logs-frontend    - View frontend specialist logs"
@@ -200,6 +206,62 @@ pre-commit-install: ## Install pre-commit hooks (run once per dev machine)
 	pre-commit install
 	pre-commit install --hook-type commit-msg
 	@echo "Pre-commit hooks installed."
+
+# ── Trivy Image Security Scanning (Phase 8) ───────────────────────────────
+# Requires: hyper-shield-scanner container running  OR  trivy installed locally
+
+TRIVY_AGENTS := agent-x healer coder crew-orchestrator broski-bot \
+  01-frontend-specialist 02-backend-specialist 03-database-architect \
+  04-qa-engineer 05-devops-engineer 06-security-engineer \
+  07-system-architect 08-project-strategist 09-tips-tricks-writer \
+  throttle-agent coderabbit-webhook
+
+# Scan a single agent image (running container via hyper-shield-scanner)
+# Usage: make scan-agent AGENT=healer
+scan-agent: ## Scan one agent image: make scan-agent AGENT=<name>
+	@echo "🔍 Scanning hypercode-v24-$(AGENT)..."
+	docker exec hyper-shield-scanner trivy image \
+		--scanners vuln \
+		--severity HIGH,CRITICAL \
+		--quiet \
+		hypercode-v24-$(AGENT)
+
+# Scan all live agent images via hyper-shield-scanner
+scan-all: ## Scan every agent image (uses running hyper-shield-scanner)
+	@echo "🔒 HyperCode fleet scan — $(shell date -u)"
+	@FAILED=0; \
+	for agent in $(TRIVY_AGENTS); do \
+	  echo "🔍 Scanning $$agent..."; \
+	  docker exec hyper-shield-scanner trivy image \
+	    --scanners vuln \
+	    --severity HIGH,CRITICAL \
+	    --format table \
+	    --quiet \
+	    hypercode-v24-$$agent || FAILED=1; \
+	done; \
+	if [ $$FAILED -eq 1 ]; then \
+	  echo "🔴 Some images have CRITICAL/HIGH CVEs — see output above."; \
+	  exit 1; \
+	fi; \
+	echo "✅ All images passed!"
+
+# Build + scan a single agent from source (no running container needed)
+# Usage: make scan-build AGENT=healer
+scan-build: ## Build + scan from Dockerfile: make scan-build AGENT=<name>
+	@echo "🔨 Building + scanning $(AGENT) from source..."
+	docker build -f agents/$(AGENT)/Dockerfile -t hypercode-scan-$(AGENT):local . 2>&1 | tail -5
+	trivy image \
+		--scanners vuln \
+		--severity HIGH,CRITICAL \
+		--format table \
+		hypercode-scan-$(AGENT):local
+	@docker rmi hypercode-scan-$(AGENT):local 2>/dev/null || true
+
+# Install the Trivy pre-push git hook
+trivy-hook-install: ## Install Trivy pre-push hook for local CVE blocking
+	cp scripts/trivy-pre-push.sh .git/hooks/pre-push
+	chmod +x .git/hooks/pre-push
+	@echo "✅ Trivy pre-push hook installed."
 
 # Production mode
 prod:

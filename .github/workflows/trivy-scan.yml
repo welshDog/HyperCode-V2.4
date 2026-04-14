@@ -1,0 +1,151 @@
+name: 🔒 Trivy Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'agents/**/Dockerfile'
+      - 'backend/Dockerfile'
+      - 'docker-compose.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'agents/**/Dockerfile'
+      - 'backend/Dockerfile'
+
+# Cancel in-progress runs on the same branch/PR
+concurrency:
+  group: trivy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy-scan:
+    name: Scan — ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # needed for SARIF upload to GitHub Security tab
+
+    strategy:
+      fail-fast: false  # scan every agent even if one fails
+      matrix:
+        include:
+          # ── Docker-privileged agents (need root context) ──────────────────
+          - agent: agent-x
+            dockerfile: agents/agent-x/Dockerfile
+            context: .
+          - agent: healer
+            dockerfile: agents/healer/Dockerfile
+            context: .
+          - agent: hyper-architect
+            dockerfile: agents/hyper-agents/architect/Dockerfile
+            context: .
+          - agent: hyper-observer
+            dockerfile: agents/hyper-agents/observer/Dockerfile
+            context: .
+          - agent: hyper-worker
+            dockerfile: agents/hyper-agents/worker/Dockerfile
+            context: .
+          - agent: 05-devops-engineer
+            dockerfile: agents/05-devops-engineer/Dockerfile
+            context: .
+
+          # ── Standard agents (local build context) ─────────────────────────
+          - agent: coder
+            dockerfile: agents/coder/Dockerfile
+            context: agents/coder
+          - agent: crew-orchestrator
+            dockerfile: agents/crew-orchestrator/Dockerfile
+            context: agents/crew-orchestrator
+          - agent: broski-bot
+            dockerfile: agents/broski-bot/Dockerfile
+            context: agents/broski-bot
+          - agent: throttle-agent
+            dockerfile: agents/throttle-agent/Dockerfile
+            context: agents/throttle-agent
+          - agent: coderabbit-webhook
+            dockerfile: agents/coderabbit-webhook/Dockerfile
+            context: agents/coderabbit-webhook
+          - agent: 01-frontend-specialist
+            dockerfile: agents/01-frontend-specialist/Dockerfile
+            context: agents/01-frontend-specialist
+          - agent: 02-backend-specialist
+            dockerfile: agents/02-backend-specialist/Dockerfile
+            context: agents/02-backend-specialist
+          - agent: 03-database-architect
+            dockerfile: agents/03-database-architect/Dockerfile
+            context: agents/03-database-architect
+          - agent: 04-qa-engineer
+            dockerfile: agents/04-qa-engineer/Dockerfile
+            context: agents/04-qa-engineer
+          - agent: 06-security-engineer
+            dockerfile: agents/06-security-engineer/Dockerfile
+            context: agents/06-security-engineer
+          - agent: 07-system-architect
+            dockerfile: agents/07-system-architect/Dockerfile
+            context: agents/07-system-architect
+          - agent: 08-project-strategist
+            dockerfile: agents/08-project-strategist/Dockerfile
+            context: agents/08-project-strategist
+          - agent: 09-tips-tricks-writer
+            dockerfile: agents/09-tips-tricks-writer/Dockerfile
+            context: agents/09-tips-tricks-writer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: |
+          docker build \
+            -f ${{ matrix.dockerfile }} \
+            -t hypercode-scan-${{ matrix.agent }}:ci \
+            ${{ matrix.context }}
+
+      # ── Primary gate: fail the job on ANY CRITICAL CVE ────────────────────
+      - name: Trivy scan — CRITICAL gate (blocks merge)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: hypercode-scan-${{ matrix.agent }}:ci
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          scanners: vuln
+          ignore-unfixed: false
+
+      # ── SARIF upload — GitHub Security tab (always runs, even on failure) ──
+      - name: Trivy scan — SARIF report
+        uses: aquasecurity/trivy-action@0.28.0
+        if: always()
+        with:
+          image-ref: hypercode-scan-${{ matrix.agent }}:ci
+          format: sarif
+          output: trivy-${{ matrix.agent }}.sarif
+          scanners: vuln
+          severity: HIGH,CRITICAL
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true  # graceful if Advanced Security not enabled
+        with:
+          sarif_file: trivy-${{ matrix.agent }}.sarif
+          category: trivy-${{ matrix.agent }}
+
+      # ── Summary comment for PR ─────────────────────────────────────────────
+      - name: Summarise results
+        if: always()
+        run: |
+          echo "## 🔒 Trivy — ${{ matrix.agent }}" >> $GITHUB_STEP_SUMMARY
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --format table \
+            --quiet \
+            hypercode-scan-${{ matrix.agent }}:ci \
+            >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "⚠️ Summary generation skipped" >> $GITHUB_STEP_SUMMARY
