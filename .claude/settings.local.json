@@ -149,7 +149,10 @@
       "Bash(awk 'NR>1 {printf \"%d\\\\n\", strtonum\\(\"0x\" substr\\($2,index\\($2,\":\"\\)+1\\)\\)}')",
       "Bash(node:*)",
       "Bash(python3:*)",
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "Bash(stripe --version)",
+      "Bash(stripe listen:*)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   },
   "enableAllProjectMcpServers": true,

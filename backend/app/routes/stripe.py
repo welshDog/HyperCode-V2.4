@@ -34,13 +34,15 @@ async def checkout(body: CheckoutRequest):
     Returns a redirect URL for the user to complete payment.
     """
     # Resolve friendly name to Stripe price ID
-    price_id = PRICE_MAP.get(body.price_id, body.price_id)
+    price_key = body.price_id                          # friendly key e.g. "starter"
+    price_id  = PRICE_MAP.get(price_key, price_key)   # raw Stripe price_xxx ID
     if not price_id:
         raise HTTPException(status_code=400, detail=f"Unknown price_id: {body.price_id}")
 
     try:
         session = create_checkout_session(
             price_id=price_id,
+            price_key=price_key,
             user_id=body.user_id,
             success_url=body.success_url,
             cancel_url=body.cancel_url,

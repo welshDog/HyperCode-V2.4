@@ -55,24 +55,38 @@ TOKEN_GRANT: dict[str, int] = {
     "hyper_yearly":  0,
 }
 
+# ── Checkout mode map: price key → Stripe checkout mode ──────────
+# Token packs = one-time "payment"; course plans = "subscription"
+CHECKOUT_MODE: dict[str, str] = {
+    "starter":       "payment",
+    "builder":       "payment",
+    "hyper":         "payment",
+    "pro_monthly":   "subscription",
+    "pro_yearly":    "subscription",
+    "hyper_monthly": "subscription",
+    "hyper_yearly":  "subscription",
+}
+
 
 def create_checkout_session(
     price_id: str,
+    price_key: str = "",
     user_id: Optional[str] = None,
     success_url: str = "http://localhost:3000/success",
     cancel_url: str = "http://localhost:3000/cancel",
 ) -> stripe.checkout.Session:
     """Creates a Stripe Checkout Session. Returns session — use .url to redirect."""
-    metadata = {"user_id": user_id} if user_id else {}
+    mode = CHECKOUT_MODE.get(price_key, "payment")
+    metadata = {"user_id": user_id, "price_key": price_key} if user_id else {"price_key": price_key}
     session = stripe.checkout.Session.create(
         payment_method_types=["card"],
         line_items=[{"price": price_id, "quantity": 1}],
-        mode="subscription",
+        mode=mode,
         success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
         cancel_url=cancel_url,
         metadata=metadata,
     )
-    logger.info(f"✅ Checkout session created: {session.id} for price {price_id}")
+    logger.info(f"✅ Checkout session created: {session.id} | price_key={price_key} | mode={mode}")
     return session
 
 
