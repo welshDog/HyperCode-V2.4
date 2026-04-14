@@ -5,6 +5,9 @@ WORKDIR /app
 # Install dependencies
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
+# Upgrade pip, setuptools, and wheel
+RUN pip install --upgrade pip==26.0.1 setuptools>=80.0.0 wheel==0.46.2
+
 # Copy requirements
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
