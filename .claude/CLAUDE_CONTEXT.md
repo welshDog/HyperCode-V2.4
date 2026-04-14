@@ -1,7 +1,7 @@
 # 🧠⚡ HYPER SUPER CLAUDE DEV — HyperCode V2.4 Boot File
 > You are Claude. You just loaded into the most sophisticated solo-dev AI-native OS ever built.
 > Read every word. Then execute with precision. BROski♾ mode: ON.
-> **Last updated: April 14, 2026 — Phases 0–9 ALL COMPLETE ✅ + Known Bugs logged**
+> **Last updated: April 14, 2026 — Phases 0–9 + 10A ALL COMPLETE ✅**
 
 ---
 
@@ -36,7 +36,7 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 
 ---
 
-## 🏆 Roadmap — Phases 0–9 ALL COMPLETE!
+## 🏆 Roadmap — Phases 0–9 + 10A ALL COMPLETE!
 
 | Phase | Name | Status | Date |
 |---|---|---|---|
@@ -50,15 +50,32 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 | 7 | Dockerfile Security Hardening | ✅ DONE | Apr 14, 2026 |
 | 8 | CI/CD Trivy Security Pipeline | ✅ DONE | Apr 14, 2026 |
 | 9 | CVE Elimination (apt + pip pinning) | ✅ DONE | Apr 14, 2026 |
+| 10A | FastAPI/starlette CVE — already on 0.135.3/0.47.2 | ✅ ALREADY DONE | Apr 14, 2026 |
 
 ---
 
-## 🚀 NEXT UP — Phase 10 Candidates
+## 🚀 NEXT MISSION — Phase 10B: Docker Network Isolation
+
+> **Goal:** Lock every agent to internal Docker networks. No container should be able to reach another unless explicitly allowed. Zero unnecessary exposure.
+
+### What Phase 10B involves:
+- Create named internal networks in `docker-compose.yml` (e.g. `agent-net`, `data-net`, `gateway-net`)
+- Move each agent/service to only the networks it actually needs
+- Remove default bridge network from sensitive containers (DB, Redis)
+- Verify: agents that don't need internet get `internal: true` networks
+- Update `CLAUDE_CONTEXT.md` with network map when done
+
+### Why it matters:
+- If one container is compromised, blast radius = **that container only**
+- DB + Redis unreachable from internet-exposed agents = huge win
+- Complements Phase 9 CVE hardening perfectly
+
+### Time estimate: ~1 hour
+
+### Other Phase 10 options (after B):
 
 | Option | What | Time | Priority |
 |--------|------|------|----------|
-| **A ⚡** | FastAPI `0.116.1 → 0.117+` — kills starlette HIGH CVE | ~30 min | 🔥 DO FIRST |
-| **B 🔒** | Docker Compose network isolation — lock agents to internal nets | ~1 hr | High |
 | **C 🗝️** | Secrets management (Docker secrets / Vault) | ~2 hrs | Medium |
 | **D 🛡️** | Per-agent API key auth | ~2-3 hrs | Medium |
 
@@ -69,7 +86,6 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 | Bug | File | Line | Fix |
 |-----|------|------|-----|
 | WS message type wrong | `CognitiveUplink.tsx` | ~130 | `"command"` → `"execute"` |
-| starlette HIGH CVE | `requirements.txt` (all agents) | — | `fastapi>=0.117` — Phase 10A |
 
 ---
 
@@ -83,7 +99,7 @@ Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation
 ### 14 Remaining HIGHs — Cannot Fix Yet
 - `docker.io/runc` — moby Debian packaging lags behind official Docker
 - `libexpat1`, `libncursesw6`, `libnghttp2`, `libsystemd0` — no Debian patch yet
-- `starlette` HIGH — **fixable**: `fastapi>=0.117` → Phase 10 Option A
+- `starlette` — **RESOLVED** ✅ `backend/requirements.txt` already has `fastapi==0.135.3` + `starlette==0.47.2`. Was a Trivy cache artefact.
 
 ### Phase 9 Pattern — Applied Across ALL 20 Dockerfiles (19 agents + broski-discord-bot-skill)
 
@@ -152,11 +168,11 @@ Located in `.claude/skills/` — Claude loads these for specialist knowledge:
 - **One bot:** broski-bot. Old Replit bot = dead.
 - **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)`
 - **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 standard (ALL 20 Dockerfiles)
-- **Trivy target:** 0 CRITICAL ✅. 14 HIGH remaining = no Debian fix available
+- **Trivy target:** 0 CRITICAL ✅. 13 HIGH remaining (starlette = resolved, 13 are Debian-unfixable)
 - **GitHub Actions builds:** Always `--no-cache --pull` in security workflows
 - **jaraco.* packages:** Always pin explicitly — Trivy HIGH via setuptools transitive
 - **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli`, NOT `docker.io`
-- **starlette HIGH:** Fix = `fastapi>=0.117` — Phase 10 Option A
+- **starlette:** RESOLVED ✅ — `fastapi==0.135.3` + `starlette==0.47.2` already in `backend/requirements.txt`
 - **V2.0 references in skills:** Apply to V2.4 — same ports, same agent names
 - **npm package:** `@w3lshdog/hyper-agent@0.1.4` — errorMessage bug FIXED, all 6 CLI commands LIVE
 - **CognitiveUplink.tsx ~130:** WS message type = `"execute"` NOT `"command"` — open bug!
@@ -208,12 +224,13 @@ node cli/index.js graduate <discord_id> --tokens 100
 
 ---
 
-## 🛡️ Security Posture (Post Phase 9)
+## 🛡️ Security Posture (Post Phase 10A)
 
 | Layer | Status |
 |-------|--------|
 | CRITICAL CVEs | 0 ✅ |
-| HIGH CVEs | 14 (Debian-unfixable) |
+| HIGH CVEs | 13 (all Debian-unfixable now) |
+| starlette CVE | RESOLVED ✅ (fastapi 0.135.3) |
 | Non-root users | All 20 Dockerfiles ✅ |
 | Multi-stage builds | All agents ✅ |
 | pip pinned | All agents ✅ |
@@ -221,6 +238,7 @@ node cli/index.js graduate <discord_id> --tokens 100
 | Weekly fleet scan | Monday 06:00 UTC ✅ |
 | Pre-push hook | Local blocking ✅ |
 | docker-ce-cli swap | healer/coder/devops ✅ |
+| Network isolation | ⏳ Phase 10B — NEXT |
 
 ---
 
@@ -243,8 +261,8 @@ npm publish --access public --tag alpha
 
 When you boot a new Claude session, ask Bro:
 1. **Which repo are we in?** (V2.4 / SDK / Course)
-2. **What phase or feature?** (check Phase 10 options above)
-3. **Any new Trivy scan results?** (compare vs 14 HIGH baseline)
+2. **What phase or feature?** (Phase 10B = network isolation — see above)
+3. **Any new Trivy scan results?** (compare vs 13 HIGH baseline — all Debian-unfixable)
 4. **PowerShell or WSL2 today?**
 
 Then: short sentences, emojis, bold keys, quick wins first. Let's GO! 🔥
