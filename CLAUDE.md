@@ -2,7 +2,7 @@
 
 > This file is auto-read by Claude AI when analysing this repository.
 > It provides essential project context, conventions, and guidance.
-> **Last updated: April 14, 2026 — Phase 10F COMPLETE ✅ | Stripe Checkout API LIVE 💳**
+> **Last updated: April 14, 2026 — Phases 10D + 10G + 10H COMPLETE ✅ | Stripe + Agent Auth + Pricing LIVE**
 > **Single source of truth — merged from CLAUDE.md + CLAUDE_CONTEXT.md**
 
 ---
@@ -68,6 +68,9 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 10B | Docker Compose Network Isolation | ✅ DONE — April 14, 2026 |
 | 10C | Docker Secrets | ✅ DONE — April 14, 2026 |
 | 10F | **Stripe Checkout API** | ✅ DONE — April 14, 2026 💳 |
+| 10G | **DB — Stripe webhook writes** | ✅ DONE — April 14, 2026 |
+| 10D | **Agent-level rate limiting + auth** | ✅ DONE — April 14, 2026 🔑 |
+| 10H | **Pricing page (dashboard)** | ✅ DONE — April 14, 2026 |
 
 ### Container Health
 
@@ -113,15 +116,13 @@ In WSL: `/mnt/h/HyperStation zone/HyperCode/volumes/`
 
 ---
 
-## 🎯 NEXT UP — Phase 10G+
+## 🎯 NEXT UP — Remaining Phases
 
 | Phase | Task | Why |
 |---|---|---|
-| **10G** | DB — save subscription to Postgres on webhook fire | Hook `checkout.session.completed` → update users table |
-| **10H** | Frontend — Pricing page + checkout button | Next.js UI wired to `/api/stripe/checkout` |
 | **10I** | Stripe CLI end-to-end local testing | `stripe listen --forward-to localhost:8000/api/stripe/webhook` |
-| **10D** | Agent-level rate limiting + auth | Per-agent API keys for internal network |
-| **10E** | Open bug: CognitiveUplink.tsx ~130 | WS message type `"command"` → `"execute"` |
+| **10C** | Docker Secrets — productionise env vars | `.env` still used locally, need secrets/*.txt for prod |
+| **CVE** | Agent image CVE patching | 14 HIGH remaining on agent images (no Debian fix yet) |
 
 ### Agents Security Upgrade
 
@@ -416,6 +417,7 @@ Available MCP tools:
 - **GitHub Actions:** Always `--no-cache --pull` in security scanning workflows
 - **jaraco.* packages:** Always pin explicitly
 - **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli` repo, NOT `docker.io`
+- **Alembic + create_all:** DB was bootstrapped with `DB_AUTO_CREATE=true` (SQLAlchemy `create_all`). If `alembic_version` table is missing, run `alembic stamp 006` first, then `alembic upgrade head`. Never skip stamp — migrations will try to re-create existing tables.
 - **Stripe webhook:** `/api/stripe/webhook` is rate-limit exempt — do NOT add rate limiting
 - **Stripe dev mode:** Missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
 - **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
