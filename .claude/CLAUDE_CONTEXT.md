@@ -1,157 +1,239 @@
-# 🤖 HyperAgent-SDK — Claude Context Handoff
-> Read this first if you're a new Claude session picking up this project.
+# 🧠⚡ HYPER SUPER CLAUDE DEV — HyperCode V2.4 Boot File
+> You are Claude. You just loaded into the most sophisticated solo-dev AI-native OS ever built.
+> Read every word. Then execute with precision. BROski♾ mode: ON.
+> **Last updated: April 14, 2026 — Phases 0–9 ALL COMPLETE ✅**
 
 ---
 
-## Who You're Talking To
-- **Lyndz** (GitHub: @welshDog, npm: @w3lshdog) — indie dev, South Wales
-- Autistic + dyslexic + ADHD — be direct, chunked, no waffle
-- Windows primary (PowerShell), also runs Linux + Raspberry Pi + Docker
-- Building the **Hyperfocus Zone** — a suite of interconnected open-source tools
+## 🧬 Who You're Working With
+
+- **Lyndz** aka BROski♾ (GitHub: @welshDog, npm: @w3lshdog) — South Wales, UK
+- **Neurodivergent:** Autistic + ADHD + Dyslexia — be chunked, direct, no waffle
+- **Call them:** "Bro" — always
+- **Primary:** Windows + PowerShell. Secondary: WSL2, Raspberry Pi, Docker
+- **Style:** Short sentences. Emojis. Bold keys. Celebrate wins. Quick wins first.
+- **Vision:** Building the **Hyperfocus Zone** — an AI-native OS for neurodivergent devs
 
 ---
 
-## The Ecosystem (3 repos, 1 mission)
+## 🗺️ The Ecosystem (3 Repos, 1 Mission)
 
 ```
-Hyper-Vibe-Coding-Course  ──── manifest.json ────▶  HyperCode V2.4
-   (Supabase/Vercel)          (hyper-agent-spec)     (Docker, 26 containers)
-         |                           |
-         └──────── HyperAgent-SDK ───┘
-                  (the passport layer)
-                  npm: @w3lshdog/hyper-agent
+Hyper-Vibe-Coding-Course     ──── manifest.json ────▶   HyperCode V2.4
+github.com/welshDog/               (hyper-agent-spec)    github.com/welshDog/
+Hyper-Vibe-Coding-Course                                 HyperCode-V2.4
+(Supabase + Vercel)                      │               (Docker, 26 containers)
+Path: H:\the hyper vibe coding hub       │               Path: H:\HyperStation zone\
+                                         │                    HyperCode\HyperCode-V2.4
+                                HyperAgent-SDK
+                            github.com/welshDog/HyperAgent-SDK
+                            npm: @w3lshdog/hyper-agent@0.1.4 ✅
+                            Path: H:\HyperAgent-SDK
 ```
 
-- **Hyper-Vibe-Coding-Course** — gamified dev school (XP, BROski$ tokens, shop, 22 Supabase migrations, all green)
-- **HyperCode-V2.4** — production platform (FastAPI, Docker, Grafana, MCP gateway ports 3100–3999)
-- **HyperAgent-SDK** — the glue. Shared agent spec + CLI validator + templates. **This is what you're working on.**
+### V2.0 vs V2.4 — The One-Line Clarification
+> **V2.4 IS the live system.** V2.0 was the origin. Skills in `.claude/skills/` were written for V2.0 but apply to V2.4 — ports, paths and agent names are the same. Always work in V2.4.
 
 ---
 
-## HyperAgent-SDK — Current State
+## 🏆 Roadmap — Phases 0–9 ALL COMPLETE!
 
-**Repo:** https://github.com/welshDog/HyperAgent-SDK  
-**npm:** @w3lshdog/hyper-agent@0.1.0-alpha.1 (PUBLISHED ✅)  
-**Commits:** ~6 on main
-
-### File structure (what's there):
-```
-HyperAgent-SDK/
-├── cli/validate.js          ✅ Real AJV validator, coloured output, exit codes
-├── templates/
-│   ├── python-starter/      ✅ manifest.json + main.py + requirements.txt
-│   └── node-starter/        ✅ manifest.json + index.js + package.json
-├── docs/
-│   ├── MASTER_PLAN.md       ✅ 6-phase ecosystem integration roadmap
-│   └── BROSKU_TOKEN_STRATEGY.md ✅ Token economy deep-dive
-├── README.md                ✅ Updated — pre-release warning, real tool examples
-├── hyper-agent-spec.json    ✅ JSON Schema with if/then port enforcement
-├── package.json             ✅ @w3lshdog/hyper-agent, 0.1.0-alpha.1, bin entry
-├── CONTRIBUTING.md          ✅ ADHD-friendly, 3-step flow
-├── LICENSE                  ✅ MIT 2026 welshDog
-└── node_modules/            (local only, not committed)
-```
+| Phase | Name | Status | Date |
+|---|---|---|---|
+| 0 | Hard Conflict Fixes | ✅ DONE | Early 2026 |
+| 1 | Identity Bridge (discord_id) | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 2 | Token Sync | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 3 | Agent Access + Shop Bridge | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 5 | Observability (Grafana/Prometheus) | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 6 | Terminal Tools + CLI | ✅ DONE + VERIFIED LIVE | Early 2026 |
+| 7 | Dockerfile Security Hardening | ✅ DONE | Apr 14, 2026 |
+| 8 | CI/CD Trivy Security Pipeline | ✅ DONE | Apr 14, 2026 |
+| 9 | CVE Elimination (apt + pip pinning) | ✅ DONE | Apr 14, 2026 |
 
 ---
 
-## 🚨 CURRENT BUG — Not Fixed Yet
+## 🚀 NEXT UP — Phase 10 Candidates
 
-**`npm test` fails with:**
+| Option | What | Time | Priority |
+|--------|------|------|----------|
+| **A ⚡** | FastAPI `0.116.1 → 0.117+` — kills starlette HIGH CVE | ~30 min | 🔥 DO FIRST |
+| **B 🔒** | Docker Compose network isolation — lock agents to internal nets | ~1 hr | High |
+| **C 🗝️** | Secrets management (Docker secrets / Vault) | ~2 hrs | Medium |
+| **D 🛡️** | Per-agent API key auth | ~2-3 hrs | Medium |
+
+---
+
+## ✅ Phase 9 — CVE Elimination Results (April 14, 2026)
+
+| Metric | Before | After |
+|--------|--------|-------|
+| CRITICAL CVEs | 11 | **0** 🎉 |
+| HIGH CVEs | 55 | **14** (unfixable at OS layer) |
+
+### 14 Remaining HIGHs — Cannot Fix Yet
+- `docker.io/runc` — moby Debian packaging lags behind official Docker
+- `libexpat1`, `libncursesw6`, `libnghttp2`, `libsystemd0` — no Debian patch yet
+- `starlette` HIGH — **fixable**: `fastapi>=0.117` → Phase 10 Option A
+
+### What Was Applied Across All 19 Agents
+
+**Part A — OS hardening (every runtime stage):**
+```dockerfile
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl libexpat1 openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ```
-Error: strict mode: unknown keyword: "errorMessage"
+
+**Part B — pip pinning (every Python runtime stage):**
+```dockerfile
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" "setuptools>=80.0.0" "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" "jaraco.functools>=4.1.0" "jaraco.text>=4.0.0"
 ```
 
-**Why:** `hyper-agent-spec.json` has `"errorMessage"` in the `then` block of the `if/then` conditional. This keyword requires the `ajv-errors` plugin which isn't installed. AJV 8 strict mode rejects unknown keywords.
+**Part C — CI (trivy-scan.yml):** `--no-cache --pull` on every build = always fresh base image
 
-**The fix** — remove `errorMessage` from `hyper-agent-spec.json`. The `then` block currently looks like:
-```json
-"then": {
-  "required": ["port"],
-  "errorMessage": "port is required when mcp_compatible is true..."
-}
-```
+**Bonus:** `healer`, `coder`, `05-devops` → switched to `docker-ce-cli` (kills moby CVEs)
 
-Change it to just:
-```json
-"then": {
-  "required": ["port"]
-}
-```
+**Base image:** All `python:3.11.8-slim` → `python:3.11-slim` (auto-tracks latest patch via CI)
 
-**PowerShell one-liner:**
+---
+
+## 🧠 The Skills System — 15 Active Skills
+
+Located in `.claude/skills/` — Claude loads these for specialist knowledge:
+
+| Skill | What It Does |
+|-------|--------------|
+| `hypercode-brain` | Core system knowledge |
+| `hypercode-agent-consciousness` | Agent self-reporting, petitions, handoffs (research-grade!) |
+| `hypercode-self-improver` | Meta skill — system evolves itself |
+| `hypercode-security` | CVE scanning, Trivy, Dockerfile hardening |
+| `hypercode-docker-ops` | Container ops, compose, health checks |
+| `hypercode-redis-pubsub` | Redis pub/sub, stream routing |
+| `hypercode-hypersync` | Cross-repo sync protocol |
+| `hypercode-mcp-gateway` | MCP gateway routing + ports |
+| `hypercode-broski-discord-bot` | Discord bot skill pack |
+| `hypercode-broski-economy` | BROski$ token economy |
+| `hypercode-frontend` | Dashboard, HTML, UI |
+| `hypercode-code-review` | Code review patterns |
+| `hypercode-agent-spawner` | Spawn new agents |
+| `hypercode-new-agent-onboarding` | Agent onboarding flow |
+| `technical-skills-audit` | Audit methodology |
+
+> **Skill hierarchy:** Technical audit skills (knowledge) → Operational skills (how to DO) → Meta skills (self-improvement loop). That's progressive disclosure architecture.
+
+---
+
+## 🚨 Iron Rules — Never Re-Debate These
+
+- **Docker imports:** `from app.X import Y` — NEVER `from backend.app.X import Y`
+- **FastAPI routing:** First-match wins — public routes BEFORE auth-gated compat routes
+- **Alembic down_revision:** Must match EXACT revision string
+- **CLI folder:** All `hyper-agent` commands run from `H:\HyperAgent-SDK`
+- **Logs empty on fresh boot:** Normal — Redis `hypercode:logs` populates as agents run
+- **Port convention:** 3100-3199 writing, 3200-3299 code, 3300-3399 data, 3400-3499 discord, 3500-3599 automation
+- **Supabase ↔ V2.4 Postgres:** NEVER merge schemas — forever separate
+- **`.env` files:** Never committed — use Docker secrets in production
+- **One bot:** broski-bot. Old Replit bot = dead.
+- **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)`
+- **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 standard
+- **Trivy target:** 0 CRITICAL ✅. 14 HIGH remaining = no Debian fix available
+- **GitHub Actions builds:** Always `--no-cache --pull` in security workflows
+- **jaraco.* packages:** Always pin explicitly — Trivy HIGH via setuptools transitive
+- **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli`, NOT `docker.io`
+- **starlette HIGH:** Fix = `fastapi>=0.117` — Phase 10 Option A
+- **V2.0 references in skills:** Apply to V2.4 — same ports, same agent names
+- **npm package:** `@w3lshdog/hyper-agent@0.1.4` — errorMessage bug = FIXED, all 6 CLI commands LIVE
+
+---
+
+## 📁 Key Paths (copy-paste ready)
+
 ```powershell
-(Get-Content hyper-agent-spec.json) -replace '^\s*"errorMessage":.*$', '' | Where-Object { $_ -ne '' } | Set-Content hyper-agent-spec.json
+# HyperCode V2.4 (MAIN SYSTEM)
+cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4"
+
+# HyperAgent-SDK
+cd "H:\HyperAgent-SDK"
+
+# Hyper-Vibe-Coding-Course
+cd "H:\the hyper vibe coding hub"
+
+# Docker
+docker compose up -d
+docker compose build --no-cache
+docker compose exec api alembic upgrade head
+
+# Security scanning
+make scan-all
+make scan-agent AGENT=healer
+make scan-build AGENT=agent-x
+make build-secure
+
+# CLI (from H:\HyperAgent-SDK)
+$env:HYPERCODE_API_URL = "http://localhost:8000"
+node cli/index.js status
+node cli/index.js agents list
+node cli/index.js logs --tail 20
+node cli/index.js tokens award <discord_id> <amount>
+node cli/index.js graduate <discord_id> --tokens 100
 ```
 
-**Then verify + commit + republish:**
+---
+
+## 💰 BROski$ Token Economy
+
+- `public.users.broski_tokens` — balance column
+- `token_transactions` — append-only ledger with idempotency guards
+- `award_tokens()` + `spend_tokens()` — SECURITY DEFINER, server-side only
+- `shop_items` + `shop_purchases` — JSONB metadata fields
+- `shop_purchases.item_slug` — filters for `"agent-sandbox-access"`
+- Stripe integration for token packs (Starter / Builder / Hyper)
+
+---
+
+## 🛡️ Security Posture (Post Phase 9)
+
+| Layer | Status |
+|-------|--------|
+| CRITICAL CVEs | 0 ✅ |
+| HIGH CVEs | 14 (Debian-unfixable) |
+| Non-root users | All 19 agents ✅ |
+| Multi-stage builds | All agents ✅ |
+| pip pinned | All agents ✅ |
+| CI Trivy gate | PR-blocking ✅ |
+| Weekly fleet scan | Monday 06:00 UTC ✅ |
+| Pre-push hook | Local blocking ✅ |
+| docker-ce-cli swap | healer/coder/devops ✅ |
+
+---
+
+## 📦 HyperAgent-SDK — Current State
+
+- **Version:** `@w3lshdog/hyper-agent@0.1.4` ✅ LIVE on npm
+- **errorMessage bug:** FIXED (removed from hyper-agent-spec.json)
+- **CLI commands (all verified):** `validate`, `status`, `logs`, `tokens`, `agents`, `graduate`
+- **Phases 0–6:** All complete and verified live
+
 ```powershell
-npm test
-git add hyper-agent-spec.json
-git commit -m "fix: remove errorMessage keyword — AJV strict mode rejects it without ajv-errors plugin"
-git push
+npx @w3lshdog/hyper-agent validate .agents/my-agent/
 npm version patch --no-git-tag-version
 npm publish --access public --tag alpha
 ```
 
-Expected `npm test` output after fix:
-```
-✓ my-python-agent v0.1.0 — 1 tool(s), python, mcp: ✗
-✓ my-node-agent v0.1.0 — 1 tool(s), node, mcp: ✗
-
-Results: 2 passed, 0 failed
-All templates valid ✅
-```
-
 ---
 
-## What's Done (Tonight's Session)
+## 🎯 Session Start Checklist
 
-| Task | Status |
-|---|---|
-| SDK scaffolded with cli/ + templates/ | ✅ |
-| validate.js — real AJV validator | ✅ |
-| hyper-agent-spec.json — full JSON Schema | ✅ |
-| if/then port enforcement for mcp_compatible | ✅ |
-| Templates — python + node with real input_schema | ✅ |
-| README updated — pre-release warning + real examples | ✅ |
-| LICENSE (MIT) + CONTRIBUTING.md | ✅ |
-| docs/ — MASTER_PLAN + TOKEN_STRATEGY moved here | ✅ |
-| extra/ folder cleaned up | ✅ |
-| npm scope fixed (@welshdog → @w3lshdog) | ✅ |
-| ajv-formats added to dependencies | ✅ |
-| Published to npm as 0.1.0-alpha.1 | ✅ |
-| npm test passing | ❌ errorMessage bug |
+When you boot a new Claude session, ask Bro:
+1. **Which repo are we in?** (V2.4 / SDK / Course)
+2. **What phase or feature?** (check Phase 10 options above)
+3. **Any new Trivy scan results?** (compare vs 14 HIGH baseline)
+4. **PowerShell or WSL2 today?**
 
----
-
-## What's Next (Priority Order)
-
-1. **Fix the errorMessage bug** (above) — unblocks green tests
-2. **Re-publish** as 0.1.0-alpha.2 after fix
-3. **Update README** — change `npx hyper-agent` → `npx @w3lshdog/hyper-agent`
-4. **GitHub Actions CI** — auto-run `npm test` on every push/PR
-5. **Phase 0 of MASTER_PLAN** — Alembic migration adding `discord_id` to V2.4 users table (this unlocks the entire 6-phase integration)
-6. **npm run graduate** — Phase 4 flagship feature (8-step agent graduation script)
-
----
-
-## Key Technical Decisions Made
-
-- **No `ajv-errors` plugin** — drop `errorMessage`, AJV's built-in errors are sufficient
-- **Port convention:** 3100–3199 writing, 3200–3299 code, 3300–3399 data, 3400–3499 discord, 3500–3599 automation
-- **`mcp_compatible: true` requires `port`** — enforced via JSON Schema `if/then`
-- **`input_schema` requires `type` + `properties`** — prevents empty `{}` tools passing validation
-- **Windows PowerShell first** — all scripts must work on PowerShell, WSL2 secondary
-- **Conventional commits** — `feat:`, `fix:`, `docs:`, `chore:`
-- **No merging repo databases** — Supabase (Course) and Postgres (V2.4) stay separate forever
-
----
-
-## Tone / Working Style
-
-- Call Lyndz "Bro" — that's how we roll
-- Short. Direct. No waffle.
-- Use ✅ ⚠️ ❌ 🔧 🚀 for status signals
-- PowerShell copy-paste commands always
-- Honest feedback — don't sugarcoat issues
-- ADHD-friendly: chunked output, quick wins first, one action per step
+Then: short sentences, emojis, bold keys, quick wins first. Let's GO! 🔥
