@@ -1,7 +1,7 @@
 """
-Phase 10G — Stripe Tests (extended from 10F)
-Covers: plans, checkout, unknown price, webhook dev mode,
-        DB write paths (mocked), cancellation, payment_failed.
+Phase 10G — Stripe Tests
+Covers: plans, checkout (mocked PRICE_MAP), unknown price,
+        webhook dev mode, DB write paths, cancellation, payment_failed.
 """
 import pytest
 import json
@@ -10,7 +10,18 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 
 
-# ── Existing 10F tests (kept as-is) ────────────────────────────────
+def _mock_db():
+    """Reusable async DB context mock."""
+    mock_db = AsyncMock()
+    mock_db.execute = AsyncMock()
+    mock_db.commit = AsyncMock()
+    mock_db.rollback = AsyncMock()
+    mock_db.__aenter__ = AsyncMock(return_value=mock_db)
+    mock_db.__aexit__ = AsyncMock(return_value=False)
+    return mock_db
+
+
+# ── 10F tests ─────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_get_plans():
@@ -22,10 +33,14 @@ async def test_get_plans():
 
 @pytest.mark.asyncio
 async def test_checkout_creates_session():
+    """Checkout returns 200 with mocked PRICE_MAP + Stripe session."""
     mock_session = MagicMock()
     mock_session.url = "https://checkout.stripe.com/test"
     mock_session.id = "cs_test_123"
-    with patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session):
+    # Patch PRICE_MAP so 'starter' resolves to a non-empty fake price ID
+    with patch("app.services.stripe_service.PRICE_MAP", {"starter": "price_fake_123"}), \
+         patch("app.routes.stripe.PRICE_MAP", {"starter": "price_fake_123"}), \
+         patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post("/api/stripe/checkout", json={"price_id": "starter", "user_id": "user_abc"})
     assert resp.status_code == 200
@@ -54,16 +69,8 @@ async def test_webhook_dev_mode():
             "metadata": {"user_id": "user_dev", "price_key": "starter"},
         }}
     }
-    # Mock DB writes so test doesn’t need a real DB
-    with patch("app.services.stripe_service.AsyncSessionLocal") as mock_db_cls:
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.commit = AsyncMock()
-        mock_db.rollback = AsyncMock()
-        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db.__aexit__ = AsyncMock(return_value=False)
-        mock_db_cls.return_value = mock_db
-
+    mock_db = _mock_db()
+    with patch("app.services.stripe_service.AsyncSessionLocal", return_value=mock_db):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             resp = await ac.post(
                 "/api/stripe/webhook",
@@ -76,7 +83,7 @@ async def test_webhook_dev_mode():
     assert result["result"]["action"] == "subscription_activated"
 
 
-# ── Phase 10G — new DB path tests ────────────────────────────────
+# ── 10G tests ─────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_webhook_checkout_returns_tier():
@@ -95,15 +102,8 @@ async def test_webhook_checkout_returns_tier():
         }}
     }, None)
 
-    with patch("app.services.stripe_service.AsyncSessionLocal") as mock_db_cls:
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.commit = AsyncMock()
-        mock_db.rollback = AsyncMock()
-        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db.__aexit__ = AsyncMock(return_value=False)
-        mock_db_cls.return_value = mock_db
-
+    mock_db = _mock_db()
+    with patch("app.services.stripe_service.AsyncSessionLocal", return_value=mock_db):
         result = await handle_webhook_event(event)
 
     assert result["tier"] == "hyper"
@@ -113,7 +113,7 @@ async def test_webhook_checkout_returns_tier():
 
 @pytest.mark.asyncio
 async def test_webhook_subscription_cancelled():
-    """customer.subscription.deleted sets status to cancelled."""
+    """customer.subscription.deleted downgrades user to free."""
     from app.services.stripe_service import handle_webhook_event
     import stripe
 
@@ -122,14 +122,8 @@ async def test_webhook_subscription_cancelled():
         "data": {"object": {"customer": "cus_cancel_test"}}
     }, None)
 
-    with patch("app.services.stripe_service.AsyncSessionLocal") as mock_db_cls:
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.commit = AsyncMock()
-        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db.__aexit__ = AsyncMock(return_value=False)
-        mock_db_cls.return_value = mock_db
-
+    mock_db = _mock_db()
+    with patch("app.services.stripe_service.AsyncSessionLocal", return_value=mock_db):
         result = await handle_webhook_event(event)
 
     assert result["action"] == "subscription_cancelled"
@@ -147,14 +141,8 @@ async def test_webhook_payment_failed():
         "data": {"object": {"customer": "cus_fail_test"}}
     }, None)
 
-    with patch("app.services.stripe_service.AsyncSessionLocal") as mock_db_cls:
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock()
-        mock_db.commit = AsyncMock()
-        mock_db.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_db.__aexit__ = AsyncMock(return_value=False)
-        mock_db_cls.return_value = mock_db
-
+    mock_db = _mock_db()
+    with patch("app.services.stripe_service.AsyncSessionLocal", return_value=mock_db):
         result = await handle_webhook_event(event)
 
     assert result["action"] == "payment_failed"
