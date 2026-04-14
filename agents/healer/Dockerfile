@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 
-# Install Docker CLI (not daemon, just the client tool)
-RUN apt-get update && apt-get install -y \
+# Install Docker CLI (client only — not the daemon) + curl for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     gnupg \
@@ -11,13 +11,14 @@ RUN apt-get update && apt-get install -y \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
     | tee /etc/apt/sources.list.d/docker.list > /dev/null \
     && apt-get update \
-    && apt-get install -y docker-ce-cli \
+    && apt-get install -y --no-install-recommends docker-ce-cli \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
 
 # Install python dependencies
 COPY healer/requirements.txt ./requirements.txt
@@ -26,8 +27,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy full agents tree so `agents.shared.*` imports resolve
 COPY . /app/agents
 
-# Set PYTHONPATH
-ENV PYTHONPATH=/app
+# Non-root user with docker group access — security hardening
+# docker group GID 999 is the default on most Linux distros;
+# compose can override with group_add if the host GID differs
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && (getent group docker || groupadd -g 999 docker) \
+    && usermod -aG docker appuser \
+    && chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 8008

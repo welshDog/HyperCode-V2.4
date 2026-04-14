@@ -28,7 +28,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
-## 6-Phase Roadmap — ALL COMPLETE 🏆
+## 7-Phase Roadmap — ALL COMPLETE 🏆
 
 | Phase | Name | Status |
 |---|---|---|
@@ -39,6 +39,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 4 | npm run graduate 🔥 | ✅ DONE + VERIFIED LIVE |
 | 5 | Observability | ✅ DONE + VERIFIED LIVE |
 | 6 | Terminal Tools | ✅ DONE + VERIFIED LIVE |
+| 7 | Dockerfile Security Hardening | ✅ DONE |
 
 ---
 
@@ -125,6 +126,26 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 **Import bug fixed (2026-04-13):**
 - `graduate.py` + `models/graduate.py` — `backend.app.*` → `app.*`
 - `_HAS_PHASE234 = True` confirmed ✅
+
+### Phase 7 ✅ DONE (2026-04-14)
+**Dockerfile security hardening — non-root user + env hardening across all agents:**
+
+19 Dockerfiles patched:
+- **Non-root user added:** `01-frontend-specialist`, `02-backend-specialist`, `03-database-architect`, `04-qa-engineer`, `06-security-engineer`, `07-system-architect`, `08-project-strategist`, `crew-orchestrator`, `hyper-agents/{architect,observer,worker}`, `architect` (Node.js), `coderabbit-webhook`, `throttle-agent`
+- **Non-root + docker group (GID 999):** `healer`, `coder`, `agent-x`, `05-devops-engineer`
+- **Full rewrite:** `09-tips-tricks-writer` — fixed broken `--user`/`/root/.local` pattern (was silently running as root), converted to proper wheel-based multi-stage build
+- **Env + healthcheck added:** `coderabbit-webhook`, `throttle-agent`, `business/project-strategist`
+- **healer** — fixed duplicate `apt-get` run + missing `--no-install-recommends` + added `PYTHONDONTWRITEBYTECODE`/`PYTHONUNBUFFERED`
+
+**Pattern used for docker-needing agents (healer/coder/agent-x/05-devops):**
+```
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && (getent group docker || groupadd -g 999 docker) \
+    && usermod -aG docker appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+```
+If host docker socket GID ≠ 999, add `group_add: [<host-gid>]` in compose.
 
 ---
 

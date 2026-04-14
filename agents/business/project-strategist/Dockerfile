@@ -1,26 +1,29 @@
-# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container at /app
-COPY requirements.txt ./
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    REDIS_HOST=redis \
+    REDIS_PORT=6379
 
-# Install any needed packages specified in requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Copy the current directory contents into the container at /app
 COPY src/ ./src/
 COPY config/ ./config/
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV REDIS_HOST=redis
-ENV REDIS_PORT=6379
-
-RUN addgroup --system appuser && adduser --system --group appuser
+# Non-root user — security hardening
+RUN addgroup --system appuser && adduser --system --group appuser \
+    && chown -R appuser:appuser /app
 USER appuser
 
-# Run the agent
+EXPOSE 8019
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD curl -f http://localhost:8019/health || exit 1
+
 CMD ["python", "src/main.py"]

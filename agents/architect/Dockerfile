@@ -20,6 +20,9 @@ FROM node:20-alpine AS runtime
 
 RUN apk add --no-cache curl
 
+# Create non-root user — security hardening
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 WORKDIR /app
 
 # Copy only production deps + compiled output
@@ -28,8 +31,12 @@ RUN npm ci --omit=dev
 
 COPY --from=builder /build/dist ./dist
 
+RUN chown -R appuser:appgroup /app
+
 ENV PORT=8080 \
     NODE_ENV=production
+
+USER appuser
 
 EXPOSE 8080
 

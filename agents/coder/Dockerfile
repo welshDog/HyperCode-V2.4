@@ -30,6 +30,14 @@ COPY . .
 
 ENV PYTHONPATH=/app
 
+# Non-root user with docker group access — security hardening
+# docker group GID 999 is the default on most Linux distros
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && (getent group docker || groupadd -g 999 docker) \
+    && usermod -aG docker appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -fsS "http://localhost:${AGENT_PORT:-8000}/health" >/dev/null || exit 1

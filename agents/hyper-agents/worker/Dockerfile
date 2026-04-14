@@ -43,6 +43,11 @@ RUN mkdir -p /app/src/agents && \
 # Copy agent entrypoint
 COPY agents/hyper-agents/worker/main.py /app/main.py
 
+# Non-root user — security hardening
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8093
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \

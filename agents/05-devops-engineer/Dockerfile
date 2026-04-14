@@ -70,6 +70,14 @@ COPY agents/shared /app/agents/shared
 # Mount point for Hive Mind
 VOLUME ["/app/hive_mind"]
 
+# Non-root user with docker/kubectl access — security hardening
+# docker group GID 999 is the default on most Linux distros
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && (getent group docker || groupadd -g 999 docker) \
+    && usermod -aG docker appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8006
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \

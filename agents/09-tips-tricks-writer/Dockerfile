@@ -1,45 +1,43 @@
-# Specialized Dockerfile for Tips & Tricks Writer Agent
+# Tips & Tricks Writer Agent
+# Multi-stage build — fixes prior --user install pattern that required running as root
+
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
 FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Install build dependencies
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends gcc g++ && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
-# Final stage
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
-# Install runtime dependencies (curl for healthcheck)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Update PATH
-ENV PATH=/root/.local/bin:$PATH
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
-# Copy agent code and shared logic
-# We assume the project root is mounted or copied in the build process
-# For local dev, we copy the current directory
 COPY agent.py .
 COPY base_agent.py .
 
-# Health check (port 8009 for this agent)
+# Non-root user — security hardening
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8009/health')" || exit 1
+    CMD curl -f http://localhost:8009/health || exit 1
 
 EXPOSE 8009
 
