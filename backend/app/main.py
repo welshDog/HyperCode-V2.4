@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
 from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
+from app.routes.stripe import router as stripe_router  # 💳 Phase 10F
 
 try:
     from app.core.logging import setup_logging as _setup_logging
@@ -149,6 +150,7 @@ app.add_middleware(
         f"{settings.API_V1_STR}/openapi.json",
         "/openapi.json",
         "/metrics",
+        "/api/stripe/webhook",  # 💳 Stripe webhooks must not be rate-limited
     ),
 )
 
@@ -209,6 +211,9 @@ if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# 💳 Phase 10F — Stripe Checkout & Webhook
+app.include_router(stripe_router)
+
 @app.get("/health")
 async def health_check():
     return JSONResponse({
@@ -260,6 +265,9 @@ if __name__ == "__main__":
 #   WS   /api/v1/orchestrator/ws/approvals — approvals WebSocket (Redis pub/sub)
 #   GET  /api/v1/broski/*                 — BROski$ economy endpoints
 #   GET  /api/v1/planning/*               — planning endpoints
+#   POST /api/stripe/checkout             — 💳 Stripe checkout session (Phase 10F)
+#   GET  /api/stripe/plans                — 💳 List Stripe plans (Phase 10F)
+#   POST /api/stripe/webhook              — 💳 Stripe webhook handler (Phase 10F)
 #
 # MISSING ENDPOINTS (needed by dashboard — causes "—" display values):
 #   GET  /api/v1/metrics                  — MetricsSnapshot JSON (useMetrics.ts polls this)
