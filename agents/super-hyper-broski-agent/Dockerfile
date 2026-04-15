@@ -2,11 +2,25 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all + force-install patched packages
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        libexpat1 \
+        openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Upgrade pip, setuptools, and wheel
-RUN pip install --upgrade pip==26.0.1 setuptools>=80.0.0 wheel==0.46.2
+# Pip tool hardening — pin safe versions (eliminates pip/setuptools/jaraco CVEs)
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 # Copy requirements
 COPY requirements.txt .
