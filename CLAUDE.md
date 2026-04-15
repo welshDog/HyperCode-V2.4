@@ -2,7 +2,7 @@
 
 > This file is auto-read by Claude AI when analysing this repository.
 > It provides essential project context, conventions, and guidance.
-> **Last updated: April 14, 2026 — Phases 10D + 10G + 10H COMPLETE ✅ | Stripe + Agent Auth + Pricing LIVE**
+> **Last updated: April 15, 2026 — Phases 10E + 10I COMPLETE ✅ | Stripe fully LIVE, routes + webhook verified**
 > **Single source of truth — merged from CLAUDE.md + CLAUDE_CONTEXT.md**
 
 ---
@@ -46,7 +46,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
-## ✅ CURRENT STATUS: FULLY OPERATIONAL (April 14, 2026)
+## ✅ CURRENT STATUS: FULLY OPERATIONAL (April 15, 2026)
 
 > 🟢 ALL 23 CONTAINERS HEALTHY — Stack is LIVE!
 
@@ -67,10 +67,12 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 10A | FastAPI / Starlette upgrade | ✅ DONE |
 | 10B | Docker Compose Network Isolation | ✅ DONE — April 14, 2026 |
 | 10C | Docker Secrets | ✅ DONE — April 14, 2026 |
+| 10E | **CognitiveUplink WS type** | ✅ DONE — already correct, verified April 15, 2026 |
 | 10F | **Stripe Checkout API** | ✅ DONE — April 14, 2026 💳 |
 | 10G | **DB — Stripe webhook writes** | ✅ DONE — April 14, 2026 |
 | 10D | **Agent-level rate limiting + auth** | ✅ DONE — April 14, 2026 🔑 |
 | 10H | **Pricing page (dashboard)** | ✅ DONE — April 14, 2026 |
+| 10I | **Stripe CLI e2e — routes + webhook LIVE** | ✅ DONE — April 15, 2026 🎉 |
 
 ### Container Health
 
@@ -120,8 +122,8 @@ In WSL: `/mnt/h/HyperStation zone/HyperCode/volumes/`
 
 | Phase | Task | Why |
 |---|---|---|
-| **10I** | Stripe CLI end-to-end local testing | `stripe listen --forward-to localhost:8000/api/stripe/webhook` |
-| **10C** | Docker Secrets — productionise env vars | `.env` still used locally, need secrets/*.txt for prod |
+| **10J** | CognitiveUplink `/ws/uplink` backend endpoint | `CognitiveUplink.tsx:134` connects to `ws://hostname:8081/ws/uplink` — that endpoint doesn't exist. Needs a handler in hypercode-core or crew-orchestrator |
+| **10K** | Add Stripe Price IDs to `.env` | `STRIPE_PRICE_STARTER` etc. are empty — needed for live checkout flow. Create products in Stripe Dashboard (test mode) |
 | **CVE** | Agent image CVE patching | 14 HIGH remaining on agent images (no Debian fix yet) |
 
 ### Agents Security Upgrade
@@ -149,8 +151,8 @@ GET  /api/stripe/plans       → lists available plan names
 POST /api/stripe/webhook     → handles Stripe events (signature verified)
 ```
 
-### Webhook events handled
-- `checkout.session.completed` → subscription activated (TODO 10G: write to DB)
+### Webhook events handled (Phase 10G — DB writes LIVE)
+- `checkout.session.completed` → saves to `payments` table + awards BROski$ + sets subscription tier
 - `customer.subscription.deleted` → subscription cancelled
 - `invoice.payment_failed` → payment failed warning
 - `customer.subscription.updated` → status change logged
@@ -420,6 +422,9 @@ Available MCP tools:
 - **Alembic + create_all:** DB was bootstrapped with `DB_AUTO_CREATE=true` (SQLAlchemy `create_all`). If `alembic_version` table is missing, run `alembic stamp 006` first, then `alembic upgrade head`. Never skip stamp — migrations will try to re-create existing tables.
 - **Stripe webhook:** `/api/stripe/webhook` is rate-limit exempt — do NOT add rate limiting
 - **Stripe dev mode:** Missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
+- **Stripe checkout mode:** token packs use `mode="payment"`, course plans use `mode="subscription"` — defined in `CHECKOUT_MODE` dict in `stripe_service.py`
+- **Stripe container context:** Docker must use `desktop-linux` context (`docker context use desktop-linux`) — `default` context causes container name conflicts on Windows
+- **CognitiveUplink WS URL:** `CognitiveUplink.tsx:134` defaults to `ws://hostname:8081/ws/uplink` — no backend handler exists for this yet (Phase 10J)
 - **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
 - **Windows PowerShell first**, bash second
 - **`apps/web/`:** Archived, never migrate
