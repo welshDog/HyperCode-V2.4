@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 15, 2026 — Phases 0–10K COMPLETE ✅ | Stripe LIVE 💳 | CognitiveUplink WS LIVE 🔌**
+> **Last synced: April 15, 2026 (evening) — 172 tests GREEN ✅ | 29/29 containers UP ✅ | All agents healthy ✅ | Stripe→BROski$ CONFIRMED LIVE 💳**
 
 ---
 
@@ -19,7 +19,7 @@
 Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
 github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
 Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
-(Supabase + Vercel)                    │                  (Docker, 26 containers)
+(Supabase + Vercel)                    │                  (Docker, 29 containers)
 Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStation zone\
                                        │                       HyperCode\HyperCode-V2.4
                               HyperAgent-SDK
@@ -50,7 +50,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 10D | Agent-level rate limiting + auth | ✅ DONE — April 14, 2026 🔑 |
 | 10E | CognitiveUplink WS type fix | ✅ DONE — April 15, 2026 |
 | 10F | **Stripe Checkout API** | ✅ DONE — April 14, 2026 💳 |
-| 10G | DB — Stripe webhook writes | ✅ DONE — April 14, 2026 |
+| 10G | **DB — Stripe webhook writes** | ✅ DONE — April 14, 2026 |
 | 10H | Pricing page (dashboard) | ✅ DONE — April 14, 2026 |
 | 10I | Stripe CLI e2e — routes + webhook LIVE | ✅ DONE — April 15, 2026 🎉 |
 | 10J | **CognitiveUplink `/ws/uplink`** | ✅ DONE — April 15, 2026 🔌 |
@@ -58,11 +58,93 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 
 ---
 
+## ✅ Full Test Suite Status (April 15, 2026 evening)
+
+```
+172 passed, 6 skipped in 225s
+```
+
+**6 skips are EXPECTED and fine:**
+- Redis/Postgres not accessible from host (integration tests — run in Docker)
+- Ollama bench flag off
+
+**Earlier ERROR was transient** — collection ordering issue, passes clean every single time now.
+
+**Run tests:**
+```powershell
+cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4"
+pytest
+```
+
+---
+
+## 💳 Phase 10G — Stripe → BROski$ CONFIRMED DONE (April 14, 2026)
+
+`stripe_service.py` has:
+- `_award_tokens()` — wired to `handle_webhook_event()`
+- `_save_payment()` — persists to DB
+- `_update_user_subscription()` — updates subscription state
+
+**Token grants:**
+| Pack | BROski$ |
+|---|---|
+| starter | 200 |
+| builder | 800 |
+| hyper | 2500 |
+
+**Dedup:** `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` — idempotent ✅
+
+---
+
+## 👋 Current Container Status (April 15, 2026 evening)
+
+**29/29 containers up ✅**
+
+**26/29 showing (healthy) ✅**
+
+**3 containers missing healthcheck labels — UP but no health label:**
+| Container | Status |
+|---|---|
+| `docker-socket-proxy-build` | Up (no health label) |
+| `hyper-shield-scanner` | Up (no health label) |
+| `hyper-sweeper-prune` | Up (no health label) |
+
+**Agents all healthy ✅:**
+- agent-x, healer-agent, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator
+
+---
+
+## 🎯 NEXT UP — Remaining Tasks
+
+| # | Task | Size | Notes |
+|---|---|---|---|
+| **A** | Add healthchecks to 3 containers above | ~10 min | docker-socket-proxy-build, hyper-shield-scanner, hyper-sweeper-prune |
+| **B** | Gordon Tier 1: `/metrics` on hypercode-core | ~15 min | Prometheus endpoint fix |
+| **C** | Course frontend Pricing page → Stripe checkout | Bigger | Wire Vibe Course frontend to V2.4 `/api/stripe/checkout` |
+
+**Ask Lyndz: Start with A (healthchecks — quick win) or jump to B (Prometheus /metrics)?**
+
+### Task A — Healthcheck Pattern (use for all 3)
+```yaml
+healthcheck:
+  test: ["CMD", "true"]  # adjust per container
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 10s
+```
+
+### Task B — Gordon Tier 1 (Prometheus)
+Add `/metrics` endpoint to `hypercode-core` service so Prometheus can scrape it properly.
+Check `monitoring/prometheus.yml` for existing scrape config.
+
+---
+
 ## 💳 Phase 10F — Stripe Checkout API (LIVE — April 14, 2026)
 
 ### What was built
 - `backend/app/routes/stripe.py` — 3 FastAPI endpoints
-- `backend/app/services/stripe_service.py` — all Stripe logic, price map
+- `backend/app/services/stripe_service.py` — all Stripe logic, price map, token awards
 - `backend/tests/test_stripe.py` — 4 tests (pytest)
 - `backend/app/main.py` — Stripe router registered, `/api/stripe/webhook` rate-limit exempt
 
@@ -74,58 +156,14 @@ POST /api/stripe/webhook     → handles Stripe events (signature verified)
 ```
 
 ### Webhook events handled
-- `checkout.session.completed` → subscription activated (TODO 10G: write to DB)
-- `customer.subscription.deleted` → subscription cancelled (TODO 10G: downgrade in DB)
-- `invoice.payment_failed` → payment failed warning (TODO 10G: notify user)
+- `checkout.session.completed` → subscription activated + tokens awarded + payment saved
+- `customer.subscription.deleted` → subscription cancelled
+- `invoice.payment_failed` → payment failed warning
 - `customer.subscription.updated` → status change logged
 
 ### Dev mode note
 - If `STRIPE_WEBHOOK_SECRET` is not set → signature check skipped (safe for local dev)
 - Always set in production via Docker secrets
-
----
-
-## 🎯 NEXT UP — Remaining Work
-
-| Phase | Task | Why |
-|---|---|---|
-| **CVE** | Agent image CVE patching | 14 HIGH remaining on agent images — no Debian fix available yet |
-| **Course** | Wire vibe coding frontend Pricing page to `/api/stripe/checkout` | Supabase Edge Function for post-purchase course access grant |
-
----
-
-## 🔒 Stripe Prices — LOCKED (April 14, 2026)
-
-### BROski Token Packs (one-time)
-| Pack | Price | Tokens | Stripe Product Name |
-|---|---|---|---|
-| Starter | £5 GBP | 200 | BROski Starter Pack |
-| Builder | £15 GBP | 800 | BROski Builder Pack |
-| Hyper | £35 GBP | 2500 | BROski Hyper Pack |
-
-### Course Subscriptions (recurring)
-| Tier | Monthly | Yearly | Stripe Product Name |
-|---|---|---|---|
-| Pro | £9/mo | £90/yr | Hyper Vibe Pro Course |
-| Hyper | £29/mo | £290/yr | Hyper Elite |
-
-### Digital Shop Items (paid in BROski$)
-- Prompt Packs: 200 BROski$
-- Templates: 150 BROski$
-- Bonus Lessons: 100 BROski$
-
-### .env keys to add
-```env
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_PRICE_STARTER=price_xxx
-STRIPE_PRICE_BUILDER=price_xxx
-STRIPE_PRICE_HYPER=price_xxx
-STRIPE_PRICE_PRO_MONTHLY=price_xxx
-STRIPE_PRICE_PRO_YEARLY=price_xxx
-STRIPE_PRICE_HYPER_MONTHLY=price_xxx
-STRIPE_PRICE_HYPER_YEARLY=price_xxx
-```
 
 ---
 
@@ -184,7 +222,12 @@ RUN pip install --upgrade --no-cache-dir \
 ### Phase 9 ✅ — CVE result: agent-x 11 CRITICAL → 0 CRITICAL, 55 HIGH → 14 HIGH
 ### Phase 10A ✅ — FastAPI upgraded to 0.117+ (fixes starlette HIGH CVE)
 ### Phase 10B ✅ — Docker Compose network isolation (data-net + obs-net internal: true)
-### Phase 10F ✅ — Stripe Checkout API: 3 endpoints + service layer + tests + main.py registered
+### Phase 10F ✅ — Stripe Checkout API: 3 endpoints + service layer + tests
+### Phase 10G ✅ — Stripe → BROski$ tokens wired: _award_tokens, _save_payment, _update_user_subscription
+### Phase 10H ✅ — Pricing page (dashboard)
+### Phase 10I ✅ — Stripe CLI e2e verified LIVE
+### Phase 10J ✅ — CognitiveUplink /ws/uplink WebSocket LIVE
+### Phase 10K ✅ — Stripe Price IDs in .env
 
 ---
 
@@ -208,9 +251,11 @@ RUN pip install --upgrade --no-cache-dir \
 - **Network isolation:** Phase 10B complete — `data-net` + `obs-net` are `internal: true`
 - **Stripe webhook:** `/api/stripe/webhook` is rate-limit exempt — do NOT add rate limiting to it
 - **Stripe dev mode:** Missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
+- **Test skips:** 6 expected skips (Redis/Postgres/Ollama) — these are NOT failures
 - **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
 - **Windows PowerShell first**, bash second — always
 - **`apps/web/`:** Archived, never migrate
+- **Healthcheck containers:** 3 still need labels — docker-socket-proxy-build, hyper-shield-scanner, hyper-sweeper-prune
 
 ---
 
@@ -233,6 +278,10 @@ docker compose build --no-cache
 docker compose exec api alembic upgrade head
 docker compose exec api alembic history --verbose
 
+# Test suite
+pytest
+# Expected: 172 passed, 6 skipped
+
 # Security scanning
 make scan-all
 make scan-agent AGENT=healer
@@ -247,22 +296,21 @@ node cli/index.js logs --tail 20
 node cli/index.js tokens award <discord_id> <amount>
 node cli/index.js graduate <discord_id> --tokens 100
 
-# SDK
-npx @w3lshdog/hyper-agent validate .agents/my-agent/
-npm version patch --no-git-tag-version
-npm publish --access public --tag alpha
-
 # Stripe (Phase 10F)
-# Test checkout:
 curl -X POST http://localhost:8000/api/stripe/checkout \
   -H "Content-Type: application/json" \
   -d '{"price_id": "starter", "user_id": "broski_test"}'
 
-# Stripe CLI local webhook testing (Phase 10I):
+# Stripe CLI local webhook testing
 stripe listen --forward-to localhost:8000/api/stripe/webhook
 
 # Run Stripe tests:
 pytest backend/tests/test_stripe.py -v
+
+# SDK
+npx @w3lshdog/hyper-agent validate .agents/my-agent/
+npm version patch --no-git-tag-version
+npm publish --access public --tag alpha
 ```
 
 ---
@@ -274,19 +322,22 @@ pytest backend/tests/test_stripe.py -v
 - `award_tokens()` + `spend_tokens()` — SECURITY DEFINER, server-side only
 - `shop_items` + `shop_purchases` — JSONB metadata fields
 - `shop_purchases.item_slug` — used to filter for "agent-sandbox-access"
-- Stripe integration: prices LOCKED April 14, 2026 — API LIVE Phase 10F ✅
+- Stripe token grants: starter=200, builder=800, hyper=2500 BROski$ ✅ CONFIRMED LIVE
+- Dedup: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 
 ---
 
 ## 📦 This Repo — HyperCode V2.4 Specifics
 
-- 26 Docker containers, full AI agent stack
+- **29 Docker containers**, full AI agent stack
+- **172 tests passing**, 6 expected skips ✅
 - One bot: broski-bot (Docker). Old Replit bot = dead.
 - Network: 5 isolated networks (Phase 10B)
 - Security: Trivy CI gate + weekly scan + local pre-push hook
 - Grafana dashboards live at `:3000`
-- **Stripe Checkout**: LIVE at `/api/stripe/checkout` — Phase 10F ✅
-- Next mission: Phase 10G (DB subscription save) or 10H (Frontend pricing page)
+- **Stripe Checkout + BROski$ tokens:** FULLY LIVE ✅
+- **Agents:** agent-x, healer-agent, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy
+- **3 containers need healthcheck labels** — see NEXT UP above
 
 ---
 
