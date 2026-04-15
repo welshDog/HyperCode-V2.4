@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 15, 2026 — Phases 0–10I COMPLETE ✅ | Stripe Checkout API LIVE 💳**
+> **Last synced: April 15, 2026 — Phases 0–10K COMPLETE ✅ | Stripe LIVE 💳 | CognitiveUplink WS LIVE 🔌**
 
 ---
 
@@ -46,7 +46,15 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 9 | CVE Elimination (apt + pip pinning) | ✅ DONE — April 14, 2026 |
 | 10A | FastAPI / Starlette upgrade | ✅ DONE |
 | 10B | Docker Compose Network Isolation | ✅ DONE — April 14, 2026 |
+| 10C | Docker Secrets | ✅ DONE — April 14, 2026 |
+| 10D | Agent-level rate limiting + auth | ✅ DONE — April 14, 2026 🔑 |
+| 10E | CognitiveUplink WS type fix | ✅ DONE — April 15, 2026 |
 | 10F | **Stripe Checkout API** | ✅ DONE — April 14, 2026 💳 |
+| 10G | DB — Stripe webhook writes | ✅ DONE — April 14, 2026 |
+| 10H | Pricing page (dashboard) | ✅ DONE — April 14, 2026 |
+| 10I | Stripe CLI e2e — routes + webhook LIVE | ✅ DONE — April 15, 2026 🎉 |
+| 10J | **CognitiveUplink `/ws/uplink`** | ✅ DONE — April 15, 2026 🔌 |
+| 10K | Stripe Price IDs in `.env` | ✅ DONE — April 15, 2026 |
 
 ---
 
@@ -77,16 +85,12 @@ POST /api/stripe/webhook     → handles Stripe events (signature verified)
 
 ---
 
-## 🎯 NEXT UP — Phase 10G+
+## 🎯 NEXT UP — Remaining Work
 
 | Phase | Task | Why |
 |---|---|---|
-| **10G** | DB — save subscription to Postgres on webhook fire | Hook `checkout.session.completed` → update users table |
-| **10H** | Frontend — Pricing page + checkout button | Next.js UI wired to `/api/stripe/checkout` |
-| **10I** | Stripe CLI end-to-end local testing | `stripe listen --forward-to localhost:8000/api/stripe/webhook` |
-| **10C** | Secrets management (Docker secrets / Vault) | `.env` files still used locally — productionise |
-| **10D** | Agent-level rate limiting + auth | Per-agent API keys for internal network |
-| **10E** | Open bug: CognitiveUplink.tsx ~130 | WS message type `"command"` → `"execute"` |
+| **CVE** | Agent image CVE patching | 14 HIGH remaining on agent images — no Debian fix available yet |
+| **Course** | Wire vibe coding frontend Pricing page to `/api/stripe/checkout` | Supabase Edge Function for post-purchase course access grant |
 
 ---
 
