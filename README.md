@@ -9,8 +9,8 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
-[![Version](https://img.shields.io/badge/version-2.4.0-blue)](backend/app/core/config.py)
-[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2043%2F46-brightgreen)](STATUS_REPORT.md)
+[![Version](https://img.shields.io/badge/version-2.4.1-blue)](backend/app/core/config.py)
+[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2029%2F29-brightgreen)](STATUS_REPORT.md)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](docs/screenshots-gallery.md)
@@ -46,20 +46,21 @@ This was built for a specific kind of mind: **ADHD, dyslexic, and autistic devel
 
 ## 🟢 Live System Status — April 2026
 
-> Full report: [STATUS_REPORT.md](STATUS_REPORT.md) | Assessed by Gordon Docker AI + BROski Brain
+> All 29 core containers healthy · Stripe payments LIVE · CognitiveUplink WS LIVE
 
 | Category | Grade | Status |
 |---|---|---|
-| 🐳 Infrastructure | 100% | 43/46 containers healthy |
-| 🤖 Agent Crew | 11/12 online | All core agents operational |
+| 🐳 Infrastructure | 100% | 29/29 containers healthy |
+| 🤖 Agent Crew | All online | Agent X, Crew Orchestrator, Healer, all specialists |
 | 📡 Observability | A+ | Prometheus + Grafana + Loki + Tempo live |
-| 🔐 Security | A | Non-root, cap drops, no-new-privileges |
-| 🧬 Autonomy | A+ | Self-healing, auto-cleanup, agent evolution |
-| 🏗️ Architecture | A+ | Multi-network isolation, modular Dockerfiles |
+| 🔐 Security | A+ | Non-root, cap drops, Trivy scanning, network isolation |
+| 🧬 Autonomy | A+ | Self-healing, CognitiveUplink WS, agent evolution |
+| 💳 Payments | LIVE | Stripe Checkout + webhook handler + DB writes |
+| 🔌 WebSocket | LIVE | `/ws/uplink` CognitiveUplink → Crew Orchestrator |
 
 ```bash
-# Quick health cleanup (reclaims ~54GB)
-docker container prune -f && docker image prune -a -f && docker builder prune -af
+# Start the full stack
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 ```
 
 ---

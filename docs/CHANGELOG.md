@@ -2,12 +2,36 @@
 
 > **built with WelshDog + BROski 🚀🌙**
 
-**Doc Tag:** v2.4.0 | **Last Updated:** 2026-04-09
+**Doc Tag:** v2.4.1 | **Last Updated:** 2026-04-15
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.4.1] - 2026-04-15
+
+### Added
+- 💳 **Phase 10F — Stripe Checkout API** — `POST /api/stripe/checkout`, `GET /api/stripe/plans`, `POST /api/stripe/webhook` with signature verification
+- 🗄️ **Phase 10G — Stripe webhook DB writes** — subscription + payment + enrollment rows written on `checkout.session.completed`
+- 🔑 **Phase 10D — Agent-level auth + rate limiting** — `X-API-Key` header enforcement, per-key rate limiting, `hc_`-prefixed 43-char keys
+- 💰 **Phase 10H — Pricing page** — `/pricing` in Mission Control dashboard with Starter / Builder / Hyper token packs + Pro / Hyper course tiers
+- 🔌 **Phase 10J — CognitiveUplink WebSocket** — `WS /ws/uplink` bridges dashboard chat UI → Crew Orchestrator `/execute`; handles ping/pong, execute dispatch, timeout, HTTP errors, invalid JSON
+- 🧪 **Phase 10J — WS test suite** — 7 pytest tests for the uplink handler (`backend/tests/test_uplink_ws.py`)
+- 🌐 **Phase 10B — Docker network isolation** — 5 isolated networks: `frontend-net`, `backend-net`, `agents-net`, `data-net` (internal), `obs-net` (internal)
+- 🐳 **Phase 10C — Docker Secrets** — secrets via `./secrets/*.txt` + `docker-compose.secrets.yml`
+- 🛡️ **Phase 10E — CognitiveUplink WS URL fix** — dashboard was pointing at wrong port (8081→8000) and wrong message type (`command`→`execute`)
+- 🏗️ **Phase 10K — Stripe Price IDs** — all 7 live Stripe price IDs wired into `.env` + `docker-compose.yml`
+
+### Changed
+- Stripe checkout mode: token packs (`starter`/`builder`/`hyper`) use `mode="payment"`, course plans use `mode="subscription"` — was previously all `subscription` (bug fix)
+- `CLAUDE.md` updated to single source of truth, merged from `CLAUDE.md` + `CLAUDE_CONTEXT.md`
+- Version badge updated to 2.4.1
+
+### Fixed
+- Stripe checkout for one-time token packs would fail on Stripe (wrong `mode="subscription"`). Fixed with `CHECKOUT_MODE` dict in `stripe_service.py`.
+- CognitiveUplink WS connected to `crew-orchestrator:8081` instead of `hypercode-core:8000` — message type also wrong (`command` vs `execute`).
+- Docker context split: `default` context had stale container references; `desktop-linux` context is the correct one on Windows.
 
 ## [Unreleased]
 
