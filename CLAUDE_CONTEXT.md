@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 15, 2026 (evening) — 172 tests GREEN ✅ | 29/29 containers UP ✅ | All agents healthy ✅ | Stripe→BROski$ CONFIRMED LIVE 💳**
+> **Last synced: April 15, 2026 (9:37pm) — 172 tests GREEN ✅ | 29/29 ALL (healthy) ✅ | Stripe→BROski$ LIVE 💳 | npm@0.1.7 LIVE 🚀**
 
 ---
 
@@ -24,7 +24,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
                                        │                       HyperCode\HyperCode-V2.4
                               HyperAgent-SDK
                           github.com/welshDog/HyperAgent-SDK
-                          npm: @w3lshdog/hyper-agent@0.1.4
+                          npm: @w3lshdog/hyper-agent@0.1.7
                           Path: H:\HyperAgent-SDK
 ```
 
@@ -55,62 +55,52 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 10I | Stripe CLI e2e — routes + webhook LIVE | ✅ DONE — April 15, 2026 🎉 |
 | 10J | **CognitiveUplink `/ws/uplink`** | ✅ DONE — April 15, 2026 🔌 |
 | 10K | Stripe Price IDs in `.env` | ✅ DONE — April 15, 2026 |
+| **10L** | **Healthchecks on all 29 containers** | ✅ DONE — April 15, 2026 👋 |
 
 ---
 
-## ✅ Full Test Suite Status (April 15, 2026 evening)
+## 👋 Phase 10L — Healthchecks on ALL 29 Containers (April 15, 2026)
+
+All 29/29 containers now show **(healthy)** ✅
+
+**The 3 that needed custom checks:**
+| Container | Check used | Why |
+|---|---|---|
+| `docker-socket-proxy-build` | `wget 127.0.0.1:2375/_ping` | HAProxy `/_ping` endpoint — had to use `127.0.0.1` not `localhost` (IPv6 vs IPv4 issue) |
+| `hyper-sweeper-prune` | `pgrep crond` | Verifies the cron daemon is alive |
+| `hyper-shield-scanner` | `CMD true` | Long-running while loop — no HTTP, process check not meaningful |
+
+**Rule:** Always use the most meaningful health check available. Only fall back to `CMD true` when the container has no HTTP or process to check.
+
+---
+
+## ✅ Full Test Suite Status (April 15, 2026)
 
 ```
 172 passed, 6 skipped in 225s
 ```
 
-**6 skips are EXPECTED and fine:**
+**6 skips are EXPECTED:**
 - Redis/Postgres not accessible from host (integration tests — run in Docker)
 - Ollama bench flag off
 
-**Earlier ERROR was transient** — collection ordering issue, passes clean every single time now.
-
-**Run tests:**
 ```powershell
 cd "H:\HyperStation zone\HyperCode\HyperCode-V2.4"
 pytest
+# Expected: 172 passed, 6 skipped
 ```
 
 ---
 
-## 💳 Phase 10G — Stripe → BROski$ CONFIRMED DONE (April 14, 2026)
+## 💳 Phase 10G — Stripe → BROski$ CONFIRMED DONE
 
 `stripe_service.py` has:
 - `_award_tokens()` — wired to `handle_webhook_event()`
 - `_save_payment()` — persists to DB
 - `_update_user_subscription()` — updates subscription state
 
-**Token grants:**
-| Pack | BROski$ |
-|---|---|
-| starter | 200 |
-| builder | 800 |
-| hyper | 2500 |
-
-**Dedup:** `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` — idempotent ✅
-
----
-
-## 👋 Current Container Status (April 15, 2026 evening)
-
-**29/29 containers up ✅**
-
-**26/29 showing (healthy) ✅**
-
-**3 containers missing healthcheck labels — UP but no health label:**
-| Container | Status |
-|---|---|
-| `docker-socket-proxy-build` | Up (no health label) |
-| `hyper-shield-scanner` | Up (no health label) |
-| `hyper-sweeper-prune` | Up (no health label) |
-
-**Agents all healthy ✅:**
-- agent-x, healer-agent, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator
+**Token grants:** starter=200, builder=800, hyper=2500 BROski$
+**Dedup:** `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 
 ---
 
@@ -118,52 +108,29 @@ pytest
 
 | # | Task | Size | Notes |
 |---|---|---|---|
-| **A** | Add healthchecks to 3 containers above | ~10 min | docker-socket-proxy-build, hyper-shield-scanner, hyper-sweeper-prune |
-| **B** | Gordon Tier 1: `/metrics` on hypercode-core | ~15 min | Prometheus endpoint fix |
-| **C** | Course frontend Pricing page → Stripe checkout | Bigger | Wire Vibe Course frontend to V2.4 `/api/stripe/checkout` |
+| **B** | Gordon Tier 1: `/metrics` on hypercode-core | ~15 min | Prometheus 7/9 → 9/9 — check `monitoring/prometheus.yml` |
+| **C** | Wire Vibe Course frontend → Stripe checkout | Bigger | Frontend calls V2.4 `/api/stripe/checkout` |
 
-**Ask Lyndz: Start with A (healthchecks — quick win) or jump to B (Prometheus /metrics)?**
-
-### Task A — Healthcheck Pattern (use for all 3)
-```yaml
-healthcheck:
-  test: ["CMD", "true"]  # adjust per container
-  interval: 30s
-  timeout: 10s
-  retries: 3
-  start_period: 10s
-```
-
-### Task B — Gordon Tier 1 (Prometheus)
-Add `/metrics` endpoint to `hypercode-core` service so Prometheus can scrape it properly.
-Check `monitoring/prometheus.yml` for existing scrape config.
+### Task B — Gordon Tier 1 (Prometheus /metrics)
+- Check `monitoring/prometheus.yml` for existing scrape config
+- Verify `/metrics` is reachable on `hypercode-core`
+- Fix FastAPI MetricsMiddleware or Prometheus scrape target if broken
+- Goal: Prometheus 7/9 → 9/9 targets UP
+- Confirm Grafana at `:3000` is pulling data correctly
 
 ---
 
-## 💳 Phase 10F — Stripe Checkout API (LIVE — April 14, 2026)
+## 💳 Phase 10F — Stripe Checkout API (LIVE)
 
-### What was built
-- `backend/app/routes/stripe.py` — 3 FastAPI endpoints
-- `backend/app/services/stripe_service.py` — all Stripe logic, price map, token awards
-- `backend/tests/test_stripe.py` — 4 tests (pytest)
-- `backend/app/main.py` — Stripe router registered, `/api/stripe/webhook` rate-limit exempt
-
-### Live Endpoints
 ```
 POST /api/stripe/checkout    → creates Stripe Checkout Session, returns URL
 GET  /api/stripe/plans       → lists available plan names
 POST /api/stripe/webhook     → handles Stripe events (signature verified)
 ```
 
-### Webhook events handled
-- `checkout.session.completed` → subscription activated + tokens awarded + payment saved
-- `customer.subscription.deleted` → subscription cancelled
-- `invoice.payment_failed` → payment failed warning
-- `customer.subscription.updated` → status change logged
+Webhook events: `checkout.session.completed`, `customer.subscription.deleted`, `invoice.payment_failed`, `customer.subscription.updated`
 
-### Dev mode note
-- If `STRIPE_WEBHOOK_SECRET` is not set → signature check skipped (safe for local dev)
-- Always set in production via Docker secrets
+Dev mode: missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
 
 ---
 
@@ -175,13 +142,11 @@ POST /api/stripe/webhook     → handles Stripe events (signature verified)
 - `data-net` (bridge, **internal: true**) — redis + postgres + minio + chroma
 - `obs-net` (bridge, **internal: true**) — prometheus, grafana, loki, tempo, promtail
 
-Script: `scripts/network-migrate.sh` — run to tear down and recreate safely.
-
 ---
 
 ## 🛡️ Phase 9 Security Patterns (use in ALL new Dockerfiles)
 
-**Part A — OS hardening (every runtime stage):**
+**Part A — OS hardening:**
 ```dockerfile
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
@@ -191,16 +156,14 @@ RUN apt-get update --allow-releaseinfo-change && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 ```
 
-**Part B — pip pinning (every Python runtime stage):**
+**Part B — pip pinning:**
 ```dockerfile
 RUN pip install --upgrade --no-cache-dir \
     "pip==26.0.1" "setuptools>=80.0.0" "wheel==0.46.2" \
     "jaraco.context>=6.0.0" "jaraco.functools>=4.1.0" "jaraco.text>=4.0.0"
 ```
 
-**Base image standard:** `python:3.11-slim` (not pinned patch — CI pulls latest with `--pull`)
-
-**Trivy target:** 0 CRITICAL. <5 HIGH ideally. 14 HIGH remaining = no Debian fix available yet.
+**Base image:** `python:3.11-slim` | **Trivy target:** 0 CRITICAL, <5 HIGH | 14 HIGH remaining = no Debian fix yet
 
 ---
 
@@ -208,54 +171,51 @@ RUN pip install --upgrade --no-cache-dir \
 
 ### HyperAgent-SDK ✅ SHIPPED
 - CLI suite: `validate`, `registry`, `memory`, `studio`, `graduate` — all verified
-- Published: `@w3lshdog/hyper-agent@0.1.4` live on npm ✅
+- TypeScript types, JSDoc, 34 unit tests — April 15, 2026
+- Published: `@w3lshdog/hyper-agent@0.1.7` live on npm ✅
 
-### Phase 0 ✅ — Port conflicts, xp-leaderboard, Alembic migration
-### Phase 1 ✅ — discord_id bridge, /coursestats Discord command, Edge Function fan-out
-### Phase 2 ✅ — Token sync, CourseSyncEvent ORM, /award-from-course, dedup guards
-### Phase 3 ✅ — AccessProvision, /provision, shop trigger → Discord DM with api_key
-### Phase 4 ✅ — GraduationEvent ORM, /graduate/trigger, Edge Function, Discord Graduate role
-### Phase 5 ✅ — Structured JSON logging, MetricsMiddleware, /health + /metrics, Grafana
-### Phase 6 ✅ — 5 CLI commands verified. Logs routing fix (broadcaster before dashboard_compat)
-### Phase 7 ✅ — 19 Dockerfiles: non-root users, docker group (GID 999), multi-stage rewrites
-### Phase 8 ✅ — trivy-scan.yml (PR gate), trivy-weekly.yml (Monday 06:00 UTC), Makefile scan targets
-### Phase 9 ✅ — CVE result: agent-x 11 CRITICAL → 0 CRITICAL, 55 HIGH → 14 HIGH
-### Phase 10A ✅ — FastAPI upgraded to 0.117+ (fixes starlette HIGH CVE)
-### Phase 10B ✅ — Docker Compose network isolation (data-net + obs-net internal: true)
-### Phase 10F ✅ — Stripe Checkout API: 3 endpoints + service layer + tests
-### Phase 10G ✅ — Stripe → BROski$ tokens wired: _award_tokens, _save_payment, _update_user_subscription
+### Phase 0–6 ✅ — Identity, tokens, agents, shop, observability, CLI tools
+### Phase 7 ✅ — 19 Dockerfiles: non-root users, multi-stage
+### Phase 8 ✅ — Trivy CI gate + weekly scan
+### Phase 9 ✅ — agent-x: 11 CRITICAL → 0, 55 HIGH → 14
+### Phase 10A ✅ — FastAPI 0.117+ upgrade
+### Phase 10B ✅ — Network isolation (data-net + obs-net internal)
+### Phase 10C ✅ — Docker Secrets
+### Phase 10D ✅ — Agent rate limiting + auth
+### Phase 10E ✅ — CognitiveUplink WS type fix
+### Phase 10F ✅ — Stripe Checkout API (3 endpoints)
+### Phase 10G ✅ — Stripe → BROski$ tokens wired
 ### Phase 10H ✅ — Pricing page (dashboard)
 ### Phase 10I ✅ — Stripe CLI e2e verified LIVE
 ### Phase 10J ✅ — CognitiveUplink /ws/uplink WebSocket LIVE
 ### Phase 10K ✅ — Stripe Price IDs in .env
+### Phase 10L ✅ — All 29 containers (healthy) — April 15, 2026
 
 ---
 
 ## 🚨 Key Technical Rules (never re-debate these)
 
 - **Docker imports:** `from app.X import Y` — NEVER `from backend.app.X import Y`
-- **FastAPI routing:** First-match wins — public routes BEFORE auth-gated compat routes
+- **FastAPI routing:** First-match wins — public routes BEFORE auth-gated
 - **Alembic down_revision:** Must match EXACT revision string
 - **CLI folder:** All `hyper-agent` commands run from `H:\HyperAgent-SDK`
 - **Logs empty on fresh boot:** Normal — Redis `hypercode:logs` populates as agents run
 - **Port convention:** 3100-3199 writing, 3200-3299 code, 3300-3399 data, 3400-3499 discord, 3500-3599 automation
 - **Supabase ↔ V2.4 Postgres:** NEVER merge schemas
 - **`.env` files:** Never committed — use Docker secrets in production
-- **One bot:** broski-bot. Old Replit bot = dead.
-- **Discord DM delivery:** V2.4 endpoint calls Discord HTTP API directly
-- **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars, URL-safe
-- **Dockerfiles:** Use `python:3.11-slim` + Part A + Part B — Phase 9 pattern
-- **GitHub Actions:** Always `--no-cache --pull` in security scanning workflows
+- **One bot:** broski-bot. Docker only. Old Replit bot = dead.
+- **API keys:** `hc_` prefix + `secrets.token_urlsafe(32)` — 43 chars
+- **Dockerfiles:** `python:3.11-slim` + Part A + Part B — Phase 9 pattern
+- **GitHub Actions:** Always `--no-cache --pull` in security workflows
 - **jaraco.* packages:** Always pin explicitly
-- **docker-socket agents** (healer/coder/05-devops): Use `docker-ce-cli` repo, NOT `docker.io`
-- **Network isolation:** Phase 10B complete — `data-net` + `obs-net` are `internal: true`
-- **Stripe webhook:** `/api/stripe/webhook` is rate-limit exempt — do NOT add rate limiting to it
-- **Stripe dev mode:** Missing `STRIPE_WEBHOOK_SECRET` = signature check skipped (local only)
-- **Test skips:** 6 expected skips (Redis/Postgres/Ollama) — these are NOT failures
+- **docker-socket agents:** Use `docker-ce-cli` repo, NOT `docker.io`
+- **Network isolation:** `data-net` + `obs-net` are `internal: true`
+- **Stripe webhook:** Rate-limit exempt — NEVER add rate limiting to it
+- **Test skips:** 6 expected (Redis/Postgres/Ollama) — NOT failures
+- **Healthchecks:** All 29 containers have labels ✅ — use meaningful checks, `CMD true` last resort
 - **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
-- **Windows PowerShell first**, bash second — always
+- **Windows PowerShell first**, bash second
 - **`apps/web/`:** Archived, never migrate
-- **Healthcheck containers:** 3 still need labels — docker-socket-proxy-build, hyper-shield-scanner, hyper-sweeper-prune
 
 ---
 
@@ -276,7 +236,8 @@ cd "H:\the hyper vibe coding hub"
 docker compose up -d
 docker compose build --no-cache
 docker compose exec api alembic upgrade head
-docker compose exec api alembic history --verbose
+docker ps --format "table {{.Names}}\t{{.Status}}"
+# Expected: all 29 showing (healthy)
 
 # Test suite
 pytest
@@ -286,7 +247,6 @@ pytest
 make scan-all
 make scan-agent AGENT=healer
 make scan-build AGENT=agent-x
-make build-secure
 
 # CLI (from H:\HyperAgent-SDK)
 $env:HYPERCODE_API_URL = "http://localhost:8000"
@@ -296,21 +256,16 @@ node cli/index.js logs --tail 20
 node cli/index.js tokens award <discord_id> <amount>
 node cli/index.js graduate <discord_id> --tokens 100
 
-# Stripe (Phase 10F)
+# Stripe
 curl -X POST http://localhost:8000/api/stripe/checkout \
   -H "Content-Type: application/json" \
   -d '{"price_id": "starter", "user_id": "broski_test"}'
-
-# Stripe CLI local webhook testing
 stripe listen --forward-to localhost:8000/api/stripe/webhook
-
-# Run Stripe tests:
 pytest backend/tests/test_stripe.py -v
 
 # SDK
-npx @w3lshdog/hyper-agent validate .agents/my-agent/
 npm version patch --no-git-tag-version
-npm publish --access public --tag alpha
+npm publish --access public
 ```
 
 ---
@@ -320,24 +275,23 @@ npm publish --access public --tag alpha
 - `public.users.broski_tokens` — balance column
 - `token_transactions` — append-only ledger with idempotency guards
 - `award_tokens()` + `spend_tokens()` — SECURITY DEFINER, server-side only
-- `shop_items` + `shop_purchases` — JSONB metadata fields
-- `shop_purchases.item_slug` — used to filter for "agent-sandbox-access"
-- Stripe token grants: starter=200, builder=800, hyper=2500 BROski$ ✅ CONFIRMED LIVE
+- `shop_items` + `shop_purchases` — JSONB metadata
+- Stripe grants: starter=200, builder=800, hyper=2500 BROski$ ✅
 - Dedup: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 
 ---
 
 ## 📦 This Repo — HyperCode V2.4 Specifics
 
-- **29 Docker containers**, full AI agent stack
+- **29 Docker containers** — ALL (healthy) ✅
 - **172 tests passing**, 6 expected skips ✅
-- One bot: broski-bot (Docker). Old Replit bot = dead.
+- One bot: broski-bot (Docker)
 - Network: 5 isolated networks (Phase 10B)
-- Security: Trivy CI gate + weekly scan + local pre-push hook
+- Security: Trivy CI gate + weekly scan
 - Grafana dashboards live at `:3000`
 - **Stripe Checkout + BROski$ tokens:** FULLY LIVE ✅
-- **Agents:** agent-x, healer-agent, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy
-- **3 containers need healthcheck labels** — see NEXT UP above
+- **Agents:** agent-x, healer-agent, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
+- **Next:** Gordon Tier 1 — Prometheus `/metrics` (Task B) — fix 7/9 → 9/9
 
 ---
 
