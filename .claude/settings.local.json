@@ -152,7 +152,9 @@
       "Bash(chmod +x:*)",
       "Bash(stripe --version)",
       "Bash(stripe listen:*)",
-      "Bash(echo \"EXIT: $?\")"
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(ls agents/)",
+      "Bash(ls Hyper-Agents-Box/)"
     ]
   },
   "enableAllProjectMcpServers": true,
