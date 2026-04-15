@@ -1,5 +1,5 @@
-# Stage 1: Builder
-FROM python:3.11-slim as builder
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
@@ -8,16 +8,30 @@ ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all + install build deps
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        libpq-dev \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Pip tool hardening — pin safe versions (eliminates pip/setuptools/jaraco CVEs)
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 COPY requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Stage 2: Final
+
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -27,12 +41,28 @@ ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# OS package hardening — upgrade all + explicitly install patched security libs
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        libpq5 \
+        curl \
+        ca-certificates \
+        libexpat1 \
+        openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Create a non-root user
+# Pip tool hardening — pin safe versions
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
+
+# Non-root user — security hardening
 RUN addgroup --system appuser && adduser --system --group appuser
 
 # Create cache directories
@@ -50,13 +80,9 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-# Expose port
 EXPOSE 8000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Command to run the application
-# We use python -m uvicorn to ensure imports work correctly relative to the module
 CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
