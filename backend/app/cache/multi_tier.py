@@ -1,6 +1,7 @@
 """Advanced multi-tier caching strategy for HyperCode."""
 
 import hashlib
+import inspect
 import json
 import logging
 from typing import Any, Optional, Callable
@@ -260,6 +261,71 @@ def cache(
         
         return wrapper
     
+    return decorator
+
+
+def cache_response(namespace: str, ttl: int = 60):
+    """Decorator for caching FastAPI HTTP endpoint responses.
+
+    Unlike @cache, this is safe to use on FastAPI endpoints because it
+    builds the cache key only from serialisable (primitive) kwargs —
+    it ignores Request, Session, and Depends objects that change every
+    request.
+
+    Usage::
+
+        @router.get("/plans")
+        @cache_response("stripe", ttl=60)
+        async def get_plans():
+            ...
+
+        @router.get("/leaderboard")
+        @cache_response("broski", ttl=30)
+        async def get_leaderboard(limit: int = 10, ...):
+            ...
+
+    Falls back to calling the real function if Redis is unavailable.
+    """
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Build key only from primitive kwargs (skip db, Request, User…)
+            safe_parts = sorted(
+                f"{k}={v}"
+                for k, v in kwargs.items()
+                if isinstance(v, (str, int, float, bool, type(None)))
+            )
+            key_str = f"{func.__module__}.{func.__name__}:{':'.join(safe_parts)}"
+            cache_key = hashlib.md5(key_str.encode()).hexdigest()
+
+            # ── Try cache ──────────────────────────────────────────────
+            try:
+                c = await get_cache()
+                cached = await c.get(namespace, cache_key)
+                if cached is not None:
+                    logger.debug(f"cache_response HIT  {namespace}:{func.__name__}")
+                    return cached
+            except Exception as exc:
+                logger.debug(f"cache_response get error (miss): {exc}")
+
+            # ── Call real function ─────────────────────────────────────
+            if inspect.iscoroutinefunction(func):
+                result = await func(*args, **kwargs)
+            else:
+                result = func(*args, **kwargs)
+
+            # ── Store result ───────────────────────────────────────────
+            if result is not None:
+                try:
+                    c = await get_cache()
+                    await c.set(namespace, cache_key, result, ttl)
+                    logger.debug(f"cache_response SET  {namespace}:{func.__name__} ttl={ttl}s")
+                except Exception as exc:
+                    logger.debug(f"cache_response set error (skipped): {exc}")
+
+            return result
+
+        return wrapper
     return decorator
 
 

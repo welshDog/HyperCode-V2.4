@@ -111,11 +111,26 @@ def award_coins_and_xp(
     return response
 
 
+_PULSE_CACHE_KEY = "broski:pulse:v1"
+_PULSE_TTL = 30  # seconds
+
+
 @router.get("/pulse")
 def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
     """Public system-wide BROski$ pulse — no auth needed. Used by dashboard."""
     from app.models.broski import BROskiWallet
     from app.core.config import settings as cfg
+
+    # ── Redis cache: return early if fresh data exists ─────────────
+    r_client = None
+    try:
+        r_client = redis.Redis.from_url(cfg.HYPERCODE_REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+        cached = r_client.get(_PULSE_CACHE_KEY)
+        if cached:
+            import json as _json
+            return _json.loads(cached)
+    except Exception:
+        pass
 
     total_coins = db.query(func.sum(BROskiWallet.coins)).scalar() or 0
     total_xp = db.query(func.sum(BROskiWallet.xp)).scalar() or 0
@@ -124,18 +139,19 @@ def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
     # Count agents online via Redis heartbeats
     agents_online = 0
     try:
-        r = redis.Redis.from_url(cfg.HYPERCODE_REDIS_URL, decode_responses=True, socket_connect_timeout=1)
-        keys = r.keys("agents:heartbeat:*")
+        if r_client is None:
+            r_client = redis.Redis.from_url(cfg.HYPERCODE_REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+        keys = r_client.keys("agents:heartbeat:*")
         agents_online = len(keys)
-        r.close()
     except Exception:
         pass
 
     from app.models.broski import xp_to_level
+    import json as _json
     total_xp_int = int(total_xp)
     level, level_name = xp_to_level(total_xp_int)
 
-    return {
+    result = {
         "coins": int(total_coins),
         "xp": total_xp_int,
         "level": level,
@@ -143,6 +159,16 @@ def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
         "agentsOnline": agents_online,
         "userCount": int(user_count),
     }
+
+    # ── Cache the result ────────────────────────────────────────────
+    try:
+        if r_client:
+            r_client.setex(_PULSE_CACHE_KEY, _PULSE_TTL, _json.dumps(result))
+            r_client.close()
+    except Exception:
+        pass
+
+    return result
 
 
 @router.post("/daily-login")

@@ -10,6 +10,7 @@ from app.api.api import api_router
 from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
 from app.routes.stripe import router as stripe_router  # 💳 Phase 10F
 from app.ws.uplink import router as uplink_router      # 🔌 Phase 10J — CognitiveUplink
+from app.cache.multi_tier import cache_response        # 🚀 Gordon Tier 2 — response cache
 
 try:
     from app.core.logging import setup_logging as _setup_logging
@@ -217,13 +218,14 @@ app.include_router(stripe_router)
 app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
+@cache_response("health", ttl=10)
 async def health_check():
-    return JSONResponse({
+    return {
         "status": "ok",
         "service": settings.SERVICE_NAME,
         "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT
-    })
+        "environment": settings.ENVIRONMENT,
+    }
 
 @app.get("/")
 async def root():

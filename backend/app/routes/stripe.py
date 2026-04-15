@@ -13,6 +13,7 @@ from app.services.stripe_service import (
     handle_webhook_event,
     PRICE_MAP,
 )
+from app.cache.multi_tier import cache_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stripe", tags=["stripe"])
@@ -55,6 +56,7 @@ async def checkout(body: CheckoutRequest):
 
 # ── GET /api/stripe/plans ────────────────────────────────────
 @router.get("/plans")
+@cache_response("stripe", ttl=60)
 async def get_plans():
     """Return available plan names mapped to Stripe price IDs."""
     return {"plans": list(PRICE_MAP.keys())}
