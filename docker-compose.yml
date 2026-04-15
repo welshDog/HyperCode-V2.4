@@ -512,6 +512,7 @@ services:
       - "127.0.0.1:9001:9001"
     networks:
       - data-net
+      - obs-net   # allows Prometheus (obs-net) to scrape /minio/v2/metrics/cluster
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]

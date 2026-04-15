@@ -28,10 +28,11 @@ scrape_configs:
     static_configs:
       - targets: ["crew-orchestrator:8080"]
 
-  - job_name: "test-agent"
-    metrics_path: /metrics
-    static_configs:
-      - targets: ["test-agent:8080"]
+  # test-agent is profile-gated (--profile agents) — uncomment when deployed
+  # - job_name: "test-agent"
+  #   metrics_path: /metrics
+  #   static_configs:
+  #     - targets: ["test-agent:8080"]
 
   # throttle-agent is profile-gated (--profile agents) — uncomment when deployed
   # - job_name: "throttle-agent"
