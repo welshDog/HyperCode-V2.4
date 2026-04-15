@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 15, 2026 | Status: 30/30 containers 🟢 | Grade A 🏅
+> Last updated: April 15, 2026 | Status: 30/30 containers 🟢 | Grade A 🏅 | Phases 0–10K COMPLETE ✅
 
 ---
 
@@ -356,11 +356,12 @@ docker compose --profile agents up -d
 Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
 
 1. **Read this file first** — especially the Sacred Rules
-2. **Check docs/INDEX.md** for navigation
-3. **Current mission:** Work through Tier 1 → Tier 2 → Tier 3 plan above
-4. **Next task:** Add `/metrics` to `hypercode-core` (15 min, highest priority)
-5. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-6. **Never:** Wall of text. Never debate the Sacred Rules.
+2. **Check CLAUDE_CONTEXT.md** — that's the phase-by-phase source of truth (Phases 0–10K all ✅)
+3. **Current mission:** Gordon Tier 1 hit list (see below) + CVE patching agent images
+4. **10J + 10K DONE:** CognitiveUplink `/ws/uplink` live 🔌 + Stripe Price IDs wired ✅
+5. **Next:** Wire Pricing page (course frontend) → `/api/stripe/checkout` + Supabase Edge Function
+6. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+7. **Never:** Wall of text. Never debate the Sacred Rules.
 
 > *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
 
