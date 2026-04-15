@@ -155,7 +155,10 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(ls agents/)",
       "Bash(ls Hyper-Agents-Box/)",
-      "Bash(awk '/docker-socket-proxy-build:|auto-prune:|security-scanner:/{found=1; count=0} found{count++; print NR\": \"$0; if\\(count>20\\){found=0}}' docker-compose.yml)"
+      "Bash(awk '/docker-socket-proxy-build:|auto-prune:|security-scanner:/{found=1; count=0} found{count++; print NR\": \"$0; if\\(count>20\\){found=0}}' docker-compose.yml)",
+      "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\" backend/requirements.txt)",
+      "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\\\\|tracer\\\\|TracerProvider\" backend/app/main.py)",
+      "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\" backend/app/core/telemetry.py)"
     ]
   },
   "enableAllProjectMcpServers": true,
