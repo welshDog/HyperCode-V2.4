@@ -9,6 +9,7 @@ from app.core.telemetry import setup_telemetry
 from app.api.api import api_router
 from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
 from app.routes.stripe import router as stripe_router  # 💳 Phase 10F
+from app.ws.uplink import router as uplink_router      # 🔌 Phase 10J — CognitiveUplink
 
 try:
     from app.core.logging import setup_logging as _setup_logging
@@ -213,6 +214,7 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # 💳 Phase 10F — Stripe Checkout & Webhook
 app.include_router(stripe_router)
+app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
 async def health_check():

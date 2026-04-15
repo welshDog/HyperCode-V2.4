@@ -131,7 +131,7 @@ export default function CognitiveUplink() {
     }
 
     const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? `ws://${hostname}:8081/ws/uplink`;
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? `ws://${hostname}:8000/ws/uplink`;
 
     console.log(`[CognitiveUplink] Connecting to ${wsUrl}...`);
     if (Date.now() - lastConnectToastAtRef.current > 8000) {
