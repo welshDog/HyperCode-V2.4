@@ -76,9 +76,9 @@ COPY agents/agent-x/ /app/agentx/
 VOLUME ["/workspace"]
 
 # Non-root user with docker group access — security hardening
-# docker group GID 999 is the default on most Linux distros
+# docker-ce-cli doesn't create the docker group; create it without pinning GID
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
-    && (getent group docker || groupadd -g 999 docker) \
+    && (getent group docker || groupadd docker) \
     && usermod -aG docker appuser \
     && chown -R appuser:appuser /app
 USER appuser
