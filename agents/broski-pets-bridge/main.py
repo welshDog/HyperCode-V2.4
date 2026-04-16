@@ -15,7 +15,7 @@ app = FastAPI(title="broski-pets-bridge")
 
 
 @app.get("/health")
-async def health() -> dict:
+async def health() -> dict[str, object]:
     ollama_url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434").rstrip("/")
     redis_url = os.getenv("REDIS_URL", "redis://redis:6379/3")
     pets_enabled = _is_true(os.getenv("PETS_ENABLED"))
