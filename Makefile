@@ -48,25 +48,21 @@ build: network-init
 	@echo "Building all agent containers..."
 	docker-compose -f docker-compose.yml --profile agents --env-file .env.agents build
 
-# Start all agents
-up: network-init
-	@echo "Starting all agents..."
-	docker-compose -f docker-compose.yml --profile agents --env-file .env.agents up -d
-	@echo "✅ Agents started!"
-	@echo "🌐 Orchestrator: http://localhost:8080"
-	@echo "📊 Dashboard: http://localhost:8090"
+# Start full stack with secrets
+up:
+	docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
-# Stop all agents
+# Stop full stack
 down:
-	@echo "Stopping all agents..."
-	docker-compose -f docker-compose.yml --profile agents down
+	docker compose -f docker-compose.secrets.yml down
 
-# Restart all agents
-restart: down up
+# Restart full stack
+restart:
+	docker compose -f docker-compose.yml -f docker-compose.secrets.yml restart
 
-# View logs (all agents)
+# View logs (all services)
 logs:
-	docker-compose -f docker-compose.yml --profile agents logs -f
+	docker compose -f docker-compose.yml -f docker-compose.secrets.yml logs -f
 
 # View specific agent logs
 logs-orchestrator:
