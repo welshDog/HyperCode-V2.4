@@ -93,6 +93,10 @@ class Settings(BaseSettings):
         default="http://hypercode-core:8000",
         description="HyperCode Core API base URL",
     )
+    pets_bridge_url: str = Field(
+        default="http://broski-pets-bridge:8098",
+        description="BROskiPets bridge base URL (Phase 1)",
+    )
     # Phase 1: Identity Bridge — Supabase edge function URL
     course_profile_edge_url: str = Field(
         default="",
