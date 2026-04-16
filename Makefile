@@ -131,8 +131,20 @@ full-docker-health:
 	@echo "3. Running Health Check Controller..."
 	@python scripts/health_check_controller.py
 
-# Test orchestrator API
+# Run the full pytest test suite
 test:
+	pytest backend/tests/ -v
+
+# Run ruff linter
+lint:
+	ruff check .
+
+# CI: lint + tests (what GitHub Actions runs)
+ci: lint test
+	@echo "✅ CI passed"
+
+# Legacy: curl health checks against running stack
+health-check:
 	@echo "Testing orchestrator health..."
 	@curl -s http://localhost:8080/health | python3 -m json.tool
 	@echo ""
