@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 16, 2026 (09:10 BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe frontend WIRED ✅**
+> **Last synced: April 16, 2026 (evening BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe checkout → PaymentSuccess FULLY LIVE 💳✅**
 
 ---
 
@@ -165,10 +165,12 @@ All 29/29 **(healthy)** ✅
 
 | Option | What it is |
 |---|---|
+| 💳 ~~Course → Stripe frontend~~ | ✅ DONE April 16 — pricing → checkout → success → enrolled |
+| 📝 ~~CLAUDE_CONTEXT.md update~~ | ✅ DONE — you're reading it! |
 | 🎓 **Gordon Tier 3** | DB connection pooling, async task queues |
 | 🔗 **Payment Links flow** | Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars |
 | 🧪 **E2E test the checkout** | `stripe listen` + test card `4242 4242 4242 4242` → full flow |
-| 📝 ~~CLAUDE_CONTEXT.md update~~ | ✅ DONE — you're reading it! |
+| 🧹 **prometheus.yml tidy** | Delete/archive stale root `prometheus.yml` — `monitoring/prometheus/prometheus.yml` is the live one |
 
 ---
 
@@ -284,7 +286,7 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 - Stripe + BROski$ FULLY LIVE ✅
 - Agents: agent-x, healer, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
 - **Course → Stripe frontend WIRED** ✅ (April 16 — commit `7e28666` / `dd1d8dfe`)
-- **Next:** Gordon Tier 3 (DB pooling + async task queues) OR E2E checkout test
+- **Next:** Gordon Tier 3 (DB pooling + async task queues) | E2E checkout test (`stripe listen`) | Payment Links flow | prometheus.yml tidy
 
 ---
 

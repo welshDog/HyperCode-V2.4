@@ -2,12 +2,29 @@
 
 > **built with WelshDog + BROski 🚀🌙**
 
-**Doc Tag:** v2.4.1 | **Last Updated:** 2026-04-15
+**Doc Tag:** v2.4.2 | **Last Updated:** 2026-04-16
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [2.4.2] - 2026-04-16
+
+### Added
+- 💳 **Phase 10O — Course → Stripe frontend wired** — `/pricing` → Stripe Checkout → `/payment-success` full flow live; `PaymentSuccess.tsx` auto-enrolls user in all `is_active` courses on subscription; `payments.ts` sends `success_url`/`cancel_url` from browser origin
+- 🔄 **Async circuit breakers** (Phase 10N step 4) — 3 breakers: `llm-router` (fail_max=3, reset=30s), `crew-orchestrator` (fail_max=3, reset=15s), `stripe-api` (fail_max=5, reset=60s); state visible at `GET /api/v1/health → circuit_breakers[]`
+
+### Changed
+- ✅ **Phase 10L — All 29 containers have healthchecks** — `docker-socket-proxy-build` uses `wget 127.0.0.1:2375/_ping`, `hyper-sweeper-prune` checks `pgrep crond`, `hyper-shield-scanner` uses `CMD true`
+- 📡 **Phase 10M — Prometheus 7/7 targets UP** — `minio` added to `obs-net`, `test-agent` scrape target commented out (profile-gated); active config: `monitoring/prometheus/prometheus.yml`
+- 🔍 **Phase 10N step 1 — OTLP tracing LIVE in Tempo** — root cause was `OTLP_EXPORTER_DISABLED=true` in `.env`; flipped to `false`; traces visible in Grafana Tempo (`localhost:3001`)
+- ⚡ **Phase 10N step 2 — Redis caching** — `@cache_response` decorator on hot endpoints; `/health` 10s TTL, `/api/stripe/plans` 60s TTL, `/pulse` 30s TTL; Redis DB 1 (isolated from rate-limit DB 2)
+- 🚦 **Phase 10N step 3 — Per-route rate limiting** — Redis DB 2; Stripe webhook always exempt; 180 tests green (was 172, +8 new cache tests)
+
+### Fixed
+- `stripe_service.py` — used `?` separator when `success_url` already contained query params (course_id flow); fixed to `&`
+- `OTLP_EXPORTER_DISABLED=true` was silently disabling traces despite Tempo being healthy
 
 ## [2.4.1] - 2026-04-15
 
