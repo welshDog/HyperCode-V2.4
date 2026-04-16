@@ -96,6 +96,50 @@ def create_checkout_session(
     return session
 
 
+def create_course_checkout_session(
+    course_id: str,
+    course_title: str,
+    price_pence: int,
+    user_id: Optional[str] = None,
+    success_url: str = "http://localhost:3000/success",
+    cancel_url: str = "http://localhost:3000/cancel",
+) -> stripe.checkout.Session:
+    """
+    Creates a one-time Stripe Checkout Session for a course purchase.
+
+    Uses inline price_data (no pre-created Stripe Price ID needed — dynamic per-course
+    pricing). Sets client_reference_id = course_id so the Supabase stripe-webhook Edge
+    Function can enroll the correct course after payment.
+    """
+    metadata: dict = {"price_key": "course_purchase", "course_id": course_id}
+    if user_id:
+        metadata["user_id"] = user_id
+
+    def _create() -> stripe.checkout.Session:
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "gbp",
+                    "unit_amount": price_pence,
+                    "product_data": {"name": course_title},
+                },
+                "quantity": 1,
+            }],
+            mode="payment",
+            client_reference_id=course_id,
+            success_url=success_url + ("&" if "?" in success_url else "?") + "session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=cancel_url,
+            metadata=metadata,
+        )
+
+    session = _stripe_breaker.call_sync(_create)
+    logger.info(
+        f"✅ Course checkout session: {session.id} | course={course_id} | price=£{price_pence / 100:.2f}"
+    )
+    return session
+
+
 async def _save_payment(db, data: dict, user_id: Optional[str], price_key: Optional[str]) -> bool:
     """INSERT into payments. Dedup via stripe_session_id UNIQUE constraint."""
     session_id = data.get("id")

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from typing import Optional
 from app.services.stripe_service import (
     create_checkout_session,
+    create_course_checkout_session,
     handle_webhook_event,
     PRICE_MAP,
 )
@@ -22,10 +23,16 @@ router = APIRouter(prefix="/api/stripe", tags=["stripe"])
 
 # ── Request schemas ──────────────────────────────────────────
 class CheckoutRequest(BaseModel):
-    price_id: str          # e.g. "starter", "builder", "hyper" OR a raw price_xxx ID
+    price_id: str                       # "starter" | "builder" | "hyper" | "pro_monthly" |
+                                        # "pro_yearly" | "hyper_monthly" | "hyper_yearly" |
+                                        # "course_purchase" | raw Stripe price_xxx ID
     user_id: Optional[str] = None
     success_url: Optional[str] = "http://localhost:3000/success"
     cancel_url: Optional[str] = "http://localhost:3000/cancel"
+    # Course purchase fields — required when price_id == "course_purchase"
+    course_id: Optional[str] = None
+    course_title: Optional[str] = None
+    price_pence: Optional[int] = None   # GBP pence, e.g. 4900 = £49
 
 
 # ── POST /api/stripe/checkout ────────────────────────────────
@@ -35,14 +42,35 @@ async def checkout(request: Request, body: CheckoutRequest):
     """
     Create a Stripe Checkout Session.
     Returns a redirect URL for the user to complete payment.
-    """
-    # Resolve friendly name to Stripe price ID
-    price_key = body.price_id                          # friendly key e.g. "starter"
-    price_id  = PRICE_MAP.get(price_key, price_key)   # raw Stripe price_xxx ID
-    if not price_id:
-        raise HTTPException(status_code=400, detail=f"Unknown price_id: {body.price_id}")
 
+    Two paths:
+      - price_id == "course_purchase" → inline price_data session (no Stripe Price ID needed)
+      - anything else                 → existing PRICE_MAP lookup (token packs + subscriptions)
+    """
     try:
+        # ── Course purchase path ─────────────────────────────────────────────
+        if body.price_id == "course_purchase":
+            if not body.course_id or not body.course_title or body.price_pence is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="course_id, course_title, and price_pence are required for course_purchase",
+                )
+            session = create_course_checkout_session(
+                course_id=body.course_id,
+                course_title=body.course_title,
+                price_pence=body.price_pence,
+                user_id=body.user_id,
+                success_url=body.success_url,
+                cancel_url=body.cancel_url,
+            )
+            return {"checkout_url": session.url, "session_id": session.id}
+
+        # ── Token pack / subscription path ───────────────────────────────────
+        price_key = body.price_id
+        price_id  = PRICE_MAP.get(price_key, price_key)
+        if not price_id:
+            raise HTTPException(status_code=400, detail=f"Unknown price_id: {body.price_id}")
+
         session = create_checkout_session(
             price_id=price_id,
             price_key=price_key,
@@ -51,6 +79,7 @@ async def checkout(request: Request, body: CheckoutRequest):
             cancel_url=body.cancel_url,
         )
         return {"checkout_url": session.url, "session_id": session.id}
+
     except stripe.error.StripeError as e:
         logger.error(f"Stripe error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
