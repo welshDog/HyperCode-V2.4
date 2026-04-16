@@ -14,6 +14,7 @@ from app.services.stripe_service import (
     PRICE_MAP,
 )
 from app.cache.multi_tier import cache_response
+from app.middleware.rate_limiting import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/stripe", tags=["stripe"])
@@ -29,7 +30,8 @@ class CheckoutRequest(BaseModel):
 
 # ── POST /api/stripe/checkout ────────────────────────────────
 @router.post("/checkout")
-async def checkout(body: CheckoutRequest):
+@limiter.limit("10/minute")
+async def checkout(request: Request, body: CheckoutRequest):
     """
     Create a Stripe Checkout Session.
     Returns a redirect URL for the user to complete payment.
@@ -56,8 +58,9 @@ async def checkout(body: CheckoutRequest):
 
 # ── GET /api/stripe/plans ────────────────────────────────────
 @router.get("/plans")
+@limiter.limit("60/minute")
 @cache_response("stripe", ttl=60)
-async def get_plans():
+async def get_plans(request: Request):
     """Return available plan names mapped to Stripe price IDs."""
     return {"plans": list(PRICE_MAP.keys())}
 

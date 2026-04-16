@@ -11,6 +11,7 @@ from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddlewar
 from app.routes.stripe import router as stripe_router  # 💳 Phase 10F
 from app.ws.uplink import router as uplink_router      # 🔌 Phase 10J — CognitiveUplink
 from app.cache.multi_tier import cache_response        # 🚀 Gordon Tier 2 — response cache
+from app.middleware.rate_limiting import limiter, setup_rate_limiting  # 🚦 Gordon Tier 2 — per-route rate limits
 
 try:
     from app.core.logging import setup_logging as _setup_logging
@@ -203,6 +204,9 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception")
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
+# 🚦 Per-route rate limiting (Redis DB 2) — must be called before routes are registered
+setup_rate_limiting(app)
+
 # Initialize OpenTelemetry
 setup_telemetry(app)
 
@@ -218,8 +222,9 @@ app.include_router(stripe_router)
 app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
+@limiter.limit("120/minute")
 @cache_response("health", ttl=10)
-async def health_check():
+async def health_check(request: Request):
     return {
         "status": "ok",
         "service": settings.SERVICE_NAME,

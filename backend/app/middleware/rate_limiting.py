@@ -61,8 +61,9 @@ def rate_limit_error_handler(request: Request, exc: RateLimitExceeded):
             "error": "rate_limit_exceeded",
             "message": "Too many requests. Please try again later.",
             "retry_after": 60,
-            "limit": exc.detail
-        }
+            "limit": exc.detail,
+        },
+        headers={"Retry-After": "60"},
     )
 
 
