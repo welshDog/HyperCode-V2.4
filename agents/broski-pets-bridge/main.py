@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import subprocess
 from datetime import datetime, timezone
 from secrets import SystemRandom
 from typing import Literal
@@ -61,6 +62,65 @@ def _verify_secret(expected_env: str, header_value: str | None, header_name: str
         raise HTTPException(status_code=401, detail=f"{header_name} header required")
     if header_value != expected:
         raise HTTPException(status_code=401, detail="Invalid secret")
+
+
+def _workspace_path() -> str:
+    return os.getenv("WORKSPACE_PATH", "/workspace")
+
+
+def _squad_json_path() -> str:
+    return os.getenv("SQUAD_JSON_PATH", os.getenv("SQUAD_JSON_PATH", "/workspace/squad.json"))
+
+
+def _read_text_file(path: str, limit_chars: int) -> str:
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            data = f.read(limit_chars + 1)
+    except Exception:
+        return ""
+    return data[:limit_chars]
+
+
+def _recent_git_diff(limit_chars: int) -> str:
+    workspace = _workspace_path()
+    chunks: list[str] = []
+    try:
+        res = subprocess.run(
+            ["git", "-C", workspace, "log", "-1", "--pretty=oneline"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        out = (res.stdout or "").strip()
+        if out:
+            chunks.append(f"Last commit: {out}")
+    except Exception:
+        pass
+
+    for cmd in (
+        ["git", "-C", workspace, "diff", "--no-color", "--stat", "HEAD~1..HEAD"],
+        ["git", "-C", workspace, "diff", "--no-color", "--stat"],
+    ):
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            out = (res.stdout or "").strip()
+            if out:
+                chunks.append("Diff stat:\n" + out)
+                break
+        except Exception:
+            continue
+
+    combined = "\n".join(chunks).strip()
+    return combined[:limit_chars] if combined else ""
+
+
+def _load_squad() -> dict:
+    path = _squad_json_path()
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 
 
@@ -391,6 +451,176 @@ async def webhook_course_module_complete(
     slug = body.module_slug or "module_complete"
     res = _award_xp_to_pet(body.discord_id, 150, f"Course module complete: {slug}", "course_webhook")
     return {"awarded": True, "result": res.model_dump()}
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=4000)
+    mode: Literal["chat", "ask"] = Field(default="chat")
+
+
+@app.post("/pet/{discord_id}/chat")
+async def pet_chat(discord_id: str, body: ChatRequest) -> dict[str, object]:
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+
+    ollama_url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434").rstrip("/")
+    preferred_model = os.getenv("PETS_OLLAMA_MODEL", "qwen2.5:7b")
+    model = preferred_model
+    limit = int(os.getenv("PETS_CONTEXT_MAX_CHARS", "1200"))
+
+    whats_done = _read_text_file(os.path.join(_workspace_path(), "WHATS_DONE.md"), limit)
+    git_diff = _recent_git_diff(limit)
+
+    squad = _load_squad()
+    species = str(pet.get("species", "Unknown"))
+    power = ""
+    caps: list[str] = []
+    entry = squad.get(species)
+    if isinstance(entry, dict):
+        power = str(entry.get("power", ""))
+        raw_caps = entry.get("capabilities")
+        if isinstance(raw_caps, list):
+            caps = [str(x) for x in raw_caps][:20]
+
+    name = str(pet.get("name", "BROskiPet"))
+    rarity = str(pet.get("rarity", "Unknown"))
+    level = int(pet.get("level", 1))
+    hunger = int(pet.get("hunger", 0))
+    energy = int(pet.get("energy", 0))
+    happiness = int(pet.get("happiness", 0))
+
+    style = "You are a helpful AI companion."
+    if body.mode == "chat":
+        style = "You are a helpful AI companion. Stay in character, be warm and concise."
+    if body.mode == "ask":
+        style = "You are a senior pair-programmer. Be concrete, step-by-step, and focused on solving the coding question."
+
+    prompt = (
+        f"{style}\n"
+        f"Pet: {name} | Species: {species} | Rarity: {rarity} | Stage: {level}\n"
+        f"Vitals: hunger={hunger}/100 energy={energy}/100 happiness={happiness}/100\n"
+        f"Species power: {power}\n"
+        f"Capabilities: {', '.join(caps) if caps else 'none'}\n\n"
+        f"Recent git diff (may be empty):\n{git_diff}\n\n"
+        f"WHATS_DONE.md (may be empty):\n{whats_done}\n\n"
+        f"User message:\n{body.message}\n"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=300.0) as client:
+            try:
+                tags = await client.get(f"{ollama_url}/api/tags")
+                if tags.status_code == 200:
+                    models = tags.json().get("models") or []
+                    names = [m.get("name") for m in models if isinstance(m, dict)]
+                    names = [n for n in names if isinstance(n, str)]
+                    if names and preferred_model not in names:
+                        model = names[0]
+            except Exception:
+                model = preferred_model
+
+            res = await client.post(
+                f"{ollama_url}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7 if body.mode == "chat" else 0.3,
+                        "top_p": 0.9,
+                        "num_predict": 128,
+                    },
+                },
+            )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503, detail=f"Ollama unavailable: {type(exc).__name__}: {exc}"
+        )
+
+    if res.status_code != 200:
+        raise HTTPException(status_code=503, detail="Ollama request failed")
+
+    payload = res.json()
+    reply = str(payload.get("response", "")).strip()
+    return {
+        "reply": reply,
+        "model": model,
+        "pet": {"name": name, "species": species, "rarity": rarity, "level": level},
+    }
+
+
+class FeedRequest(BaseModel):
+    spent_broski: int = Field(default=10, ge=0, le=10_000)
+
+
+@app.post("/pet/{discord_id}/feed")
+async def pet_feed(discord_id: str, body: FeedRequest | None = None) -> dict[str, object]:
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+
+    spent = 10 if body is None else int(body.spent_broski)
+    if spent != 10:
+        raise HTTPException(status_code=422, detail="spent_broski must be 10")
+
+    hunger = int(pet.get("hunger", 0))
+    energy = int(pet.get("energy", 0))
+    happiness = int(pet.get("happiness", 0))
+
+    pet["hunger"] = min(100, hunger + 30)
+    pet["energy"] = min(100, energy + 20)
+    pet["happiness"] = min(100, happiness + 5)
+    pet["last_fed_at"] = _now_iso()
+    pet["updated_at"] = _now_iso()
+    _save_pet(discord_id, pet)
+
+    return {
+        "fed": True,
+        "spent_broski": spent,
+        "hunger": int(pet["hunger"]),
+        "energy": int(pet["energy"]),
+        "happiness": int(pet["happiness"]),
+    }
+
+
+@app.get("/pet/{discord_id}/powers")
+async def pet_powers(discord_id: str) -> dict[str, object]:
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+
+    squad = _load_squad()
+    species = str(pet.get("species", "Unknown"))
+    entry = squad.get(species, {}) if isinstance(squad, dict) else {}
+    power = ""
+    caps: list[str] = []
+    if isinstance(entry, dict):
+        power = str(entry.get("power", ""))
+        raw_caps = entry.get("capabilities")
+        if isinstance(raw_caps, list):
+            caps = [str(x) for x in raw_caps][:20]
+
+    level = int(pet.get("level", 1))
+    unlocked = ["status", "chat"]
+    if level >= 2:
+        unlocked.append("ask")
+    if level >= 3:
+        unlocked.append("powers")
+    if level >= 4:
+        unlocked.append("feed")
+    if level >= 5:
+        unlocked.append("special_power")
+    if level >= 6:
+        unlocked.append("quantum_mode")
+
+    return {
+        "species": species,
+        "power": power,
+        "capabilities": caps,
+        "unlocked": unlocked,
+        "stage": level,
+    }
 
 
 @app.get("/health")

@@ -1,0 +1,66 @@
+{
+  "CatEep": {
+    "power": "Rubber Duck Debugger",
+    "capabilities": ["explain_errors", "ask_questions", "step_by_step"]
+  },
+  "DogEep": {
+    "power": "Motivation Coach",
+    "capabilities": ["encourage", "break_down_tasks", "accountability"]
+  },
+  "RabbitEep": {
+    "power": "Sprint Booster",
+    "capabilities": ["quick_wins", "momentum", "tiny_steps"]
+  },
+  "FishEep": {
+    "power": "Calm Focus",
+    "capabilities": ["reduce_overwhelm", "breathing_reset", "focus_plan"]
+  },
+  "BirdEep": {
+    "power": "Idea Synthesizer",
+    "capabilities": ["summarize", "connect_dots", "next_actions"]
+  },
+  "FoxEep": {
+    "power": "Refactor Trickster",
+    "capabilities": ["refactor_suggestions", "simplify", "naming"]
+  },
+  "WolfEep": {
+    "power": "Pair Programmer",
+    "capabilities": ["code_review", "test_guidance", "debugging"]
+  },
+  "BearEep": {
+    "power": "Stability Guardian",
+    "capabilities": ["safe_changes", "rollback_plan", "reliability"]
+  },
+  "TigerEep": {
+    "power": "Performance Hunter",
+    "capabilities": ["profiling_hints", "hotspots", "latency"]
+  },
+  "SharkEep": {
+    "power": "Vulnerability Scanner",
+    "capabilities": ["security_checks", "cve_triage", "hardening"]
+  },
+  "OwlEep": {
+    "power": "RAG Researcher",
+    "capabilities": ["doc_lookup", "explain_concepts", "citations"]
+  },
+  "DragonEep": {
+    "power": "Architecture Mentor",
+    "capabilities": ["system_design", "tradeoffs", "interfaces"]
+  },
+  "SpiderEep": {
+    "power": "Web Crawler",
+    "capabilities": ["search_terms", "link_paths", "debug_traces"]
+  },
+  "VenomEep": {
+    "power": "Anti-Pattern Detector",
+    "capabilities": ["smell_detection", "risk_flags", "safer_alternatives"]
+  },
+  "PhoenixEep": {
+    "power": "Recovery Guide",
+    "capabilities": ["incident_response", "resilience", "postmortem"]
+  },
+  "WelshDogEep": {
+    "power": "Master Builder",
+    "capabilities": ["endgame_builds", "integration", "ship_it"]
+  }
+}

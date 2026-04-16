@@ -10,6 +10,7 @@ RUN apt-get update --allow-releaseinfo-change && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        git \
         libexpat1 \
         openssl && \
     apt-get clean && \

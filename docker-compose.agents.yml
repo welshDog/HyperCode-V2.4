@@ -349,6 +349,8 @@ services:
     restart: unless-stopped
     ports: ["127.0.0.1:8098:8098"]
     networks: [hypercode-net]
+    volumes:
+      - .:/workspace:ro
     depends_on:
       redis: {condition: service_healthy}
     healthcheck:
@@ -361,5 +363,8 @@ services:
       PETS_ENABLED: ${BROSKIE_PETS_ENABLED:-false}
       REDIS_URL: redis://redis:6379/3
       OLLAMA_URL: http://hypercode-ollama:11434
+      PETS_OLLAMA_MODEL: ${PETS_OLLAMA_MODEL:-qwen2.5:7b}
+      WORKSPACE_PATH: /workspace
+      SQUAD_JSON_PATH: /workspace/squad.json
       PETS_WEBHOOK_SECRET: ${PETS_WEBHOOK_SECRET:-}
       COURSE_SYNC_SECRET: ${COURSE_SYNC_SECRET:-}
