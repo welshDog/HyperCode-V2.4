@@ -911,6 +911,46 @@ services:
     cap_drop:
       - ALL
 
+  mcp-gateway:
+    profiles: ["agents"]
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    command:
+      - --servers=github
+      - --transport=streaming
+      - --port=8099
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOCKER_MCP_IN_CONTAINER=1
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    expose:
+      - "8099"
+    networks:
+      - agents-net
+    depends_on:
+      docker-socket-proxy:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   broski-pets-bridge:
     profiles: ["agents"]
     build:
@@ -925,6 +965,7 @@ services:
       - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
       - WORKSPACE_PATH=/workspace
       - SQUAD_JSON_PATH=/workspace/squad.json
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8099}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
     volumes:
@@ -939,6 +980,8 @@ services:
         condition: service_healthy
       hypercode-ollama:
         condition: service_healthy
+      mcp-gateway:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
       interval: 30s
