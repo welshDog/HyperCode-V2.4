@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 16, 2026 (09:10 BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆**
+> **Last synced: April 16, 2026 (14:00 BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe frontend WIRED ✅**
 
 ---
 
@@ -41,6 +41,7 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | **10L** | Healthchecks — all 29 containers | ✅ DONE — April 15 |
 | **10M** | Gordon Tier 1 — Prometheus 7/7 UP | ✅ DONE — April 15 |
 | **10N** | Gordon Tier 2 — ALL 4 STEPS | ✅ DONE — April 16 🏆 |
+| **10O** | Course → Stripe frontend wired | ✅ DONE — April 16 💳 |
 
 ---
 
@@ -126,12 +127,47 @@ All 29/29 **(healthy)** ✅
 
 ---
 
+## 🏆 Phase 10O — Course → Stripe Frontend (April 16, 2026)
+
+**Full money path wired ✅ — Pricing → Checkout → Success → Course access**
+
+| File | What changed | Commit |
+|---|---|---|
+| `frontend/src/lib/payments.ts` | Sends `success_url` + `cancel_url` from browser origin; optional `courseId` param | `7e28666` |
+| `frontend/src/pages/PaymentSuccess.tsx` | Subscription flow: auto-enroll in all `is_active` courses → `subscribed` UI; no longer errors on null courseId | `7e28666` |
+| `backend/app/services/stripe_service.py` | Fix `?` vs `&` separator in success_url concat | `dd1d8dfe` |
+
+### Flow (end-to-end confirmed design)
+```
+/pricing → handleCheckout(tier)
+  → POST /api/stripe/checkout  {price_id, user_id, success_url, cancel_url}
+  → Stripe hosted checkout page
+  → Stripe webhook fires → HyperCode: saves payment, updates subscription_tier, awards BROski$
+  → Stripe redirects → /payment-success (was broken: went to /success 404)
+  → PaymentSuccess.tsx:
+      - If courseId in URL → polls enrollments table (per-course flow)
+      - If no courseId (subscription) → upserts all is_active courses → shows "You're in!" 🎉
+  → LessonPlayer: enrollment row exists → access granted ✅
+```
+
+### Key facts (never re-debate)
+- **`success_url`**: frontend always sends `${origin}/payment-success` — backend MUST NOT override
+- **`&` not `?`**: `stripe_service.py` uses `&` when `?` already in URL (course_id flow)
+- **Subscription → enroll all**: `PaymentSuccess.tsx` upserts ALL `is_active` courses for the user
+- **Column name**: Supabase courses table uses `is_active` (NOT `published`)
+- **Stripe price IDs**: all 7 set in backend `.env` — `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_HYPER_MONTHLY`, etc.
+- **`VITE_STRIPE_PAYMENT_LINK_URL`**: empty in `.env.local` — Payment Links flow not yet activated (not blocking)
+- **`VITE_HYPERCODE_API_URL`**: set in `frontend/.env` → `http://localhost:8000` (Vite merges both files)
+
+---
+
 ## 🎯 NEXT OPTIONS — Your Call Bro!
 
 | Option | What it is |
 |---|---|
 | 🎓 **Gordon Tier 3** | DB connection pooling, async task queues |
-| 💳 **Course → Stripe frontend** | Next.js pricing page wired to `/api/stripe/checkout` |
+| 🔗 **Payment Links flow** | Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars |
+| 🧪 **E2E test the checkout** | `stripe listen` + test card `4242 4242 4242 4242` → full flow |
 | 📝 ~~CLAUDE_CONTEXT.md update~~ | ✅ DONE — you're reading it! |
 
 ---
@@ -247,7 +283,8 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 - **Gordon Tier 2 — ALL 4 STEPS COMPLETE** 🏆
 - Stripe + BROski$ FULLY LIVE ✅
 - Agents: agent-x, healer, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
-- **Next:** Gordon Tier 3 (DB pooling + async task queues) OR Stripe frontend
+- **Course → Stripe frontend WIRED** ✅ (April 16 — commit `7e28666` / `dd1d8dfe`)
+- **Next:** Gordon Tier 3 (DB pooling + async task queues) OR E2E checkout test
 
 ---
 

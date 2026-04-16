@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 15, 2026 | Status: 30/30 containers 🟢 | Grade A 🏅 | Phases 0–10K COMPLETE ✅
+> Last updated: April 16, 2026 | Status: 29/29 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
 
 ---
 
@@ -45,16 +45,17 @@ Verdict from Gordon (Docker AI), April 15 2026:
 
 ---
 
-## 📊 System Status (April 15, 2026)
+## 📊 System Status (April 16, 2026)
 
 | Metric | Value |
 |---|---|
-| Containers | 30/30 🟢 all healthy |
-| Uptime (Agent X) | 43+ hours |
-| Uptime (Healer) | 23+ hours |
-| Prometheus targets | 7/9 UP (fix below) |
+| Containers | 29/29 🟢 all healthy |
+| Tests | 180 passed, 6 skipped ✅ |
+| Prometheus targets | 7/7 UP ✅ |
+| OTLP traces | LIVE in Tempo ✅ |
+| Circuit breakers | 3 active — all CLOSED ✅ |
 | Docker AI grade | A 🏅 |
-| Commits | 696 |
+| Commits | 700+ |
 | Services | 57 |
 | Agents | 25+ |
 
@@ -288,11 +289,11 @@ class HyperCircuitBreaker:
 
 | Issue | Fix | Priority |
 |---|---|---|
-| `hypercode-core` has no `/metrics` | Add `prometheus-fastapi-instrumentator` | 🔴 HIGH |
-| `throttle-agent` not started | `docker compose --profile agents up -d throttle-agent` OR remove from prometheus.yml | 🟡 MED |
-| `loki` has no healthcheck | Add `curl -f http://localhost:3100/ready` | 🟡 MED |
-| `project-strategist-v2` no healthcheck | Add `curl -f http://localhost:<port>/health` | 🟡 MED |
-| `promtail` no healthcheck | Add `wget -q http://localhost:9080/ready` | 🟡 MED |
+| `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟡 MED |
+| `throttle-agent` not started | `docker compose --profile agents up -d throttle-agent` OR remove from prometheus.yml | 🟡 LOW |
+| `loki` has no healthcheck | Add `curl -f http://localhost:3100/ready` | 🟡 LOW |
+| `project-strategist-v2` no healthcheck | Add `curl -f http://localhost:<port>/health` | 🟡 LOW |
+| `promtail` no healthcheck | Add `wget -q http://localhost:9080/ready` | 🟡 LOW |
 
 ---
 
@@ -341,13 +342,14 @@ docker compose --profile agents up -d
 ## 🏆 Achievements Unlocked
 
 - ✅ Gordon Docker AI: **Grade A** — *"world-class infrastructure"*
-- ✅ 30/30 containers healthy
-- ✅ 43+ hour uptime on Agent X
+- ✅ 29/29 containers healthy (all phases)
 - ✅ Self-healing closed loop (Healer → Prometheus → Alertmanager → recovery)
 - ✅ Neurodivergent-first design recognised as *rare* by Docker AI
 - ✅ docs/INDEX.md — all 70+ docs navigable
 - ✅ GORDON_DOCKER_AI_REVIEW.md — review immortalised in repo
 - ✅ Docker build cache pruned — 60GB freed
+- ✅ **Gordon Tier 2 COMPLETE** — OTLP traces, Redis cache, rate limits, circuit breakers
+- ✅ **Course → Stripe frontend wired** — full money path live (April 16)
 
 ---
 
@@ -356,10 +358,10 @@ docker compose --profile agents up -d
 Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
 
 1. **Read this file first** — especially the Sacred Rules
-2. **Check CLAUDE_CONTEXT.md** — that's the phase-by-phase source of truth (Phases 0–10K all ✅)
-3. **Current mission:** Gordon Tier 1 hit list (see below) + CVE patching agent images
-4. **10J + 10K DONE:** CognitiveUplink `/ws/uplink` live 🔌 + Stripe Price IDs wired ✅
-5. **Next:** Wire Pricing page (course frontend) → `/api/stripe/checkout` + Supabase Edge Function
+2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10O all ✅)
+3. **All Gordon Tier 1 + Tier 2 DONE** ✅ — OTLP, cache, rate limits, circuit breakers
+4. **Course → Stripe frontend DONE** ✅ — `/pricing` → checkout → `/payment-success` → enrolled
+5. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR E2E checkout test with `stripe listen`
 6. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
 7. **Never:** Wall of text. Never debate the Sacred Rules.
 
