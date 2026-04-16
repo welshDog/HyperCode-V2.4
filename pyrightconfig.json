@@ -1,3 +1,6 @@
 {
-    "reportMissingImports": false
+    "reportMissingImports": false,
+    "ignore": [
+        "agents/broski-pets-bridge/**"
+    ]
 }
