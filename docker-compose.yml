@@ -911,6 +911,52 @@ services:
     cap_drop:
       - ALL
 
+  broski-pets-bridge:
+    profiles: ["agents"]
+    build:
+      context: ./agents/broski-pets-bridge
+      dockerfile: Dockerfile
+    container_name: broski-pets-bridge
+    environment:
+      - PORT=8098
+      - PETS_ENABLED=${BROSKIE_PETS_ENABLED:-false}
+      - REDIS_URL=redis://redis:6379/3
+      - OLLAMA_URL=http://hypercode-ollama:11434
+    ports:
+      - "127.0.0.1:8098:8098"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   dashboard:
     build:
       context: ./agents/dashboard

@@ -343,3 +343,21 @@ services:
     networks: [hypercode-net]
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN}
+
+  broski-pets-bridge:
+    build: ./agents/broski-pets-bridge
+    restart: unless-stopped
+    ports: ["127.0.0.1:8098:8098"]
+    networks: [hypercode-net]
+    depends_on:
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    environment:
+      PETS_ENABLED: ${BROSKIE_PETS_ENABLED:-false}
+      REDIS_URL: redis://redis:6379/3
+      OLLAMA_URL: http://hypercode-ollama:11434
