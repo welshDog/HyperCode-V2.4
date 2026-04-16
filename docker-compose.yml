@@ -1672,6 +1672,8 @@ services:
     container_name: hypercode-ollama
     volumes:
       - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
     networks:
       - agents-net
     deploy:
@@ -1682,6 +1684,42 @@ services:
         reservations:
           cpus: "1"
           memory: 1G
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  hypercode-ollama-gpu:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    profiles: ["gpu"]
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      agents-net:
+        aliases:
+          - hypercode-ollama
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 1G
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
