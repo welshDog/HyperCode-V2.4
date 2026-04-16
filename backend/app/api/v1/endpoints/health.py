@@ -8,6 +8,7 @@ import redis as redis_lib
 
 from app.db.session import get_db
 from app.core.config import settings
+from app.core.circuit_breaker import all_breakers
 
 router = APIRouter()
 
@@ -57,9 +58,11 @@ async def health_check(db: Session = Depends(get_db)):
         "postgres": _check_postgres(db),
         "redis": _check_redis(),
         "discord": await _check_discord(),
+        "circuit_breakers": all_breakers(),
     }
 
-    all_ok = all(v["status"] == "ok" for v in checks.values())
+    infra_checks = {k: v for k, v in checks.items() if k != "circuit_breakers"}
+    all_ok = all(v["status"] == "ok" for v in infra_checks.values())
     overall = "healthy" if all_ok else "degraded"
 
     return HealthStatus(

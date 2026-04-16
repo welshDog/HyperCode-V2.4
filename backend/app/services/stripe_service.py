@@ -14,6 +14,9 @@ import logging
 from typing import Optional
 from sqlalchemy import text
 from app.db.session import AsyncSessionLocal
+from app.core.circuit_breaker import get_breaker
+
+_stripe_breaker = get_breaker("stripe-api", fail_max=5, reset_timeout=60)
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +81,17 @@ def create_checkout_session(
     """Creates a Stripe Checkout Session. Returns session — use .url to redirect."""
     mode = CHECKOUT_MODE.get(price_key, "payment")
     metadata = {"user_id": user_id, "price_key": price_key} if user_id else {"price_key": price_key}
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=[{"price": price_id, "quantity": 1}],
-        mode=mode,
-        success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
-        cancel_url=cancel_url,
-        metadata=metadata,
-    )
+    def _create() -> stripe.checkout.Session:
+        return stripe.checkout.Session.create(
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode=mode,
+            success_url=success_url + "?session_id={CHECKOUT_SESSION_ID}",
+            cancel_url=cancel_url,
+            metadata=metadata,
+        )
+
+    session = _stripe_breaker.call_sync(_create)
     logger.info(f"✅ Checkout session created: {session.id} | price_key={price_key} | mode={mode}")
     return session
 

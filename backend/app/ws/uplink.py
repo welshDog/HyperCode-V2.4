@@ -23,6 +23,9 @@ from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from app.core.circuit_breaker import get_breaker
+
+_crew_breaker = get_breaker("crew-orchestrator", fail_max=3, reset_timeout=15)
 
 logger = logging.getLogger(__name__)
 
@@ -71,23 +74,26 @@ def _format_crew_result(command: str, result: dict) -> str:
 
 async def _dispatch_to_crew(command: str, task_id: str) -> dict:
     """POST to crew-orchestrator /execute. Returns the JSON response dict."""
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{_CREW_URL}/execute",
-            json={
-                "id":                task_id,
-                "description":       command,
-                "type":              "user_command",
-                "requires_approval": False,
-            },
-            headers={"X-API-Key": _ORCH_API_KEY},
-            timeout=_TIMEOUT,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        # Attach task_id so _format_crew_result can surface it
-        data.setdefault("task_id", task_id)
-        return data
+    async def _call() -> dict:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{_CREW_URL}/execute",
+                json={
+                    "id":                task_id,
+                    "description":       command,
+                    "type":              "user_command",
+                    "requires_approval": False,
+                },
+                headers={"X-API-Key": _ORCH_API_KEY},
+                timeout=_TIMEOUT,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            # Attach task_id so _format_crew_result can surface it
+            data.setdefault("task_id", task_id)
+            return data
+
+    return await _crew_breaker.call(_call)
 
 
 # ── WebSocket endpoint ────────────────────────────────────────────────────────

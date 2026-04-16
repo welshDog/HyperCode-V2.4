@@ -5,6 +5,9 @@ import re
 from typing import Any, Literal, Optional
 
 import httpx
+from app.core.circuit_breaker import get_breaker
+
+_llm_breaker = get_breaker("llm-router", fail_max=3, reset_timeout=30)
 
 
 PrivacyMode = Literal["redact", "none"]
@@ -118,10 +121,15 @@ async def openrouter_chat(
         "temperature": 0.2,
     }
 
-    async with httpx.AsyncClient(timeout=timeout_seconds) as client:
-        resp = await client.post(f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers)
-        if resp.status_code != 200:
-            body_preview = (resp.text or "")[:500]
-            raise RuntimeError(f"OpenRouter error {resp.status_code}: {body_preview}")
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+    async def _do_call() -> str:
+        async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+            resp = await client.post(
+                f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers
+            )
+            if resp.status_code != 200:
+                body_preview = (resp.text or "")[:500]
+                raise RuntimeError(f"OpenRouter error {resp.status_code}: {body_preview}")
+            data = resp.json()
+            return data["choices"][0]["message"]["content"]
+
+    return await _llm_breaker.call(_do_call)
