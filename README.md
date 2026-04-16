@@ -229,7 +229,7 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 - 📝 **Core API Docs**: `http://localhost:8000/docs`
 - 📊 **Grafana**: `http://localhost:3001`
 
-> **See [docs/index.md](docs/index.md) for full documentation.**
+> **See [docs/INDEX.md](docs/INDEX.md) for full documentation.**
 
 ---
 
@@ -274,7 +274,7 @@ Check the latest system health report: [STATUS_REPORT.md](STATUS_REPORT.md)
 | [README_HEALTH_REPORTS.md](docs/root-docs/README_HEALTH_REPORTS.md) | System health report format + agent status logs |
 | [README_INFRASTRUCTURE_UPGRADE.md](docs/root-docs/README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide |
 | [README_OBSERVABILITY.md](docs/root-docs/README_OBSERVABILITY.md) | Grafana + Prometheus setup + alerting |
-| [SUPER_HYPER_BROSKI_AGENT_README.md](SUPER_HYPER_BROSKI_AGENT_README.md) | Super Hyper BROski Agent guide |
+| [SUPER_HYPER_BROSKI_AGENT_README.md](docs/SUPER_HYPER_BROSKI_AGENT_README.md) | Super Hyper BROski Agent guide |
 | [QUICKSTART.md](QUICKSTART.md) | Fast setup guide |
 | [START_HERE.md](START_HERE.md) | MCP Gateway + Model Runner |
 | [RUNBOOK.md](RUNBOOK.md) | Stack won't boot? Fix it here |
@@ -284,6 +284,84 @@ Check the latest system health report: [STATUS_REPORT.md](STATUS_REPORT.md)
 *   [Architecture Overview](docs/ARCHITECTURE.md) · [CLI Manual](docs/CLI.md) · [API Reference](docs/API.md)
 *   [Troubleshooting](docs/TROUBLESHOOTING.md) · [Tips & Tricks](docs/tips-and-tricks/README.md)
 *   [BROski$ Token System](docs/guides/BROSKI_TOKEN_SYSTEM.md) 🔥
+
+---
+
+## 🗂️ Repo Map
+
+```
+backend/          FastAPI core — API, auth, Stripe, BROski$ engine
+agents/           All 25+ built-in HyperCode agents
+services/         Microservice helpers (memstream, healer-api, etc.)
+cli/              Command-line tools for the HyperCode platform
+monitoring/       Prometheus + alertmanager rules (active config here)
+grafana/          Grafana dashboard JSON + provisioning
+scripts/          Setup, init, and utility scripts
+k8s/              Kubernetes manifests (future scaling path)
+docs/             All documentation
+secrets/          Local-only Docker secrets — gitignored, never committed
+
+hyperlaunch.py    Main launcher script (Python)
+hyperlaunch.sh    Main launcher script (Bash)
+docker-compose.yml              Full 29-service production stack
+docker-compose.secrets.yml      Secrets injection layer
+```
+
+> Docker compose file guide: [docs/DOCKER_PROFILES.md](docs/DOCKER_PROFILES.md)
+
+---
+
+## 📖 Recommended Reading Order
+
+New here? Read in this order:
+
+| Step | Doc | What you get |
+|---|---|---|
+| 1 | [START_HERE.md](START_HERE.md) | High-level overview + MCP/Model Runner setup |
+| 2 | [docs/HYPERCODE_SUMMARY.md](docs/HYPERCODE_SUMMARY.md) | What HyperCode actually is |
+| 3 | [docs/PROJECT_REPORT.md](docs/PROJECT_REPORT.md) | Current state of the platform |
+| 4 | [docs/ULTIMATE_HEALTH_REPORT_2026-04-01.md](docs/ULTIMATE_HEALTH_REPORT_2026-04-01.md) | System health deep-dive |
+| 5 | [docs/SUPER_HYPER_BROSKI_AGENT_README.md](docs/SUPER_HYPER_BROSKI_AGENT_README.md) | The agents layer |
+| 6 | [docs/INDEX.md](docs/INDEX.md) | Full docs navigation |
+
+---
+
+## 🌐 The Ecosystem
+
+HyperCode V2.4 is the platform. It connects to two sibling repos:
+
+| Repo | What it is | Link |
+|---|---|---|
+| **HyperCode V2.4** (this repo) | The platform — Docker stack, agents, API, observability | You're here |
+| **HyperAgent-SDK** | The agent kit — build agents with `@w3lshdog/hyper-agent` | [github.com/welshDog/HyperAgent-SDK](https://github.com/welshDog/HyperAgent-SDK) |
+| **Hyper-Vibe-Coding-Course** | The learning layer — courses, lessons, Supabase + Vercel | [github.com/welshDog/Hyper-Vibe-Coding-Course](https://github.com/welshDog/Hyper-Vibe-Coding-Course) |
+
+---
+
+## 🧪 Quality Commands
+
+```bash
+# Unit + integration tests
+pytest backend/tests/ -v
+
+# Stripe tests specifically
+pytest backend/tests/test_stripe.py -v
+
+# Playwright E2E tests
+npx playwright test
+
+# Lint (ruff)
+ruff check .
+
+# Full security scan (SAST + secrets + deps + IaC)
+make scan
+
+# Quick pre-push security check
+make scan-quick
+
+# Docker container status
+docker ps --format "table {{.Names}}\t{{.Status}}"
+```
 
 ---
 
