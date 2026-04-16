@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 15, 2026 (10pm) — 172 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳**
+> **Last synced: April 16, 2026 (09:10 BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆**
 
 ---
 
@@ -40,11 +40,40 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | 10F–10K | Stripe full stack + BROski$ tokens | ✅ ALL DONE |
 | **10L** | Healthchecks — all 29 containers | ✅ DONE — April 15 |
 | **10M** | Gordon Tier 1 — Prometheus 7/7 UP | ✅ DONE — April 15 |
-| **10N** | Gordon Tier 2 Step 1 — OTLP Tracing | ✅ DONE — April 15 🔍 |
+| **10N** | Gordon Tier 2 — ALL 4 STEPS | ✅ DONE — April 16 🏆 |
 
 ---
 
-## 🔍 Phase 10N — Gordon Tier 2 Step 1: OTLP Tracing (April 15, 2026)
+## 🏆 Phase 10N — Gordon Tier 2 — COMPLETE (April 16, 2026)
+
+| Step | Feature | Status | Commit |
+|---|---|---|---|
+| 1 | OTLP Tracing → Tempo | ✅ LIVE | April 15 |
+| 2 | `@cache_response` — health(10s), plans(60s), pulse(30s) | ✅ LIVE | `4f3758ef` |
+| 3 | Per-route rate limits + Redis DB 2 + webhook exempt | ✅ LIVE | `4de9b4f3` |
+| 4 | Async circuit breakers — llm / crew / stripe | ✅ LIVE | `24baaf85` |
+
+### 🔬 Circuit Breaker Detail (Step 4)
+3 breakers running, all **CLOSED** (healthy):
+- `llm-router` — fail_max=3, reset=30s
+- `crew-orchestrator` — fail_max=3, reset=15s
+- `stripe-api` — fail_max=5, reset=60s
+- All visible at `GET /api/v1/health → circuit_breakers[]`
+
+### 📦 Redis Caching (Step 2)
+- `@cache_response` decorator on hot endpoints
+- `/health` → 10s TTL, `/api/stripe/plans` → 60s TTL, `/pulse` → 30s TTL
+- Redis DB 1 for cache, DB 2 for rate limits (isolated)
+- Cache hits/misses visible in Tempo traces automatically
+
+### 🚦 Rate Limiting (Step 3)
+- Per-route limits applied via Redis DB 2
+- Stripe webhook is **ALWAYS exempt** from rate limiting
+- `NEVER` add rate limiting to `/api/stripe/webhook`
+
+---
+
+## 🔍 Phase 10N Step 1 — OTLP Tracing (April 15, 2026)
 
 **Traces live in Tempo ✅ — visible in Grafana**
 
@@ -54,12 +83,8 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 - `docker-compose.yml` — `OTLP_ENDPOINT=http://tempo:4317` already wired
 - Network: `hypercode-core` shares `agents-net` with Tempo — they can talk
 
-### What was actually broken (the REAL fix)
+### The REAL fix
 - `.env` had `OTLP_EXPORTER_DISABLED=true` with comment "Tempo broken" — Tempo was FINE, just the flag was wrong
-
-### Two commits applied
-1. `config.py` default `True` → `False` — tracing ON unless explicitly overridden
-2. Prometheus `--web.enable-lifecycle` — hot-reload config with `curl -X POST :9090/-/reload`
 
 ### Traces confirmed in Tempo
 - `GET /health` → hypercode-core
@@ -101,28 +126,21 @@ All 29/29 **(healthy)** ✅
 
 ---
 
-## 🎯 NEXT UP — Gordon Tier 2 Remaining
+## 🎯 NEXT OPTIONS — Your Call Bro!
 
-| Step | Task | Status |
-|---|---|---|
-| 1 | OTLP Tracing → Tempo | ✅ DONE |
-| **2** | **Redis caching decorator on hot endpoints** | ⏳ NEXT |
-| 3 | Circuit breaker — agent failure isolation | ⏳ Queued |
-| 4 | Rate limiting polish | ⏳ Queued |
-| 5 | Task C — Vibe Course frontend → Stripe | ⏳ Queued |
-
-### Step 2 — Redis Caching Notes
-- `@cache_response` decorator pattern — wire onto hot endpoints
-- Redis is on `data-net` — already accessible from `hypercode-core`
-- With tracing live, cache hits/misses will show in Tempo automatically
-- Target endpoints: `/api/stripe/plans`, `/health`, any leaderboard/token balance reads
+| Option | What it is |
+|---|---|
+| 🎓 **Gordon Tier 3** | DB connection pooling, async task queues |
+| 💳 **Course → Stripe frontend** | Next.js pricing page wired to `/api/stripe/checkout` |
+| 📝 ~~CLAUDE_CONTEXT.md update~~ | ✅ DONE — you're reading it! |
 
 ---
 
 ## ✅ Test Suite
 
 ```
-172 passed, 6 skipped  (6 skips = expected: Redis/Postgres/Ollama host-side)
+180 passed, 6 skipped  (6 skips = expected: Redis/Postgres/Ollama host-side)
+# Step 2 added 8 new tests (was 172 → now 180)
 ```
 
 ---
@@ -161,6 +179,8 @@ All 29/29 **(healthy)** ✅
 - **Conventional commits:** `feat:` `fix:` `docs:` `chore:`
 - **Windows PowerShell first**, bash second
 - **`apps/web/`:** Archived, never migrate
+- **Redis DB split:** DB 1 = cache (`@cache_response`), DB 2 = rate limits — NEVER mix
+- **Circuit breakers:** 3 active (llm-router, crew-orchestrator, stripe-api) — check via `GET /api/v1/health`
 
 ---
 
@@ -183,7 +203,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}"
 # Expected: all 29 (healthy)
 
 # Tests
-pytest  # 172 passed, 6 skipped
+pytest  # 180 passed, 6 skipped
 pytest backend/tests/test_stripe.py -v
 
 # Prometheus hot-reload
@@ -191,6 +211,9 @@ curl -X POST localhost:9090/-/reload
 
 # View traces
 # localhost:3001 → Explore → Tempo → search: hypercode-core
+
+# Circuit breakers status
+curl localhost:8000/api/v1/health | jq .circuit_breakers
 
 # CLI
 $env:HYPERCODE_API_URL = "http://localhost:8000"
@@ -217,13 +240,14 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 ## 📦 This Repo — HyperCode V2.4 Specifics
 
 - **29 containers — ALL (healthy)** ✅
-- **172 tests green** ✅
+- **180 tests green** ✅ (was 172 — Tier 2 Step 2 added 8 new)
 - **Prometheus 7/7 UP** ✅
 - **OTLP traces live in Tempo** ✅ (localhost:3001 → Explore → Tempo)
 - **Grafana at `:3001`** — all data flowing
+- **Gordon Tier 2 — ALL 4 STEPS COMPLETE** 🏆
 - Stripe + BROski$ FULLY LIVE ✅
 - Agents: agent-x, healer, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
-- **Next:** Gordon Tier 2 Step 2 — Redis caching `@cache_response` decorator
+- **Next:** Gordon Tier 3 (DB pooling + async task queues) OR Stripe frontend
 
 ---
 
