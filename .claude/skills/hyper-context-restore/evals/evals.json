@@ -1,0 +1,23 @@
+{
+  "skill_name": "hyper-context-restore",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "hey where was i? just opened a new session on hypercode, cant remember what i was doing last time",
+      "expected_output": "A short ADHD-friendly briefing: last 2-3 things built, any manual steps pending, ONE clear next action, and a short backlog list. Under 25 lines. Warm tone. Ends with one question.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "prompt": "catch me up on the project. i been away a few days and i forget what i built and whats next on hypercode",
+      "expected_output": "Reads WHATS_DONE.md and git log, delivers recent wins and a specific next move. Not a wall of text. No more than 25 lines. Should mention something from the NEXT UP list specifically.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "remind me what the single most important thing to do next is on the hypercode project",
+      "expected_output": "Reads WHATS_DONE.md NEXT UP section, picks the most important item, gives a specific actionable next step with the actual command or action needed. Short. Direct. One clear answer.",
+      "files": []
+    }
+  ]
+}
