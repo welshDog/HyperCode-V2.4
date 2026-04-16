@@ -158,7 +158,19 @@
       "Bash(awk '/docker-socket-proxy-build:|auto-prune:|security-scanner:/{found=1; count=0} found{count++; print NR\": \"$0; if\\(count>20\\){found=0}}' docker-compose.yml)",
       "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\" backend/requirements.txt)",
       "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\\\\|tracer\\\\|TracerProvider\" backend/app/main.py)",
-      "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\" backend/app/core/telemetry.py)"
+      "Bash(grep -n \"opentelemetry\\\\|otlp\\\\|telemetry\" backend/app/core/telemetry.py)",
+      "Bash(curl.exe -s http://localhost:8000/health)",
+      "Bash(findstr hypercode-core *)",
+      "Bash(findstr hypercode *)",
+      "Bash(curl.exe *)",
+      "Bash(findstr \"hypercode-core\")",
+      "Bash(findstr \"tempo\\\\|prometheus\\\\|grafana\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec b9240f587b72 cat /app/app/core/telemetry.py)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec b9240f587b72 grep -c \"ConsoleSpanExporter\" /app/app/core/telemetry.py)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec b9240f587b72 grep -c \"cache_response\" /app/app/cache/multi_tier.py)",
+      "Bash(sort -k2 -r)",
+      "Bash(MSYS_NO_PATHCONV=1 docker cp *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec redis *)"
     ]
   },
   "enableAllProjectMcpServers": true,
