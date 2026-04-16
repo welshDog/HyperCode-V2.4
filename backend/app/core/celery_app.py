@@ -9,8 +9,32 @@ celery_app = Celery(
 
 celery_app.conf.task_routes = {
     "hypercode.tasks.process_agent_job": "main-queue",
-    "app.worker.test_celery": "main-queue"
+    "hypercode.tasks.run_agent_task": "main-queue",
+    "app.worker.test_celery": "main-queue",
 }
 
 # Explicitly import the worker module so tasks are registered
 celery_app.conf.imports = ('app.worker',)
+
+# ---------------------------------------------------------------------------
+# Gordon Tier 3 — Celery reliability settings
+#
+# task_acks_late=True
+#   Tasks are acknowledged to the broker AFTER completion, not on receipt.
+#   If the worker crashes mid-task, the message is re-queued automatically.
+#   Essential for long-running agent tasks where losing work is costly.
+#
+# worker_prefetch_multiplier=1
+#   Each worker only reserves 1 task at a time (instead of the default 4).
+#   Prevents a slow task from blocking other queued work on the same worker.
+#   Better fairness for mixed short/long agent tasks.
+# ---------------------------------------------------------------------------
+celery_app.conf.update(
+    task_acks_late=True,
+    worker_prefetch_multiplier=1,
+    task_serializer="json",
+    result_serializer="json",
+    accept_content=["json"],
+    timezone="UTC",
+    enable_utc=True,
+)

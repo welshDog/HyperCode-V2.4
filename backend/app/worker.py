@@ -10,7 +10,7 @@ import logging
 import os
 import threading
 import time
-from typing import Any
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -123,3 +123,85 @@ def process_agent_job(task_payload: dict):
     except Exception as e:
         logger.error(f"[Worker] Error processing task {task_id}: {e}")
         return {"status": "failed", "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Gordon Tier 3 — run_agent_task with exponential-backoff retry
+#
+# bind=True          — gives the task access to `self` (the task instance)
+# max_retries=3      — retry up to 3 times before raising the final exception
+# default_retry_delay=30 — base delay in seconds (overridden by countdown below)
+#
+# Retry strategy: exponential backoff — 1s, 2s, 4s (2^0, 2^1, 2^2)
+# task_acks_late=True on the Celery app means the broker re-queues this
+# automatically if the worker dies; self.retry() handles application errors.
+# ---------------------------------------------------------------------------
+@celery_app.task(
+    name="hypercode.tasks.run_agent_task",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+)
+def run_agent_task(
+    self,
+    agent_name: str,
+    task_type: str,
+    payload: dict,
+    task_id: Optional[str] = None,
+) -> dict:
+    """
+    Generic agent task runner with retry + exponential backoff.
+
+    Enqueue from anywhere::
+
+        run_agent_task.delay(
+            agent_name="healer-agent",
+            task_type="diagnose",
+            payload={"container": "hypercode-core"},
+        )
+
+    Args:
+        agent_name: Human-readable name of the agent executing this work.
+        task_type:  Category of work (used for routing/logging).
+        payload:    Arbitrary JSON-serialisable dict passed to the agent.
+        task_id:    Optional DB task ID for status updates.
+
+    Returns:
+        dict with ``status``, ``agent_name``, ``task_type``, and ``result``.
+    """
+    logger.info(
+        f"[run_agent_task] attempt={self.request.retries + 1}/{self.max_retries + 1} "
+        f"agent={agent_name} type={task_type} id={task_id}"
+    )
+
+    try:
+        # Dispatch to the agent router (sync wrapper around async routing)
+        description = payload.get("description", str(payload))
+        context = {
+            "task_id": task_id,
+            "agent_name": agent_name,
+            "conversation_id": f"agent-task-{task_id or self.request.id}",
+        }
+        result: Any = asyncio.run(router.route_task(task_type, description, context=context))
+
+        if not isinstance(result, str) or not result.strip():
+            raise RuntimeError(
+                f"Agent '{agent_name}' returned invalid output: type={type(result).__name__}"
+            )
+
+        logger.info(f"[run_agent_task] SUCCESS agent={agent_name} preview={result[:80]!r}")
+        return {
+            "status": "completed",
+            "agent_name": agent_name,
+            "task_type": task_type,
+            "result": result,
+        }
+
+    except Exception as exc:
+        # Exponential backoff: 2^retries seconds (1s → 2s → 4s)
+        backoff = 2 ** self.request.retries
+        logger.warning(
+            f"[run_agent_task] RETRYING agent={agent_name} attempt={self.request.retries + 1} "
+            f"backoff={backoff}s exc={exc}"
+        )
+        raise self.retry(exc=exc, countdown=backoff)
