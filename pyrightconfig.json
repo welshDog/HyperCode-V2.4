@@ -1,6 +1,7 @@
 {
     "reportMissingImports": false,
     "ignore": [
-        "agents/broski-pets-bridge/**"
+        "agents/broski-pets-bridge/**",
+        "agents/broski-bot/**"
     ]
 }

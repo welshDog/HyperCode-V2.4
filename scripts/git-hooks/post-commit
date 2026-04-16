@@ -1,0 +1,2 @@
+#!/usr/bin/env sh
+python scripts/pets/git_post_commit.py || exit 0

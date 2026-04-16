@@ -361,3 +361,5 @@ services:
       PETS_ENABLED: ${BROSKIE_PETS_ENABLED:-false}
       REDIS_URL: redis://redis:6379/3
       OLLAMA_URL: http://hypercode-ollama:11434
+      PETS_WEBHOOK_SECRET: ${PETS_WEBHOOK_SECRET:-}
+      COURSE_SYNC_SECRET: ${COURSE_SYNC_SECRET:-}

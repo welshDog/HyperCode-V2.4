@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm
 
 # Default target
 help:
@@ -130,6 +130,9 @@ full-docker-health:
 # Run the full pytest test suite
 test:
 	pytest backend/tests/ -v
+
+calm:
+	python scripts/pets/award_focus_session.py
 
 # Run ruff linter
 lint:

@@ -7,7 +7,7 @@ from typing import Literal
 
 import httpx
 import redis
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
 
@@ -48,6 +48,22 @@ def _redis() -> redis.Redis:
     return redis.from_url(redis_url, socket_timeout=2, decode_responses=True)
 
 
+def _get_env_required(name: str) -> str:
+    val = os.getenv(name)
+    if not val:
+        raise HTTPException(status_code=503, detail=f"{name} not configured")
+    return val
+
+
+def _verify_secret(expected_env: str, header_value: str | None, header_name: str) -> None:
+    expected = _get_env_required(expected_env)
+    if not header_value:
+        raise HTTPException(status_code=401, detail=f"{header_name} header required")
+    if header_value != expected:
+        raise HTTPException(status_code=401, detail="Invalid secret")
+
+
+
 def _pet_key(discord_id: str) -> str:
     return f"pet:{discord_id}"
 
@@ -64,6 +80,10 @@ def _load_pet(discord_id: str) -> dict | None:
 
 def _save_pet(discord_id: str, pet: dict) -> None:
     _redis().set(_pet_key(discord_id), json.dumps(pet, separators=(",", ":")))
+
+
+def _streak_key(discord_id: str) -> str:
+    return f"petstreak:{discord_id}"
 
 
 def _xp_to_stage(xp: int) -> int:
@@ -157,6 +177,52 @@ class XpAwardResponse(BaseModel):
     evolution_message: str | None
 
 
+def _award_xp_to_pet(discord_id: str, amount: int, reason: str, source: str) -> XpAwardResponse:
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+
+    old_xp = int(pet.get("xp", 0))
+    old_level = int(pet.get("level", 1))
+
+    new_xp = old_xp + amount
+    new_level = _xp_to_stage(new_xp)
+
+    evolved = new_level > old_level
+    evolution_message = None
+    if evolved:
+        evolution_message = f"{pet.get('name', 'Your pet')} evolved to Stage {new_level}!"
+
+    pet["xp"] = new_xp
+    pet["level"] = new_level
+    pet["updated_at"] = _now_iso()
+
+    history = pet.get("evolution_history")
+    if not isinstance(history, list):
+        history = []
+    if evolved:
+        history.append(
+            {
+                "from_level": old_level,
+                "to_level": new_level,
+                "at": pet["updated_at"],
+                "reason": reason,
+                "source": source,
+                "xp": new_xp,
+            }
+        )
+    pet["evolution_history"] = history
+
+    _save_pet(discord_id, pet)
+
+    return XpAwardResponse(
+        new_xp=new_xp,
+        new_level=new_level,
+        evolved=evolved,
+        evolution_message=evolution_message,
+    )
+
+
 @app.post("/provision", response_model=ProvisionResponse)
 async def provision(body: ProvisionRequest) -> ProvisionResponse:
     if body.broski_to_spend != 300:
@@ -200,49 +266,7 @@ async def provision(body: ProvisionRequest) -> ProvisionResponse:
 
 @app.post("/xp/award", response_model=XpAwardResponse)
 async def award_xp(body: XpAwardRequest) -> XpAwardResponse:
-    pet = _load_pet(body.discord_id)
-    if not pet:
-        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
-
-    old_xp = int(pet.get("xp", 0))
-    old_level = int(pet.get("level", 1))
-
-    new_xp = old_xp + body.amount
-    new_level = _xp_to_stage(new_xp)
-
-    evolved = new_level > old_level
-    evolution_message = None
-    if evolved:
-        evolution_message = f"{pet.get('name', 'Your pet')} evolved to Stage {new_level}!"
-
-    pet["xp"] = new_xp
-    pet["level"] = new_level
-    pet["updated_at"] = _now_iso()
-
-    history = pet.get("evolution_history")
-    if not isinstance(history, list):
-        history = []
-    if evolved:
-        history.append(
-            {
-                "from_level": old_level,
-                "to_level": new_level,
-                "at": pet["updated_at"],
-                "reason": body.reason,
-                "source": body.source,
-                "xp": new_xp,
-            }
-        )
-    pet["evolution_history"] = history
-
-    _save_pet(body.discord_id, pet)
-
-    return XpAwardResponse(
-        new_xp=new_xp,
-        new_level=new_level,
-        evolved=evolved,
-        evolution_message=evolution_message,
-    )
+    return _award_xp_to_pet(body.discord_id, body.amount, body.reason, body.source)
 
 
 @app.get("/pet/{discord_id}/status")
@@ -256,6 +280,117 @@ async def pet_status(discord_id: str) -> dict[str, object]:
     pet_out = dict(pet)
     pet_out["next_evolution_xp"] = None if nxt is None else max(0, nxt - xp)
     return pet_out
+
+
+class StreakCommitRequest(BaseModel):
+    discord_id: str = Field(..., min_length=1, max_length=64)
+    commit_sha: str = Field(..., min_length=1, max_length=64)
+    commit_message: str = Field(default="", max_length=500)
+    committed_at: str | None = None
+
+
+@app.post("/streak/commit")
+async def streak_commit(body: StreakCommitRequest) -> dict[str, object]:
+    try:
+        when = datetime.fromisoformat(body.committed_at) if body.committed_at else datetime.now(timezone.utc)
+    except Exception:
+        when = datetime.now(timezone.utc)
+
+    day = when.astimezone(timezone.utc).date().isoformat()
+    r = _redis()
+    key = _streak_key(body.discord_id)
+    raw = r.get(key)
+    state: dict[str, object] = {}
+    if raw:
+        try:
+            state = json.loads(raw)
+        except Exception:
+            state = {}
+
+    last_day = str(state.get("last_day", ""))
+    streak_days = int(state.get("streak_days", 0) or 0)
+    rewarded_at_7 = bool(state.get("rewarded_at_7", False))
+
+    if last_day == day:
+        pass
+    else:
+        try:
+            last_dt = datetime.fromisoformat(last_day).date()
+            cur_dt = datetime.fromisoformat(day).date()
+            delta = (cur_dt - last_dt).days
+        except Exception:
+            delta = 999
+
+        if delta == 1:
+            streak_days = max(1, streak_days + 1)
+        else:
+            streak_days = 1
+            rewarded_at_7 = False
+
+    state = {"last_day": day, "streak_days": streak_days, "rewarded_at_7": rewarded_at_7}
+    r.set(key, json.dumps(state, separators=(",", ":")))
+
+    award_bonus = False
+    if streak_days >= 7 and rewarded_at_7 is False:
+        award_bonus = True
+        state["rewarded_at_7"] = True
+        r.set(key, json.dumps(state, separators=(",", ":")))
+
+    return {"streak_days": streak_days, "award_bonus": award_bonus}
+
+
+class WebhookAwardRequest(BaseModel):
+    source_id: str = Field(..., min_length=1, max_length=128)
+    discord_id: str = Field(..., min_length=1, max_length=64)
+    module_slug: str | None = Field(default=None, max_length=128)
+    critical_count: int | None = Field(default=None, ge=0, le=10_000)
+
+
+@app.post("/webhooks/pytest-pass")
+async def webhook_pytest_pass(
+    body: WebhookAwardRequest,
+    x_pets_secret: str | None = Header(default=None, alias="X-Pets-Secret"),
+) -> dict[str, object]:
+    _verify_secret("PETS_WEBHOOK_SECRET", x_pets_secret, "X-Pets-Secret")
+    key = f"petwebhook:pytest:{body.source_id}"
+    r = _redis()
+    if not r.set(key, "1", nx=True, ex=60 * 60 * 24 * 14):
+        return {"awarded": False, "duplicate": True}
+    res = _award_xp_to_pet(body.discord_id, 50, "Pytest all green", "pytest_webhook")
+    return {"awarded": True, "result": res.model_dump()}
+
+
+@app.post("/webhooks/trivy-clean")
+async def webhook_trivy_clean(
+    body: WebhookAwardRequest,
+    x_pets_secret: str | None = Header(default=None, alias="X-Pets-Secret"),
+) -> dict[str, object]:
+    _verify_secret("PETS_WEBHOOK_SECRET", x_pets_secret, "X-Pets-Secret")
+    if body.critical_count is None:
+        raise HTTPException(status_code=422, detail="critical_count is required")
+    key = f"petwebhook:trivy:{body.source_id}"
+    r = _redis()
+    if not r.set(key, "1", nx=True, ex=60 * 60 * 24 * 14):
+        return {"awarded": False, "duplicate": True}
+    if body.critical_count != 0:
+        return {"awarded": False, "critical_count": body.critical_count}
+    res = _award_xp_to_pet(body.discord_id, 100, "Trivy 0 CRITICAL", "trivy_webhook")
+    return {"awarded": True, "result": res.model_dump()}
+
+
+@app.post("/webhooks/course-module-complete")
+async def webhook_course_module_complete(
+    body: WebhookAwardRequest,
+    x_sync_secret: str | None = Header(default=None, alias="X-Sync-Secret"),
+) -> dict[str, object]:
+    _verify_secret("COURSE_SYNC_SECRET", x_sync_secret, "X-Sync-Secret")
+    key = f"petwebhook:course:{body.source_id}"
+    r = _redis()
+    if not r.set(key, "1", nx=True, ex=60 * 60 * 24 * 60):
+        return {"awarded": False, "duplicate": True}
+    slug = body.module_slug or "module_complete"
+    res = _award_xp_to_pet(body.discord_id, 150, f"Course module complete: {slug}", "course_webhook")
+    return {"awarded": True, "result": res.model_dump()}
 
 
 @app.get("/health")
