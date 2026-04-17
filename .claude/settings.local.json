@@ -175,7 +175,9 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"cache_response\" /app/app/cache/multi_tier.py)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"limiter.limit\" /app/app/routes/stripe.py)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(openssl rand *)"
+      "Bash(openssl rand *)",
+      "Bash(sed -n '295,320p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")",
+      "Bash(sed -n '1183,1200p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")"
     ]
   },
   "enableAllProjectMcpServers": true,

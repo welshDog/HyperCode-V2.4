@@ -300,15 +300,17 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=${POSTGRES_PASSWORD:-}
       - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MEMSTREAM_API_TOKEN=${MEMSTREAM_API_TOKEN}
+      - MEMSTREAM_API_URL=${MEMSTREAM_API_URL:-http://memstream:8011}
       - ENABLE_AUTO_MODERATION=true
       - ENABLE_ANALYTICS=true
       - PROMETHEUS_ENABLED=true
       - PROMETHEUS_PORT=8000
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       - OLLAMA_HOST=http://hypercode-ollama:11434
-      - OLLAMA_MODEL=phi3:latest
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:3b}
     depends_on:
       redis:
         condition: service_healthy
@@ -1187,8 +1189,8 @@ services:
       - AGENT_PORT=8001
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./agents/business/project-strategist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1801,6 +1803,8 @@ services:
       REDIS_URL: redis://redis:6379
       POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       DOCKER_HOST: tcp://docker-socket-proxy:2375
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     logging:
       driver: "json-file"
       options:
