@@ -43,8 +43,12 @@ network-init:
 	@echo "Ensuring Docker network 'hypercode_public_net' exists..."
 	@docker network ls --format '{{.Name}}' | grep -q '^hypercode_public_net$$' || docker network create hypercode_public_net
 
+# Pre-build safety check (disk + memory guard)
+pre-build-check:
+	@bash scripts/pre-build-check.sh
+
 # Build all containers
-build: network-init
+build: pre-build-check network-init
 	@echo "Building all agent containers..."
 	docker-compose -f docker-compose.yml --profile agents --env-file .env.agents build
 
@@ -116,6 +120,13 @@ clean:
 	@read -p "Continue? [y/N]: " confirm && [ "$$confirm" = "y" ] || exit 1
 	docker-compose -f docker-compose.yml --profile agents down -v --remove-orphans
 	docker system prune -f
+
+health: ## 🏥 NemoClaw code health scan + Discord webhook post
+	@echo "🔍 Running NemoClaw health scan..."
+	@python scripts/health_report.py --webhook
+
+health-quick: ## 🏥 NemoClaw scan — terminal only, no webhook
+	@python scripts/health_report.py
 
 # Full Docker Health Check System
 full-docker-health:

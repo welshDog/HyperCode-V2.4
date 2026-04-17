@@ -1,6 +1,7 @@
 import os
 import json
 import uuid
+import asyncio
 import subprocess
 from datetime import datetime, timezone
 from secrets import SystemRandom
@@ -121,6 +122,196 @@ def _load_squad() -> dict:
             return json.load(f)
     except Exception:
         return {}
+
+
+def _mcp_base_url() -> str:
+    raw = os.getenv("MCP_GATEWAY_URL", "http://mcp-gateway:8099").strip().rstrip("/")
+    if raw.startswith("tcp://"):
+        raw = "http://" + raw[len("tcp://") :]
+    if not raw.startswith(("http://", "https://")):
+        raw = "http://" + raw
+    return raw
+
+
+def _mcp_headers() -> dict[str, str]:
+    token = os.getenv("MCP_GATEWAY_AUTH_TOKEN", "").strip()
+    if not token:
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+def _parse_mcp_sse_payload(text: str) -> dict:
+    for line in text.splitlines():
+        if not line.startswith("data:"):
+            continue
+        raw = line[len("data:") :].strip()
+        if not raw:
+            continue
+        try:
+            return json.loads(raw)
+        except Exception:
+            continue
+    raise ValueError("Invalid MCP SSE response")
+
+
+async def _mcp_jsonrpc_call(message: dict, timeout_s: float, session_id: str | None = None) -> tuple[dict, str | None]:
+    base = _mcp_base_url()
+    endpoints = [f"{base}/mcp", base]
+    headers = {"Accept": "application/json, text/event-stream", **_mcp_headers()}
+    if session_id:
+        headers["Mcp-Session-Id"] = session_id
+
+    async with httpx.AsyncClient(timeout=timeout_s, headers=headers) as client:
+        last_err: Exception | None = None
+        for url in endpoints:
+            try:
+                resp = await client.post(url, json=message)
+                if resp.status_code == 200:
+                    sid = resp.headers.get("Mcp-Session-Id") or session_id
+                    return _parse_mcp_sse_payload(resp.text), sid
+                last_err = HTTPException(status_code=resp.status_code, detail=resp.text)
+            except Exception as e:
+                last_err = e
+                continue
+        raise last_err or RuntimeError("MCP call failed")
+
+
+async def _mcp_connected(timeout_s: float = 1.0) -> bool:
+    try:
+        _resp, _sid = await _mcp_jsonrpc_call(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "broski-pets-bridge", "version": "2.4"},
+                },
+            },
+            timeout_s=timeout_s,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _select_github_search_tool(tools: list[dict]) -> dict | None:
+    preferred = [
+        "github.search_issues",
+        "github.search_pull_requests",
+        "github.search_issues_and_prs",
+        "github.search",
+        "search_issues",
+        "search_pull_requests",
+        "search_issues_and_prs",
+        "search",
+    ]
+    by_name: dict[str, dict] = {}
+    for t in tools:
+        name = t.get("name")
+        if isinstance(name, str):
+            by_name[name] = t
+
+    for name in preferred:
+        if name in by_name:
+            return by_name[name]
+
+    for name, tool in by_name.items():
+        if "search" in name:
+            return tool
+    return None
+
+
+def _build_tool_args(tool: dict, query: str) -> dict:
+    schema = tool.get("inputSchema") or {}
+    props = schema.get("properties") if isinstance(schema, dict) else {}
+    if not isinstance(props, dict):
+        props = {}
+
+    args: dict[str, object] = {}
+    repo = os.getenv("GITHUB_CONTEXT_REPO", "welshDog/HyperCode-V2.4")
+
+    q_key = "query" if "query" in props else ("q" if "q" in props else None)
+    if q_key:
+        args[q_key] = f"repo:{repo} {query}"
+    else:
+        args["query"] = f"repo:{repo} {query}"
+
+    if "repo" in props:
+        args["repo"] = repo
+    if "repository" in props:
+        args["repository"] = repo
+    if "owner" in props and "repo" in props:
+        if "/" in repo:
+            owner, name = repo.split("/", 1)
+            args["owner"] = owner
+            args["repo"] = name
+
+    if "limit" in props:
+        args["limit"] = 5
+    if "per_page" in props:
+        args["per_page"] = 5
+
+    return args
+
+
+async def _github_context_via_mcp(question: str) -> str:
+    _resp, sid = await _mcp_jsonrpc_call(
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "broski-pets-bridge", "version": "2.4"},
+            },
+        },
+        timeout_s=10.0,
+    )
+
+    tools_resp, sid = await _mcp_jsonrpc_call(
+        {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
+        timeout_s=15.0,
+        session_id=sid,
+    )
+    tools = tools_resp.get("result", {}).get("tools", [])
+    if not isinstance(tools, list):
+        return ""
+
+    tool = _select_github_search_tool([t for t in tools if isinstance(t, dict)])
+    if not tool:
+        return ""
+
+    tool_name = tool.get("name")
+    if not isinstance(tool_name, str):
+        return ""
+
+    args = _build_tool_args(tool, question)
+    call_resp, _sid = await _mcp_jsonrpc_call(
+        {
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": tool_name, "arguments": args},
+        },
+        timeout_s=30.0,
+        session_id=sid,
+    )
+
+    result = call_resp.get("result") or {}
+    content = result.get("content") if isinstance(result, dict) else None
+    if not isinstance(content, list):
+        return ""
+
+    chunks: list[str] = []
+    for item in content:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "text" and isinstance(item.get("text"), str):
+            chunks.append(item["text"])
+    out = "\n\n".join(chunks).strip()
+    return out[:2000]
 
 
 
@@ -496,6 +687,13 @@ async def pet_chat(discord_id: str, body: ChatRequest) -> dict[str, object]:
     if body.mode == "ask":
         style = "You are a senior pair-programmer. Be concrete, step-by-step, and focused on solving the coding question."
 
+    github_context = ""
+    if body.mode == "ask":
+        try:
+            github_context = await _github_context_via_mcp(body.message)
+        except Exception:
+            github_context = ""
+
     prompt = (
         f"{style}\n"
         f"Pet: {name} | Species: {species} | Rarity: {rarity} | Stage: {level}\n"
@@ -504,6 +702,7 @@ async def pet_chat(discord_id: str, body: ChatRequest) -> dict[str, object]:
         f"Capabilities: {', '.join(caps) if caps else 'none'}\n\n"
         f"Recent git diff (may be empty):\n{git_diff}\n\n"
         f"WHATS_DONE.md (may be empty):\n{whats_done}\n\n"
+        f"GitHub context via MCP (may be empty):\n{github_context}\n\n"
         f"User message:\n{body.message}\n"
     )
 
@@ -623,6 +822,52 @@ async def pet_powers(discord_id: str) -> dict[str, object]:
     }
 
 
+@app.get("/leaderboard")
+async def leaderboard() -> list[dict[str, object]]:
+    r = _redis()
+    out: list[dict[str, object]] = []
+
+    for key in r.scan_iter(match="pet:*"):
+        if not isinstance(key, str):
+            continue
+        discord_id = key[len("pet:") :]
+        raw = r.get(key)
+        if not raw:
+            continue
+        try:
+            pet = json.loads(raw)
+        except Exception:
+            continue
+        if not isinstance(pet, dict):
+            continue
+
+        out.append(
+            {
+                "discord_id": discord_id,
+                "name": str(pet.get("name", "Unknown")),
+                "species": str(pet.get("species", "Unknown")),
+                "level": int(pet.get("level", 1)),
+                "xp": int(pet.get("xp", 0)),
+            }
+        )
+
+    out.sort(key=lambda x: int(x.get("xp", 0)), reverse=True)
+    top = out[:10]
+    ranked: list[dict[str, object]] = []
+    for i, row in enumerate(top, start=1):
+        ranked.append(
+            {
+                "rank": i,
+                "discord_id": row["discord_id"],
+                "name": row["name"],
+                "species": row["species"],
+                "level": row["level"],
+                "xp": row["xp"],
+            }
+        )
+    return ranked
+
+
 @app.get("/health")
 async def health() -> dict[str, object]:
     ollama_url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434").rstrip("/")
@@ -644,11 +889,18 @@ async def health() -> dict[str, object]:
     except Exception:
         redis_connected = False
 
+    mcp_ok = False
+    try:
+        mcp_ok = await _mcp_connected()
+    except Exception:
+        mcp_ok = False
+
     return {
         "status": "ok",
         "service": "broski-pets-bridge",
         "pets_enabled": pets_enabled,
         "ollama_connected": ollama_connected,
         "redis_connected": redis_connected,
+        "mcp_connected": mcp_ok,
         "redis_db": 3,
     }

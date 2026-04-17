@@ -8,6 +8,7 @@ import logging
 from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel
 from typing import Optional
+from app.core.config import settings
 from app.services.stripe_service import (
     create_checkout_session,
     create_course_checkout_session,
@@ -98,7 +99,7 @@ async def get_plans(request: Request):
 @router.post("/webhook")
 async def stripe_webhook(
     request: Request,
-    stripe_signature: Optional[str] = Header(None),
+    stripe_signature: Optional[str] = Header(None, alias="Stripe-Signature"),
 ):
     """
     Handle incoming Stripe webhook events.
@@ -107,7 +108,9 @@ async def stripe_webhook(
     payload = await request.body()
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
-    if not webhook_secret:
+    is_production = settings.ENVIRONMENT.lower() == "production"
+
+    if (not webhook_secret) or ((not is_production) and (not stripe_signature)):
         logger.warning("STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev mode)")
         try:
             import json
@@ -115,6 +118,8 @@ async def stripe_webhook(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
     else:
+        if not stripe_signature:
+            raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
         try:
             event = stripe.Webhook.construct_event(
                 payload, stripe_signature, webhook_secret

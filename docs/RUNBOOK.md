@@ -1,7 +1,38 @@
-# 🦅 HyperCode V2.0 — Golden Startup Runbook
+# 🦅 HyperCode V2.4 — Golden Startup Runbook
 
 > **The definitive "never get stuck again" guide.**  
-> Verified live on March 15, 2026. Keep this updated as the stack evolves.
+> Verified live on March 15, 2026. Updated April 17, 2026 — OOM recovery section added.
+
+---
+
+## 🚨 OOM / Disk Crash Recovery (April 17, 2026 — real incident)
+
+**What happened:** Agent X built 30+ images with no memory limit → observability stack OOM killed (exit 137) → 6 containers down.
+
+**Exit code reference:**
+- `137` = OOM killed (container hit memory limit or host ran out of RAM)
+- `128` = SIGTERM under stress (system killed it externally)
+
+**Recovery steps (in order):**
+```powershell
+# 1. Check disk + what's using space
+docker system df
+
+# 2. Free space — prune dead containers + dangling images + old build cache
+docker container prune -f
+docker image prune -f --filter until=48h
+docker builder prune -f --keep-storage=5gb
+
+# 3. Restart the OOM-killed services (observability stack in this case)
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d prometheus grafana loki tempo alertmanager
+
+# 4. Verify all back up
+docker compose ps
+```
+
+**Prevention (now in place):**
+- Every service has `deploy.resources.limits` in `docker-compose.yml` — no unlimited containers
+- `make build` runs `scripts/pre-build-check.sh` first — aborts if <15GB free or <1GB RAM
 
 ---
 

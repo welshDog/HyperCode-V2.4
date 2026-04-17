@@ -31,17 +31,7 @@ networks:
 volumes:
   trivy-cache:
   redis-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${HC_DATA_ROOT}/redis
   postgres-data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${HC_DATA_ROOT}/postgres
   grafana-data:
     driver: local
     driver_opts:
@@ -67,11 +57,6 @@ volumes:
       o: bind
       device: ${HC_DATA_ROOT}/agent_memory
   minio_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${HC_DATA_ROOT}/minio
   chroma_data:
     driver: local
     driver_opts:
@@ -142,7 +127,7 @@ services:
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hypercode}
       POSTGRES_DB: ${POSTGRES_DB:-hypercode}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -191,7 +176,7 @@ services:
       - ENVIRONMENT=development
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
@@ -293,22 +278,24 @@ services:
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
-      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-}@postgres:5432/broski
+      - DATABASE_URL=postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/broski
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=broski
       - DB_USER=postgres
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-hypercode}
       - REDIS_URL=redis://redis:6379/0
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MEMSTREAM_API_TOKEN=${MEMSTREAM_API_TOKEN}
+      - MEMSTREAM_API_URL=${MEMSTREAM_API_URL:-http://memstream:8011}
       - ENABLE_AUTO_MODERATION=true
       - ENABLE_ANALYTICS=true
       - PROMETHEUS_ENABLED=true
       - PROMETHEUS_PORT=8000
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       - OLLAMA_HOST=http://hypercode-ollama:11434
-      - OLLAMA_MODEL=phi3:latest
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:3b}
     depends_on:
       redis:
         condition: service_healthy
@@ -339,6 +326,10 @@ services:
     volumes:
       - ./agents/broski-bot/src:/app/src
       - ./docs/outputs:/app/outputs
+      - ./agents/broski-nemoclaw-agent:/app/nemoclaw_agent:ro
+      - ./backend:/app/backend_src:ro
+      - ./agents:/app/project_agents:ro
+      - ./reports/broski-analysis:/app/health_reports
 
   # OBSERVABILITY
   prometheus:
@@ -452,6 +443,14 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     security_opt:
       - no-new-privileges:true
     logging:
@@ -503,8 +502,8 @@ services:
     container_name: minio
     command: server /data --console-address ":9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-hypercode}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-hypercode}
       - MINIO_PROMETHEUS_AUTH_TYPE=public
     volumes:
       - minio_data:/data
@@ -520,6 +519,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     security_opt:
       - no-new-privileges:true
     logging:
@@ -547,6 +554,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -638,6 +653,14 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -659,7 +682,7 @@ services:
       CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
       CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
       PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
-      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
@@ -718,6 +741,14 @@ services:
       celery-worker:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -748,6 +779,14 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
     networks:
       - agents-net
     volumes:
@@ -802,6 +841,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   auto-prune:
     profiles: ["ops", "health"]
@@ -823,6 +870,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
     logging:
       driver: "json-file"
       options:
@@ -911,6 +966,45 @@ services:
     cap_drop:
       - ALL
 
+  mcp-gateway:
+    profiles: ["agents"]
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    command:
+      - --servers=github
+      - --transport=streaming
+      - --port=8099
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    expose:
+      - "8099"
+    networks:
+      - agents-net
+    depends_on:
+      docker-socket-proxy:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   broski-pets-bridge:
     profiles: ["agents"]
     build:
@@ -925,6 +1019,7 @@ services:
       - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
       - WORKSPACE_PATH=/workspace
       - SQUAD_JSON_PATH=/workspace/squad.json
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8099}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
     volumes:
@@ -939,6 +1034,8 @@ services:
         condition: service_healthy
       hypercode-ollama:
         condition: service_healthy
+      mcp-gateway:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
       interval: 30s
@@ -999,6 +1096,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1039,6 +1139,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1067,6 +1170,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -1089,7 +1195,7 @@ services:
       - ORCHESTRATOR_REDIS_PORT=6379
       - ORCHESTRATOR_ENABLED_AGENTS=${ORCHESTRATOR_ENABLED_AGENTS:-}
       - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hypercode}
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
@@ -1144,8 +1250,8 @@ services:
       - AGENT_PORT=8001
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./agents/business/project-strategist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1166,6 +1272,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1203,6 +1317,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1240,6 +1362,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1277,6 +1407,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1314,6 +1452,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1351,6 +1497,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1425,6 +1579,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1462,6 +1624,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1672,8 +1842,14 @@ services:
     container_name: hypercode-ollama
     volumes:
       - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
     networks:
       - agents-net
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
     deploy:
       resources:
         limits:
@@ -1682,6 +1858,42 @@ services:
         reservations:
           cpus: "1"
           memory: 1G
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  hypercode-ollama-gpu:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    profiles: ["gpu"]
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      agents-net:
+        aliases:
+          - hypercode-ollama
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 1G
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
     healthcheck:
       test: ["CMD", "ollama", "list"]
       interval: 30s
@@ -1720,6 +1932,16 @@ services:
       REDIS_URL: redis://redis:6379
       POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       DOCKER_HOST: tcp://docker-socket-proxy:2375
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1748,6 +1970,14 @@ services:
       - obs-net
       - agents-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -1783,6 +2013,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "architect"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1820,6 +2058,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "observer"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1858,6 +2104,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "worker"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1911,6 +2165,14 @@ services:
       hypercode.archetype: "architect"
       hypercode.version: "2.0"
       hypercode.role: "meta-architect"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -1929,7 +2191,7 @@ services:
       - "127.0.0.1:8095:8090"
     environment:
       - PORT=8090
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       - REDIS_URL=redis://redis:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
@@ -1986,7 +2248,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "worker"]
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       - REDIS_URL=redis://redis:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000

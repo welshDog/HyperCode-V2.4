@@ -241,6 +241,46 @@ class Pets(commands.Cog):
         embed.add_field(name="Happiness", value=f"{happiness}/100", inline=True)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @pet.command(name="leaderboard", description="Show the top BROskiPets by XP")
+    async def leaderboard(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=False)
+
+        try:
+            res = await self._bridge_get("/leaderboard")
+        except Exception as e:
+            logger.error("Pet leaderboard request failed", error=str(e))
+            await interaction.followup.send("❌ Leaderboard service is unavailable right now.", ephemeral=False)
+            return
+
+        if res.status_code != 200:
+            logger.warning("Pet leaderboard non-200", status_code=res.status_code, body=res.text)
+            await interaction.followup.send("❌ Couldn’t fetch leaderboard right now.", ephemeral=False)
+            return
+
+        data = res.json()
+        if not isinstance(data, list) or len(data) == 0:
+            await interaction.followup.send("🏆 No leaderboard entries yet. Hatch some pets first!", ephemeral=False)
+            return
+
+        lines: list[str] = []
+        for row in data:
+            if not isinstance(row, dict):
+                continue
+            rank = int(row.get("rank", 0))
+            name = str(row.get("name", "Unknown"))
+            species = str(row.get("species", "Unknown"))
+            level = int(row.get("level", 1))
+            xp = int(row.get("xp", 0))
+            prefix = "⭐ " if rank == 1 else ""
+            lines.append(f"{prefix}#{rank} {name} ({species}) — Lvl {level} — {xp} XP")
+
+        embed = discord.Embed(
+            title="🏆 BROskiPets Leaderboard",
+            description="\n".join(lines)[:3900],
+            color=discord.Color.gold(),
+        )
+        await interaction.followup.send(embed=embed, ephemeral=False)
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Pets(bot))

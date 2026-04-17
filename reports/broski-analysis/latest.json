@@ -1,0 +1,59 @@
+{
+  "score": 99,
+  "grade": "S",
+  "label": "LEGENDARY",
+  "emoji": "\ud83c\udfc6",
+  "colour": 65416,
+  "files_scanned": 10783,
+  "lint_issues": 225,
+  "ast_issues": 129,
+  "total_issues": 354,
+  "top_lint": [
+    {
+      "file": "agents\\01-frontend-specialist\\base_agent.py",
+      "line": 14,
+      "msg": "`asyncio` imported but unused"
+    },
+    {
+      "file": "agents\\09-tips-tricks-writer\\agent.py",
+      "line": 6,
+      "msg": "`os` imported but unused"
+    },
+    {
+      "file": "agents\\agent-x\\designer.py",
+      "line": 16,
+      "msg": "`typing.Optional` imported but unused"
+    },
+    {
+      "file": "agents\\agent-x\\designer.py",
+      "line": 132,
+      "msg": "Multiple imports on one line"
+    },
+    {
+      "file": "agents\\agent-x\\designer.py",
+      "line": 206,
+      "msg": "Multiple imports on one line"
+    }
+  ],
+  "top_ast": [
+    {
+      "file": "examples\\api_usage.py",
+      "line": 69,
+      "msg": "Bare except \u2014 catches everything",
+      "severity": "medium"
+    },
+    {
+      "file": "hyperstudio-platform\\api-main.py",
+      "line": 461,
+      "msg": "Bare except \u2014 catches everything",
+      "severity": "medium"
+    },
+    {
+      "file": "scripts\\generate_health_check_compose.py",
+      "line": 274,
+      "msg": "Bare except \u2014 catches everything",
+      "severity": "medium"
+    }
+  ],
+  "scanned_at": "2026-04-17T10:04:07.026309+00:00"
+}
