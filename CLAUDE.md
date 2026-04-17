@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 17, 2026 | Status: 24/24 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
+> Last updated: April 17, 2026 | Status: 29/29 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
 
 ---
 
@@ -294,6 +294,13 @@ class HyperCircuitBreaker:
 | `loki` has no healthcheck | Add `curl -f http://localhost:3100/ready` | 🟡 LOW |
 | `project-strategist-v2` no healthcheck | Add `curl -f http://localhost:<port>/health` | 🟡 LOW |
 | `promtail` no healthcheck | Add `wget -q http://localhost:9080/ready` | 🟡 LOW |
+| `mcp-gateway` had no healthcheck | ✅ FIXED Apr 17 — added `curl -sf http://localhost:8820/health` to `docker-compose.mcp-gateway.yml` | ✅ DONE |
+| `POSTGRES_PASSWORD` crash loop (Apr 17) | ✅ FIXED — URL-encode special chars (`/` `+` `=`) in DSN. Raw value in `.env` URL-encoded; decode at DSN build time only. | ✅ DONE |
+| `broski-bot` volume bug (Apr 17) | ✅ FIXED — `./agents/broski-bot` volume was mounted over `/app`, killing the venv. Fixed to mount `src/` only. Also: added `postgres_password` to broski-bot's secrets list. | ✅ DONE |
+| `docker-socket-proxy` stale container (Apr 17) | ✅ FIXED — Force recreated; `tmpfs` + `read_only` config now applied correctly. | ✅ DONE |
+| `hypercode-dashboard` Exited 127 (Apr 17) | ✅ FIXED — Stale WSL bind-mount path after Docker Desktop restart. Force recreated. | ✅ DONE |
+| `DOCKER_MCP_IN_CONTAINER=1` on mcp-gateway (Apr 17) | ✅ FIXED — Caused gRPC deadline_exceeded on WSL2. Removed; env var fallback now used. MCP tools live. | ✅ DONE |
+| Anthropic API credits exhausted (Apr 17) | ⚠️ Top up at console.anthropic.com/billing — currently routing pet chat via Perplexity `sonar`/`sonar-pro` as fallback. Works great. | 🟡 TOP UP |
 
 ---
 
@@ -353,6 +360,10 @@ docker compose --profile agents up -d
 - ✅ **OOM crash recovered** — 34.4GB freed, stack restored (April 17)
 - ✅ **Memory limits on ALL services** — every container capped, no more cascade kills (April 17)
 - ✅ **pre-build-check.sh** — disk + memory guard wired into `make build` (April 17)
+- ✅ **MCP-GitHub LIVE** — 26 GitHub tools via Docker MCP gateway on agents-net (April 17)
+- ✅ **Leaderboard endpoint** — `/leaderboard` SCAN-based, filterable by rarity (April 17)
+- ✅ **Pet chat via cloud LLM** — Anthropic (haiku/sonnet) → Perplexity fallback (sonar/sonar-pro). 3.8s chat, 12.7s ask. CPU Ollama retired from chat path. (April 17)
+- ✅ **Ollama warm-keep** — `OLLAMA_KEEP_ALIVE=24h`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_MAX_LOADED_MODELS=2` (April 17)
 
 ---
 
@@ -367,9 +378,12 @@ Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
 5. **Memory limits on ALL services** ✅ — see docker-compose.yml `deploy.resources` on every service
 6. **Agent X is capped at 1G** — it caused an OOM crash (April 17) by building 30+ images unlimited
 7. **Pre-build guard** — `make build` runs `scripts/pre-build-check.sh` first, aborts if <15GB free
-8. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR E2E checkout test with `stripe listen`
-9. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-10. **Never:** Wall of text. Never debate the Sacred Rules.
+8. **NEXT_MOVES.md moves DONE** — Move 2 (MCP-GitHub ✅) + Move 3 (Leaderboard ✅). Move 1 (GPU) blocked — no NVIDIA GPU on this machine; warm-keep vars added as partial win.
+9. **Pet chat = cloud LLM** — `broski-pets-bridge` routes via Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Anthropic credits need topping up (lyndzwills@gmail.com → console.anthropic.com/billing). Perplexity works great in the meantime.
+10. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`. `_github_context_via_mcp()` wired into pet ask mode.
+11. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR top up Anthropic → switch back to haiku/sonnet for pets
+12. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+13. **Never:** Wall of text. Never debate the Sacred Rules.
 
 > *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
 

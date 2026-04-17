@@ -1,19 +1,28 @@
 # 🚀 NEXT_MOVES.md — IDE-Ready Implementation Pack
 
-> **Status:** Ready to paste into VS Code / Cursor. No fluff.
+> **Status:** Moves 2 + 3 SHIPPED ✅ | Move 1 (GPU) blocked — no NVIDIA GPU on dev machine
 > **Scope:** 3 high-ROI upgrades for the BROski Pets system, ranked by impact.
-> **Date:** April 16, 2026 | **Builder:** @welshDog (Lyndz)
+> **Date:** April 16, 2026 (updated April 17) | **Builder:** @welshDog (Lyndz)
 > **Source:** Gordon Docker AI review → filtered by senior-dev priority lens
 
 ---
 
 ## 🎯 The Plan — 3 Moves, In Order
 
-| # | Move | Effort | Impact | Why first |
+| # | Move | Status | Impact | Notes |
 |---|---|---|---|---|
-| 1 | **GPU for Ollama** | ~20 min | ⭐⭐⭐⭐⭐ | Pets go from "waiting" → "alive" |
-| 2 | **MCP-GitHub Server** | ~1–2 hrs | ⭐⭐⭐⭐ | Pets read real repo state → advice gets real |
-| 3 | **Leaderboard Endpoint** | ~30 min | ⭐⭐⭐ | Social loop — tiny code, big motivation payoff |
+| 1 | **GPU for Ollama** | ⚠️ BLOCKED | ⭐⭐⭐⭐⭐ | No NVIDIA GPU on dev machine. Warm-keep env vars added (`OLLAMA_KEEP_ALIVE=24h`, `OLLAMA_NUM_PARALLEL=2`). Revisit when hardware available. |
+| 2 | **MCP-GitHub Server** | ✅ DONE Apr 17 | ⭐⭐⭐⭐ | 26 GitHub tools live via Docker MCP gateway. `_github_context_via_mcp()` wired into pet `/ask` mode. |
+| 3 | **Leaderboard Endpoint** | ✅ DONE Apr 17 | ⭐⭐⭐ | `/leaderboard` live — SCAN-based, sorted by XP, filterable by rarity. |
+
+### Bonus — Cloud LLM for Pet Chat (shipped Apr 17)
+
+Pet chat no longer uses Ollama for responses. Routes via:
+- **Primary:** Anthropic `claude-haiku-4-5-20251001` (chat) / `claude-sonnet-4-6` (ask)
+- **Fallback:** Perplexity `sonar` (chat) / `sonar-pro` (ask) — active now (Anthropic credits low)
+- **Last resort:** Ollama (unchanged, still available)
+
+Result: 4+ min timeout → **3.8s** chat, **12.7s** ask. Pets are alive.
 
 ### Pre-flight BEFORE any of this
 
