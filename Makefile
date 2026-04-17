@@ -43,8 +43,12 @@ network-init:
 	@echo "Ensuring Docker network 'hypercode_public_net' exists..."
 	@docker network ls --format '{{.Name}}' | grep -q '^hypercode_public_net$$' || docker network create hypercode_public_net
 
+# Pre-build safety check (disk + memory guard)
+pre-build-check:
+	@bash scripts/pre-build-check.sh
+
 # Build all containers
-build: network-init
+build: pre-build-check network-init
 	@echo "Building all agent containers..."
 	docker-compose -f docker-compose.yml --profile agents --env-file .env.agents build
 

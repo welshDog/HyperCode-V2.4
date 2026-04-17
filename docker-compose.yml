@@ -443,6 +443,14 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     security_opt:
       - no-new-privileges:true
     logging:
@@ -511,6 +519,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     security_opt:
       - no-new-privileges:true
     logging:
@@ -538,6 +554,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -629,6 +653,14 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -709,6 +741,14 @@ services:
       celery-worker:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -739,6 +779,14 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
     networks:
       - agents-net
     volumes:
@@ -793,6 +841,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   auto-prune:
     profiles: ["ops", "health"]
@@ -814,6 +870,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
     logging:
       driver: "json-file"
       options:
@@ -1033,6 +1097,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1073,6 +1140,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1101,6 +1171,9 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -1200,6 +1273,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1237,6 +1318,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1274,6 +1363,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1311,6 +1408,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1348,6 +1453,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1385,6 +1498,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1459,6 +1580,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1496,6 +1625,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -1794,6 +1931,14 @@ services:
       DOCKER_HOST: tcp://docker-socket-proxy:2375
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1822,6 +1967,14 @@ services:
       - obs-net
       - agents-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
     logging:
       driver: "json-file"
       options:
@@ -1857,6 +2010,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "architect"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1894,6 +2055,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "observer"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1932,6 +2101,14 @@ services:
       hypercode.agent: "true"
       hypercode.archetype: "worker"
       hypercode.version: "2.0"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
     logging:
       driver: "json-file"
       options:
@@ -1985,6 +2162,14 @@ services:
       hypercode.archetype: "architect"
       hypercode.version: "2.0"
       hypercode.role: "meta-architect"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
     logging:
       driver: "json-file"
       options:

@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 16, 2026 | Status: 29/29 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
+> Last updated: April 17, 2026 | Status: 24/24 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
 
 ---
 
@@ -350,6 +350,9 @@ docker compose --profile agents up -d
 - ✅ Docker build cache pruned — 60GB freed
 - ✅ **Gordon Tier 2 COMPLETE** — OTLP traces, Redis cache, rate limits, circuit breakers
 - ✅ **Course → Stripe frontend wired** — full money path live (April 16)
+- ✅ **OOM crash recovered** — 34.4GB freed, stack restored (April 17)
+- ✅ **Memory limits on ALL services** — every container capped, no more cascade kills (April 17)
+- ✅ **pre-build-check.sh** — disk + memory guard wired into `make build` (April 17)
 
 ---
 
@@ -361,9 +364,12 @@ Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
 2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10O all ✅)
 3. **All Gordon Tier 1 + Tier 2 DONE** ✅ — OTLP, cache, rate limits, circuit breakers
 4. **Course → Stripe frontend DONE** ✅ — `/pricing` → checkout → `/payment-success` → enrolled
-5. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR E2E checkout test with `stripe listen`
-6. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-7. **Never:** Wall of text. Never debate the Sacred Rules.
+5. **Memory limits on ALL services** ✅ — see docker-compose.yml `deploy.resources` on every service
+6. **Agent X is capped at 1G** — it caused an OOM crash (April 17) by building 30+ images unlimited
+7. **Pre-build guard** — `make build` runs `scripts/pre-build-check.sh` first, aborts if <15GB free
+8. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR E2E checkout test with `stripe listen`
+9. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+10. **Never:** Wall of text. Never debate the Sacred Rules.
 
 > *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
 

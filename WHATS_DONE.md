@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 16, 2026 (evening)** — update this every session.
+> **Updated: April 17, 2026** — update this every session.
 
 ---
 
@@ -21,6 +21,12 @@
 - 5 isolated networks — `data-net` + `obs-net` internal (no internet) ✅
 - Docker secrets pattern — `.txt` files, never baked into images ✅
 - Kubernetes + Helm charts in `k8s/` + `helm/` — scale path ready ✅
+- **Memory limits on ALL services** — every container capped, OOM cascades impossible ✅ ← **April 17**
+  - agent-x hard-capped at 1G RAM (was unlimited — caused OOM crash April 17)
+  - healer, alertmanager, hyper-agents, all specialists, all infra — all capped
+- `scripts/pre-build-check.sh` — disk + memory guard before any Docker build ✅ ← **April 17**
+  - `make build` now runs it automatically — aborts if <15GB free
+- **OOM recovery completed April 17** — 34.4GB freed, 24/24 containers restored ✅
 
 ### Observability
 - Prometheus 7/7 targets UP — `monitoring/prometheus/prometheus.yml` is the live config ✅
@@ -88,6 +94,8 @@
 - GitHub Actions CI — Trivy on every push/PR ✅
 - Phase 7–9: Dockerfile hardening, CVE elimination, secrets management ✅
 - Stripe keys rotated + scrubbed from 218 commits with `git filter-repo` ✅ ← **April 16**
+- OOM crash root cause: Agent X built 30+ images with no memory limit — fixed ✅ ← **April 17**
+  - Exit 137 = OOM killed | Exit 128 = SIGTERM under stress (reference for future debugging)
 
 ### Celery
 - Celery + Redis task queue running ✅
@@ -161,6 +169,9 @@ Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/w
 Alembic:         if missing alembic_version table → run 'alembic stamp 006' first
 Supabase table:  courses uses price_pence (int) + is_active (bool)
 Docker context:  must be 'desktop-linux' on Windows
+Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
+Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
+OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
 ```
 
 ---
