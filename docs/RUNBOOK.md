@@ -5,6 +5,36 @@
 
 ---
 
+## 🧯 OOM Recovery (Exit 137 / 128)
+
+If a container suddenly shows `Exited (137)` or `Exited (128)`, treat it as a hard-kill event. The fastest path back to green is:
+
+```powershell
+# 1) See what died + exit codes
+docker compose ps --all
+
+# 2) Confirm if it was OOMKilled (true/false) + capture the exit code
+docker inspect <container_name> --format "OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}} Error={{.State.Error}}"
+
+# 3) Restart the one service (least disruptive)
+docker compose restart <service_name>
+
+# 4) If it loops or won't come back healthy: recreate the container
+docker compose up -d --force-recreate <service_name>
+
+# 5) If multiple services are broken: clean restart
+docker compose down
+docker compose up -d
+```
+
+Exit code legend:
+- **137** → SIGKILL (most commonly OOM kill / hit memory limit)
+- **128** → forced stop/abort (treat as hard-kill: recreate + restart the service)
+
+Prevention is baked in now (resource caps + restart policies). OOM should be isolated to the offending container instead of taking the whole stack down.
+
+---
+
 ## ⚡ TL;DR — The 5-Step Golden Chain
 
 ```powershell
