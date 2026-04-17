@@ -644,6 +644,66 @@ async def webhook_course_module_complete(
     return {"awarded": True, "result": res.model_dump()}
 
 
+async def _chat_via_cloud(prompt: str, mode: str) -> tuple[str, str]:
+    """Returns (reply_text, model_name). Tries Anthropic then Perplexity. Raises ValueError if both fail."""
+    max_tokens = int(os.getenv("PETS_ANTHROPIC_MAX_TOKENS", "300"))
+
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if anthropic_key:
+        model = (
+            os.getenv("PETS_ANTHROPIC_MODEL_ASK", "claude-sonnet-4-6")
+            if mode == "ask"
+            else os.getenv("PETS_ANTHROPIC_MODEL_CHAT", "claude-haiku-4-5-20251001")
+        )
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                res = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": anthropic_key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "max_tokens": max_tokens,
+                        "messages": [{"role": "user", "content": prompt}],
+                    },
+                )
+            if res.status_code == 200:
+                text = res.json()["content"][0]["text"]
+                return text, model
+        except Exception:
+            pass
+
+    perplexity_key = os.getenv("PERPLEXITY_API_KEY", "")
+    if perplexity_key:
+        px_model = (
+            os.getenv("PETS_PERPLEXITY_MODEL_ASK", "sonar-pro")
+            if mode == "ask"
+            else os.getenv("PETS_PERPLEXITY_MODEL_CHAT", "sonar")
+        )
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            res = await client.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {perplexity_key}",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": px_model,
+                    "max_tokens": max_tokens,
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+            )
+        if res.status_code == 200:
+            text = res.json()["choices"][0]["message"]["content"]
+            return text, px_model
+        raise ValueError(f"Perplexity API {res.status_code}: {res.text[:200]}")
+
+    raise ValueError("No cloud LLM API keys configured")
+
+
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=4000)
     mode: Literal["chat", "ask"] = Field(default="chat")
@@ -706,6 +766,22 @@ async def pet_chat(discord_id: str, body: ChatRequest) -> dict[str, object]:
         f"User message:\n{body.message}\n"
     )
 
+    provider = os.getenv("PETS_LLM_PROVIDER", "anthropic" if os.getenv("ANTHROPIC_API_KEY") else "ollama")
+
+    if provider in ("anthropic", "cloud"):
+        try:
+            reply, used_model = await _chat_via_cloud(prompt, body.mode)
+            return {
+                "reply": reply,
+                "model": used_model,
+                "pet": {"name": name, "species": species, "rarity": rarity, "level": level},
+            }
+        except Exception as exc:
+            if os.getenv("PETS_ANTHROPIC_FALLBACK_OLLAMA", "true").lower() in {"1", "true", "yes"}:
+                pass  # fall through to Ollama
+            else:
+                raise HTTPException(status_code=503, detail=f"Cloud LLM unavailable: {exc}")
+
     try:
         async with httpx.AsyncClient(timeout=300.0) as client:
             try:
@@ -728,7 +804,7 @@ async def pet_chat(discord_id: str, body: ChatRequest) -> dict[str, object]:
                     "options": {
                         "temperature": 0.7 if body.mode == "chat" else 0.3,
                         "top_p": 0.9,
-                        "num_predict": 128,
+                        "num_predict": int(os.getenv("PETS_NUM_PREDICT", "80")),
                     },
                 },
             )
