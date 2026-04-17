@@ -337,7 +337,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
-      - ./agents/broski-bot:/app
+      - ./agents/broski-bot/src:/app/src
       - ./docs/outputs:/app/outputs
 
   # OBSERVABILITY

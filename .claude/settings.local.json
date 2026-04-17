@@ -174,7 +174,15 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"ConsoleSpanExporter\" /app/app/core/telemetry.py)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"cache_response\" /app/app/cache/multi_tier.py)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"limiter.limit\" /app/app/routes/stripe.py)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec docker-socket-proxy *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec docker-socket-proxy-build *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec postgres cat /var/lib/postgresql/data/pg_hba.conf)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec postgres *)",
+      "Bash(sed -n '344,350p' docker-compose.yml)",
+      "Bash(sed -n '1079,1090p' docker-compose.yml)",
+      "Bash(sed -n '1921,1930p' docker-compose.yml)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run *)"
     ]
   },
   "enableAllProjectMcpServers": true,
