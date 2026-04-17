@@ -341,6 +341,10 @@ services:
     volumes:
       - ./agents/broski-bot:/app
       - ./docs/outputs:/app/outputs
+      - ./agents/broski-nemoclaw-agent:/app/nemoclaw_agent:ro
+      - ./backend:/app/backend_src:ro
+      - ./agents:/app/project_agents:ro
+      - ./reports/broski-analysis:/app/health_reports
 
   # OBSERVABILITY
   prometheus:

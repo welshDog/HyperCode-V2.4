@@ -177,7 +177,10 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(openssl rand *)",
       "Bash(sed -n '295,320p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")",
-      "Bash(sed -n '1183,1200p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")"
+      "Bash(sed -n '1183,1200p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")",
+      "Bash(echo \"GW_PRIMARY=$\\(openssl rand -hex 32\\)\")",
+      "Bash(echo \"GW_SECONDARY=$\\(openssl rand -hex 32\\)\")",
+      "Bash(echo \"GW_ADMIN=$\\(openssl rand -hex 32\\)\")"
     ]
   },
   "enableAllProjectMcpServers": true,

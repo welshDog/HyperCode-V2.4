@@ -117,6 +117,13 @@ clean:
 	docker-compose -f docker-compose.yml --profile agents down -v --remove-orphans
 	docker system prune -f
 
+health: ## 🏥 NemoClaw code health scan + Discord webhook post
+	@echo "🔍 Running NemoClaw health scan..."
+	@python scripts/health_report.py --webhook
+
+health-quick: ## 🏥 NemoClaw scan — terminal only, no webhook
+	@python scripts/health_report.py
+
 # Full Docker Health Check System
 full-docker-health:
 	@echo "🚀 Starting Full Docker Health Check Pipeline..."
