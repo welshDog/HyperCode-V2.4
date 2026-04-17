@@ -822,6 +822,52 @@ async def pet_powers(discord_id: str) -> dict[str, object]:
     }
 
 
+@app.get("/leaderboard")
+async def leaderboard() -> list[dict[str, object]]:
+    r = _redis()
+    out: list[dict[str, object]] = []
+
+    for key in r.scan_iter(match="pet:*"):
+        if not isinstance(key, str):
+            continue
+        discord_id = key[len("pet:") :]
+        raw = r.get(key)
+        if not raw:
+            continue
+        try:
+            pet = json.loads(raw)
+        except Exception:
+            continue
+        if not isinstance(pet, dict):
+            continue
+
+        out.append(
+            {
+                "discord_id": discord_id,
+                "name": str(pet.get("name", "Unknown")),
+                "species": str(pet.get("species", "Unknown")),
+                "level": int(pet.get("level", 1)),
+                "xp": int(pet.get("xp", 0)),
+            }
+        )
+
+    out.sort(key=lambda x: int(x.get("xp", 0)), reverse=True)
+    top = out[:10]
+    ranked: list[dict[str, object]] = []
+    for i, row in enumerate(top, start=1):
+        ranked.append(
+            {
+                "rank": i,
+                "discord_id": row["discord_id"],
+                "name": row["name"],
+                "species": row["species"],
+                "level": row["level"],
+                "xp": row["xp"],
+            }
+        )
+    return ranked
+
+
 @app.get("/health")
 async def health() -> dict[str, object]:
     ollama_url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434").rstrip("/")
