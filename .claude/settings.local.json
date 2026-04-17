@@ -186,7 +186,10 @@
       "Read(//c/Program Files/**)",
       "Read(//c/Windows//**)",
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi)",
-      "Bash(MSYS_NO_PATHCONV=1 docker exec broski-pets-bridge *)"
+      "Bash(MSYS_NO_PATHCONV=1 docker exec broski-pets-bridge *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-ollama ollama ps)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-redis *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker logs broski-pets-bridge *)"
     ]
   },
   "enableAllProjectMcpServers": true,
