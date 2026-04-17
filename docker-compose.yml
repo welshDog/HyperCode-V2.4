@@ -977,7 +977,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - DOCKER_MCP_IN_CONTAINER=1
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
     expose:
