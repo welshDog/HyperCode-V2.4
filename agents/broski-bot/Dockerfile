@@ -49,6 +49,10 @@ RUN pip install --upgrade --no-cache-dir \
 # Copy venv from builder
 COPY --from=builder /app/.venv /app/.venv
 
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
 # Copy only production code
 COPY src /app/src
 COPY alembic /app/alembic
@@ -66,4 +70,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-CMD ["python", "src/main.py", "run"]
+ENTRYPOINT ["/app/entrypoint.sh"]

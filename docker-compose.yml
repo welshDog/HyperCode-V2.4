@@ -319,7 +319,7 @@ services:
     networks:
       - agents-net
       - data-net
-    restart: unless-stopped
+    restart: no
     security_opt:
       - no-new-privileges:true
     command: ["python", "/app/src/main.py", "run"]
