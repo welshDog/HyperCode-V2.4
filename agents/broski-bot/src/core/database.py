@@ -3,6 +3,7 @@ Provides connection pooling, session management, and migrations.
 """
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Optional
+import os
 
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
@@ -46,11 +47,22 @@ class Database:
         Initialize database engine and session factory.
         Creates connection pool and sets up event listeners.
         """
-        # Validate required settings
+        # Debug: Log environment and settings
+        logger.info(f"DB_PASSWORD env: {os.environ.get('DB_PASSWORD', 'NOT SET')}")
+        logger.info(f"settings.db_password: {repr(settings.db_password)}")
+        logger.info(f"bool(settings.db_password): {bool(settings.db_password)}")
+        
+        # Validate required settings - check for None or empty string only
         required_settings = [
             "db_host", "db_port", "db_name", "db_user", "db_password"
         ]
-        missing = [s for s in required_settings if not getattr(settings, s, None) or getattr(settings, s) == "placeholder"]
+        missing = []
+        for s in required_settings:
+            val = getattr(settings, s, None)
+            if not val:
+                missing.append(s)
+                logger.info(f"{s} is missing/empty: {repr(val)}")
+        
         if missing:
             raise RuntimeError(f"Missing required database settings: {', '.join(missing)}")
 
@@ -209,14 +221,6 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     if not db._session_factory:
         await db.init()
         
-    async with db.session() as session:
-        yield session
-    """
-    Dependency injection helper for FastAPI/Discord.py.
-    
-    Yields:
-        AsyncSession: Database session
-    """
     async with db.session() as session:
         yield session
 

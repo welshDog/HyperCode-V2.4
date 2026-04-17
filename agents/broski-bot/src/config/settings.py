@@ -13,8 +13,6 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
@@ -36,7 +34,7 @@ class Settings(BaseSettings):
     db_port: int = Field(default=5432, description="Database port")
     db_name: str = Field(default="broski", description="Database name")
     db_user: str = Field(default="postgres", description="Database user")
-    db_password: str = Field(default="placeholder", description="Database password")
+    db_password: str = Field(default="hypercode", description="Database password")
     db_pool_size: int = Field(default=20, description="Database connection pool size")
     db_max_overflow: int = Field(default=10, description="Max overflow connections")
     db_pool_timeout: int = Field(default=30, description="Pool timeout in seconds")
