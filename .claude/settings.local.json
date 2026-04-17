@@ -174,7 +174,8 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"ConsoleSpanExporter\" /app/app/core/telemetry.py)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"cache_response\" /app/app/cache/multi_tier.py)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-core grep -c \"limiter.limit\" /app/app/routes/stripe.py)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(openssl rand *)"
     ]
   },
   "enableAllProjectMcpServers": true,
