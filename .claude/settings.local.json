@@ -180,7 +180,13 @@
       "Bash(sed -n '1183,1200p' \"H:/HyperStation zone/HyperCode/HyperCode-V2.4/docker-compose.yml\")",
       "Bash(echo \"GW_PRIMARY=$\\(openssl rand -hex 32\\)\")",
       "Bash(echo \"GW_SECONDARY=$\\(openssl rand -hex 32\\)\")",
-      "Bash(echo \"GW_ADMIN=$\\(openssl rand -hex 32\\)\")"
+      "Bash(echo \"GW_ADMIN=$\\(openssl rand -hex 32\\)\")",
+      "Bash(\"/c/Windows/System32/nvidia-smi.exe\")",
+      "Bash(\"/c/Program Files/NVIDIA Corporation/NVSMI/nvidia-smi.exe\")",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Windows//**)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec broski-pets-bridge *)"
     ]
   },
   "enableAllProjectMcpServers": true,
