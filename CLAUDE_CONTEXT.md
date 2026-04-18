@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 16, 2026 (evening BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe checkout → PaymentSuccess FULLY LIVE 💳✅**
+> **Last synced: April 18, 2026 (afternoon BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe checkout → PaymentSuccess FULLY LIVE 💳✅ | DB Recovery COMPLETE 🔧 | All secrets armed ✅**
 
 ---
 
@@ -42,6 +42,65 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | **10M** | Gordon Tier 1 — Prometheus 7/7 UP | ✅ DONE — April 15 |
 | **10N** | Gordon Tier 2 — ALL 4 STEPS | ✅ DONE — April 16 🏆 |
 | **10O** | Course → Stripe frontend wired | ✅ DONE — April 16 💳 |
+| **10P** | DB Recovery + Secrets Armed | ✅ DONE — April 18 🔧 |
+
+---
+
+## 🔧 Phase 10P — DB Recovery + Secrets Armed (April 18, 2026)
+
+**hypercode-core restart loop fixed ✅ — All secrets armed ✅ — Zero compose warnings ✅**
+
+### Root Cause Chain
+1. `--force-recreate` (triggered by `COURSE_SYNC_SECRET` change) re-read `.env`
+2. `hypercode-core` uses `environment: ${VAR}` substitution — NO `env_file:` directive
+3. So `POSTGRES_PASSWORD` was blank inside container → fell back to `:-hypercode`
+4. Postgres had previously been ALTERed to the secret file value → auth rejected
+5. Result: restart loop with `FATAL: password authentication failed`
+
+### Fix Applied
+- `ALTER USER postgres WITH PASSWORD 'hypercode'` via unix socket (trust auth — safe)
+- Password synced to compose fallback `:-hypercode` — stack back to green
+- All missing secrets read from `secrets/*.txt` and added directly to `.env`
+
+### Secrets Armed (April 18)
+| Key | Source | Status |
+|---|---|---|
+| `API_KEY` | `secrets/api_key.txt` | ✅ Armed |
+| `HYPERCODE_JWT_SECRET` | `secrets/jwt_secret.txt` | ✅ Armed |
+| `HYPERCODE_MEMORY_KEY` | `secrets/memory_key.txt` | ✅ Armed |
+| `DISCORD_TOKEN` | `secrets/discord_token.txt` | ✅ Armed |
+| `ORCHESTRATOR_API_KEY` | `secrets/orchestrator_api_key.txt` | ✅ Fixed (was literal path) |
+| `COURSE_SYNC_SECRET` | `secrets/course_sync_secret.txt` | ✅ Armed |
+| `SHOP_SYNC_SECRET` | `secrets/shop_sync_secret.txt` | ✅ Armed |
+| `POSTGRES_PASSWORD` | Set to `hypercode` (matches compose fallback) | ✅ Synced |
+
+### ⚠️ Known Tech Debt (do this soon)
+- `hypercode-core` service in `docker-compose.yml` is missing `env_file: .env`
+- Without it, `${VAR}` vars are substituted at compose-read time on HOST only — not injected INTO the container
+- Add this under `hypercode-core:` service block:
+```yaml
+env_file:
+  - .env
+```
+- This is the proper long-term fix — current state works via compose substitution fallbacks
+
+### Recovery Commands (for future reference)
+```powershell
+# If DB auth breaks again — get in via unix socket (always works)
+docker exec -it postgres psql -U postgres
+
+# Check what password container is actually using
+docker exec hypercode-core env 2>&1 | findstr -i "PASSWORD\|DATABASE"
+
+# Check secret is mounted
+docker exec hypercode-core cat /run/secrets/postgres_password 2>&1
+
+# Sync Postgres password to match .env
+docker exec -it postgres psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'your-password-here';"
+
+# Recreate only core (safe — doesn't touch data)
+docker compose up -d --force-recreate hypercode-core
+```
 
 ---
 
@@ -167,9 +226,11 @@ All 29/29 **(healthy)** ✅
 |---|---|
 | 💳 ~~Course → Stripe frontend~~ | ✅ DONE April 16 — pricing → checkout → success → enrolled |
 | 📝 ~~CLAUDE_CONTEXT.md update~~ | ✅ DONE — you're reading it! |
-| 🎓 **Gordon Tier 3** | DB connection pooling, async task queues |
+| 🔧 ~~DB Recovery + Secrets Armed~~ | ✅ DONE April 18 |
+| 🎓 **Gordon Tier 3** | DB connection pooling, async task queues ← **NEXT** |
 | 🔗 **Payment Links flow** | Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars |
 | 🧪 **E2E test the checkout** | `stripe listen` + test card `4242 4242 4242 4242` → full flow |
+| 🔨 **env_file tech debt** | Add `env_file: .env` to `hypercode-core` in compose — proper long-term secrets fix |
 | 🧹 **prometheus.yml tidy** | Delete/archive stale root `prometheus.yml` — `monitoring/prometheus/prometheus.yml` is the live one |
 
 ---
@@ -219,6 +280,9 @@ All 29/29 **(healthy)** ✅
 - **`apps/web/`:** Archived, never migrate
 - **Redis DB split:** DB 1 = cache (`@cache_response`), DB 2 = rate limits — NEVER mix
 - **Circuit breakers:** 3 active (llm-router, crew-orchestrator, stripe-api) — check via `GET /api/v1/health`
+- **Postgres password:** Currently `hypercode` (matches compose `:-hypercode` fallback) — synced April 18
+- **`hypercode-core` env_file:** NOT yet added to compose — tech debt. `${VAR}` substitution happens host-side only. Container gets vars via compose substitution fallbacks, not direct injection. Fix = add `env_file: .env` to service block.
+- **Unix socket = trust auth:** Always your recovery door into Postgres when TCP auth breaks. `docker exec -it postgres psql -U postgres`
 
 ---
 
@@ -240,6 +304,9 @@ docker compose build --no-cache
 docker ps --format "table {{.Names}}\t{{.Status}}"
 # Expected: all 29 (healthy)
 
+# Check for unhealthy containers (empty = all green)
+docker ps --format "table {{.Names}}\t{{.Status}}" | findstr -v "healthy"
+
 # Tests
 pytest  # 180 passed, 6 skipped
 pytest backend/tests/test_stripe.py -v
@@ -252,6 +319,10 @@ curl -X POST localhost:9090/-/reload
 
 # Circuit breakers status
 curl localhost:8000/api/v1/health | jq .circuit_breakers
+
+# DB recovery (if auth breaks again)
+docker exec -it postgres psql -U postgres
+# Then: ALTER USER postgres WITH PASSWORD 'hypercode';
 
 # CLI
 $env:HYPERCODE_API_URL = "http://localhost:8000"
@@ -286,7 +357,8 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 - Stripe + BROski$ FULLY LIVE ✅
 - Agents: agent-x, healer, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
 - **Course → Stripe frontend WIRED** ✅ (April 16 — commit `7e28666` / `dd1d8dfe`)
-- **Next:** Gordon Tier 3 (DB pooling + async task queues) | E2E checkout test (`stripe listen`) | Payment Links flow | prometheus.yml tidy
+- **DB Recovery + All Secrets Armed** ✅ (April 18 — postgres password synced, all 7 blank vars fixed)
+- **Next:** Gordon Tier 3 (DB pooling + async task queues) | `env_file` tech debt fix | E2E checkout test | Payment Links flow | prometheus.yml tidy
 
 ---
 
