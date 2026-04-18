@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless
 
 # Default target
 help:
@@ -284,6 +284,27 @@ trivy-hook-install: ## Install Trivy pre-push hook for local CVE blocking
 	cp scripts/trivy-pre-push.sh .git/hooks/pre-push
 	chmod +x .git/hooks/pre-push
 	@echo "✅ Trivy pre-push hook installed."
+
+## ─── Load Testing ──────────────────────────────────────────────────────────
+
+load-test: ## Launch Locust web UI — open http://localhost:8089
+	@echo "🚀 Starting Locust load test UI at http://localhost:8089"
+	@echo "   Target: http://localhost:8000"
+	@pip install locust --break-system-packages --quiet 2>/dev/null || true
+	locust -f tests/load/locustfile.py --host http://localhost:8000
+
+load-test-headless: ## Run headless load test: 50 users, 10/s ramp, 2 min, HTML report
+	@echo "🏴󠁧󠁢󠁷󠁬󠁳󠁠 Running headless load test (50u, 10/s ramp, 2min)..."
+	@pip install locust --break-system-packages --quiet 2>/dev/null || true
+	locust -f tests/load/locustfile.py \
+		--host http://localhost:8000 \
+		--headless \
+		-u 50 -r 10 \
+		--run-time 2m \
+		--html tests/load/report.html
+	@echo "📊 Report saved to tests/load/report.html"
+
+## ─── Production ─────────────────────────────────────────────────────────────
 
 # Production mode
 prod:
