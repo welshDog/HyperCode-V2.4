@@ -21,11 +21,12 @@ import uuid
 from typing import Optional, Set
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.middleware.agent_auth import require_agent_key
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -84,7 +85,10 @@ _manager = ConnectionManager()
 # ── REST: publish event (used internally by agents/healer) ────────────────────
 
 @router.post("/events", response_model=AgentEvent)
-async def publish_event(body: EventPublish) -> AgentEvent:
+async def publish_event(
+    body: EventPublish,
+    _agent: dict = Depends(require_agent_key),
+) -> AgentEvent:
     """Publish a system event to the Redis list and fanout channel."""
     event = AgentEvent(
         id=str(uuid.uuid4()),

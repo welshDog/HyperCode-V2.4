@@ -50,23 +50,26 @@ _async_db_url = settings.HYPERCODE_DB_URL.replace(
     "postgres://", "postgresql+asyncpg://", 1
 )
 
-async_engine = create_async_engine(
-    _async_db_url,
-    pool_size=10,
-    max_overflow=20,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    echo=False,
-)
+try:
+    async_engine = create_async_engine(
+        _async_db_url,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+        echo=False,
+    )
 
-# async_sessionmaker is the async equivalent of sessionmaker
-_AsyncSessionFactory = async_sessionmaker(
-    bind=async_engine,
-    class_=AsyncSession,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-)
+    _AsyncSessionFactory = async_sessionmaker(
+        bind=async_engine,
+        class_=AsyncSession,
+        autocommit=False,
+        autoflush=False,
+        expire_on_commit=False,
+    )
+except ModuleNotFoundError:
+    async_engine = None
+    _AsyncSessionFactory = None
 
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
@@ -79,6 +82,9 @@ async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
             result = await db.execute(select(MyModel))
             return result.scalars().all()
     """
+    if _AsyncSessionFactory is None:
+        raise RuntimeError("Async DB engine unavailable (missing asyncpg)")
+
     async with _AsyncSessionFactory() as session:
         try:
             yield session

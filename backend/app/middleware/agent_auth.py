@@ -76,6 +76,7 @@ async def _check_agent_rate_limit(agent_name: str, rpm_limit: int) -> bool:
 async def get_agent_from_key(
     request: Request,  # noqa: ARG001 — reserved for future IP allow-listing
     x_agent_key: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> Optional[dict]:
     """Optional agent key auth.
 
@@ -87,10 +88,11 @@ async def get_agent_from_key(
         429 if the agent has exceeded its rate limit.
         503 if the auth DB is temporarily unavailable.
     """
-    if not x_agent_key:
+    raw_key = x_agent_key or x_api_key
+    if not raw_key:
         return None
 
-    key_hash = hash_agent_key(x_agent_key)
+    key_hash = hash_agent_key(raw_key)
 
     try:
         async with AsyncSessionLocal() as db:

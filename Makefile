@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6
 
 # Default target
 help:
@@ -37,6 +37,12 @@ help:
 	@echo "  make logs-frontend    - View frontend specialist logs"
 	@echo "  make logs-backend     - View backend specialist logs"
 	@echo "  make restart-frontend - Restart frontend specialist"
+	@echo ""
+	@echo "Load Testing:"
+	@echo "  make load-test-k6        - k6 API load test (target up to 1000 rps)"
+	@echo "  make load-test-k6-smoke  - fast k6 smoke run"
+	@echo "  make load-test-agents    - k6 agents status polling load test"
+	@echo "  make load-test-stripe-k6 - k6 Stripe checkout load profile (test mode)"
 
 # Ensure shared public network exists
 network-init:
@@ -303,6 +309,23 @@ load-test-headless: ## Run headless load test: 50 users, 10/s ramp, 2 min, HTML 
 		--run-time 2m \
 		--html tests/load/report.html
 	@echo "📊 Report saved to tests/load/report.html"
+
+load-test-k6: ## k6 main API test (target up to 1000 req/sec profile)
+	@echo "🔥 Running k6 main load profile: tests/load/hypercode_load_test.js"
+	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/hypercode_load_test.js
+
+load-test-k6-smoke: ## k6 quick smoke check (10 VUs, 30s)
+	@echo "⚡ Running k6 smoke profile (10 VUs, 30s)"
+	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run \
+		--vus 10 --duration 30s - < tests/load/hypercode_load_test.js
+
+load-test-agents: ## k6 agent status endpoint load test
+	@echo "🤖 Running k6 agent status load profile"
+	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/agents_load_test.js
+
+load-test-stripe-k6: ## k6 Stripe checkout flow load test (test mode keys only)
+	@echo "💳 Running k6 Stripe load profile (test mode only)"
+	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/stripe_load_test.js
 
 ## ─── Production ─────────────────────────────────────────────────────────────
 

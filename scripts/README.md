@@ -9,6 +9,7 @@ Operational and developer utility scripts for HyperCode (PowerShell-first on Win
 - Health checks: `scripts/health-check.ps1`, `scripts/comprehensive_health_check.py`, `scripts/hypercode_health_check.py`
 - Init/secrets: `scripts/init.ps1`, `scripts/init-secrets.ps1`, `scripts/setup-secrets.ps1`, `scripts/validate_secrets.ps1`
 - Backups: `scripts/backup.ps1`, `scripts/backup_postgres.*`, `scripts/backup_volumes.*`, `scripts/backup_hypercode.*`
+- Spawn agents (compose profile): `python scripts/spawn_agent.py --list`, `python scripts/spawn_agent.py coder-agent`
 
 ## Subfolders
 
