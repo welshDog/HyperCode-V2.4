@@ -195,7 +195,11 @@
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress --format table hypercode-v24-hyper-architect:latest)",
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress hypercode-v24-hyper-architect:latest)",
       "Bash(supabase --version)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress hypercode-v24-hyper-architect:latest)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v //var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress --format json hypercode-v24-hyper-architect:latest)",
+      "Bash(python scripts/seed_agent_api_keys.py)",
+      "Read(//tmp/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

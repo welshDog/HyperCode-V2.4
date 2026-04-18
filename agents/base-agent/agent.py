@@ -41,6 +41,18 @@ except ImportError:
         ai_backend = None
         print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
 
+def _resolve_secret(var: str) -> Optional[str]:
+    """Return env ``var``, or the content of ``<var>_FILE`` if set (Docker secrets)."""
+    file_path = os.getenv(f"{var}_FILE")
+    if file_path and os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as fh:
+                return fh.read().strip()
+        except OSError:
+            pass
+    return os.getenv(var)
+
+
 class AgentConfig:
     """Base configuration for all agents"""
     def __init__(self):
@@ -48,10 +60,14 @@ class AgentConfig:
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
         self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.api_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("PERPLEXITY_API_KEY") or os.getenv("OPENAI_API_KEY")
+        self.api_key = (
+            _resolve_secret("ANTHROPIC_API_KEY")
+            or _resolve_secret("PERPLEXITY_API_KEY")
+            or _resolve_secret("OPENAI_API_KEY")
+        )
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
-        self.hypercode_api_key = os.getenv("HYPERCODE_API_KEY")
+        self.hypercode_api_key = _resolve_secret("HYPERCODE_API_KEY")
 
 class TaskRequest(BaseModel):
     id: Optional[str] = None
