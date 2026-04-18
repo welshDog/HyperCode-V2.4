@@ -124,6 +124,8 @@ services:
 
   postgres:
     image: postgres:15-alpine
+    env_file:
+      - .env
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}

@@ -71,6 +71,10 @@ venv/
 *.pyd
 .docker/
 
+# Hyperfocus Features (runtime state files — Feature 3 session snapshots + Feature 5 focus mode)
+SESSION.md
+.focus_session_start
+
 # Logs
 *.log
 npm-debug.log*
