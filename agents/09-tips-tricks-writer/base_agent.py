@@ -12,10 +12,12 @@ Key requirements:
 from __future__ import annotations
 
 import os
+import secrets
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 
 try:
@@ -124,6 +126,21 @@ class BaseAgent:
             self.client = anthropic.AsyncAnthropic(api_key=self.config.anthropic_api_key)
 
         self.app = FastAPI(title=f"{self.config.name} Agent")
+        @self.app.middleware("http")
+        async def _agent_auth_middleware(request: Request, call_next):
+            path = request.url.path
+            if path == "/" or path.startswith("/health"):
+                return await call_next(request)
+
+            expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+            if not expected:
+                return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+            provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+            if not provided or not secrets.compare_digest(str(provided), expected):
+                return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+            return await call_next(request)
         self._setup_routes()
 
     async def startup(self) -> None:
@@ -241,4 +258,3 @@ PROJECT CONTEXT:
         import uvicorn
 
         uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
-

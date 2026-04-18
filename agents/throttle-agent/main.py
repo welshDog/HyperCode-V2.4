@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import time
 from collections import deque
 from datetime import datetime
@@ -442,6 +443,21 @@ if THROTTLE_ACTIVE_CONTAINER:
 import threading as _threading
 
 app = FastAPI(title="Throttle Agent")
+@app.middleware("http")
+async def _agent_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/health") or path.startswith("/metrics"):
+        return await call_next(request)
+
+    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    if not expected:
+        return Response(status_code=503, content="Agent API key not configured", media_type="text/plain")
+
+    provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+    if not provided or not secrets.compare_digest(str(provided), expected):
+        return Response(status_code=401, content="Invalid or missing API key", media_type="text/plain")
+
+    return await call_next(request)
 
 _throttle_lock = _threading.Lock()
 _started_at: float = time.time()

@@ -3,9 +3,11 @@ import json
 import logging
 from typing import Dict, Any, Optional
 import httpx
-from fastapi import FastAPI, HTTPException
+import secrets
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 import uvicorn
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(
@@ -24,8 +26,8 @@ class AgentConfig:
             setattr(self, k, v)
 
 class TaskRequest(BaseModel):
-    task_id: str = Field(alias="id")
-    task: str = Field(alias="task")
+    id: str
+    task: str
     context: Optional[Dict[str, Any]] = None
 
 class TaskResponse(BaseModel):
@@ -44,6 +46,20 @@ class CoderAgent:
         self.app = FastAPI(title="Coder Agent API")
         self.redis = None
         self.http_client = httpx.AsyncClient(timeout=60.0)
+        @self.app.middleware("http")
+        async def _agent_auth_middleware(request: Request, call_next):
+            if request.url.path.startswith("/health"):
+                return await call_next(request)
+
+            expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+            if not expected:
+                return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+            provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+            if not provided or not secrets.compare_digest(str(provided), expected):
+                return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+            return await call_next(request)
         self.setup_routes()
 
     async def startup(self):
@@ -55,7 +71,7 @@ class CoderAgent:
         logger.info(f"Shutting down {self.config.name}")
         await self.http_client.aclose()
         if self.redis:
-            await self.redis.close()
+            self.redis.close()
 
     def setup_routes(self):
         @self.app.on_event("startup")
@@ -76,7 +92,7 @@ class CoderAgent:
 
     async def execute(self, request: TaskRequest) -> TaskResponse:
         """Execute a coding task."""
-        logger.info(f"Executing task {request.task_id}: {request.task}")
+        logger.info(f"Executing task {request.id}: {request.task}")
         
         try:
             task_lower = request.task.lower()
@@ -92,18 +108,18 @@ class CoderAgent:
             else:
                 result_data = await self.generate_code_with_ollama(request.task)
                 
-            logger.info(f"Task {request.task_id} completed successfully.")
+            logger.info(f"Task {request.id} completed successfully.")
             return TaskResponse(
-                task_id=request.task_id,
+                task_id=request.id,
                 agent=self.config.name,
                 status="completed",
                 result=result_data
             )
             
         except Exception as e:
-            logger.error(f"Task {request.task_id} failed: {str(e)}", exc_info=True)
+            logger.error(f"Task {request.id} failed: {str(e)}", exc_info=True)
             return TaskResponse(
-                task_id=request.task_id,
+                task_id=request.id,
                 agent=self.config.name,
                 status="error",
                 error=str(e),

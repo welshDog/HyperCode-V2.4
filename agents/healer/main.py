@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 from collections import defaultdict
@@ -18,7 +19,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 # Third party
 import httpx
 import redis.asyncio as redis
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 # Local (relative imports for files in the same package)
@@ -250,6 +252,22 @@ app = FastAPI(
     lifespan=lifespan,
 )
 init_metrics(app)
+
+@app.middleware("http")
+async def _agent_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/health") or path.startswith("/metrics") or path.startswith("/alerts/webhook"):
+        return await call_next(request)
+
+    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    if not expected:
+        return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+    provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+    if not provided or not secrets.compare_digest(str(provided), expected):
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+    return await call_next(request)
 
 # 🧠 MAPE-K routes registered before app starts serving
 app.include_router(mape_k_router)

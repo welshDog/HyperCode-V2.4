@@ -1025,6 +1025,7 @@ services:
       - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8099}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
       - PETS_LLM_PROVIDER=${PETS_LLM_PROVIDER:-anthropic}
@@ -1258,6 +1259,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=project-strategist
       - AGENT_PORT=8001
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -1308,6 +1310,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=frontend-specialist
       - AGENT_PORT=8012
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/01-frontend-specialist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1353,6 +1356,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=backend-specialist
       - AGENT_PORT=8003
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/02-backend-specialist:/app
       - ./agents/shared:/app/shared:ro
@@ -1398,6 +1402,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=database-architect
       - AGENT_PORT=8004
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/03-database-architect:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1443,6 +1448,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=qa-engineer
       - AGENT_PORT=8005
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/04-qa-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1488,6 +1494,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=devops-engineer
       - AGENT_PORT=8006
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/05-devops-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1531,6 +1538,7 @@ services:
     container_name: super-hyper-broski-agent
     environment:
       - PORT=8015
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     networks:
       - agents-net
     ports:
@@ -1570,6 +1578,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=security-engineer
       - AGENT_PORT=8007
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/06-security-engineer:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1615,6 +1624,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=system-architect
       - AGENT_PORT=8008
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     volumes:
       - ./agents/07-system-architect:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1660,6 +1670,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=test-agent
       - PORT=8080
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=http://tempo:4317
@@ -1711,6 +1722,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=throttle-agent
       - HEALER_URL=http://healer-agent:8008
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - AUTO_THROTTLE_ENABLED=true
       - THROTTLE_PAUSE_TIER6_AT=80
       - THROTTLE_PAUSE_TIER5_AT=90
@@ -1771,6 +1783,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=tips-tricks-writer
       - AGENT_PORT=8009
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
     volumes:
       - ./agents/09-tips-tricks-writer:/app
@@ -1942,6 +1955,7 @@ services:
       REDIS_URL: redis://redis:6379
       POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       DOCKER_HOST: tcp://docker-socket-proxy:2375
+      HYPERCODE_API_KEY: ${API_KEY:-dev-master-key}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     deploy:

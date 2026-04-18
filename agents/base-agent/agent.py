@@ -2,17 +2,19 @@
 Base Agent Template for HyperCode Crew
 Each specialized agent extends this base
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import asyncio
 import os
+import secrets
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
 import sys
 
 # Allow imports from shared modules
-sys.path.append('/app')
+sys.path.insert(0, "/app")
 try:
     from shared.rag_memory import AgentMemory
     from shared.project_memory import ProjectMemory
@@ -22,21 +24,21 @@ except ImportError:
     print("⚠️ Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
-    def setup_logging(name):
+    def setup_logging(agent_name: str):
         return None
     ApprovalSystem = None
 
 # AI Client — try anthropic first, fallback to openai
 try:
     from anthropic import AsyncAnthropic as AIClient
-    AI_BACKEND = "anthropic"
+    ai_backend = "anthropic"
 except ImportError:
     try:
         from openai import AsyncOpenAI as AIClient
-        AI_BACKEND = "openai"
+        ai_backend = "openai"
     except ImportError:
         AIClient = None
-        AI_BACKEND = None
+        ai_backend = None
         print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
 
 class AgentConfig:
@@ -86,6 +88,21 @@ class BaseAgent:
             await self.shutdown()
 
         self.app = FastAPI(title=f"{config.name} Agent", lifespan=lifespan)
+        @self.app.middleware("http")
+        async def _agent_auth_middleware(request: Request, call_next):
+            path = request.url.path
+            if path == "/" or path.startswith("/health"):
+                return await call_next(request)
+
+            expected = (self.config.hypercode_api_key or os.getenv("AGENT_API_KEY") or "").strip()
+            if not expected:
+                return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+            provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+            if not provided or not secrets.compare_digest(str(provided), expected):
+                return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+            return await call_next(request)
         self.setup_routes()
 
     async def startup(self):
@@ -168,22 +185,26 @@ class BaseAgent:
 
         @self.app.post("/execute")
         async def execute(request: TaskRequest):
-            task_desc = request.description or request.task
+            task_desc = (request.description or request.task or "").strip()
+            if not task_desc:
+                raise HTTPException(status_code=422, detail="Missing task")
             task_id = request.id or request.task_id or "unknown"
+            context = request.context if isinstance(request.context, dict) else {}
             
             if self.logger:
                 self.logger.info("task_received", task_id=task_id)
             
             try:
-                result = await self.process_task(task_desc, request.context, request.requires_approval)
+                result = await self.process_task(task_desc, context, request.requires_approval)
                 return {"status": "success", "result": result}
             except Exception as e:
                 if self.logger:
                     self.logger.error("task_failed", error=str(e))
                 raise HTTPException(status_code=500, detail=str(e))
 
-    async def process_task(self, task: str, context: Dict[str, Any], requires_approval: bool):
+    async def process_task(self, task: str, context: Optional[Dict[str, Any]], requires_approval: bool):
         """Override this method in specialized agents"""
+        context = context or {}
         rag_context = ""
         if self.agent_memory:
             rag_context = self.agent_memory.query_relevant_context(task)
@@ -226,7 +247,7 @@ class BaseAgent:
 
         for attempt in range(4):
             try:
-                if AI_BACKEND == "anthropic":
+                if ai_backend == "anthropic":
                     response = await self.client.messages.create(
                         model=self.config.model,
                         max_tokens=1000,
@@ -234,7 +255,7 @@ class BaseAgent:
                         messages=[{"role": "user", "content": prompt}]
                     )
                     return response.content[0].text
-                elif AI_BACKEND == "openai":
+                elif ai_backend == "openai":
                     response = await self.client.chat.completions.create(
                         model="gpt-4o",
                         messages=[{"role": "user", "content": prompt}],

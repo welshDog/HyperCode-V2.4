@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import secrets
 import sys
 import time
 from collections import deque
@@ -121,6 +122,22 @@ app = FastAPI(
     description="The most BROsome agent in the HyperCode ecosystem",
     version="1.0.0",
 )
+
+@app.middleware("http")
+async def _agent_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path == "/" or path.startswith("/health") or path.startswith("/metrics"):
+        return await call_next(request)
+
+    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    if not expected:
+        return Response(status_code=503, content="Agent API key not configured", media_type="text/plain")
+
+    provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+    if not provided or not secrets.compare_digest(str(provided), expected):
+        return Response(status_code=401, content="Invalid or missing API key", media_type="text/plain")
+
+    return await call_next(request)
 
 # ============================================================================
 # STATE VARIABLES

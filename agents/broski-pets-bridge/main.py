@@ -4,12 +4,13 @@ import uuid
 import asyncio
 import subprocess
 from datetime import datetime, timezone
-from secrets import SystemRandom
+from secrets import SystemRandom, compare_digest
 from typing import Literal
 
 import httpx
 import redis
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
@@ -21,6 +22,22 @@ def _is_true(value: str | None) -> bool:
 
 app = FastAPI(title="broski-pets-bridge")
 _rand = SystemRandom()
+
+@app.middleware("http")
+async def _agent_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path.startswith("/health") or path.startswith("/webhooks/") or path.startswith("/provision"):
+        return await call_next(request)
+
+    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    if not expected:
+        return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+    provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+    if not provided or not compare_digest(str(provided), expected):
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+    return await call_next(request)
 
 Rarity = Literal["Common", "Uncommon", "Rare", "Legendary"]
 

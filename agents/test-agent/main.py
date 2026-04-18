@@ -2,6 +2,7 @@
 
 import logging
 import os
+import secrets
 import signal
 import sys
 import time
@@ -30,6 +31,22 @@ logger = logging.getLogger("test-agent")
 
 # Create FastAPI app
 app = FastAPI(title="test-agent", version="1.0.0")
+
+@app.middleware("http")
+async def _agent_auth_middleware(request: Request, call_next):
+    path = request.url.path
+    if path in RATE_LIMIT_EXEMPT:
+        return await call_next(request)
+
+    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    if not expected:
+        return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+    provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+    if not provided or not secrets.compare_digest(str(provided), expected):
+        return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+    return await call_next(request)
 
 # Add rate limiter
 app.state.limiter = limiter

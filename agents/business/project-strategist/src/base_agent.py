@@ -2,7 +2,9 @@
 Base Agent Template for HyperCode Crew
 Each specialized agent extends this base
 """
-from fastapi import FastAPI, HTTPException
+import secrets
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
@@ -75,6 +77,21 @@ class BaseAgent:
             await self.shutdown()
 
         self.app = FastAPI(title=f"{config.name} Agent", lifespan=lifespan)
+        @self.app.middleware("http")
+        async def _agent_auth_middleware(request: Request, call_next):
+            path = request.url.path
+            if path == "/" or path.startswith("/health"):
+                return await call_next(request)
+
+            expected = (self.config.api_key or os.getenv("AGENT_API_KEY") or "").strip()
+            if not expected:
+                return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
+
+            provided = request.headers.get("x-agent-key") or request.headers.get("x-api-key")
+            if not provided or not secrets.compare_digest(str(provided), expected):
+                return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
+
+            return await call_next(request)
         self.setup_routes()
 
     async def startup(self):
