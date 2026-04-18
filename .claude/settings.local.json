@@ -189,7 +189,13 @@
       "Bash(MSYS_NO_PATHCONV=1 docker exec broski-pets-bridge *)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-ollama ollama ps)",
       "Bash(MSYS_NO_PATHCONV=1 docker exec hypercode-redis *)",
-      "Bash(MSYS_NO_PATHCONV=1 docker logs broski-pets-bridge *)"
+      "Bash(MSYS_NO_PATHCONV=1 docker logs broski-pets-bridge *)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress hypercode-v24-agent-x:latest)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL,HIGH --quiet --no-progress --format table hypercode-v24-agent-x:latest)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress --format table hypercode-v24-hyper-architect:latest)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --severity CRITICAL --quiet --no-progress hypercode-v24-hyper-architect:latest)",
+      "Bash(supabase --version)",
+      "Bash(npx playwright *)"
     ]
   },
   "enableAllProjectMcpServers": true,

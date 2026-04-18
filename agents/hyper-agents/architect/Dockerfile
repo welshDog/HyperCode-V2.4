@@ -1,5 +1,5 @@
 # ── Stage 1: Build wheels ─────────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim-trixie AS builder
 
 WORKDIR /build
 
@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.11-slim-trixie
 
 WORKDIR /app
 
