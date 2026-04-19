@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 17, 2026 | Status: 29/29 containers 🟢 | Grade A 🏅 | Phases 0–10O COMPLETE ✅
+> Last updated: April 19, 2026 | Status: 32/32 containers 🟢 | Grade A 🏅 | Phases 0–10Q COMPLETE ✅
 
 ---
 
@@ -45,11 +45,11 @@ Verdict from Gordon (Docker AI), April 15 2026:
 
 ---
 
-## 📊 System Status (April 17, 2026)
+## 📊 System Status (April 19, 2026)
 
 | Metric | Value |
 |---|---|
-| Containers | 29/29 🟢 all healthy |
+| Containers | 32/32 🟢 all healthy |
 | Tests | 180 passed, 6 skipped ✅ |
 | Prometheus targets | 7/7 UP ✅ |
 | OTLP traces | LIVE in Tempo ✅ |
@@ -301,6 +301,11 @@ class HyperCircuitBreaker:
 | `hypercode-dashboard` Exited 127 (Apr 17) | ✅ FIXED — Stale WSL bind-mount path after Docker Desktop restart. Force recreated. | ✅ DONE |
 | `DOCKER_MCP_IN_CONTAINER=1` on mcp-gateway (Apr 17) | ✅ FIXED — Caused gRPC deadline_exceeded on WSL2. Removed; env var fallback now used. MCP tools live. | ✅ DONE |
 | Anthropic API credits exhausted (Apr 17) | ⚠️ Top up at console.anthropic.com/billing — currently routing pet chat via Perplexity `sonar`/`sonar-pro` as fallback. Works great. | 🟡 TOP UP |
+| Trivy CI workflow failing (Apr 19) | ⚠️ NOT a code problem — GitHub account billing lock. Fix at github.com/settings/billing. Matrix + `--no-cache --pull` config is fine. | 🔴 HIGH |
+| `docker-socket-proxy` POST hole (Apr 19) | ✅ FIXED — Split into two proxies. Main = read-only (coder-agent et al). New `docker-socket-proxy-healer` = CONTAINERS+POST+PING (healer + throttle only). | ✅ DONE |
+| Healer Dockerfile GID 999 collision (Apr 19) | ✅ FIXED — `groupadd -o -g 999 docker` — Debian Trixie's appuser takes 999 first, `-o` allows reuse. | ✅ DONE |
+| Alembic missing `alembic_version` (Apr 19) | ✅ FIXED — `alembic stamp 008` then `upgrade head` → 009 applied. `create_all` had built schema without Alembic state. | ✅ DONE |
+| Healer couldn't reach Grafana/Prometheus (Apr 19) | ✅ FIXED — Added `obs-net` to healer-agent networks. Was HTTP 000 before (network isolation). | ✅ DONE |
 
 ---
 
@@ -364,6 +369,11 @@ docker compose --profile agents up -d
 - ✅ **Leaderboard endpoint** — `/leaderboard` SCAN-based, filterable by rarity (April 17)
 - ✅ **Pet chat via cloud LLM** — Anthropic (haiku/sonnet) → Perplexity fallback (sonar/sonar-pro). 3.8s chat, 12.7s ask. CPU Ollama retired from chat path. (April 17)
 - ✅ **Ollama warm-keep** — `OLLAMA_KEEP_ALIVE=24h`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_MAX_LOADED_MODELS=2` (April 17)
+- ✅ **Socket-proxy split** — main proxy read-only, new `docker-socket-proxy-healer` for healer/throttle with tight ACL. Coder-agent blast radius shrunk. (April 19) 🔒
+- ✅ **Healer heal** — rebuilt image (GID fix), trimmed phantom services from MAPE-K, added `obs-net` → can reach Grafana/Prometheus. (April 19)
+- ✅ **32/32 (healthy)** — HyperHealth API live via `--profile health --profile ops`. (April 19)
+- ✅ **Alembic 009** — `pgcrypto` + `uuid-ossp` extensions enabled. Alembic bootstrapped (stamp 008 → upgrade). (April 19)
+- ✅ **Rate-limit env split** — `memory://` in tests, `redis://...:6379/2` in prod. No live-Redis dep on CI. (April 19)
 
 ---
 
@@ -372,18 +382,22 @@ docker compose --profile agents up -d
 Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
 
 1. **Read this file first** — especially the Sacred Rules
-2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10O all ✅)
+2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10Q all ✅)
 3. **All Gordon Tier 1 + Tier 2 DONE** ✅ — OTLP, cache, rate limits, circuit breakers
 4. **Course → Stripe frontend DONE** ✅ — `/pricing` → checkout → `/payment-success` → enrolled
 5. **Memory limits on ALL services** ✅ — see docker-compose.yml `deploy.resources` on every service
 6. **Agent X is capped at 1G** — it caused an OOM crash (April 17) by building 30+ images unlimited
 7. **Pre-build guard** — `make build` runs `scripts/pre-build-check.sh` first, aborts if <15GB free
-8. **NEXT_MOVES.md moves DONE** — Move 2 (MCP-GitHub ✅) + Move 3 (Leaderboard ✅). Move 1 (GPU) blocked — no NVIDIA GPU on this machine; warm-keep vars added as partial win.
-9. **Pet chat = cloud LLM** — `broski-pets-bridge` routes via Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Anthropic credits need topping up (lyndzwills@gmail.com → console.anthropic.com/billing). Perplexity works great in the meantime.
-10. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`. `_github_context_via_mcp()` wired into pet ask mode.
-11. **Next options:** Gordon Tier 3 (DB pooling + async queues) OR top up Anthropic → switch back to haiku/sonnet for pets
-12. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-13. **Never:** Wall of text. Never debate the Sacred Rules.
+8. **Socket-proxy split (April 19)** — TWO socket proxies now. Main = read-only. `docker-socket-proxy-healer` = CONTAINERS+POST+PING, used ONLY by healer-agent + throttle-agent. Don't add coder-agent or agent-x to the healer proxy.
+9. **32/32 healthy** ✅ — HyperHealth API now part of the baseline count. Start with `--profile health --profile ops`.
+10. **Alembic is live** — migrations up to `009` (pgcrypto + uuid-ossp). If `alembic_version` is ever missing again: `alembic stamp 008` then `upgrade head`.
+11. **Pet chat = cloud LLM** — `broski-pets-bridge` routes via Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Anthropic credits need topping up (lyndzwills@gmail.com → console.anthropic.com/billing). Perplexity works great in the meantime.
+12. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`. `_github_context_via_mcp()` wired into pet ask mode.
+13. **Trivy CI blocked** — NOT a code issue. GitHub billing lock. Fix: github.com/settings/billing.
+14. **Two commits ready to push** — `d27b67a` (alembic 009) + `8cbc5c9` (security + heal).
+15. **Next options:** Fix GitHub billing → push → Gordon Tier 3 (DB pooling + async queues) OR top up Anthropic → switch back to haiku/sonnet for pets
+16. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+17. **Never:** Wall of text. Never debate the Sacred Rules.
 
 > *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
 

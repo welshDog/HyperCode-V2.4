@@ -1,6 +1,6 @@
 # 🤖 BROski Ecosystem — Claude Context Handoff (ALL REPOS SYNCED)
 > Read this first. Every word. Then start the mission.
-> **Last synced: April 18, 2026 (afternoon BST) — 180 tests GREEN ✅ | 29/29 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe checkout → PaymentSuccess FULLY LIVE 💳✅ | DB Recovery COMPLETE 🔧 | All secrets armed ✅**
+> **Last synced: April 19, 2026 — 180 tests GREEN ✅ | 32/32 (healthy) ✅ | Prometheus 7/7 ✅ | OTLP Traces LIVE 🔍 | Stripe LIVE 💳 | Gordon Tier 2 COMPLETE 🏆 | Course → Stripe checkout → PaymentSuccess FULLY LIVE 💳✅ | DB Recovery COMPLETE 🔧 | All secrets armed ✅ | Socket-proxy split 🔒 | Alembic 009 (pgcrypto + uuid-ossp) ✅**
 
 ---
 
@@ -43,6 +43,65 @@ Path: H:\the hyper vibe coding hub     │                  Path: H:\HyperStatio
 | **10N** | Gordon Tier 2 — ALL 4 STEPS | ✅ DONE — April 16 🏆 |
 | **10O** | Course → Stripe frontend wired | ✅ DONE — April 16 💳 |
 | **10P** | DB Recovery + Secrets Armed | ✅ DONE — April 18 🔧 |
+| **10Q** | Security Hardening + Monitoring Heal + Migration 009 | ✅ DONE — April 19 🔒 |
+
+---
+
+## 🔒 Phase 10Q — Security Hardening + Monitoring Heal (April 19, 2026)
+
+**Socket-proxy least privilege ✅ — Healer image rebuilt ✅ — Healer on obs-net ✅ — HyperHealth API live ✅ — Alembic bootstrapped → 009 ✅ — 32/32 (healthy) ✅**
+
+### Commits
+| SHA | Title |
+|---|---|
+| `d27b67a` | `feat(db): add alembic migration 009 — enable pgcrypto + uuid-ossp` |
+| `8cbc5c9` | `feat(security): split docker-socket-proxy + heal monitoring + rate-limit refactor` |
+
+### 🔒 Socket-proxy split (closes the POST=1 hole)
+**Problem:** Plan had been to flip `POST=1` on the main `docker-socket-proxy`, but coder-agent + agent-x + devops-engineer all share that proxy. Coder-agent runs LLM-generated code — giving it POST = blast radius to restart/kill any container.
+
+**Fix:**
+- **Main `docker-socket-proxy`** — reverted to read-only (no POST). Used by coder-agent, agent-x, devops-engineer.
+- **New `docker-socket-proxy-healer`** — `CONTAINERS=1 POST=1 PING=1` only. Tight ACL, read_only fs, tmpfs, `cap_drop: ALL`. Used by **healer-agent** + **throttle-agent** only.
+- **Compose repoint** — healer-agent (`DOCKER_HOST=tcp://docker-socket-proxy-healer:2375`), throttle-agent same.
+- Healer Dockerfile: fixed GID 999 collision — `groupadd -o -g 999 docker` (Debian Trixie `appuser` takes 999 first).
+
+**Blast radius after fix:** LLM-generated code can enumerate containers/images, cannot mutate. Healer + throttle keep full restart/pause powers on their own proxy.
+
+### 🧠 Healer monitoring heal
+- `agents/healer/mape_k_engine.py` — trimmed `DEFAULT_SERVICES`: removed profile-gated `crew-orchestrator`, `super-hyper-broski-agent`, `test-agent`, `tips-tricks-writer`. Kept: HyperCode Backend, Healer Agent, Mission Control, Ollama, Prometheus, Grafana, HyperHealth API.
+- Added `obs-net` to healer-agent networks — can now reach Grafana/Prometheus directly for diagnostics (was HTTP 000 before, now reachable).
+- Started HyperHealth API via `--profile health --profile ops` → **29 → 32/32 (healthy)**.
+
+### 🗄️ Alembic bootstrap + Migration 009
+**Problem:** Live DB had tables (SQLAlchemy `create_all` had built them) but no `alembic_version` table. Future migrations would fail with "can't locate revision".
+
+**Fix:**
+```bash
+docker exec hypercode-core alembic stamp 008        # sync state to existing schema
+docker exec hypercode-core alembic upgrade head     # runs 009
+```
+
+**Migration 009 (`backend/alembic/versions/009_enable_extensions.py`):**
+- `CREATE EXTENSION IF NOT EXISTS pgcrypto` → `gen_random_uuid()`
+- `CREATE EXTENSION IF NOT EXISTS "uuid-ossp"` → `uuid_generate_v4()`
+- Idempotent — safe to re-run.
+
+### 🛡️ Rate-limiting refactor (prod/test split)
+- `backend/app/middleware/rate_limiting.py` — env-aware storage URI:
+  - `PYTEST_CURRENT_TEST` or `ENVIRONMENT=test` → `memory://`
+  - Else → `redis://<host>:<port>/2` (DB 2, built from `settings.HYPERCODE_REDIS_URL`)
+- Tests no longer need a live Redis. `backend/tests/test_rate_limiting.py` updated to accept `memory://` prefix.
+- `backend/app/middleware/agent_auth.py` — modernized to `Annotated[Optional[str], Header()]`.
+
+### 🧹 Prometheus hygiene
+- `monitoring/prometheus/prometheus.yml` — commented out `crew-orchestrator` scrape job (profile-gated service, was producing DOWN noise).
+- `monitoring/prometheus/prometheus.cloud.template.yml` — mirrored change.
+
+### ⚠️ Known Issue — Trivy CI blocked
+GitHub Actions workflow failing with: *"The job was not started because your account is locked due to a billing issue."*
+- **Not a code problem.** Matrix config (18 agents, `--no-cache --pull`) is fine.
+- **Fix:** `github.com/settings/billing` — resolve lock. Triggers auto-retry on next push.
 
 ---
 
@@ -302,7 +361,7 @@ cd "H:\the hyper vibe coding hub"
 docker compose up -d
 docker compose build --no-cache
 docker ps --format "table {{.Names}}\t{{.Status}}"
-# Expected: all 29 (healthy)
+# Expected: all 32 (healthy)
 
 # Check for unhealthy containers (empty = all green)
 docker ps --format "table {{.Names}}\t{{.Status}}" | findstr -v "healthy"
@@ -348,7 +407,7 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 
 ## 📦 This Repo — HyperCode V2.4 Specifics
 
-- **29 containers — ALL (healthy)** ✅
+- **32 containers — ALL (healthy)** ✅ (was 29 — HyperHealth API started April 19)
 - **180 tests green** ✅ (was 172 — Tier 2 Step 2 added 8 new)
 - **Prometheus 7/7 UP** ✅
 - **OTLP traces live in Tempo** ✅ (localhost:3001 → Explore → Tempo)
@@ -358,7 +417,8 @@ stripe listen --forward-to localhost:8000/api/stripe/webhook
 - Agents: agent-x, healer, hyper-architect, hyper-observer, super-hyper-broski-agent, crew-orchestrator — all healthy ✅
 - **Course → Stripe frontend WIRED** ✅ (April 16 — commit `7e28666` / `dd1d8dfe`)
 - **DB Recovery + All Secrets Armed** ✅ (April 18 — postgres password synced, all 7 blank vars fixed)
-- **Next:** Gordon Tier 3 (DB pooling + async task queues) | `env_file` tech debt fix | E2E checkout test | Payment Links flow | prometheus.yml tidy
+- **Socket-proxy split + Healer heal + Alembic 009** ✅ (April 19 — security hardening, 29→32/32 healthy)
+- **Next:** Fix GitHub billing (Trivy CI) | `git push origin main` (2 commits ready) | Gordon Tier 3 (DB pooling + async task queues) | `env_file` tech debt fix | E2E checkout test | Payment Links flow
 
 ---
 

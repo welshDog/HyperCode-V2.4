@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 17, 2026** — update this every session.
+> **Updated: April 19, 2026** — update this every session.
 
 ---
 
@@ -17,7 +17,7 @@
 ## ✅ BUILT AND WORKING
 
 ### Infrastructure
-- 29/29 Docker containers — all healthy ✅
+- 32/32 Docker containers — all healthy ✅ ← **April 19** (HyperHealth API live)
 - 5 isolated networks — `data-net` + `obs-net` internal (no internet) ✅
 - Docker secrets pattern — `.txt` files, never baked into images ✅
 - Kubernetes + Helm charts in `k8s/` + `helm/` — scale path ready ✅
@@ -27,6 +27,9 @@
 - `scripts/pre-build-check.sh` — disk + memory guard before any Docker build ✅ ← **April 17**
   - `make build` now runs it automatically — aborts if <15GB free
 - **OOM recovery completed April 17** — 34.4GB freed, 24/24 containers restored ✅
+- **Socket-proxy split** — main proxy read-only (coder-agent etc.), new `docker-socket-proxy-healer` with CONTAINERS+POST+PING for healer/throttle-agent only ✅ ← **April 19**
+  - Blast radius shrunk: LLM-generated code can enumerate, can't mutate
+- **Healer on obs-net** — can now reach Grafana/Prometheus for diagnostics ✅ ← **April 19**
 
 ### Observability
 - Prometheus 7/7 targets UP — `monitoring/prometheus/prometheus.yml` is the live config ✅
@@ -46,10 +49,13 @@
 - `validate_security()` — rejects weak JWT in prod/staging ✅
 
 ### Database
-- PostgreSQL running, Alembic migrations up to `004` ✅
+- PostgreSQL running, Alembic migrations up to `009` ✅ ← **April 19**
 - `DB_AUTO_CREATE=true` bootstrapped initial schema ✅
 - Async engine + connection pooling (`asyncpg`, pool_size=10) ✅ ← **April 16**
 - `get_async_db()` dependency available for async routes ✅ ← **April 16**
+- Migration 009 — `pgcrypto` + `uuid-ossp` extensions enabled ✅ ← **April 19**
+  - `gen_random_uuid()` + `uuid_generate_v4()` available everywhere
+  - Alembic state synced: stamped `008` then `upgrade head` (create_all had left `alembic_version` missing)
 
 ### Stripe + Payments
 - `POST /api/stripe/checkout` — creates Stripe Checkout Session ✅
@@ -91,11 +97,16 @@
 
 ### Security
 - Trivy scanner (`hyper-shield-scanner`) running as container ✅
-- GitHub Actions CI — Trivy on every push/PR ✅
+- GitHub Actions CI — Trivy on every push/PR ✅ (currently **blocked** — GitHub account billing lock, fix on github.com/settings/billing)
 - Phase 7–9: Dockerfile hardening, CVE elimination, secrets management ✅
 - Stripe keys rotated + scrubbed from 218 commits with `git filter-repo` ✅ ← **April 16**
 - OOM crash root cause: Agent X built 30+ images with no memory limit — fixed ✅ ← **April 17**
   - Exit 137 = OOM killed | Exit 128 = SIGTERM under stress (reference for future debugging)
+- **Socket-proxy least privilege** ✅ ← **April 19**
+  - Main `docker-socket-proxy`: read-only (no POST) — used by coder-agent, agent-x, devops-engineer
+  - New `docker-socket-proxy-healer`: CONTAINERS + POST + PING only — used by healer-agent + throttle-agent
+  - Reasoning: coder-agent runs LLM-generated code; if compromised it can enumerate only, not restart/kill containers
+- **Healer Dockerfile GID fix** ✅ ← **April 19** — `groupadd -o -g 999 docker` (Debian Trixie's appuser system GID collides with 999)
 
 ### Celery
 - Celery + Redis task queue running ✅
@@ -149,12 +160,14 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **E2E checkout test** — `stripe listen --forward-to localhost:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
-2. **Gordon Tier 3 verify** — `docker exec celery-worker python -c "from app.core.celery_app import celery_app; print(celery_app.conf.task_acks_late)"` → should print `True`
-3. **Token sync smoke test** — manual curl to `/api/v1/economy/award-from-course` with the shared secret
-4. **Hyperfocus Features** — start with Feature 1 (git hook, 50 lines, quick win)
-5. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-6. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
+2. **`git push origin main`** — 2 commits ready: `d27b67a` (alembic 009) + `8cbc5c9` (security+heal)
+3. **E2E checkout test** — `stripe listen --forward-to localhost:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
+4. **Gordon Tier 3 verify** — `docker exec celery-worker python -c "from app.core.celery_app import celery_app; print(celery_app.conf.task_acks_late)"` → should print `True`
+5. **Token sync smoke test** — manual curl to `/api/v1/economy/award-from-course` with the shared secret
+6. **Hyperfocus Features** — start with Feature 1 (git hook, 50 lines, quick win)
+7. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
+8. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -166,7 +179,7 @@ Tests:           pytest backend/tests/ -v  (180 passed, 6 skipped — skips are 
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook
-Alembic:         if missing alembic_version table → run 'alembic stamp 006' first
+Alembic:         if missing alembic_version table → run 'alembic stamp 008' first, then upgrade head
 Supabase table:  courses uses price_pence (int) + is_active (bool)
 Docker context:  must be 'desktop-linux' on Windows
 Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
