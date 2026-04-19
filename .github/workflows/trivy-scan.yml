@@ -24,7 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write  # needed for SARIF upload to GitHub Security tab
 
     strategy:
       fail-fast: false  # scan every agent even if one fails
@@ -117,25 +116,6 @@ jobs:
           severity: CRITICAL
           scanners: vuln
           ignore-unfixed: false
-
-      # ── SARIF upload — GitHub Security tab (always runs, even on failure) ──
-      - name: Trivy scan — SARIF report
-        uses: aquasecurity/trivy-action@0.28.0
-        if: always()
-        with:
-          image-ref: hypercode-scan-${{ matrix.agent }}:ci
-          format: sarif
-          output: trivy-${{ matrix.agent }}.sarif
-          scanners: vuln
-          severity: HIGH,CRITICAL
-
-      - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        continue-on-error: true  # graceful if Advanced Security not enabled
-        with:
-          sarif_file: trivy-${{ matrix.agent }}.sarif
-          category: trivy-${{ matrix.agent }}
 
       # ── Summary comment for PR ─────────────────────────────────────────────
       - name: Summarise results

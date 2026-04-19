@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
   weekly-fleet-scan:
@@ -99,22 +98,6 @@ jobs:
           scanners: vuln
           severity: HIGH,CRITICAL
           exit-code: '0'  # weekly scan never blocks — just reports
-
-      - name: Trivy scan — SARIF for Security tab
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: hypercode-weekly-${{ matrix.agent }}:scan
-          format: sarif
-          output: trivy-${{ matrix.agent }}.sarif
-          scanners: vuln
-          severity: HIGH,CRITICAL
-
-      - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        continue-on-error: true
-        with:
-          sarif_file: trivy-${{ matrix.agent }}.sarif
-          category: weekly-trivy-${{ matrix.agent }}
 
       - name: Upload JSON artifact
         uses: actions/upload-artifact@v4
