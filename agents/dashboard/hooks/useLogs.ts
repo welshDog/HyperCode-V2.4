@@ -5,8 +5,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 export interface LogEntry {
   id?: string | number
   time: string
+  timestampMs: number
   agent: string
-  level: 'info' | 'warn' | 'error' | 'success'
+  level: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'success'
   msg: string
 }
 
@@ -16,9 +17,11 @@ const PING_INTERVAL   = 25_000
 const POLL_FALLBACK   = 8_000   // poll interval when WS unavailable
 
 const LEVEL_COLOUR: Record<string, string> = {
+  debug:   'rgba(232, 240, 254, 0.55)',
   info:    'var(--accent-cyan)',
   warn:    'var(--accent-amber)',
   error:   'var(--status-error)',
+  fatal:   'rgba(255, 68, 102, 0.95)',
   success: 'var(--status-healthy)',
 }
 
@@ -34,11 +37,48 @@ function wsUrl(): string | null {
 }
 
 function normaliseEntry(raw: Record<string, unknown>, idx: number): LogEntry {
+  const rawTime = String(raw.time ?? raw.timestamp ?? '')
+  const ts =
+    (() => {
+      const n = typeof raw.timestamp === 'number' ? raw.timestamp : typeof raw.time === 'number' ? raw.time : NaN
+      if (Number.isFinite(n)) {
+        const asMs = n > 10_000_000_000 ? n : n * 1000
+        if (Number.isFinite(asMs)) return asMs
+      }
+
+      const d = new Date(rawTime)
+      if (!Number.isNaN(d.getTime())) return d.getTime()
+
+      const m = rawTime.match(/^(\d{2}):(\d{2}):(\d{2})$/)
+      if (m) {
+        const now = new Date()
+        const d2 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), Number(m[1]), Number(m[2]), Number(m[3]), 0)
+        return d2.getTime()
+      }
+
+      return Date.now()
+    })()
+
+  const rawLevel = String(raw.level ?? 'info').toLowerCase().trim()
+  const level: LogEntry['level'] =
+    rawLevel === 'debug'
+      ? 'debug'
+      : rawLevel === 'warn' || rawLevel === 'warning'
+        ? 'warn'
+        : rawLevel === 'error' || rawLevel === 'err' || rawLevel === 'failed'
+          ? 'error'
+          : rawLevel === 'fatal' || rawLevel === 'critical' || rawLevel === 'panic'
+            ? 'fatal'
+            : rawLevel === 'success' || rawLevel === 'ok'
+              ? 'success'
+              : 'info'
+
   return {
     id:    raw.id    != null ? String(raw.id)    : `ws-${Date.now()}-${idx}`,
-    time:  String(raw.time  ?? raw.timestamp ?? ''),
+    time:  rawTime,
+    timestampMs: ts,
     agent: String(raw.agent ?? raw.agentId   ?? 'system'),
-    level: (raw.level as LogEntry['level'])  ?? 'info',
+    level,
     msg:   String(raw.msg   ?? raw.message   ?? ''),
   }
 }
