@@ -1,11 +1,22 @@
 'use client'
 
-import React, { useCallback } from 'react'
+import React, { useCallback, useMemo } from 'react'
 import { StatusBadge } from '../ui/StatusBadge'
 import { XPBar } from '../ui/XPBar'
 import { useAgentSwarm } from '@/hooks/useAgentSwarm'
 import { useToast } from '@/components/ui/ToastProvider'
 import type { Agent } from '@/types/agent'
+
+function statusRank(status: Agent['status']): number {
+  if (status === 'error') return 0
+  if (status === 'warning') return 1
+  if (status === 'healthy') return 2
+  return 3
+}
+
+function formatCountLabel(count: number): string {
+  return count === 1 ? 'agent' : 'agents'
+}
 
 export function AgentSwarmView(): React.JSX.Element {
   const { toast } = useToast()
@@ -20,43 +31,134 @@ export function AgentSwarmView(): React.JSX.Element {
 
   const { agents, loading, error, refetch } = useAgentSwarm(onRefetchComplete)
 
+  const stats = useMemo(() => {
+    const counts = { healthy: 0, warning: 0, error: 0, idle: 0, total: 0 }
+    for (const a of agents) {
+      counts.total += 1
+      if (a.status === 'healthy') counts.healthy += 1
+      else if (a.status === 'warning') counts.warning += 1
+      else if (a.status === 'error') counts.error += 1
+      else counts.idle += 1
+    }
+    return counts
+  }, [agents])
+
+  const sortedAgents = useMemo(() => {
+    return [...agents].sort((a, b) => {
+      const r = statusRank(a.status) - statusRank(b.status)
+      if (r !== 0) return r
+      return a.name.localeCompare(b.name)
+    })
+  }, [agents])
+
   const handleManualRefetch = () => {
     toast({ type: 'info', message: '⏳ Polling agent fleet…' })
     refetch()
   }
 
-  if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>⏳ Loading agents...</div>
-  if (error)   return <div style={{ color: 'var(--status-error)',   padding: 16 }}>⚠️ {error}</div>
+  if (loading) {
+    return (
+      <div className="hc-agent-swarm" data-testid="agent-swarm" aria-busy="true">
+        <div className="hc-agent-swarm-header">
+          <div className="hc-agent-swarm-title">
+            <span className="hc-agent-swarm-kpi">
+              <span className="hc-agent-swarm-kpi-value hc-mono">--</span>
+              <span className="hc-agent-swarm-kpi-label">agents</span>
+            </span>
+          </div>
+          <div className="hc-agent-swarm-actions">
+            <button type="button" className="btn" disabled aria-disabled="true">↻ Refresh</button>
+          </div>
+        </div>
+        <div className="hc-agent-swarm-list">
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div key={idx} className="hc-agent-card hc-skeleton" aria-hidden="true" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="hc-agent-swarm" data-testid="agent-swarm" role="alert">
+        <div className="hc-agent-swarm-header">
+          <div className="hc-agent-swarm-title">
+            <span className="hc-agent-swarm-kpi">
+              <span className="hc-agent-swarm-kpi-value hc-mono">{stats.total}</span>
+              <span className="hc-agent-swarm-kpi-label">{formatCountLabel(stats.total)}</span>
+            </span>
+          </div>
+          <div className="hc-agent-swarm-actions">
+            <button type="button" className="btn" onClick={handleManualRefetch}>↻ Refresh</button>
+          </div>
+        </div>
+        <div className="hc-agent-swarm-empty hc-agent-swarm-error">
+          <div className="hc-agent-swarm-empty-title">Agent fleet unavailable</div>
+          <div className="hc-agent-swarm-empty-subtitle hc-mono">{error}</div>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="agent-swarm">
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
-        <button className="btn" onClick={handleManualRefetch} style={{ fontSize: 10, padding: '2px 8px' }}>↻ Refresh</button>
-      </div>
-      {agents.map((agent: Agent) => (
-        <div
-          key={agent.id}
-          style={{
-            background:   'rgba(255,255,255,0.03)',
-            border:       '1px solid var(--pane-border)',
-            borderRadius: 6,
-            padding:      '8px 10px',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <span style={{ fontWeight: 600, fontSize: 13 }}>{agent.name}</span>
-            <StatusBadge status={agent.status} />
+    <div className="hc-agent-swarm" data-testid="agent-swarm">
+      <div className="hc-agent-swarm-header">
+        <div className="hc-agent-swarm-title">
+          <span className="hc-agent-swarm-kpi">
+            <span className="hc-agent-swarm-kpi-value hc-mono">{stats.total}</span>
+            <span className="hc-agent-swarm-kpi-label">{formatCountLabel(stats.total)}</span>
+          </span>
+          <div className="hc-agent-swarm-badges" role="list" aria-label="Fleet status counts">
+            <span className="hc-agent-swarm-chip" role="listitem"><span className="status-dot error" aria-hidden="true" />{stats.error}</span>
+            <span className="hc-agent-swarm-chip" role="listitem"><span className="status-dot warning" aria-hidden="true" />{stats.warning}</span>
+            <span className="hc-agent-swarm-chip" role="listitem"><span className="status-dot healthy" aria-hidden="true" />{stats.healthy}</span>
+            <span className="hc-agent-swarm-chip" role="listitem"><span className="status-dot idle" aria-hidden="true" />{stats.idle}</span>
           </div>
-          <XPBar xp={agent.xp ?? 0} maxXp={agent.xpToNextLevel ?? 100} level={agent.level ?? 1} />
-          {agent.lastAction && (
-            <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 4 }}>
-              Last: {agent.lastAction}
-            </div>
-          )}
         </div>
-      ))}
-      {agents.length === 0 && (
-        <div style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 24 }}>No agents online</div>
+        <div className="hc-agent-swarm-actions">
+          <button type="button" className="btn" onClick={handleManualRefetch} aria-label="Refresh agent fleet">↻ Refresh</button>
+        </div>
+      </div>
+
+      {sortedAgents.length === 0 ? (
+        <div className="hc-agent-swarm-empty">
+          <div className="hc-agent-swarm-empty-title">No agents reporting</div>
+          <div className="hc-agent-swarm-empty-subtitle">
+            Start the agents profile and wait for heartbeats.
+          </div>
+        </div>
+      ) : (
+        <div className="hc-agent-swarm-list" role="list" aria-label="Agent fleet">
+          {sortedAgents.map((agent: Agent) => (
+            <div key={agent.id} className="hc-agent-card" role="listitem">
+              <div className="hc-agent-card-top">
+                <div className="hc-agent-card-name" title={agent.name}>{agent.name}</div>
+                <StatusBadge status={agent.status} />
+              </div>
+              <div className="hc-agent-card-metrics">
+                <span className="hc-agent-card-metric hc-mono" aria-label={`Level ${agent.level ?? 1}`}>
+                  LV {agent.level ?? 1}
+                </span>
+                <span className="hc-agent-card-metric hc-mono" aria-label={`${agent.xp ?? 0} XP`}>
+                  {agent.xp ?? 0} XP
+                </span>
+                {typeof agent.coins === 'number' && (
+                  <span className="hc-agent-card-metric hc-mono" aria-label={`${agent.coins} coins`}>
+                    {agent.coins} ⓑ
+                  </span>
+                )}
+              </div>
+              <XPBar xp={agent.xp ?? 0} maxXp={agent.xpToNextLevel ?? 100} level={agent.level ?? 1} />
+              {agent.lastAction && (
+                <div className="hc-agent-card-last" title={agent.lastAction}>
+                  <span className="hc-agent-card-last-label">Last</span>
+                  <span className="hc-agent-card-last-value">{agent.lastAction}</span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

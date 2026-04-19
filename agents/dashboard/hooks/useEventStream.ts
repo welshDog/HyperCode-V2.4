@@ -19,11 +19,21 @@ function wsUrl(): string | null {
 /** Normalise a raw ws_tasks message into an AgentEvent, or return null. */
 function toAgentEvent(channel: string, data: Record<string, unknown>): AgentEvent | null {
   if (channel !== 'ws_tasks') return null
+  const rawStatus = String(data.status ?? '').toLowerCase().trim()
+  const status: AgentEvent['status'] =
+    rawStatus === 'success' || rawStatus === 'ok' || rawStatus === 'healthy'
+      ? 'success'
+      : rawStatus === 'failed' || rawStatus === 'error' || rawStatus === 'unhealthy' || rawStatus === 'down'
+        ? 'failed'
+        : rawStatus === 'healing' || rawStatus === 'warning' || rawStatus === 'warn' || rawStatus === 'degraded'
+          ? 'healing'
+          : 'started'
   // Orchestrator publishes task payloads — map known fields
   return {
     agentId:   String(data.agent_id   ?? data.agentId   ?? 'system'),
     taskId:    String(data.task_id    ?? data.taskId    ?? ''),
-    status:    (data.status as AgentEvent['status']) ?? 'started',
+    status,
+    rawStatus: rawStatus || undefined,
     payload:   (data.payload as Record<string, unknown>) ?? {},
     errorTrace: data.error_trace ? String(data.error_trace) : undefined,
     xpEarned:  Number(data.xp_earned  ?? data.xpEarned  ?? 0),
