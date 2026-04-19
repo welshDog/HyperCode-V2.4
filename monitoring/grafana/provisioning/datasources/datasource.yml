@@ -1,5 +1,20 @@
 apiVersion: 1
 
+# ───────────────────────────────────────────────────────────────
+# HyperCode Grafana datasources
+# Three-way correlation: Prometheus ↔ Loki ↔ Tempo
+#
+# Click any metric → see the trace it came from (exemplars)
+# Click any log line with trace_id → open the trace in Tempo
+# Click any trace span → see logs for that service/time window
+# Click any trace span → see RED metrics for that endpoint
+#
+# Requires:
+#   - Prometheus scraped with --enable-feature=exemplar-storage
+#   - OTLP instrumentation emits spans with trace_id/span_id
+#   - Log lines contain trace_id=<hex> (OpenTelemetry logging convention)
+# ───────────────────────────────────────────────────────────────
+
 datasources:
   - name: Prometheus
     type: prometheus
@@ -8,6 +23,13 @@ datasources:
     access: proxy
     isDefault: true
     editable: true
+    jsonData:
+      httpMethod: POST
+      # Exemplars — click a metric dot in a graph to jump to the linked trace
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasourceUid: tempo
+          urlDisplayLabel: View trace
 
   - name: Loki
     type: loki
@@ -15,6 +37,16 @@ datasources:
     url: http://loki:3100
     access: proxy
     editable: true
+    jsonData:
+      # derivedFields: parse trace_id out of log lines and auto-link to Tempo.
+      # Matches both key-value (`trace_id=abc123`) and JSON (`"trace_id":"abc123"`)
+      # formats so we cover both OpenTelemetry log formats we emit.
+      derivedFields:
+        - name: TraceID
+          datasourceUid: tempo
+          matcherRegex: '"?trace[_-]?id"?[=:]\s*"?([a-f0-9]{16,32})"?'
+          url: '$${__value.raw}'
+          urlDisplayLabel: View trace
 
   - name: Tempo
     type: tempo
@@ -22,3 +54,41 @@ datasources:
     url: http://tempo:3200
     access: proxy
     editable: true
+    jsonData:
+      # Tempo → Loki: from a span, jump to matching log lines
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-1m"
+        spanEndTimeShift: "1m"
+        tags:
+          - key: service.name
+            value: service_name
+          - key: container
+        filterByTraceID: true
+        filterBySpanID: false
+      # Tempo → Prometheus: from a span, jump to RED metrics for that service
+      tracesToMetrics:
+        datasourceUid: P1809F7CD0C75ACF3
+        spanStartTimeShift: "-2m"
+        spanEndTimeShift: "2m"
+        tags:
+          - key: service.name
+            value: service
+        queries:
+          - name: "Request rate (req/s)"
+            query: 'sum by (handler)(rate(http_requests_total{service="$$__tags.service"}[5m]))'
+          - name: "P95 latency"
+            query: 'histogram_quantile(0.95, sum by (le, handler)(rate(http_request_duration_seconds_bucket{service="$$__tags.service"}[5m])))'
+          - name: "Error rate"
+            query: 'sum by (handler)(rate(http_requests_total{service="$$__tags.service",status=~"5.."}[5m]))'
+      # Service map — auto-built dependency graph from spans
+      serviceMap:
+        datasourceUid: P1809F7CD0C75ACF3
+      nodeGraph:
+        enabled: true
+      # Search by keyword/service across recent spans
+      search:
+        hide: false
+      # Loki search fallback — find traces by log query
+      lokiSearch:
+        datasourceUid: loki

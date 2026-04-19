@@ -37,3 +37,16 @@ correlations:
       field: "traceID"
       target:
         query: "${__value.raw}"
+
+  # Tempo → Loki: jump from a trace span to container logs for the same service
+  # Complements tracesToLogsV2 in datasource.yml with an explicit correlation
+  # so the link appears in the span's side panel too.
+  - sourceUID: tempo
+    targetUID: loki
+    label: "View container logs"
+    description: "Jump from span to container logs for this service"
+    type: query
+    config:
+      field: "service.name"
+      target:
+        expr: '{container=~".*${__value.raw}.*"}'

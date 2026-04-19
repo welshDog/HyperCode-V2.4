@@ -203,7 +203,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(gh run *)",
-      "Bash(gh repo *)"
+      "Bash(gh repo *)",
+      "Bash(git push *)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -350,6 +350,7 @@ services:
       - '--web.enable-lifecycle'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--enable-feature=exemplar-storage'
     ports:
       - "127.0.0.1:9090:9090"
     networks:

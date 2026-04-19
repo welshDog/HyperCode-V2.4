@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all
 
 # Default target
 help:
@@ -326,6 +326,9 @@ load-test-agents: ## k6 agent status endpoint load test
 load-test-stripe-k6: ## k6 Stripe checkout flow load test (test mode keys only)
 	@echo "💳 Running k6 Stripe load profile (test mode only)"
 	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/stripe_load_test.js
+
+load-test-all: load-test-k6-smoke load-test-k6 load-test-agents load-test-stripe-k6 ## Run every k6 profile sequentially (smoke → main → agents → stripe)
+	@echo "✅ All k6 load profiles complete — thresholds: P99<100ms, err<0.1%, target 1000 rps"
 
 ## ─── Production ─────────────────────────────────────────────────────────────
 
