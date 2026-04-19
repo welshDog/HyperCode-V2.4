@@ -160,6 +160,8 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def require_api_key(api_key: str = Security(api_key_header)) -> str:
     expected = settings.api_key
     if not expected:
+        if settings.environment.strip().lower() == "development":
+            return api_key or ""
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service misconfigured: ORCHESTRATOR_API_KEY is not set",
@@ -563,7 +565,7 @@ async def execute_task(
             async with httpx.AsyncClient() as client:
                 agent_payload = {
                     "id": task.id,
-                    "task": task.description,
+                    "task": plan_description,
                     "type": task.type,
                     "requires_approval": False,
                 }

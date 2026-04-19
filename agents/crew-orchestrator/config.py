@@ -1,11 +1,14 @@
-from pydantic import field_validator
+import os
+from typing import Any, Dict, List, Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Dict, List, Optional
+from pydantic_settings.sources import PydanticBaseSettingsSource
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="ORCHESTRATOR_")
 
+    environment: str = "development"
     redis_url: str = "redis://redis:6379"
     log_level: str = "INFO"
     api_key: Optional[str] = None
@@ -41,6 +44,42 @@ class Settings(BaseSettings):
             if key in self.agents:
                 enabled.append(key)
         return enabled
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        prefix = "ORCHESTRATOR_"
+
+        def _file_env_settings() -> dict[str, Any]:
+            data: dict[str, Any] = {}
+            for field_name in settings_cls.model_fields:
+                env_name = f"{prefix}{field_name.upper()}_FILE"
+                file_path = os.getenv(env_name)
+                if not file_path:
+                    continue
+                try:
+                    if os.path.exists(file_path):
+                        with open(file_path, "r", encoding="utf-8") as fh:
+                            value = fh.read().strip()
+                        if value != "":
+                            data[field_name] = value
+                except OSError:
+                    continue
+            return data
+
+        return (
+            init_settings,
+            env_settings,
+            _file_env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
 
 
 settings = Settings()

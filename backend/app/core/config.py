@@ -1,5 +1,9 @@
+import os
+from functools import lru_cache
+from typing import Any, Optional, List, Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional, List, Literal
+from pydantic_settings.sources import PydanticBaseSettingsSource
 
 PrivacyMode = Literal["redact", "none"]
 
@@ -120,6 +124,39 @@ class Settings(BaseSettings):
                 raise ValueError("JWT_SECRET must be set to a strong value for non-development environments")
             if self.MINIO_ACCESS_KEY == "minioadmin" and self.MINIO_SECRET_KEY == "minioadmin":
                 raise ValueError("MinIO credentials must be set to non-default values for non-development environments")
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        def _file_env_settings() -> dict[str, Any]:
+            data: dict[str, Any] = {}
+            for field_name in settings_cls.model_fields:
+                file_path = os.getenv(f"{field_name}_FILE")
+                if not file_path:
+                    continue
+                try:
+                    if os.path.exists(file_path):
+                        with open(file_path, "r", encoding="utf-8") as fh:
+                            value = fh.read().strip()
+                        if value != "":
+                            data[field_name] = value
+                except OSError:
+                    continue
+            return data
+
+        return (
+            init_settings,
+            env_settings,
+            _file_env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
     
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -130,8 +167,6 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
-
-from functools import lru_cache
 
 @lru_cache()
 def get_settings() -> Settings:

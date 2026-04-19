@@ -88,7 +88,7 @@ bash scripts/network-migrate.sh
 |--------|------|------|----------|
 | **C 🗝️** | Secrets management (Docker secrets / Vault) — no more `.env` in prod | ~2 hrs | High |
 | **D 🛡️** | Per-agent API key auth — lock every agent endpoint | ~2-3 hrs | High |
-| **E 🐛** | Fix CognitiveUplink.tsx WS bug (`"command"` → `"execute"` ~line 130) | ~15 min | Quick Win |
+| **E ✅** | CognitiveUplink WS contract is `type: "execute"` and served from `hypercode-core` `WS /ws/uplink` | ~5 min | Quick Check |
 
 ---
 
@@ -96,7 +96,7 @@ bash scripts/network-migrate.sh
 
 | Bug | File | Line | Fix |
 |-----|------|------|-----|
-| WS message type wrong | `CognitiveUplink.tsx` | ~130 | `"command"` → `"execute"` |
+| WS not connecting | `CognitiveUplink.tsx` | ~130 | Ensure `NEXT_PUBLIC_WS_URL` points to `ws://localhost:8000/ws/uplink` |
 
 ---
 
@@ -182,7 +182,7 @@ RUN pip install --upgrade --no-cache-dir \
 - **starlette:** RESOLVED ✅ — `fastapi==0.135.3` + `starlette==0.47.2`
 - **V2.0 references in skills:** Apply to V2.4 — same ports, same agent names
 - **npm package:** `@w3lshdog/hyper-agent@0.1.4` — all 6 CLI commands LIVE
-- **CognitiveUplink.tsx ~130:** WS type = `"execute"` NOT `"command"` — open bug!
+- **CognitiveUplink.tsx:** WS message type is `"execute"` (served from `hypercode-core` `WS /ws/uplink`)
 - **data-net + obs-net:** `internal: true` — NEVER expose redis/postgres/grafana to internet
 - **Agent ports:** `127.0.0.1:` bound only — NEVER `0.0.0.0` for internal agents
 - **Network migration:** `bash scripts/network-migrate.sh` (use `--dry-run` first)

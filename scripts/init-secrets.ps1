@@ -37,18 +37,23 @@ function Write-Secret {
 }
 
 Write-Host ""
-Write-Host "HyperCode V2.0 — Docker Secrets Initialisation" -ForegroundColor Cyan
+Write-Host "HyperCode V2.4 — Docker Secrets Initialisation" -ForegroundColor Cyan
 Write-Host "================================================"
 Write-Host "Secrets directory: $SecretsDir"
 Write-Host ""
 
 Write-Secret "postgres_password"      ($env_vars["POSTGRES_PASSWORD"] ?? "")
-Write-Secret "hypercode_jwt_secret"   ($env_vars["HYPERCODE_JWT_SECRET"] ?? "")
 Write-Secret "api_key"                ($env_vars["API_KEY"] ?? "")
-Write-Secret "minio_root_password"    ($env_vars["MINIO_ROOT_PASSWORD"] ?? "")
-Write-Secret "hypercode_memory_key"   ($env_vars["HYPERCODE_MEMORY_KEY"] ?? "")
-Write-Secret "discord_token"          ($env_vars["DISCORD_TOKEN"] ?? "")
+Write-Secret "jwt_secret"             ($env_vars["JWT_SECRET"] ?? ($env_vars["HYPERCODE_JWT_SECRET"] ?? ""))
+Write-Secret "memory_key"             ($env_vars["HYPERCODE_MEMORY_KEY"] ?? "")
 Write-Secret "orchestrator_api_key"   ($env_vars["ORCHESTRATOR_API_KEY"] ?? "")
+Write-Secret "grafana_admin_password" ($env_vars["GF_SECURITY_ADMIN_PASSWORD"] ?? "")
+Write-Secret "minio_root_user"        ($env_vars["MINIO_ROOT_USER"] ?? "")
+Write-Secret "minio_root_password"    ($env_vars["MINIO_ROOT_PASSWORD"] ?? "")
+Write-Secret "discord_token"          ($env_vars["DISCORD_TOKEN"] ?? "")
+Write-Secret "openai_api_key"         ($env_vars["OPENAI_API_KEY"] ?? "")
+Write-Secret "perplexity_api_key"     ($env_vars["PERPLEXITY_API_KEY"] ?? "")
+Write-Secret "anthropic_api_key"      ($env_vars["ANTHROPIC_API_KEY"] ?? "")
 
 Write-Host ""
 Write-Host "Done. Validate with:" -ForegroundColor Cyan

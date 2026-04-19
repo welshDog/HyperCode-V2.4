@@ -206,13 +206,24 @@ html, body, .hyper-root {
   display:         flex;
   align-items:     center;
   justify-content: space-between;
-  padding:         6px 10px;
+  padding:         10px 12px;
+  min-height:      44px;
   background:      var(--pane-header);
   border-bottom:   1px solid var(--pane-border);
   font-size:       12px;
   font-weight:     600;
   color:           var(--text-secondary);
   flex-shrink:     0;
+}
+
+.pane-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pane-body {
@@ -253,12 +264,13 @@ html, body, .hyper-root {
 }
 
 .btn {
-  padding:       4px 10px;
+  min-height:    32px;
+  padding:       6px 12px;
   border:        1px solid var(--pane-border);
   border-radius: 4px;
   background:    transparent;
   color:         var(--text-secondary);
-  font-size:     11px;
+  font-size:     12px;
   cursor:        pointer;
   transition:    all var(--transition-fast);
 }

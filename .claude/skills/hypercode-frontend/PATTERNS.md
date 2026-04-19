@@ -23,7 +23,7 @@ const { profile } = useSensoryProfile()
 
 ## WS not connecting in Docker?
 
-- Check `NEXT_PUBLIC_WS_URL` env var — should match crew-orchestrator port (8081)
+- Check `NEXT_PUBLIC_WS_URL` env var — should match `ws://localhost:8000/ws/uplink` (served by hypercode-core)
 - Nginx reverse proxy config: `nginx/` — ensure `/ws/` path is proxied with upgrade headers
 - Use `ws://` not `wss://` in local dev; `wss://` for production with TLS
 

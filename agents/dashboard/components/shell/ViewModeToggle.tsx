@@ -23,6 +23,7 @@ export function ViewModeToggle({
         <button
           key={m.id}
           className={`btn${value === m.id ? ' active' : ''}`}
+          type="button"
           onClick={() => onChange(m.id)}
           aria-pressed={value === m.id}
         >

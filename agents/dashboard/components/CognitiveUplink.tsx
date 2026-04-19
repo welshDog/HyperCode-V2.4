@@ -24,6 +24,7 @@ interface MessageUI {
 }
 
 export default function CognitiveUplink() {
+  const debug = process.env.NODE_ENV !== 'production';
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<MessageUI[]>(() => [
     { role: 'system', content: 'Neural interface ready. Establishing uplink...', timestamp: Date.now() },
@@ -35,6 +36,7 @@ export default function CognitiveUplink() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastConnectToastAtRef = useRef(0);
   const lastWsErrorToastAtRef = useRef(0);
   const { pushToast } = useToast();
@@ -133,7 +135,7 @@ export default function CognitiveUplink() {
     const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? `ws://${hostname}:8000/ws/uplink`;
 
-    console.log(`[CognitiveUplink] Connecting to ${wsUrl}...`);
+    if (debug) console.log(`[CognitiveUplink] Connecting to ${wsUrl}...`);
     if (Date.now() - lastConnectToastAtRef.current > 8000) {
       lastConnectToastAtRef.current = Date.now();
       pushToast({ variant: 'info', title: 'Connecting uplink…' });
@@ -141,7 +143,7 @@ export default function CognitiveUplink() {
     const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
-      console.log('[CognitiveUplink] Connected');
+      if (debug) console.log('[CognitiveUplink] Connected');
       setIsConnected(true);
       pushToast({ variant: 'success', title: 'Uplink connected' });
       setMessages(prev => [...prev, {
@@ -149,10 +151,18 @@ export default function CognitiveUplink() {
         content: 'SECURE CHANNEL ESTABLISHED. NEURAL NET ONLINE.',
         timestamp: Date.now()
       }]);
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
+      pingIntervalRef.current = setInterval(() => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 30000);
     };
 
     ws.onerror = (error) => {
-      console.error('[CognitiveUplink] WebSocket Error:', error);
+      if (debug) console.error('[CognitiveUplink] WebSocket Error:', error);
       if (Date.now() - lastWsErrorToastAtRef.current > 5000) {
         lastWsErrorToastAtRef.current = Date.now();
         pushToast({ variant: 'error', title: 'Uplink error', message: 'WebSocket connection failed.' });
@@ -160,9 +170,13 @@ export default function CognitiveUplink() {
     };
 
     ws.onclose = () => {
-      console.log('[CognitiveUplink] Disconnected');
+      if (debug) console.log('[CognitiveUplink] Disconnected');
       setIsConnected(false);
       pushToast({ variant: 'info', title: 'Uplink disconnected' });
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -186,12 +200,12 @@ export default function CognitiveUplink() {
           setIsTyping(false);
         }
       } catch (e) {
-        console.error('Failed to parse message', e);
+        if (debug) console.error('Failed to parse message', e);
       }
     };
 
     wsRef.current = ws;
-  }, [pushToast]);
+  }, [debug, pushToast]);
 
   useEffect(() => {
     if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
@@ -200,15 +214,20 @@ export default function CognitiveUplink() {
 
     const interval = setInterval(() => {
       if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
-        console.log('[CognitiveUplink] Reconnecting...');
+        if (debug) console.log('[CognitiveUplink] Reconnecting...');
         connect();
       }
     }, 5000);
 
     return () => {
       clearInterval(interval);
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      wsRef.current?.close();
     };
-  }, [connect]);
+  }, [connect, debug]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -346,7 +365,7 @@ export default function CognitiveUplink() {
                   url.searchParams.set('resume', resumeToken);
                   window.open(url.toString(), '_blank', 'noopener,noreferrer');
                 }}
-                className="px-3 py-1 border border-emerald-500/40 hover:bg-emerald-500 hover:text-black transition-colors"
+                className="px-3 py-2 border border-emerald-500/40 hover:bg-emerald-500 hover:text-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
               >
                 Open new chat
               </button>
@@ -358,7 +377,7 @@ export default function CognitiveUplink() {
               <button
                 type="button"
                 onClick={() => triggerHyperSync('manual_retry')}
-                className="px-3 py-1 border border-red-500/40 hover:bg-red-500 hover:text-black transition-colors"
+                className="px-3 py-2 border border-red-500/40 hover:bg-red-500 hover:text-black transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               >
                 Retry
               </button>
@@ -375,7 +394,7 @@ export default function CognitiveUplink() {
                 </span>
                 <div className={`${msg.role === 'user' ? 'text-emerald-400' : msg.role === 'system' ? 'text-zinc-500 italic' : 'text-cyan-300'}`}>
                   {msg.role === 'system' && '// '}
-                  {msg.content}
+                  <span className="whitespace-pre-wrap break-words">{msg.content}</span>
                 </div>
               </div>
             ))}
@@ -395,7 +414,7 @@ export default function CognitiveUplink() {
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             className="flex gap-2"
           >
-            <div className="flex items-center justify-center w-10 bg-zinc-900 border border-zinc-700 text-cyan-500">
+            <div className="flex items-center justify-center w-11 h-11 bg-zinc-900 border border-zinc-700 text-cyan-500">
               <Terminal size={18} />
             </div>
             <input
@@ -404,12 +423,12 @@ export default function CognitiveUplink() {
               onChange={(e) => setInput(e.target.value)}
               placeholder={isConnected ? "Enter directive (e.g., 'run: build a spaceship UI')..." : 'Connecting...'}
               disabled={!isConnected}
-              className="flex-1 bg-transparent border-b border-zinc-700 text-cyan-400 font-mono focus:outline-none focus:border-cyan-500 transition-colors placeholder:text-zinc-700 disabled:opacity-50"
+              className="flex-1 h-11 bg-transparent border-b border-zinc-700 text-cyan-300 font-mono transition-colors placeholder:text-zinc-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-0"
             />
             <button
               type="submit"
               disabled={!isConnected}
-              className="px-6 bg-cyan-900/20 border border-cyan-800 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all font-bold uppercase text-xs tracking-wider flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="h-11 px-6 bg-cyan-900/20 border border-cyan-800 text-cyan-300 hover:bg-cyan-500 hover:text-black transition-colors font-bold uppercase text-xs tracking-wider flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
             >
               Execute <Send size={14} />
             </button>

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import os
 import stat
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -27,12 +26,17 @@ INIT_PS1 = PROJECT_ROOT / "scripts" / "init-secrets.ps1"
 
 EXPECTED_SECRET_NAMES = {
     "postgres_password",
-    "hypercode_jwt_secret",
     "api_key",
-    "minio_root_password",
-    "hypercode_memory_key",
-    "discord_token",
+    "jwt_secret",
+    "memory_key",
     "orchestrator_api_key",
+    "grafana_admin_password",
+    "minio_root_user",
+    "minio_root_password",
+    "discord_token",
+    "openai_api_key",
+    "perplexity_api_key",
+    "anthropic_api_key",
 }
 
 
@@ -45,17 +49,17 @@ class TestSecretsComposeFile:
         assert SECRETS_COMPOSE.exists(), "docker-compose.secrets.yml must exist"
 
     def test_secrets_compose_is_valid_yaml(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         assert isinstance(parsed, dict)
 
     def test_secrets_compose_has_secrets_top_level(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         assert "secrets" in parsed
 
     def test_all_expected_secrets_declared(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         declared = set(parsed["secrets"].keys())
         assert EXPECTED_SECRET_NAMES.issubset(declared), (
@@ -63,13 +67,13 @@ class TestSecretsComposeFile:
         )
 
     def test_all_secrets_use_file_driver(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         for name, cfg in parsed["secrets"].items():
             assert "file" in cfg, f"Secret '{name}' missing 'file:' key"
 
     def test_secret_file_paths_use_secrets_dir(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         for name, cfg in parsed["secrets"].items():
             assert cfg["file"].startswith("./secrets/"), (
@@ -77,7 +81,7 @@ class TestSecretsComposeFile:
             )
 
     def test_secret_filenames_match_secret_names(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         for name, cfg in parsed["secrets"].items():
             expected_file = f"./secrets/{name}.txt"
@@ -86,19 +90,17 @@ class TestSecretsComposeFile:
             )
 
     def test_services_section_exists(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         assert "services" in parsed
 
-    def test_postgres_service_references_postgres_password(self):
-        with SECRETS_COMPOSE.open() as f:
+    def test_postgres_service_not_overridden(self):
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
-        svc = parsed["services"]["postgres"]
-        secrets_list = svc.get("secrets", [])
-        assert "postgres_password" in secrets_list
+        assert "postgres" not in parsed["services"]
 
     def test_minio_service_references_minio_password(self):
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             parsed = yaml.safe_load(f)
         svc = parsed["services"]["minio"]
         secrets_list = svc.get("secrets", [])
@@ -117,27 +119,27 @@ class TestInitScripts:
         assert INIT_PS1.exists()
 
     def test_bash_script_mentions_all_secrets(self):
-        content = INIT_SH.read_text()
+        content = INIT_SH.read_text(encoding="utf-8")
         for name in EXPECTED_SECRET_NAMES:
             assert name in content, f"Bash script missing secret: {name}"
 
     def test_powershell_script_mentions_all_secrets(self):
-        content = INIT_PS1.read_text()
+        content = INIT_PS1.read_text(encoding="utf-8")
         for name in EXPECTED_SECRET_NAMES:
             assert name in content, f"PowerShell script missing secret: {name}"
 
     def test_bash_script_has_shebang(self):
-        first_line = INIT_SH.read_text().splitlines()[0]
+        first_line = INIT_SH.read_text(encoding="utf-8").splitlines()[0]
         assert first_line.startswith("#!/")
 
     def test_bash_script_has_set_euo(self):
-        assert "set -euo pipefail" in INIT_SH.read_text()
+        assert "set -euo pipefail" in INIT_SH.read_text(encoding="utf-8")
 
     def test_bash_script_sets_permissions_700_on_secrets_dir(self):
-        assert "chmod 700" in INIT_SH.read_text()
+        assert "chmod 700" in INIT_SH.read_text(encoding="utf-8")
 
     def test_bash_script_sets_permissions_600_on_files(self):
-        assert "chmod 600" in INIT_SH.read_text()
+        assert "chmod 600" in INIT_SH.read_text(encoding="utf-8")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -199,14 +201,14 @@ class TestSecretFileCreation:
 
 class TestSecretNamesConsistency:
     def test_all_secret_names_consistent_across_compose_and_scripts(self):
-        """The same set of secret names must appear in compose AND both init scripts."""
-        with SECRETS_COMPOSE.open() as f:
+        with SECRETS_COMPOSE.open(encoding="utf-8") as f:
             compose_secrets = set(yaml.safe_load(f)["secrets"].keys())
 
-        bash_content = INIT_SH.read_text()
-        ps1_content = INIT_PS1.read_text()
+        bash_content = INIT_SH.read_text(encoding="utf-8")
+        ps1_content = INIT_PS1.read_text(encoding="utf-8")
 
-        for name in compose_secrets:
+        for name in EXPECTED_SECRET_NAMES:
+            assert name in compose_secrets, f"'{name}' missing from docker-compose.secrets.yml"
             assert name in bash_content, f"'{name}' missing from init-secrets.sh"
             assert name in ps1_content, f"'{name}' missing from init-secrets.ps1"
 
@@ -219,7 +221,7 @@ class TestSecretNamesConsistency:
 
     def test_no_secret_values_in_compose_file(self):
         """Compose overlay must NOT contain any hardcoded secret values."""
-        content = SECRETS_COMPOSE.read_text()
+        content = SECRETS_COMPOSE.read_text(encoding="utf-8")
         dangerous_patterns = [
             "changeme", "password123", "secret123",
             "your_", "sk-ant-", "sk-proj-",

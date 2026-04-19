@@ -58,7 +58,10 @@ export function HyperShellLayout({
   const viewMode = viewModeProp ?? local.viewMode
   const setViewMode = setViewModeProp ?? local.setViewMode
   const [focusedPaneId, setFocusedPaneId] = useState<string | null>(null)
-  const [ndMode, setNdMode] = useState<string>('default')
+  const [ndMode, setNdMode] = useState<string>(() => {
+    if (typeof document === 'undefined') return 'default'
+    return document.documentElement.getAttribute('data-nd-mode') ?? 'default'
+  })
 
   const handleNdChange = useCallback((mode: string) => {
     setNdMode(mode)
@@ -69,7 +72,7 @@ export function HyperShellLayout({
     ? `"${focusedPaneId} ${focusedPaneId} ${focusedPaneId}" 1fr / 1fr 1fr 1fr`
     : showTopBar
       ? `
-          "topbar   topbar   topbar"   44px
+          "topbar   topbar   topbar"   48px
           "agents   timeline metrics"  minmax(180px,1fr)
           "tasks    logs     pulse"    minmax(160px,1fr)
           "planning planning planning" minmax(200px,1fr)
@@ -89,25 +92,18 @@ export function HyperShellLayout({
       data-testid="hyper-shell"
     >
       {showTopBar && (
-        <div
-          style={{
-            gridArea:       'topbar',
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'space-between',
-            padding:        '0 16px',
-            background:     'var(--pane-header)',
-            borderBottom:   '1px solid var(--pane-border)',
-          }}
-        >
-          <span style={{ color: 'var(--accent-cyan)', fontWeight: 700, fontSize: 14 }}>
-            🦅 HyperCode Mission Control
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <header className="hc-topbar hc-mission-topbar" style={{ gridArea: 'topbar' }}>
+          <div className="hc-topbar-left">
+            <span className="hc-brand">
+              <span className="hc-brand-mark">🦅</span>
+              <span className="hc-brand-text">HyperCode Mission Control</span>
+            </span>
+          </div>
+          <div className="hc-topbar-right">
             <NDToggle value={ndMode} onChange={handleNdChange} />
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
           </div>
-        </div>
+        </header>
       )}
 
       {/* ── Panes ───────────────────────────────── */}

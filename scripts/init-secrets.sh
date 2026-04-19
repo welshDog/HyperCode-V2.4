@@ -42,18 +42,23 @@ _write_secret() {
 }
 
 echo ""
-echo "HyperCode V2.0 — Docker Secrets Initialisation"
+echo "HyperCode V2.4 — Docker Secrets Initialisation"
 echo "================================================"
 echo "Secrets directory: $SECRETS_DIR"
 echo ""
 
 _write_secret "postgres_password"        "${POSTGRES_PASSWORD:-}"
-_write_secret "hypercode_jwt_secret"     "${HYPERCODE_JWT_SECRET:-}"
 _write_secret "api_key"                  "${API_KEY:-}"
-_write_secret "minio_root_password"      "${MINIO_ROOT_PASSWORD:-}"
-_write_secret "hypercode_memory_key"     "${HYPERCODE_MEMORY_KEY:-}"
-_write_secret "discord_token"            "${DISCORD_TOKEN:-}"
+_write_secret "jwt_secret"               "${JWT_SECRET:-${HYPERCODE_JWT_SECRET:-}}"
+_write_secret "memory_key"               "${HYPERCODE_MEMORY_KEY:-}"
 _write_secret "orchestrator_api_key"     "${ORCHESTRATOR_API_KEY:-}"
+_write_secret "grafana_admin_password"   "${GF_SECURITY_ADMIN_PASSWORD:-}"
+_write_secret "minio_root_user"          "${MINIO_ROOT_USER:-}"
+_write_secret "minio_root_password"      "${MINIO_ROOT_PASSWORD:-}"
+_write_secret "discord_token"            "${DISCORD_TOKEN:-}"
+_write_secret "openai_api_key"           "${OPENAI_API_KEY:-}"
+_write_secret "perplexity_api_key"       "${PERPLEXITY_API_KEY:-}"
+_write_secret "anthropic_api_key"        "${ANTHROPIC_API_KEY:-}"
 
 echo ""
 echo "Done. Validate with:"

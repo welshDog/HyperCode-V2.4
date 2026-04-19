@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from app.core.circuit_breaker import get_breaker
+from app.core.config import settings
 
 _crew_breaker = get_breaker("crew-orchestrator", fail_max=3, reset_timeout=15)
 
@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # ── Config ────────────────────────────────────────────────────────────────────
-_CREW_URL       = os.getenv("CREW_ORCHESTRATOR_URL", "http://crew-orchestrator:8080")
-_ORCH_API_KEY   = os.getenv("ORCHESTRATOR_API_KEY", "")
+_CREW_URL       = settings.ORCHESTRATOR_URL
+_ORCH_API_KEY   = settings.ORCHESTRATOR_API_KEY or ""
 _TIMEOUT        = 60.0   # seconds — crew can take a while with RAG + agents
 
 
@@ -76,6 +76,9 @@ async def _dispatch_to_crew(command: str, task_id: str) -> dict:
     """POST to crew-orchestrator /execute. Returns the JSON response dict."""
     async def _call() -> dict:
         async with httpx.AsyncClient() as client:
+            headers: dict[str, str] = {}
+            if _ORCH_API_KEY:
+                headers["X-API-Key"] = _ORCH_API_KEY
             resp = await client.post(
                 f"{_CREW_URL}/execute",
                 json={
@@ -84,7 +87,7 @@ async def _dispatch_to_crew(command: str, task_id: str) -> dict:
                     "type":              "user_command",
                     "requires_approval": False,
                 },
-                headers={"X-API-Key": _ORCH_API_KEY},
+                headers=headers,
                 timeout=_TIMEOUT,
             )
             resp.raise_for_status()

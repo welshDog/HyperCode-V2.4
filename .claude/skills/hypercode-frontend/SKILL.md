@@ -10,7 +10,7 @@ description: HyperCode Mission Control dashboard — Next.js/React frontend patt
 - **Framework:** Next.js (React) — `agents/dashboard/`
 - **Language:** TypeScript throughout
 - **Testing:** Vitest
-- **WS target:** `ws://localhost:8081/ws/uplink` (crew-orchestrator)
+- **WS target:** `ws://localhost:8000/ws/uplink` (hypercode-core → forwards to crew-orchestrator)
 - **HTTP target:** `http://localhost:8000/api/v1` (FastAPI backend)
 
 ---
@@ -29,30 +29,26 @@ description: HyperCode Mission Control dashboard — Next.js/React frontend patt
 
 ## CognitiveUplink — WebSocket Message Format
 
-⚠️ **CRITICAL BUG — must fix before WS messages route correctly:**
-
 ```typescript
-// WRONG (current) — orchestrator ignores this
-{ type: "command", payload: { ... } }
-
-// CORRECT — orchestrator expects this
+// Required
 { type: "execute", payload: { ... } }
 ```
 
 File: `agents/dashboard/components/CognitiveUplink.tsx` ~line 130
-Orchestrator handler: `agents/crew-orchestrator/main.py` lines 796–866
+Core WS handler: `backend/app/ws/uplink.py`
+Downstream dispatch: `crew-orchestrator` `POST /execute` (host port 8081 → container port 8080)
 
 ### Full message shape
 
 ```typescript
 interface UplinkMessage {
+  id: string;
+  timestamp: string;
   type: "execute" | "ping";
-  payload: {
-    command: string;
-    agent?: string;
-    conversation_id?: string;
-    hypersync_token?: string; // set when resuming from HyperSync handoff
-  };
+  source: string;
+  target: string;
+  payload: unknown;
+  metadata?: unknown;
 }
 ```
 
@@ -60,10 +56,9 @@ interface UplinkMessage {
 
 ```typescript
 interface UplinkResponse {
-  type: "result" | "error" | "stream" | "pong";
-  data: unknown;
-  agent?: string;
-  timestamp: string;
+  type: "response" | "result" | "error" | "pong";
+  payload?: unknown;
+  data?: unknown;
 }
 ```
 
@@ -132,7 +127,7 @@ Profile is persisted to `localStorage` and injected as CSS variables.
 const ws = useRef<WebSocket | null>(null)
 
 useEffect(() => {
-  ws.current = new WebSocket('ws://localhost:8081/ws/uplink')
+  ws.current = new WebSocket('ws://localhost:8000/ws/uplink')
   ws.current.onmessage = (event) => {
     const msg = JSON.parse(event.data) as UplinkResponse
     // handle msg.type
@@ -153,10 +148,10 @@ const send = (command: string) => {
 
 ## Event Stream (read-only)
 
-For live agent event feed — connect to `/ws/events` on crew-orchestrator:
+For live agent event feed — connect to `/api/v1/ws/events` on hypercode-core:
 
 ```typescript
-// ws://localhost:8081/ws/events
+// ws://localhost:8000/api/v1/ws/events
 // Receives: { channel: string, data: unknown, timestamp: string }
 // Channels: ws_tasks | broski_events | approval_requests
 ```
