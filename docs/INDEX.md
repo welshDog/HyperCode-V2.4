@@ -1,7 +1,7 @@
 # 📖 HyperCode V2.4 — Docs Index
 
-> **Start here.** One file. Links to everything. Updated April 16, 2026.
-> 29/29 containers 🟢 | Grade A 🏅 | 700+ commits | 57 services | Phases 0–10O COMPLETE ✅
+> **Start here.** One file. Links to everything. Updated April 19, 2026.
+> 32/32 containers 🟢 | Grade A 🏅 | 700+ commits | 57 services | Phases 0–10Q COMPLETE ✅
 
 ---
 
@@ -9,6 +9,8 @@
 
 | What you need | Go to |
 |---|---|
+| Current status snapshot (update every session) | [WHATS_DONE.md](../WHATS_DONE.md) |
+| Project brain + sacred rules | [CLAUDE.md](../CLAUDE.md) |
 | Get the system running fast | [QUICKSTART.md](QUICKSTART.md) |
 | Full setup from scratch | [guide-infrastructure-setup.md](guide-infrastructure-setup.md) |
 | Day-to-day ops commands | [DAILY_OPS.md](DAILY_OPS.md) |
@@ -82,6 +84,7 @@ POST /api/stripe/webhook     → Stripe event handler (rate-limit exempt)
 - `apt-get upgrade -y` + pip pinning in all Dockerfiles ✅
 - `data-net` + `obs-net` internal-only ✅
 - Trivy target: 0 CRITICAL, <5 HIGH per image ✅
+- Trivy CI runs without GitHub Advanced Security dependencies (no SARIF upload) ✅
 
 ---
 
@@ -211,10 +214,9 @@ pytest backend/tests/test_uplink_ws.py -v
 
 <div align="center">
 
-**29/29 containers 🟢 | Grade A 🏅 | Independent Docker AI audit: world-class infrastructure**
+**32/32 containers 🟢 | Grade A 🏅 | Independent Docker AI audit: world-class infrastructure**
 
 *Built for ADHD brains. Fast feedback. Real tools. No fluff.* 🧠⚡
 
 *@welshDog — Lyndz Williams, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿*
 
-</div>

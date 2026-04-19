@@ -175,7 +175,7 @@ These need YOU to do them (can't be automated):
 
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-Tests:           pytest backend/tests/ -v  (180 passed, 6 skipped — skips are expected)
+Tests:           pytest -q  (217 passed, 6 skipped — skips are expected)
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook

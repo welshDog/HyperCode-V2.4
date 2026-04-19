@@ -50,7 +50,7 @@ Verdict from Gordon (Docker AI), April 15 2026:
 | Metric | Value |
 |---|---|
 | Containers | 32/32 🟢 all healthy |
-| Tests | 180 passed, 6 skipped ✅ |
+| Tests | 217 passed, 6 skipped ✅ |
 | Prometheus targets | 7/7 UP ✅ |
 | OTLP traces | LIVE in Tempo ✅ |
 | Circuit breakers | 3 active — all CLOSED ✅ |

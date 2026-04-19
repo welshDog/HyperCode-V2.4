@@ -10,7 +10,7 @@
 [![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
 [![Version](https://img.shields.io/badge/version-2.4.1-blue)](backend/app/core/config.py)
-[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2029%2F29-brightgreen)](STATUS_REPORT.md)
+[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2032%2F32-brightgreen)](WHATS_DONE.md)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-💙%20BROski%20Labs-pink)](https://github.com/sponsors/welshDog)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
@@ -66,7 +66,7 @@ Every sponsor directly helps keep the lights on, the agents running, and new lab
 The **Hyper-Vibe Coding Course** walks you through the entire HyperCode stack — from a blank Docker Compose file to a working self-healing AI infra lab with full observability, Stripe payments, and a token economy.
 
 - 🧠 Built for neurodivergent learners — chunked, pattern-based, no fluff
-- 🐳 Run the full 29-container lab on your own machine
+- 🐳 Run the full 32-container lab on your own machine
 - 📡 Wire Prometheus, Grafana, Loki, and Tempo like an SRE
 - 🤖 Build agents that heal broken services automatically
 - 💳 Ship a working Stripe + BROski token economy end-to-end
@@ -79,11 +79,11 @@ The **Hyper-Vibe Coding Course** walks you through the entire HyperCode stack �
 
 ## 🟢 Live System Status — April 2026
 
-> All 29 core containers healthy · Stripe payments LIVE · CognitiveUplink WS LIVE
+> 32/32 containers healthy · Stripe payments LIVE · CognitiveUplink WS LIVE
 
 | Category | Grade | Status |
 |---|---|---|
-| 🐳 Infrastructure | 100% | 29/29 containers healthy |
+| 🐳 Infrastructure | 100% | 32/32 containers healthy |
 | 🤖 Agent Crew | All online | Agent X, Crew Orchestrator, Healer, all specialists |
 | 📡 Observability | A+ | Prometheus + Grafana + Loki + Tempo live |
 | 🔐 Security | A+ | Non-root, cap drops, Trivy scanning, network isolation |
