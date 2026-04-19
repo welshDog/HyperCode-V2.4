@@ -3,7 +3,7 @@ name: hypercode-new-agent-onboarding
 description: >
   Guide the creation and onboarding of a new HyperCode agent in a
   neurodivergent-friendly, step-by-step way. Use when asked to create,
-  scaffold, or register a new agent into HyperCode V2.0.
+  scaffold, or register a new agent into HyperCode V2.4.
 tags:
   - hypercode
   - agents
@@ -30,7 +30,7 @@ author: welshDog
 
 # HyperCode New Agent Onboarding Skill
 
-> **SKILL PURPOSE:** Help build and onboard a new agent into HyperCode V2.0.
+> **SKILL PURPOSE:** Help build and onboard a new agent into HyperCode V2.4.
 > For new agents joining the ecosystem only.
 > Hyper-agent orchestration lives in a separate skill.
 
@@ -129,7 +129,7 @@ Phase 5 - Test + document
 - Ask what the agent does.
 - Confirm what it does NOT do.
 - Note any sensitive data concerns.
-- Confirm port: available ports are 8091+ (8000, 8008/8010, 8081, 8088, 3000, 3001 are taken).
+- Confirm port: prefer 8094+ for new agents (8000 core, 8008 healer, 8081 orchestrator, 8088 dashboard, 3001 grafana, 9090 prometheus are taken).
 
 #### Phase 2: Choose Agent Archetype
 Pick one of four archetypes:
@@ -144,24 +144,8 @@ If none fit, create a custom archetype.
 
 #### Phase 3: Scaffold the Service
 ```bash
-# 1. Create agent folder inside HyperCode V2.0
-mkdir -p src/agents/hyper_agents/<agent_name>
-mkdir -p tests/hyper_agents/unit tests/hyper_agents/integration
-
-# 2. Copy base agent template
-cp src/agents/hyper_agents/base_agent.py src/agents/hyper_agents/<agent_name>/agent.py
-
-# 3. Create Dockerfile
-cat > src/agents/hyper_agents/<agent_name>/Dockerfile << 'EOF'
-FROM python:3.12-slim
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8090"]
-EOF
-
-# 4. Add to docker-compose.yml (show user the snippet to add)
+# Create the agent in the V2.4 agents/ layout and wire it into the compose profile.
+# Use scripts/spawn_agent.py to list existing agents and validate naming.
 ```
 
 #### Phase 4: Register with HyperCode
@@ -170,22 +154,16 @@ Three registration points:
 2. **The Brain** - register agent ID so other agents can call it.
 3. **Mission Control** - add display name + role in dashboard metadata.
 
+In V2.4, do the spawn step first:
+- Add the service under the `agents` profile in docker-compose.yml
+- Start it with `python scripts/spawn_agent.py <agent-service-name>`
+
 Offer to generate the config snippets for each.
 
 #### Phase 5: Test + Document
 Run in order:
 ```bash
-# Lint
-ruff check src/agents/hyper_agents/<agent_name>/
-
-# Unit tests
-pytest tests/hyper_agents/unit/ -v
-
-# Integration test (agent registers + responds)
-pytest tests/hyper_agents/integration/ -v
-
-# Health check
-curl http://localhost:<port>/health
+pytest -q
 ```
 
 Then generate minimal docs:

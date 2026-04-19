@@ -7,8 +7,16 @@ description: Spawns, configures, and registers new HyperCode agents into the Cre
 
 ## Quick spawn
 
-> **Note:** `scripts/spawn_agent.py` is not yet implemented.
-> Use the manual steps below — they're fast and give you full control.
+Use the spawner script:
+
+```powershell
+python scripts/spawn_agent.py --list
+python scripts/spawn_agent.py coder-agent
+```
+
+Notes:
+- Uses the `agents` compose profile and will spawn or restart the service.
+- `--dry-run` prints the Docker command without executing.
 
 ## Agent spec template
 

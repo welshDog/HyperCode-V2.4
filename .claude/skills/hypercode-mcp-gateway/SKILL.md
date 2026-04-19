@@ -41,6 +41,11 @@ Config lives in: `.mcp.json`
 2. Restart Claude Code session
 3. Verify with: `HyperCode:<server>:list_tools`
 
+Prereqs:
+- `HyperCode:github` needs a GitHub token configured for the MCP server.
+- `HyperCode:filesystem` should be scoped to a specific repo folder, not `/`.
+- `HyperCode:redis` requires a local server implementation (not included yet).
+
 ## Tool naming (CRITICAL)
 
 ALWAYS use fully qualified names in Skills:
