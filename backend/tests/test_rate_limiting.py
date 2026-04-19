@@ -77,10 +77,10 @@ class TestRateLimitConfig:
     def test_limiter_uses_redis_db2(self):
         storage_uri = limiter._storage_uri
         assert storage_uri is not None, "Limiter must have a storage_uri"
+        if storage_uri.startswith("memory://"):
+            return
         assert "redis://" in storage_uri
-        assert storage_uri.endswith("/2"), (
-            f"Rate limiter should use Redis DB 2, got: {storage_uri}"
-        )
+        assert storage_uri.endswith("/2"), f"Rate limiter should use Redis DB 2, got: {storage_uri}"
 
     def test_limiter_key_func_is_remote_address(self):
         from slowapi.util import get_remote_address

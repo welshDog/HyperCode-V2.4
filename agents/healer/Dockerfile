@@ -43,9 +43,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/agents
 
 # Non-root user with docker group access — security hardening
-# docker group GID 999 is the default on most Linux distros
+# -o on docker groupadd: appuser's system GID may already claim 999 on Debian Trixie;
+# -o lets the docker group share/reuse that GID without failing the build.
 RUN groupadd -r appuser && useradd -r -g appuser appuser \
-    && (getent group docker || groupadd -g 999 docker) \
+    && (getent group docker || groupadd -o -g 999 docker) \
     && usermod -aG docker appuser \
     && chown -R appuser:appuser /app
 USER appuser

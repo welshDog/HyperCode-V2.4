@@ -424,23 +424,8 @@ DEFAULT_SERVICES: list[ServiceConfig] = [
         "Healer Agent", 8008,
         "http://healer-agent:8008/health", "healer-agent", critical=False),
     ServiceConfig(
-        "Crew Orchestrator", 8080,
-        "http://crew-orchestrator:8080/health", "crew-orchestrator"),
-    ServiceConfig(
-        "Super BROski Agent", 8015,
-        "http://super-hyper-broski-agent:8015/health",
-        "super-hyper-broski-agent"),
-    # throttle-agent not deployed in current stack — removed from monitor list
-    ServiceConfig(
-        "Test Agent", 8080,
-        "http://test-agent:8080/health", "test-agent"),
-    ServiceConfig(
-        "Tips Writer", 8009,
-        "http://tips-tricks-writer:8009/health", "tips-tricks-writer"),
-    ServiceConfig(
         "Mission Control", 3000,
         "http://hypercode-dashboard:3000/health", "hypercode-dashboard"),
-    # mcp-gateway and mcp-rest-adapter not deployed in current stack — removed from monitor list
     ServiceConfig(
         "Ollama LLM", 11434,
         "http://hypercode-ollama:11434/api/tags", "hypercode-ollama"),

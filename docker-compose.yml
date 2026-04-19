@@ -811,6 +811,43 @@ services:
       - /var/lib/haproxy
     read_only: true
 
+  # Dedicated write-enabled proxy — ONLY for healer + throttle-agent (trusted internal agents that restart/pause containers).
+  # Scoped tight: CONTAINERS + POST + PING only. No IMAGES/VOLUMES/NETWORKS/BUILD/INFO/EXEC.
+  # Keeps coder-agent and other agent-net clients on the read-only main proxy.
+  docker-socket-proxy-healer:
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    container_name: docker-socket-proxy-healer
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    networks:
+      - agents-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - POST=1
+      - PING=1
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /run
+      - /var/lib/haproxy
+    read_only: true
+
   docker-socket-proxy-build:
     profiles: ["ops", "hyper"]
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
@@ -1732,7 +1769,7 @@ services:
       - THROTTLE_KEEP_OBSERVABILITY=true
       - POLL_INTERVAL_SECONDS=30
       - THROTTLE_PROTECT_TIERS=1,2,3
-      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - DOCKER_HOST=tcp://docker-socket-proxy-healer:2375
     volumes:
       - ./agents/throttle-agent:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1746,7 +1783,7 @@ services:
     depends_on:
       hypercode-core:
         condition: service_healthy
-      docker-socket-proxy:
+      docker-socket-proxy-healer:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
@@ -1941,10 +1978,11 @@ services:
     networks:
       - agents-net
       - data-net
+      - obs-net
     depends_on:
       redis:
         condition: service_healthy
-      docker-socket-proxy:
+      docker-socket-proxy-healer:
         condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
@@ -1954,7 +1992,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      DOCKER_HOST: tcp://docker-socket-proxy-healer:2375
       HYPERCODE_API_KEY: ${API_KEY:-dev-master-key}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}

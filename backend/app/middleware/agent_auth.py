@@ -17,7 +17,7 @@ import logging
 import os
 import secrets
 import time
-from typing import Optional
+from typing import Annotated, Optional
 
 import redis.asyncio as aioredis
 from fastapi import Depends, Header, HTTPException, Request
@@ -75,8 +75,8 @@ async def _check_agent_rate_limit(agent_name: str, rpm_limit: int) -> bool:
 
 async def get_agent_from_key(
     request: Request,  # noqa: ARG001 — reserved for future IP allow-listing
-    x_agent_key: Optional[str] = Header(None),
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    x_agent_key: Annotated[Optional[str], Header()] = None,
+    x_api_key: Annotated[Optional[str], Header(alias="X-API-Key")] = None,
 ) -> Optional[dict]:
     """Optional agent key auth.
 

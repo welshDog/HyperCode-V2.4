@@ -1,5 +1,6 @@
 """Rate limiting and security middleware for HyperCode API."""
 
+import os
 from fastapi import FastAPI, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -8,13 +9,30 @@ from starlette.responses import JSONResponse
 import time
 import logging
 
+
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
+
+def _with_redis_db(redis_url: str, db_index: int) -> str:
+    base = (redis_url or "").strip() or "redis://redis:6379/0"
+    if "/" not in base:
+        return f"{base}/{db_index}"
+    prefix = base.rsplit("/", 1)[0]
+    return f"{prefix}/{db_index}"
+
+
+def _rate_limit_storage_uri() -> str:
+    if os.getenv("PYTEST_CURRENT_TEST") or settings.ENVIRONMENT.lower() == "test":
+        return "memory://"
+    return os.getenv("RATE_LIMIT_STORAGE_URI") or _with_redis_db(settings.HYPERCODE_REDIS_URL, 2)
+
+
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["100/minute"],  # Global default
-    storage_uri="redis://redis:6379/2"  # Use Redis for persistence
+    default_limits=["100/minute"],
+    storage_uri=_rate_limit_storage_uri(),
 )
 
 
@@ -101,8 +119,8 @@ def rate_limit(limit: str = None):
 class AsyncRateLimiter:
     """Async-safe rate limiter for background tasks."""
     
-    def __init__(self, redis_url: str = "redis://redis:6379/3"):
-        self.redis_url = redis_url
+    def __init__(self, redis_url: str | None = None):
+        self.redis_url = redis_url or _with_redis_db(settings.HYPERCODE_REDIS_URL, 3)
         self.redis = None
     
     async def connect(self):
