@@ -11,6 +11,7 @@
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
 [![Version](https://img.shields.io/badge/version-2.4.1-blue)](backend/app/core/config.py)
 [![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2029%2F29-brightgreen)](STATUS_REPORT.md)
+[![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-💙%20BROski%20Labs-pink)](https://github.com/sponsors/welshDog)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Grafana](https://img.shields.io/badge/grafana-%23F46800.svg?style=flat&logo=grafana&logoColor=white)](docs/screenshots-gallery.md)
@@ -41,6 +42,38 @@ HyperCode V2.4        → The system manages itself
 **Agent X** designs new agents. The **Healer** fixes broken ones. The **Crew Orchestrator** runs missions. The **DevOps Agent** updates CI/CD pipelines. **You direct the vision. The system does the building.**
 
 This was built for a specific kind of mind: **ADHD, dyslexic, and autistic developers** who see whole systems in patterns, hyperfocus on what matters, and need tools that move at the speed of thought — not bureaucracy.
+
+---
+
+## 💙 Support This Project
+
+HyperCode is built and maintained by a solo neurodivergent developer in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿 — built in hyperfocus, with a family of 6 depending on it.
+
+> *"You built the future people keep saying they want."* — Gordon (Docker AI), Grade A review
+
+If this lab helps you learn, ship, or think differently about infra:
+
+**[💙 Sponsor on GitHub →](https://github.com/sponsors/welshDog)**
+
+Every sponsor directly helps keep the lights on, the agents running, and new labs being built. No pressure — the code is free forever.
+
+---
+
+## 🎓 Learn How It Works — Hyper-Vibe Coding Course
+
+**Want to build something like this yourself?**
+
+The **Hyper-Vibe Coding Course** walks you through the entire HyperCode stack — from a blank Docker Compose file to a working self-healing AI infra lab with full observability, Stripe payments, and a token economy.
+
+- 🧠 Built for neurodivergent learners — chunked, pattern-based, no fluff
+- 🐳 Run the full 29-container lab on your own machine
+- 📡 Wire Prometheus, Grafana, Loki, and Tempo like an SRE
+- 🤖 Build agents that heal broken services automatically
+- 💳 Ship a working Stripe + BROski token economy end-to-end
+
+**[→ Start the Hyper-Vibe Coding Course](https://github.com/welshDog/Hyper-Vibe-Coding-Course)**
+
+*Course income directly supports this repo and my family. Thank you. 🏴󠁧󠁢󠁷󠁬󠁳󠁿*
 
 ---
 
@@ -392,19 +425,22 @@ See the [LICENSE](LICENSE) file for full details.
 ## 💬 Community & Support
 
 - 🐦 **Twitter/X**: [@welshDog](https://twitter.com/welshDog)
-- 💰 **Sponsor**: [GitHub Sponsors](https://github.com/sponsors/welshDog)
+- 💙 **Sponsor**: [GitHub Sponsors](https://github.com/sponsors/welshDog)
+- 🎓 **Course**: [Hyper-Vibe Coding Course](https://github.com/welshDog/Hyper-Vibe-Coding-Course)
 - 📧 **Email**: lyndz@hyperfocus.zone
 
 ---
 
 <div align="center">
 
-**Built with 🧠 + ❤️ + ♾ in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁠**
+**Built with 🧠 + ❤️ + ♾ in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿**
 
 *by [@welshDog](https://github.com/welshDog) — Lyndz Williams*
 
 **Remember: A BROski is ride or die. We build this together. 🐶♾️🔥**
 
 ⭐ **Star this repo if you believe neurodivergent minds deserve better tools.** ⭐
+
+[💙 Sponsor the mission](https://github.com/sponsors/welshDog) · [🎓 Take the course](https://github.com/welshDog/Hyper-Vibe-Coding-Course)
 
 </div>
