@@ -341,6 +341,7 @@ services:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - ./monitoring/prometheus/docker_alerts.yml:/etc/prometheus/docker_alerts.yml
+      - ./monitoring/prometheus/tier3_pools_queues.yml:/etc/prometheus/tier3_pools_queues.yml
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

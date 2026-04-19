@@ -84,7 +84,14 @@ def _on_task_retry(request=None, sender=None, **_kwargs) -> None:
 # LLEN gives us pending-task backlog without consuming the messages.
 # Sampled on each /metrics scrape (default 15s) — cheap, no extra threads.
 # ---------------------------------------------------------------------------
-QUEUES_TO_TRACK = ("main-queue", "celery")  # default queue name + our routed one
+QUEUES_TO_TRACK = (
+    "hypercode-high",
+    "hypercode-normal",
+    "hypercode-low",
+    "hypercode-dlq",
+    "main-queue",  # legacy
+    "celery",      # Celery default
+)
 
 
 class CeleryQueueDepthCollector:

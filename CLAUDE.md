@@ -378,7 +378,11 @@ docker compose --profile agents up -d
 - ✅ **Gordon Tier 3 — DB pool metrics** — `DBPoolCollector` exposes `hypercode_db_pool_{size,checked_out,checked_in,overflow}` for sync + async engines on `/metrics`. Alert before pool exhaustion. (April 19)
 - ✅ **Gordon Tier 3 — Celery queue metrics** — Signals wired to `hypercode_celery_tasks_total{task,status}` Counter + `hypercode_celery_task_duration_seconds` Histogram. `CeleryQueueDepthCollector` reads Redis `LLEN` for `main-queue` / `celery` on each scrape. (April 19)
 - ✅ **Two commits already pushed** — `d27b67a` + `8cbc5c9` are live on `origin/main` (push is FREE on GitHub — billing lock only blocks Actions). (April 19)
-- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. UID `hypercode-tier3-pools-queues`, auto-loaded into "Mission Control" folder. KPI stats + sync/async pool stacks + queue-depth + status throughput + p50/p95/p99 + duration heatmap. Refreshes every 10s. (April 19)
+- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. UID `hypercode-tier3-pools-queues`, auto-loaded into "Mission Control" folder. KPI stats + sync/async pool stacks + queue-depth + status throughput + DLQ panel + p50/p95/p99 + duration heatmap. Refreshes every 10s. (April 19)
+- ✅ **Tier 3 Prometheus alerts** — `monitoring/prometheus/tier3_pools_queues.yml`. 10 alerts across DB pool (3) + Celery (7 incl. DLQ growing/flooding). Severity ladder warning→critical matches dashboard colour bands. (April 19)
+- ✅ **Tier 3 priority queues + DLQ** — `hypercode-{high,normal,low}` queues for fast/normal/slow work, `hypercode-dlq` for terminally-failed envelopes (operator-only, capped at 10k). `run_agent_task` pushes to DLQ on max_retries_exceeded or soft_time_limit. (April 19)
+- ✅ **Stripe prod swap runbook** — `docs/runbooks/stripe-prod-swap.md`. 5-min step-by-step from getting live keys → Vercel env vars → smoke test → rollback. (April 19)
+- ✅ **Anthropic top-up runbook** — `docs/runbooks/anthropic-topup.md`. Pet chat code already auto-falls-back through Anthropic→Perplexity→Ollama, so swap-back needs *zero* code change once credits land. (April 19)
 
 ---
 

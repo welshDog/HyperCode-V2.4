@@ -1,4 +1,6 @@
 from celery import Celery
+from kombu import Exchange, Queue
+
 from app.core.config import settings
 
 celery_app = Celery(
@@ -7,10 +9,46 @@ celery_app = Celery(
     backend=settings.HYPERCODE_REDIS_URL
 )
 
+# ---------------------------------------------------------------------------
+# Gordon Tier 3 — Priority queues + Dead Letter Queue
+#
+# Three live queues separate fast/slow work so a slow task can't starve a
+# fast one: workers can be scaled per-queue or pinned with --queues=.
+#
+#   hypercode-high   — interactive paths the user is waiting on
+#   hypercode-normal — default for everything (background agent jobs)
+#   hypercode-low    — opportunistic work (cache warming, batch reports)
+#
+# DLQ:
+#   hypercode-dlq    — terminal-failure sink. Tasks land here only after
+#                      max_retries is exhausted; they are NOT consumed by
+#                      workers — they sit until an operator inspects/replays.
+#
+# Legacy `main-queue` is kept so existing producers don't break during
+# rollout. New callers should use queue="hypercode-{high,normal,low}".
+# ---------------------------------------------------------------------------
+_hc_exchange = Exchange("hypercode", type="direct", durable=True)
+_dlq_exchange = Exchange("hypercode-dlx", type="direct", durable=True)
+
+celery_app.conf.task_queues = (
+    Queue("hypercode-high",   _hc_exchange,  routing_key="hypercode.high"),
+    Queue("hypercode-normal", _hc_exchange,  routing_key="hypercode.normal"),
+    Queue("hypercode-low",    _hc_exchange,  routing_key="hypercode.low"),
+    # DLQ — durable, never auto-consumed. Inspect with: redis-cli LRANGE hypercode-dlq 0 -1
+    Queue("hypercode-dlq",    _dlq_exchange, routing_key="hypercode.dlq", durable=True),
+    # Legacy
+    Queue("main-queue",       _hc_exchange,  routing_key="hypercode.main"),
+)
+
+celery_app.conf.task_default_queue = "hypercode-normal"
+celery_app.conf.task_default_exchange = "hypercode"
+celery_app.conf.task_default_routing_key = "hypercode.normal"
+
 celery_app.conf.task_routes = {
-    "hypercode.tasks.process_agent_job": "main-queue",
-    "hypercode.tasks.run_agent_task": "main-queue",
-    "app.worker.test_celery": "main-queue",
+    # Legacy explicit routings kept until callers migrate
+    "hypercode.tasks.process_agent_job": {"queue": "main-queue"},
+    "hypercode.tasks.run_agent_task":    {"queue": "hypercode-normal"},
+    "app.worker.test_celery":            {"queue": "main-queue"},
 }
 
 # Explicitly import the worker module so tasks are registered

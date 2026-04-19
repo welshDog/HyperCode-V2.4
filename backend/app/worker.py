@@ -1,7 +1,8 @@
 from app.core.celery_app import celery_app
 from celery import Task as CeleryTask
-from celery.exceptions import SoftTimeLimitExceeded
+from celery.exceptions import MaxRetriesExceededError, SoftTimeLimitExceeded
 from celery.signals import worker_ready
+from app.observability.dlq import send_to_dlq
 from app.agents.router import router
 from app.db.session import SessionLocal
 from app.models.models import Task, TaskStatus
@@ -206,6 +207,14 @@ def run_agent_task(
             f"[run_agent_task] TIMEOUT agent={agent_name} type={task_type} id={task_id} "
             f"exceeded soft_time_limit=300s — failing without retry"
         )
+        send_to_dlq(
+            task_name="hypercode.tasks.run_agent_task",
+            args=(agent_name, task_type),
+            kwargs={"payload": payload, "task_id": task_id},
+            error="soft_time_limit_exceeded",
+            task_id=self.request.id,
+            extra={"reason": "timeout", "soft_limit_s": 300},
+        )
         return {
             "status": "failed",
             "agent_name": agent_name,
@@ -220,4 +229,29 @@ def run_agent_task(
             f"[run_agent_task] RETRYING agent={agent_name} attempt={self.request.retries + 1} "
             f"backoff={backoff}s exc={exc}"
         )
-        raise self.retry(exc=exc, countdown=backoff)
+        try:
+            raise self.retry(exc=exc, countdown=backoff)
+        except MaxRetriesExceededError:
+            # Retries exhausted — push the envelope to the DLQ so an operator
+            # can inspect/replay later, then return a structured failure
+            # instead of letting the exception propagate (which would mark
+            # the task FAILURE in Celery's result backend AND cause an
+            # uncaught exception in the worker log).
+            logger.error(
+                f"[run_agent_task] DLQ agent={agent_name} type={task_type} "
+                f"id={task_id} retries_exhausted exc={exc}"
+            )
+            send_to_dlq(
+                task_name="hypercode.tasks.run_agent_task",
+                args=(agent_name, task_type),
+                kwargs={"payload": payload, "task_id": task_id},
+                error=str(exc),
+                task_id=self.request.id,
+                extra={"reason": "max_retries_exceeded", "max_retries": self.max_retries},
+            )
+            return {
+                "status": "failed",
+                "agent_name": agent_name,
+                "task_type": task_type,
+                "error": f"max_retries_exceeded: {exc}",
+            }

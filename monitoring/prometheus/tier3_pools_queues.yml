@@ -1,0 +1,158 @@
+# ───────────────────────────────────────────────────────────────
+# Gordon Tier 3 — Alerts for connection pools and Celery queues
+#
+# Pairs with the dashboard `hypercode-tier3-pools-queues` —
+# thresholds match the panel colour bands so visual + paged signals agree.
+#
+# Severity guide:
+#   warning  -> Discord ping, no PagerDuty
+#   critical -> PagerDuty + Discord
+# ───────────────────────────────────────────────────────────────
+groups:
+- name: hypercode-tier3-db-pool
+  interval: 30s
+  rules:
+  - alert: DBPoolUtilizationHigh
+    # Sustained > 80% means we're one burst away from blocking on pool_timeout
+    expr: |
+      100 * hypercode_db_pool_checked_out
+      / (hypercode_db_pool_size + 20) > 80
+    for: 3m
+    labels:
+      severity: warning
+      component: database
+    annotations:
+      summary: "DB pool {{ $labels.engine }} > 80% utilised for 3m"
+      description: |
+        SQLAlchemy {{ $labels.engine }} pool is {{ $value | printf "%.0f" }}% full.
+        Pool exhaustion blocks requests on pool_timeout (30s) before they error.
+        Check for slow queries, unclosed sessions, or scale the pool size.
+      runbook: "https://github.com/welshDog/HyperCode-V2.4/blob/main/docs/runbooks/db-pool.md"
+
+  - alert: DBPoolUtilizationCritical
+    expr: |
+      100 * hypercode_db_pool_checked_out
+      / (hypercode_db_pool_size + 20) > 95
+    for: 1m
+    labels:
+      severity: critical
+      component: database
+    annotations:
+      summary: "DB pool {{ $labels.engine }} > 95% — exhaustion imminent"
+      description: |
+        Pool {{ $labels.engine }} is {{ $value | printf "%.0f" }}% full for 1m.
+        New requests are about to start blocking. Investigate NOW.
+
+  - alert: DBPoolOverflowSustained
+    # Overflow > 0 is fine for spikes; sustained means pool_size is undersized
+    expr: hypercode_db_pool_overflow > 0
+    for: 10m
+    labels:
+      severity: warning
+      component: database
+    annotations:
+      summary: "DB pool {{ $labels.engine }} using overflow connections for 10m"
+      description: |
+        Overflow connections are temporary. Sustained overflow ({{ $value }})
+        means pool_size=10 is too small for the workload — bump it.
+
+- name: hypercode-tier3-celery
+  interval: 30s
+  rules:
+  - alert: CeleryQueueBacklogWarning
+    expr: sum(hypercode_celery_queue_depth) > 50
+    for: 5m
+    labels:
+      severity: warning
+      component: celery
+    annotations:
+      summary: "Celery backlog > 50 for 5m"
+      description: |
+        {{ $value }} tasks pending across all queues. Workers can't keep up —
+        either scale workers (`docker compose up -d --scale celery-worker=N`)
+        or check for a slow/blocked task type.
+
+  - alert: CeleryQueueBacklogCritical
+    expr: sum(hypercode_celery_queue_depth) > 200
+    for: 2m
+    labels:
+      severity: critical
+      component: celery
+    annotations:
+      summary: "Celery backlog > 200 — workers overwhelmed"
+      description: |
+        {{ $value }} tasks pending. At this depth tasks may time out before
+        they're picked up. Scale workers immediately.
+
+  - alert: CeleryTaskFailureRateHigh
+    # > 5% of tasks failing over 5m
+    expr: |
+      100 * sum(rate(hypercode_celery_tasks_total{status="failure"}[5m]))
+      / clamp_min(sum(rate(hypercode_celery_tasks_total[5m])), 0.0001) > 5
+    for: 5m
+    labels:
+      severity: warning
+      component: celery
+    annotations:
+      summary: "Celery task failure rate > 5% for 5m"
+      description: |
+        {{ $value | printf "%.1f" }}% of tasks failed in the last 5m.
+        Check recent worker logs: `docker logs --tail 200 celery-worker`.
+
+  - alert: CeleryTaskFailureRateCritical
+    expr: |
+      100 * sum(rate(hypercode_celery_tasks_total{status="failure"}[5m]))
+      / clamp_min(sum(rate(hypercode_celery_tasks_total[5m])), 0.0001) > 20
+    for: 2m
+    labels:
+      severity: critical
+      component: celery
+    annotations:
+      summary: "Celery task failure rate > 20% — major regression"
+      description: |
+        {{ $value | printf "%.1f" }}% of tasks failed for 2m+.
+        Likely a deploy regression or downstream outage. Roll back if recent.
+
+  - alert: CeleryDLQGrowing
+    # Any DLQ entries are bad — but a growing DLQ means a regression in flight
+    expr: hypercode_celery_queue_depth{queue="hypercode-dlq"} > 0
+    for: 5m
+    labels:
+      severity: warning
+      component: celery
+    annotations:
+      summary: "Tasks in DLQ ({{ $value | printf \"%.0f\" }})"
+      description: |
+        {{ $value }} task envelopes have landed in hypercode-dlq.
+        Inspect with: `redis-cli LRANGE hypercode-dlq 0 -1 | head -5`
+        Diagnose root cause before replaying.
+
+  - alert: CeleryDLQFlooding
+    # Sustained large DLQ = ongoing regression, page someone
+    expr: hypercode_celery_queue_depth{queue="hypercode-dlq"} > 50
+    for: 5m
+    labels:
+      severity: critical
+      component: celery
+    annotations:
+      summary: "DLQ flooding ({{ $value | printf \"%.0f\" }} entries)"
+      description: |
+        DLQ depth = {{ $value }} for 5m+. A task class is failing all
+        retries — likely a deploy regression or downstream outage.
+
+  - alert: CeleryTaskLatencyP99Critical
+    # p99 approaching the 300s soft_time_limit means timeouts are next
+    expr: |
+      histogram_quantile(0.99,
+        sum by (le, task) (rate(hypercode_celery_task_duration_seconds_bucket[5m]))
+      ) > 240
+    for: 5m
+    labels:
+      severity: critical
+      component: celery
+    annotations:
+      summary: "Task {{ $labels.task }} p99 > 240s (near soft_time_limit)"
+      description: |
+        p99 = {{ $value | printf "%.0f" }}s, approaching the 300s soft limit.
+        Tasks will start hitting SoftTimeLimitExceeded soon. Investigate the
+        slowest agent path or downstream LLM/DB call.

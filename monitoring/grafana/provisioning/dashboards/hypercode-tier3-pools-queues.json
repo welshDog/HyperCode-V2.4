@@ -119,10 +119,10 @@
       "type": "stat",
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
-      "description": "Total pending Celery tasks across all queues. Sustained > 50 = workers can't keep up.",
+      "description": "Total pending Celery tasks across high/normal/low (excludes DLQ). Sustained > 50 = workers can't keep up.",
       "targets": [
         {
-          "expr": "sum(hypercode_celery_queue_depth)",
+          "expr": "sum(hypercode_celery_queue_depth{queue!=\"hypercode-dlq\"})",
           "legendFormat": "pending",
           "refId": "A"
         }
@@ -402,10 +402,87 @@
     },
 
     {
+      "id": 350,
+      "type": "row",
+      "title": "🪦 Dead Letter Queue",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 11,
+      "title": "DLQ Depth",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "description": "Tasks that exhausted all retries. Inspect with: redis-cli LRANGE hypercode-dlq 0 -1",
+      "targets": [
+        {
+          "expr": "hypercode_celery_queue_depth{queue=\"hypercode-dlq\"}",
+          "legendFormat": "envelopes",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "textMode": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red",    "value": 50 }
+            ]
+          },
+          "noValue": "0"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "title": "DLQ Growth (last 1h)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 16, "x": 8, "y": 25 },
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "description": "DLQ depth over time. A flat line at 0 is healthy. Rising line = active regression.",
+      "targets": [
+        {
+          "expr": "hypercode_celery_queue_depth{queue=\"hypercode-dlq\"}",
+          "legendFormat": "DLQ depth",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 30,
+            "lineWidth": 2,
+            "pointSize": 5
+          },
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        }
+      }
+    },
+    {
       "id": 400,
       "type": "row",
       "title": "⏱️ Task Latency",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
       "collapsed": false,
       "panels": []
     },
@@ -413,7 +490,7 @@
       "id": 9,
       "title": "Task Duration — p50 / p95 / p99 by Task",
       "type": "timeseries",
-      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 25 },
+      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 32 },
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
       "description": "Latency percentiles per task name. p99 spikes near the 300s soft limit = imminent timeouts.",
       "targets": [
@@ -463,7 +540,7 @@
       "id": 10,
       "title": "Task Duration Heatmap (all tasks)",
       "type": "heatmap",
-      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 25 },
+      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 32 },
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
       "description": "Density of task durations over time. Bright bands at the top = slow tasks accumulating.",
       "targets": [
