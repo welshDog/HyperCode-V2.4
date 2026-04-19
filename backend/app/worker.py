@@ -1,5 +1,6 @@
 from app.core.celery_app import celery_app
 from celery import Task as CeleryTask
+from celery.exceptions import SoftTimeLimitExceeded
 from celery.signals import worker_ready
 from app.agents.router import router
 from app.db.session import SessionLocal
@@ -195,6 +196,21 @@ def run_agent_task(
             "agent_name": agent_name,
             "task_type": task_type,
             "result": result,
+        }
+
+    except SoftTimeLimitExceeded:
+        # Soft timeout (300s) — do not retry; runaway tasks should fail fast
+        # so they cannot pin the worker. Hard timeout (360s) will kill the
+        # process if this handler itself hangs.
+        logger.error(
+            f"[run_agent_task] TIMEOUT agent={agent_name} type={task_type} id={task_id} "
+            f"exceeded soft_time_limit=300s — failing without retry"
+        )
+        return {
+            "status": "failed",
+            "agent_name": agent_name,
+            "task_type": task_type,
+            "error": "soft_time_limit_exceeded",
         }
 
     except Exception as exc:

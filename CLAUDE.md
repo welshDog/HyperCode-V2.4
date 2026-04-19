@@ -374,6 +374,11 @@ docker compose --profile agents up -d
 - ✅ **32/32 (healthy)** — HyperHealth API live via `--profile health --profile ops`. (April 19)
 - ✅ **Alembic 009** — `pgcrypto` + `uuid-ossp` extensions enabled. Alembic bootstrapped (stamp 008 → upgrade). (April 19)
 - ✅ **Rate-limit env split** — `memory://` in tests, `redis://...:6379/2` in prod. No live-Redis dep on CI. (April 19)
+- ✅ **Gordon Tier 3 — Celery hardening** — `task_soft_time_limit=300` / `task_time_limit=360` kill runaway agent tasks before they pin a worker. `SoftTimeLimitExceeded` handled in `run_agent_task` (no retry on timeout). (April 19)
+- ✅ **Gordon Tier 3 — DB pool metrics** — `DBPoolCollector` exposes `hypercode_db_pool_{size,checked_out,checked_in,overflow}` for sync + async engines on `/metrics`. Alert before pool exhaustion. (April 19)
+- ✅ **Gordon Tier 3 — Celery queue metrics** — Signals wired to `hypercode_celery_tasks_total{task,status}` Counter + `hypercode_celery_task_duration_seconds` Histogram. `CeleryQueueDepthCollector` reads Redis `LLEN` for `main-queue` / `celery` on each scrape. (April 19)
+- ✅ **Two commits already pushed** — `d27b67a` + `8cbc5c9` are live on `origin/main` (push is FREE on GitHub — billing lock only blocks Actions). (April 19)
+- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. UID `hypercode-tier3-pools-queues`, auto-loaded into "Mission Control" folder. KPI stats + sync/async pool stacks + queue-depth + status throughput + p50/p95/p99 + duration heatmap. Refreshes every 10s. (April 19)
 
 ---
 

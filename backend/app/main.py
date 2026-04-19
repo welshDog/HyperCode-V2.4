@@ -138,6 +138,16 @@ app.add_middleware(
 
 if _HAS_PHASE5:
     app.add_middleware(_MetricsMiddleware)
+    # Gordon Tier 3 — register DB pool collector + Celery queue collector
+    # so /metrics emits live SQLAlchemy pool stats and Redis queue depth.
+    try:
+        from app.middleware.metrics import register_db_pool_collector
+        from app.observability.celery_metrics import register_celery_queue_collector
+
+        register_db_pool_collector()
+        register_celery_queue_collector()
+    except Exception:
+        logger.exception("Failed to register Gordon Tier 3 collectors (non-fatal)")
 app.add_middleware(SecurityHeadersMiddleware, enable_hsts=True)
 app.add_middleware(
     RateLimitMiddleware,

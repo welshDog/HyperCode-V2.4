@@ -28,6 +28,13 @@ celery_app.conf.imports = ('app.worker',)
 #   Each worker only reserves 1 task at a time (instead of the default 4).
 #   Prevents a slow task from blocking other queued work on the same worker.
 #   Better fairness for mixed short/long agent tasks.
+#
+# task_soft_time_limit=300 / task_time_limit=360
+#   Soft limit raises SoftTimeLimitExceeded inside the task at 5 min so the
+#   handler can clean up (release DB session, mark task FAILED, etc).  Hard
+#   limit kills the worker process at 6 min if soft cleanup hangs.  Together
+#   these stop a runaway agent (infinite loop, stuck LLM call) from pinning
+#   a worker forever and starving the queue.
 # ---------------------------------------------------------------------------
 celery_app.conf.update(
     task_acks_late=True,
@@ -37,4 +44,14 @@ celery_app.conf.update(
     accept_content=["json"],
     timezone="UTC",
     enable_utc=True,
+    task_soft_time_limit=300,
+    task_time_limit=360,
 )
+
+# Gordon Tier 3 — import for side effects: connects Celery signal handlers
+# to Prometheus counters/histogram inside every worker process.
+try:
+    import app.observability.celery_metrics  # noqa: F401
+except Exception:
+    # Observability is optional — worker must still boot if metrics import fails
+    pass
