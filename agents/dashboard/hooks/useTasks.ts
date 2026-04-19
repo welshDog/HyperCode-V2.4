@@ -5,10 +5,11 @@ import { useState, useEffect, useCallback } from 'react'
 export interface TaskItem {
   id: number | string
   title: string
-  description: string
+  description?: string | null
   status: string
-  progress: number
-  started_at?: string
+  priority?: string | null
+  created_at?: string
+  updated_at?: string | null
 }
 
 const POLL_MS = 10_000

@@ -213,7 +213,14 @@ def run_agent_task(
             kwargs={"payload": payload, "task_id": task_id},
             error="soft_time_limit_exceeded",
             task_id=self.request.id,
-            extra={"reason": "timeout", "soft_limit_s": 300},
+            extra={
+                "reason": "timeout",
+                "soft_limit_s": 300,
+                "queue": (self.request.delivery_info or {}).get("routing_key") or "hypercode-normal",
+                "retries": self.request.retries,
+                "agent_name": agent_name,
+                "task_type": task_type,
+            },
         )
         return {
             "status": "failed",
@@ -247,7 +254,14 @@ def run_agent_task(
                 kwargs={"payload": payload, "task_id": task_id},
                 error=str(exc),
                 task_id=self.request.id,
-                extra={"reason": "max_retries_exceeded", "max_retries": self.max_retries},
+                extra={
+                    "reason": "max_retries_exceeded",
+                    "max_retries": self.max_retries,
+                    "queue": (self.request.delivery_info or {}).get("routing_key") or "hypercode-normal",
+                    "retries": self.request.retries,
+                    "agent_name": agent_name,
+                    "task_type": task_type,
+                },
             )
             return {
                 "status": "failed",
