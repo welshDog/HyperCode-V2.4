@@ -33,6 +33,11 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+class AlertTopItem(BaseModel):
+    alertname: str
+    severity: str
+
+
 class MetricsSnapshot(BaseModel):
     requestsPerMin: int
     avgResponseMs: float
@@ -44,6 +49,7 @@ class MetricsSnapshot(BaseModel):
     dlqDepth: int = 0
     alertFiring: int = 0
     alertPending: int = 0
+    alertTopFiring: list[AlertTopItem] = Field(default_factory=list)
     collectedAt: str
 
 
@@ -73,46 +79,70 @@ class ConnectionManager:
 _manager = ConnectionManager()
 
 _PROM_URL = os.getenv("PROMETHEUS_BASE_URL", "http://prometheus:9090").rstrip("/")
-_alerts_cache: tuple[float, int, int] = (0.0, 0, 0)
+_alerts_cache: tuple[float, int, int, list[AlertTopItem]] = (0.0, 0, 0, [])
 
 
-async def _get_alert_counts() -> tuple[int, int]:
+def _severity_rank(sev: str) -> int:
+    s = (sev or "").lower().strip()
+    if s in {"critical", "crit", "p0"}:
+        return 0
+    if s in {"high", "p1"}:
+        return 1
+    if s in {"warning", "warn", "medium", "p2"}:
+        return 2
+    if s in {"info", "low", "p3"}:
+        return 3
+    return 4
+
+
+async def _get_alert_info() -> tuple[int, int, list[AlertTopItem]]:
     global _alerts_cache
-    ts, firing, pending = _alerts_cache
+    ts, firing, pending, top_firing = _alerts_cache
     now = time.time()
     if now - ts < 10:
-        return firing, pending
+        return firing, pending, top_firing
 
     try:
         async with httpx.AsyncClient(timeout=2.5) as client:
             res = await client.get(f"{_PROM_URL}/api/v1/alerts")
             if res.status_code != 200:
-                _alerts_cache = (now, 0, 0)
-                return 0, 0
+                _alerts_cache = (now, 0, 0, [])
+                return 0, 0, []
             payload = res.json()
     except Exception:
-        _alerts_cache = (now, 0, 0)
-        return 0, 0
+        _alerts_cache = (now, 0, 0, [])
+        return 0, 0, []
 
     data = payload.get("data") if isinstance(payload, dict) else None
     alerts = data.get("alerts") if isinstance(data, dict) else None
     if not isinstance(alerts, list):
-        _alerts_cache = (now, 0, 0)
-        return 0, 0
+        _alerts_cache = (now, 0, 0, [])
+        return 0, 0, []
 
     firing_count = 0
     pending_count = 0
+    firing_items: list[AlertTopItem] = []
     for a in alerts:
         if not isinstance(a, dict):
             continue
         state = str(a.get("state") or "").lower().strip()
         if state == "firing":
             firing_count += 1
+            labels = a.get("labels") if isinstance(a.get("labels"), dict) else {}
+            alertname = str(labels.get("alertname") or "").strip() or "Alert"
+            severity = str(labels.get("severity") or labels.get("level") or "").strip() or "unknown"
+            firing_items.append(AlertTopItem(alertname=alertname, severity=severity))
         elif state == "pending":
             pending_count += 1
 
-    _alerts_cache = (now, firing_count, pending_count)
-    return firing_count, pending_count
+    firing_items_sorted = sorted(
+        firing_items,
+        key=lambda x: (_severity_rank(x.severity), x.alertname.lower()),
+    )
+    top = firing_items_sorted[:3]
+
+    _alerts_cache = (now, firing_count, pending_count, top)
+    return firing_count, pending_count, top
 
 
 async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
@@ -158,7 +188,7 @@ async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
     dlq_depth = int(results[11] or 0)
     active_agents = len(results[12] or [])
 
-    alert_firing, alert_pending = await _get_alert_counts()
+    alert_firing, alert_pending, top_firing = await _get_alert_info()
 
     return MetricsSnapshot(
         requestsPerMin=requests_per_min,
@@ -171,6 +201,7 @@ async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
         dlqDepth=dlq_depth,
         alertFiring=alert_firing,
         alertPending=alert_pending,
+        alertTopFiring=top_firing,
         collectedAt=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
 

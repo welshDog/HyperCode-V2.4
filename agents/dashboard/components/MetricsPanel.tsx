@@ -13,6 +13,7 @@ type MetricsSnapshot = {
   dlqDepth?: number
   alertFiring?: number
   alertPending?: number
+  alertTopFiring?: Array<{ alertname: string; severity: string }>
   collectedAt: string
 }
 
@@ -40,6 +41,13 @@ function colourForStatus(status: "stable" | "watch" | "on_fire"): string {
 function formatNumber(n: number): string {
   if (!Number.isFinite(n)) return "—"
   return n.toLocaleString()
+}
+
+function severityTone(sev: string): "bad" | "warn" | "ok" {
+  const s = (sev || "").toLowerCase().trim()
+  if (s.includes("crit") || s === "critical" || s === "high" || s === "p0" || s === "p1") return "bad"
+  if (s.includes("warn") || s === "warning" || s === "medium" || s === "p2") return "warn"
+  return "ok"
 }
 
 export function MetricsPanel(): React.JSX.Element {
@@ -82,8 +90,9 @@ export function MetricsPanel(): React.JSX.Element {
     const dlq = Number(s.dlqDepth ?? 0)
     const firing = Number(s.alertFiring ?? 0)
     const pending = Number(s.alertPending ?? 0)
+    const topFiring = Array.isArray(s.alertTopFiring) ? s.alertTopFiring.slice(0, 3) : []
     const backlog = queues.reduce((acc, x) => acc + (Number.isFinite(x.depth) ? x.depth : 0), 0)
-    return { status, queues, dlq, firing, pending, backlog }
+    return { status, queues, dlq, firing, pending, topFiring, backlog }
   }, [snapshot])
 
   if (loading && !snapshot) {
@@ -144,6 +153,25 @@ export function MetricsPanel(): React.JSX.Element {
               </span>
             </div>
           </div>
+
+          {derived.topFiring.length > 0 && (
+            <div className="hc-metrics-alerts" role="list" aria-label="Top firing alerts">
+              {derived.topFiring.map((a) => {
+                const tone = severityTone(a.severity)
+                const cls = tone === "bad" ? "bad" : tone === "warn" ? "warn" : ""
+                return (
+                  <div key={`${a.alertname}:${a.severity}`} className="hc-metrics-alert" role="listitem">
+                    <span className={`hc-metrics-chip ${cls}`}>
+                      {a.severity.toUpperCase()}
+                    </span>
+                    <span className="hc-metrics-alert-name" title={a.alertname}>
+                      {a.alertname}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           <div className="hc-metrics-rows" role="list" aria-label="Core vitals">
             <div className="hc-metrics-row" role="listitem">

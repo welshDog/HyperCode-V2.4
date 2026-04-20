@@ -19,6 +19,7 @@ export async function GET() {
       dlqDepth: 0,
       alertFiring: 0,
       alertPending: 0,
+      alertTopFiring: [],
       collectedAt:     new Date().toISOString(),
     })
   }

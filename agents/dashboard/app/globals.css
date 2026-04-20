@@ -1401,6 +1401,34 @@ html, body, .hyper-root {
   gap: 6px;
 }
 
+.hc-metrics-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.hc-metrics-alert {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.12);
+}
+
+.hc-metrics-alert-name {
+  font-weight: 900;
+  font-size: 12px;
+  color: rgba(255,255,255,0.85);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .hc-metrics-row {
   display: flex;
   align-items: center;

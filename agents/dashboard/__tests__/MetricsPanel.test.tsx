@@ -43,6 +43,11 @@ describe("MetricsPanel", () => {
           dlqDepth: 2,
           alertFiring: 3,
           alertPending: 1,
+          alertTopFiring: [
+            { alertname: "CeleryDLQFlooding", severity: "critical" },
+            { alertname: "DBPoolExhausted", severity: "warning" },
+            { alertname: "RedisLatencyHigh", severity: "info" },
+          ],
           collectedAt: "2026-04-20T00:00:00Z",
         }),
       })
@@ -61,6 +66,8 @@ describe("MetricsPanel", () => {
     expect(screen.getAllByText(/DLQ/i).length).toBeGreaterThan(0)
     expect(screen.getByText("High")).toBeTruthy()
     expect(screen.getByText("Normal")).toBeTruthy()
+    expect(screen.getByText("CeleryDLQFlooding")).toBeTruthy()
+    expect(screen.getByText("DBPoolExhausted")).toBeTruthy()
   })
 
   it("shows an error state when metrics fetch fails", async () => {
