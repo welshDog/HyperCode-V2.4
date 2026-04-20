@@ -57,7 +57,7 @@ def _get_redis():
         from app.core.config import settings
         import redis
         client = redis.Redis.from_url(
-            settings.REDIS_URL,
+            settings.HYPERCODE_REDIS_URL,
             decode_responses=True,
             socket_connect_timeout=2,
         )

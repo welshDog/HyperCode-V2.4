@@ -22,6 +22,7 @@ class OpsAlerts(commands.Cog):
 
     @tasks.loop(minutes=5)
     async def health_poll(self):
+        data = {}
         try:
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get(HEALTH_URL)
@@ -51,8 +52,22 @@ class OpsAlerts(commands.Cog):
             )
             checks = data.get("checks", {})
             for service, result in checks.items():
-                icon = "✅" if result.get("status") == "ok" else "❌"
-                embed.add_field(name=service, value=f"{icon} {result.get('status', 'unknown')}", inline=True)
+                if isinstance(result, dict):
+                    icon = "✅" if result.get("status") == "ok" else "❌"
+                    embed.add_field(name=service, value=f"{icon} {result.get('status', 'unknown')}", inline=True)
+                    continue
+                if isinstance(result, list):
+                    states = []
+                    for b in result[:6]:
+                        if isinstance(b, dict):
+                            states.append(f"{b.get('name', 'unknown')}={b.get('state', 'unknown')}")
+                    embed.add_field(
+                        name=service,
+                        value=", ".join(states) if states else "unknown",
+                        inline=False,
+                    )
+                    continue
+                embed.add_field(name=service, value="unknown", inline=True)
 
             await channel.send(embed=embed)
 

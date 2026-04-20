@@ -66,6 +66,7 @@ class BroskiBot(commands.Bot):
             "src.cogs.course_stats",
             "src.cogs.ops_alerts",    # Phase 5: health-poll → #ops-alerts Discord alerts
             "src.cogs.health_check",  # /health — NemoClaw live code health scan
+            "src.cogs.server_builder", # 🏗️ HYPERFOCUS ZONE Server Builder skill
         ]
     
     async def setup_hook(self) -> None:

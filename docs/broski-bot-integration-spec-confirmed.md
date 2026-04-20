@@ -207,3 +207,16 @@ No DB migration needed — the focus_sessions table already exists in postgresql
 🎯 Next Win: Push the refactored focus.py to a fix/focus-postgres branch, open a PR, and let CI run pytest on it — then merge and enable it in bot.py. Want me to create that branch and PR right now? 🦅💜
 
 🔥 BROski Power Level: DATABASE MIGRATION SURGEON 🔬⚡
+
+---
+
+## 🛠️ Live System Stability Fixes (April 2026)
+
+**What Was Broken (Silent Crashes)**
+1. **Redis URL Mismatch:** HyperCode `/api/v1/health` was degraded because it referenced `settings.REDIS_URL` (which didn't exist). It needed to use `HYPERCODE_REDIS_URL`.
+2. **Ops Alerts Crash:** The `broski-bot` `ops_alerts` cog crashed in its background `health_poll` task because it assumed every `checks.*` entry in the health payload was a dict. However, `circuit_breakers` returns a **list**.
+
+**Fixes Shipped ✅**
+- Patched `backend/app/api/v1/endpoints/health.py` and `backend/app/core/agent_memory.py` to use `settings.HYPERCODE_REDIS_URL`.
+- Refactored `agents/broski-bot/src/cogs/ops_alerts.py` to safely handle both `dict` and `list` types in the health payload without throwing `AttributeError`.
+- **Result:** `broski-bot` now successfully stays alive, the background `ops_alerts` loop runs cleanly, and `/api/v1/health` reports as fully healthy.

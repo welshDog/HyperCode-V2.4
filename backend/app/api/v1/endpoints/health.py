@@ -29,7 +29,10 @@ def _check_postgres(db: Session) -> dict:
 
 def _check_redis() -> dict:
     try:
-        r = redis_lib.from_url(settings.REDIS_URL or "redis://redis:6379", socket_connect_timeout=2)
+        r = redis_lib.from_url(
+            settings.HYPERCODE_REDIS_URL or "redis://redis:6379/0",
+            socket_connect_timeout=2,
+        )
         r.ping()
         return {"status": "ok"}
     except Exception as e:
