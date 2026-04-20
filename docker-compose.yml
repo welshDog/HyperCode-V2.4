@@ -308,10 +308,9 @@ services:
     networks:
       - agents-net
       - data-net
-    restart: no
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    command: ["python", "/app/src/main.py", "run"]
     deploy:
       resources:
         limits:

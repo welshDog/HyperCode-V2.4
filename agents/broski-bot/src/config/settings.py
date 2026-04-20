@@ -2,11 +2,37 @@
 Application configuration using Pydantic Settings.
 Loads settings from environment variables with validation.
 """
+import os
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
 from pydantic import Field, RedisDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+# Docker-secrets-friendly: for each FOO env var, also check FOO_FILE and load the file contents.
+# Runs at import time, before Pydantic reads the environment.
+_SECRET_FILE_VARS = (
+    "DISCORD_TOKEN",
+    "PERPLEXITY_API_KEY",
+    "OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "SENTRY_DSN",
+    "DB_PASSWORD",
+    "POSTGRES_PASSWORD",
+    "MEMSTREAM_API_TOKEN",
+    "SECRET_KEY",
+)
+for _name in _SECRET_FILE_VARS:
+    _file_path = os.environ.get(f"{_name}_FILE")
+    if _file_path and os.path.isfile(_file_path):
+        try:
+            with open(_file_path, "r", encoding="utf-8") as _fh:
+                _value = _fh.read().strip()
+            if _value:
+                os.environ[_name] = _value
+        except OSError:
+            pass
 
 
 class Settings(BaseSettings):

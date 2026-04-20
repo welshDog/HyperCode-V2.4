@@ -19,6 +19,7 @@ COPY pyproject.toml poetry.lock* /app/
 # Install dependencies to /app/.venv
 RUN poetry config virtualenvs.create true \
     && poetry config virtualenvs.in-project true \
+    && poetry lock \
     && poetry install --without dev --no-interaction --no-ansi --no-root
 
 # Runtime stage
