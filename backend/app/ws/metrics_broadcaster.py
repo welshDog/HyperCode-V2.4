@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 class AlertTopItem(BaseModel):
     alertname: str
     severity: str
+    summary: str | None = None
 
 
 class MetricsSnapshot(BaseModel):
@@ -129,9 +130,11 @@ async def _get_alert_info() -> tuple[int, int, list[AlertTopItem]]:
         if state == "firing":
             firing_count += 1
             labels = a.get("labels") if isinstance(a.get("labels"), dict) else {}
+            annotations = a.get("annotations") if isinstance(a.get("annotations"), dict) else {}
             alertname = str(labels.get("alertname") or "").strip() or "Alert"
             severity = str(labels.get("severity") or labels.get("level") or "").strip() or "unknown"
-            firing_items.append(AlertTopItem(alertname=alertname, severity=severity))
+            summary = str(annotations.get("summary") or "").strip() or None
+            firing_items.append(AlertTopItem(alertname=alertname, severity=severity, summary=summary))
         elif state == "pending":
             pending_count += 1
 

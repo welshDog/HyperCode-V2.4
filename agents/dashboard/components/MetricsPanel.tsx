@@ -13,7 +13,7 @@ type MetricsSnapshot = {
   dlqDepth?: number
   alertFiring?: number
   alertPending?: number
-  alertTopFiring?: Array<{ alertname: string; severity: string }>
+  alertTopFiring?: Array<{ alertname: string; severity: string; summary?: string | null }>
   collectedAt: string
 }
 
@@ -160,7 +160,12 @@ export function MetricsPanel(): React.JSX.Element {
                 const tone = severityTone(a.severity)
                 const cls = tone === "bad" ? "bad" : tone === "warn" ? "warn" : ""
                 return (
-                  <div key={`${a.alertname}:${a.severity}`} className="hc-metrics-alert" role="listitem">
+                  <div
+                    key={`${a.alertname}:${a.severity}`}
+                    className="hc-metrics-alert"
+                    role="listitem"
+                    title={(a.summary ?? "").trim() || a.alertname}
+                  >
                     <span className={`hc-metrics-chip ${cls}`}>
                       {a.severity.toUpperCase()}
                     </span>

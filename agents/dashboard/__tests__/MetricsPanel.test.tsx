@@ -44,9 +44,9 @@ describe("MetricsPanel", () => {
           alertFiring: 3,
           alertPending: 1,
           alertTopFiring: [
-            { alertname: "CeleryDLQFlooding", severity: "critical" },
-            { alertname: "DBPoolExhausted", severity: "warning" },
-            { alertname: "RedisLatencyHigh", severity: "info" },
+            { alertname: "CeleryDLQFlooding", severity: "critical", summary: "DLQ is growing fast" },
+            { alertname: "DBPoolExhausted", severity: "warning", summary: "DB pool at capacity" },
+            { alertname: "RedisLatencyHigh", severity: "info", summary: "Redis p99 latency high" },
           ],
           collectedAt: "2026-04-20T00:00:00Z",
         }),
