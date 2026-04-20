@@ -1,7 +1,11 @@
 # 📖 HyperCode V2.4 — Docs Index
 
-> **Start here.** One file. Links to everything. Updated April 19, 2026.
-> 32/32 containers 🟢 | Grade A 🏅 | 700+ commits | 57 services | Phases 0–10Q COMPLETE ✅
+**Status:** Active  
+**Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
+
+> **Start here.** One file. Links to everything.
+> 32/32 containers 🟢 | Grade A 🏅 | Prometheus/Grafana/Tempo live | DLQ + priority queues live ✅
 
 ---
 
@@ -12,7 +16,7 @@
 | Current status snapshot (update every session) | [WHATS_DONE.md](../WHATS_DONE.md) |
 | Project brain + sacred rules | [CLAUDE.md](../CLAUDE.md) |
 | Get the system running fast | [QUICKSTART.md](QUICKSTART.md) |
-| Full setup from scratch | [guide-infrastructure-setup.md](guide-infrastructure-setup.md) |
+| Full setup from scratch | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) |
 | Day-to-day ops commands | [DAILY_OPS.md](DAILY_OPS.md) |
 | Something broke | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
 | BROski terminal commands | [BROSKI_TERMINAL_GUIDE.md](BROSKI_TERMINAL_GUIDE.md) |
@@ -139,7 +143,7 @@ pytest backend/tests/test_uplink_ws.py -v
 | Doc | What it covers |
 |---|---|
 | [CHANGELOG.md](CHANGELOG.md) | Full version history |
-| [RELEASE_NOTES_v2.4.md](RELEASE_NOTES_v2.4.md) | v2.4.1 release notes |
+| [RELEASE_NOTES_v2.4.md](RELEASE_NOTES_v2.4.md) | v2.4.0 release notes (historical) |
 | [AI_EVOLUTION_ROADMAP_2025-2027.md](AI_EVOLUTION_ROADMAP_2025-2027.md) | 2-year AI evolution plan |
 | [PRODUCTION_UPGRADE_ROADMAP.md](PRODUCTION_UPGRADE_ROADMAP.md) | Production upgrade path |
 | [VISION_AND_METRICS.md](VISION_AND_METRICS.md) | Vision + success metrics |

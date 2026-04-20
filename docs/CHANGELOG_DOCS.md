@@ -2,6 +2,16 @@
 
 This file tracks documentation synchronization changes (what changed and why). It is separate from the product changelog.
 
+### 2026-04-20
+
+- Canonical docs synchronized to current V2.4.2 behavior and naming:
+  - Standardized docs hub references to `docs/INDEX.md` (case-correct).
+  - Fixed broken/incorrect documentation links in `docs/README.md`, `docs/DOCUMENTATION_*` files, and doc index pointers.
+  - Updated Mission Control documentation to match current WebSocket endpoints and dashboard panes.
+- Documentation governance tightened:
+  - Updated `docs/DOCUMENTATION_PROCESS.md` to include versioning guidance and explicit ownership model.
+  - Aligned documentation CI checks to current canonical file locations and reduced false positives.
+
 ### 2026-03-19
 
 - `README.md`
@@ -15,11 +25,11 @@ This file tracks documentation synchronization changes (what changed and why). I
   - Corrected auth route to `/api/v1/auth/login/access-token` and clarified it uses form-encoded data.
   - Fixed invalid JSON example by removing inline comments.
   - Added a copy-paste login example consistent with FastAPI OAuth2 flow.
-- `docs/index.md`
+- `docs/INDEX.md`
   - Updated language to avoid “Ollama-only” framing and reflect multiple Ollama-compatible runtime options.
 - `docs/ai/brain-architecture.md`
   - Standardized wording to “Ollama-compatible API” and added Model Runner configuration option.
-- `DOCUMENTATION_INDEX.md`
+- `docs/DOCUMENTATION_INDEX.md`
   - Converted to a Docker report index with correct links into `docs/reports/`.
   - Added explicit pointer to `docs/index.md` for repo-wide canonical documentation.
 - `CONTRIBUTING.md`

@@ -2,7 +2,7 @@
 
 Read CLAUDE.md and WHATS_DONE.md first.
 Check HYPER_MISSION_LIST.md for priority order.
-Load skills for today's task.
+Load H:\HyperStation zone\HyperCode\HyperCode-V2.4\.claude\skills for today's task.
 Sacred Rules always apply.
 Short sentences. BROski energy. Celebrate wins.
 

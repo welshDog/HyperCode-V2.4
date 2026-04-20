@@ -1,17 +1,21 @@
 # Documentation
 
-Canonical documentation hub: [docs/index.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/index.md)
+**Status:** Active  
+**Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
+
+Canonical documentation hub: [INDEX.md](INDEX.md)
 
 ## Key Entry Points
 
-- Getting started: [START_HERE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/START_HERE.md)
-- Architecture: [ARCHITECTURE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/ARCHITECTURE.md), [architecture/](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/architecture/)
-- Operations/runbooks: [RUNBOOK.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/RUNBOOK.md), [DAILY_OPS.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/DAILY_OPS.md)
-- Testing: [TESTING_GUIDE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/TESTING_GUIDE.md)
-- Claude integration: [docs/claude-integration/](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/claude-integration/)
-- Skill system: [SKILLS_GUIDE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.0/docs/SKILLS_GUIDE.md)
+- Getting started: [docs/QUICKSTART.md](QUICKSTART.md) and [root START_HERE.md](../START_HERE.md)
+- Architecture: [ARCHITECTURE.md](ARCHITECTURE.md) and [architecture/](architecture/)
+- Operations/runbooks: [RUNBOOK.md](RUNBOOK.md) and [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- API: [API.md](API.md) and interactive docs at `http://127.0.0.1:8000/api/v1/docs`
+- Skills: [SKILLS_GUIDE.md](SKILLS_GUIDE.md)
 
 ## Notes
 
 - `docs/archive/` contains legacy snapshots and historical materials; treat as reference, not source of truth.
+- `docs/notes/` contains working notes and may drift.
 

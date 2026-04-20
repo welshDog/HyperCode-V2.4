@@ -1,4 +1,4 @@
-# START HERE — HyperCode V2.0
+﻿# START HERE — HyperCode V2.4.2
 
 > **One repo. One truth. This is it.**
 > 696 commits. 57 services. 25+ agents. Built by one neurodivergent developer in Wales. 🏴󠁧󠁢󠁷󠁬󠁳󠁿

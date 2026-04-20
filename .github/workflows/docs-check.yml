@@ -35,15 +35,17 @@ jobs:
             README.md
             QUICKSTART.md
             START_HERE.md
-            DOCUMENTATION_INDEX.md
+            docs/INDEX.md
+            docs/DOCUMENTATION_INDEX.md
+            docs/DOCUMENTATION_PROCESS.md
             docs/**/*.md
 
       - name: Enforce docker compose terminology in canonical docs
         shell: bash
         run: |
           set -euo pipefail
-          if git grep -n "docker-compose" -- \
-            README.md QUICKSTART.md RUNBOOK.md START_HERE.md DOCUMENTATION_INDEX.md docs \
+          if git grep -n -E "(^|[[:space:]])docker-compose([[:space:]]|$)" -- \
+            README.md QUICKSTART.md RUNBOOK.md START_HERE.md docs/INDEX.md docs/DOCUMENTATION_INDEX.md docs/DOCUMENTATION_PROCESS.md docs \
             ":(exclude)docs/reports/**" \
             ":(exclude)docs/archive/**" \
             ":(exclude)docs/notes/**" \
@@ -74,7 +76,7 @@ jobs:
             fi
 
             case "$f" in
-              README.md|QUICKSTART.md|RUNBOOK.md|START_HERE.md|DOCUMENTATION_INDEX.md|CONTRIBUTING.md)
+              README.md|QUICKSTART.md|RUNBOOK.md|START_HERE.md|CONTRIBUTING.md)
                 require_changelog=1
                 ;;
               docs/*)

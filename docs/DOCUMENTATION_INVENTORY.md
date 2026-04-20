@@ -1,6 +1,8 @@
 ## Documentation Inventory (High Level)
 
 **Last Updated:** 2026-03-19
+**Applies To:** HyperCode v2.4.2
+**Status:** Active
 
 This inventory explains where documentation lives and how it is categorized. It intentionally avoids listing every single Markdown file because the repository contains many historical reports and internal notes.
 
@@ -10,7 +12,7 @@ These documents are treated as current and should be updated alongside code chan
 - `README.md` (project overview and primary entrypoint)
 - `QUICKSTART.md` (fast local bring-up and common validation steps)
 - `RUNBOOK.md` (incident-style fixes and recovery)
-- `docs/index.md` (documentation hub)
+- `docs/INDEX.md` (documentation hub)
 - `docs/` subfolders for architecture, deployment, observability, and security guides
 
 ### Working Notes
@@ -18,7 +20,7 @@ These documents are treated as current and should be updated alongside code chan
 These documents may be incomplete or exploratory:
 - `docs/notes/`
 
-If a working note becomes stable guidance, migrate it into `docs/` (canonical section) and link it from `docs/index.md`.
+If a working note becomes stable guidance, migrate it into `docs/` (canonical section) and link it from `docs/INDEX.md`.
 
 ### Reports and Historical Snapshots
 

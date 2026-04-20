@@ -1,14 +1,16 @@
 ## Documentation Process
 
 **Status:** Active  
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-20
+**Applies To:** HyperCode v2.4.2
+**Maintainer:** @welshDog
 
 This repository contains a mix of canonical documentation, working notes, and historical reports. This file defines what “up to date” means, how documentation changes are reviewed, and how documentation stays synchronized across stakeholders.
 
 ### 1. Documentation Sources of Truth
 
 **Canonical (must stay current)**
-- `docs/` is the canonical documentation hub. Start at `docs/index.md`.
+- `docs/` is the canonical documentation hub. Start at `docs/INDEX.md`.
 - Root entrypoints (`README.md`, `QUICKSTART.md`, `RUNBOOK.md`, `DEPLOYMENT_GUIDE.md`) should be kept aligned with `docs/`.
 
 **Working notes (may drift)**
@@ -55,9 +57,30 @@ When a doc includes runnable examples:
 - Add a short entry to `docs/CHANGELOG_DOCS.md`.
 
 **Weekly (owner review)**
-- Verify `README.md`, `QUICKSTART.md`, `RUNBOOK.md`, and `docs/index.md` match the current `docker-compose.yml` profiles and ports.
+- Verify `README.md`, `QUICKSTART.md`, `RUNBOOK.md`, and `docs/INDEX.md` match the current compose profiles and ports.
 - Scan for new duplicated docs and consolidate to canonical docs.
 
 **Monthly (ops review)**
 - Review `docs/TROUBLESHOOTING.md` and `RUNBOOK.md` against the most frequent incidents.
 - Confirm observability docs match deployed metrics/log format.
+
+### 6. Documentation Versioning
+
+This repo uses two separate version tracks:
+
+- **Product version:** defined by the current release/tag (see `docs/CHANGELOG.md`).
+- **Documentation synchronization:** tracked in `docs/CHANGELOG_DOCS.md` (what changed and why).
+
+Canonical docs should include:
+- `Status: Active|Maintained|Snapshot`
+- `Last Updated: YYYY-MM-DD`
+- `Applies To: HyperCode vX.Y.Z` when the content is version-sensitive
+
+### 7. Ownership Model
+
+Ownership is explicit so docs do not silently drift:
+
+- **Docs maintainer:** @welshDog
+- **Ops/Infra docs:** `docker/`, `monitoring/`, `k8s/`
+- **Core API docs:** `backend/` + `docs/API.md`
+- **Mission Control docs:** `agents/dashboard/` + dashboard-related docs under `docs/`
