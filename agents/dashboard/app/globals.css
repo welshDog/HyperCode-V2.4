@@ -1297,6 +1297,190 @@ html, body, .hyper-root {
   color: var(--accent-cyan);
 }
 
+.hc-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hc-metrics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pane-border);
+}
+
+.hc-metrics-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.hc-metrics-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+}
+
+.hc-metrics-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+}
+
+.hc-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.hc-metrics-card {
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  padding: 12px;
+  min-height: 110px;
+}
+
+.hc-metrics-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.hc-metrics-card-title {
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.hc-metrics-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.hc-metrics-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  font-size: 10px;
+  font-weight: 900;
+  color: rgba(255,255,255,0.6);
+}
+
+.hc-metrics-chip.warn {
+  border-color: rgba(255,170,0,0.25);
+  color: rgba(255,170,0,0.95);
+}
+
+.hc-metrics-chip.bad {
+  border-color: rgba(255,68,102,0.35);
+  color: rgba(255,68,102,0.95);
+}
+
+.hc-metrics-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hc-metrics-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.hc-metrics-k {
+  color: rgba(255,255,255,0.55);
+  font-weight: 800;
+}
+
+.hc-metrics-v {
+  color: rgba(255,255,255,0.9);
+  font-weight: 900;
+}
+
+.hc-metrics-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hc-metrics-queue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.12);
+}
+
+.hc-metrics-queue-name {
+  font-weight: 900;
+  color: rgba(255,255,255,0.85);
+}
+
+.hc-metrics-queue-depth {
+  font-weight: 900;
+  color: rgba(255,255,255,0.55);
+}
+
+.hc-metrics-queue-depth.hot {
+  color: rgba(255,170,0,0.95);
+}
+
+.hc-metrics-empty {
+  border: 1px dashed rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 14px 12px;
+  background: rgba(255,255,255,0.02);
+  text-align: center;
+}
+
+.hc-metrics-empty-title {
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.hc-metrics-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hc-metrics-foot {
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+}
+
+@media (min-width: 900px) {
+  .hc-metrics-grid {
+    grid-template-columns: 1.2fr 0.8fr 0.8fr;
+  }
+}
+
 .tag {
   display:       inline-block;
   padding:       2px 6px;

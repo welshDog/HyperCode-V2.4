@@ -9,12 +9,16 @@ export async function GET() {
     return NextResponse.json(await res.json())
   } catch {
     return NextResponse.json({
-      requestsPerMin:  '—',
-      avgResponseMs:   '—',
-      healsToday:      '—',
-      errorRatePct:    '—',
-      activeAgents:    '—',
-      redisQueueDepth: '—',
+      requestsPerMin:  0,
+      avgResponseMs:   0,
+      healsToday:      0,
+      errorRatePct:    0,
+      activeAgents:    0,
+      redisQueueDepth: 0,
+      celeryQueueDepths: {},
+      dlqDepth: 0,
+      alertFiring: 0,
+      alertPending: 0,
       collectedAt:     new Date().toISOString(),
     })
   }

@@ -18,11 +18,14 @@ Redis keys written by other agents:
 import asyncio
 import datetime
 import logging
+import os
+import time
 from typing import Set
 
+import httpx
 import redis.asyncio as aioredis
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import settings
 
@@ -37,6 +40,10 @@ class MetricsSnapshot(BaseModel):
     errorRatePct: float
     activeAgents: int
     redisQueueDepth: int
+    celeryQueueDepths: dict[str, int] = Field(default_factory=dict)
+    dlqDepth: int = 0
+    alertFiring: int = 0
+    alertPending: int = 0
     collectedAt: str
 
 
@@ -65,6 +72,48 @@ class ConnectionManager:
 
 _manager = ConnectionManager()
 
+_PROM_URL = os.getenv("PROMETHEUS_BASE_URL", "http://prometheus:9090").rstrip("/")
+_alerts_cache: tuple[float, int, int] = (0.0, 0, 0)
+
+
+async def _get_alert_counts() -> tuple[int, int]:
+    global _alerts_cache
+    ts, firing, pending = _alerts_cache
+    now = time.time()
+    if now - ts < 10:
+        return firing, pending
+
+    try:
+        async with httpx.AsyncClient(timeout=2.5) as client:
+            res = await client.get(f"{_PROM_URL}/api/v1/alerts")
+            if res.status_code != 200:
+                _alerts_cache = (now, 0, 0)
+                return 0, 0
+            payload = res.json()
+    except Exception:
+        _alerts_cache = (now, 0, 0)
+        return 0, 0
+
+    data = payload.get("data") if isinstance(payload, dict) else None
+    alerts = data.get("alerts") if isinstance(data, dict) else None
+    if not isinstance(alerts, list):
+        _alerts_cache = (now, 0, 0)
+        return 0, 0
+
+    firing_count = 0
+    pending_count = 0
+    for a in alerts:
+        if not isinstance(a, dict):
+            continue
+        state = str(a.get("state") or "").lower().strip()
+        if state == "firing":
+            firing_count += 1
+        elif state == "pending":
+            pending_count += 1
+
+    _alerts_cache = (now, firing_count, pending_count)
+    return firing_count, pending_count
+
 
 async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
     now = datetime.datetime.utcnow()
@@ -78,6 +127,12 @@ async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
         pipe.get(f"error_count:{minute_key}")
         pipe.get("healer:heals_today")
         pipe.llen("hypercode:task_queue")
+        pipe.llen("hypercode-high")
+        pipe.llen("hypercode-normal")
+        pipe.llen("hypercode-low")
+        pipe.llen("main-queue")
+        pipe.llen("celery")
+        pipe.llen("hypercode-dlq")
         pipe.keys("agents:heartbeat:*")
         results = await pipe.execute()
 
@@ -93,7 +148,17 @@ async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
 
     heals_today = int(results[4] or 0)
     queue_depth = int(results[5] or 0)
-    active_agents = len(results[6] or [])
+    celery_queue_depths = {
+        "hypercode-high": int(results[6] or 0),
+        "hypercode-normal": int(results[7] or 0),
+        "hypercode-low": int(results[8] or 0),
+        "main-queue": int(results[9] or 0),
+        "celery": int(results[10] or 0),
+    }
+    dlq_depth = int(results[11] or 0)
+    active_agents = len(results[12] or [])
+
+    alert_firing, alert_pending = await _get_alert_counts()
 
     return MetricsSnapshot(
         requestsPerMin=requests_per_min,
@@ -102,6 +167,10 @@ async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
         errorRatePct=error_pct,
         activeAgents=active_agents,
         redisQueueDepth=queue_depth,
+        celeryQueueDepths=celery_queue_depths,
+        dlqDepth=dlq_depth,
+        alertFiring=alert_firing,
+        alertPending=alert_pending,
         collectedAt=now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
 
