@@ -407,6 +407,6 @@ kubectl rollout restart deployment --all -n hypercode
 
 ---
 
-**Last Updated**: $(date)
-**Maintained By**: DevOps Team
-**For Support**: Contact ops-team@example.com
+**Last Updated:** 2026-04-20  
+**Maintained By:** DevOps Team  
+**For Support:** https://github.com/welshDog/HyperCode-V2.4/issues

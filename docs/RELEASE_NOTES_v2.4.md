@@ -3,6 +3,10 @@
 **Branch:** `feature/hyper-agents-core`
 **Tag:** `v2.4.0`
 
+**Status:** Snapshot (historical release notes)  
+**Last Updated:** 2026-04-20  
+**Compatibility (v2.4.2+):** Mission Control events/logs are served by `hypercode-core` at `ws://127.0.0.1:8000/api/v1/ws/events` and `ws://127.0.0.1:8000/api/v1/ws/logs`
+
 ---
 
 ## What's New
@@ -29,7 +33,7 @@ Any AI IDE that supports the Model Context Protocol can now talk to HyperCode na
 ### WebSocket Live Streaming
 Mission Control Dashboard now receives agent events in real time.
 
-- **Orchestrator `/ws/events`** — WebSocket endpoint that subscribes to Redis pub/sub (`ws_tasks`, `broski_events`, `approval_requests`) and fans out to all connected dashboards
+- **Core `/api/v1/ws/events`** — WebSocket endpoint that subscribes to Redis pub/sub (`ws_tasks`, `broski_events`, `approval_requests`) and fans out to all connected dashboards
 - Seeds last 20 log entries on connect — no empty panel on first load
 - `useEventStream` hook fully rewritten to WebSocket (the previous SSE proxy was broken)
 - `useLogs` hook upgraded: WebSocket primary, HTTP poll fallback when disconnected
@@ -64,7 +68,7 @@ Tests:        58/58  ████████████ 100%
 Docker:       19/19  ████████████ 100%
 Prometheus:    8/8   ████████████ 100%
 MCP tools:    10     ████████████ live on :8823
-WebSocket:    live   ████████████ ws://localhost:8081/ws/events
+WebSocket:    live   ████████████ ws://127.0.0.1:8000/api/v1/ws/events
 ```
 
 ---

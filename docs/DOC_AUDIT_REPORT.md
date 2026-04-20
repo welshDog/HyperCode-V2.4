@@ -1,6 +1,8 @@
 # Documentation Audit Report
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Status:** Snapshot (audit)  
+**Doc Tag:** v2.4.2  
+**Last Updated:** 2026-04-20
 
 This report summarizes documentation drift detected versus the current codebase and configuration, and lists prioritized updates to bring docs back into sync.
 
@@ -18,13 +20,13 @@ This report summarizes documentation drift detected versus the current codebase 
 
 ### P0 — Must fix (user-facing confusion / incorrect instructions)
 
-- [docs/index.md](index.md)
+- [docs/INDEX.md](INDEX.md)
   - Fix: remove links to missing pages; point to current canonical docs.
 - [docs/ai/brain-architecture.md](ai/brain-architecture.md)
   - Fix: update AI provider description (Ollama-first, cloud optional).
 - [docs/observability/monitoring-guide.md](observability/monitoring-guide.md)
   - Fix: remove Jaeger references (current stack uses Tempo + Grafana Explore).
-- [REPOSITORY_REPORT.md](../REPOSITORY_REPORT.md)
+- [PROJECT_REPORT.md](../PROJECT_REPORT.md)
   - Fix: replace local `file:///` links with repo-relative links (GitHub-compatible).
   - Fix: add doc tag + last updated metadata.
 - [CONTRIBUTING.md](../CONTRIBUTING.md)

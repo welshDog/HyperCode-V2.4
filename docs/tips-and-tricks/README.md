@@ -190,8 +190,8 @@ For power users and contributors.
 ## 💬 Feedback & Requests
 
 **Missing a guide you need?**
-- Open a [GitHub Issue](https://github.com/welshDog/HyperCode-V2.0/issues) with `documentation` label
-- Start a [Discussion](https://github.com/welshDog/HyperCode-V2.0/discussions)
+- Open a [GitHub Issue](https://github.com/welshDog/HyperCode-V2.4/issues) with `documentation` label
+- Start a [Discussion](https://github.com/welshDog/HyperCode-V2.4/discussions)
 - Tag it with `tips-and-tricks` topic
 
 **Found an error?**
@@ -203,7 +203,7 @@ For power users and contributors.
 
 **Knowledge Base Maintained By:** HyperCode Documentation Team  
 **Created:** 2026-03-03  
-**Last Updated:** 2026-03-03  
+**Last Updated:** 2026-04-20  
 **Contributors:** BROski (Hyper Orchestrator), Community
 
 ---

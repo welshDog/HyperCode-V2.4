@@ -1,4 +1,8 @@
-# ⚡ HyperCode V2.0 — Daily Ops Guide
+# ⚡ HyperCode V2.4.2 — Daily Ops Guide
+
+**Status:** Active  
+**Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
 
 > Quick reference for keeping the stack LEGENDARY 🦅
 
@@ -11,10 +15,10 @@
 python scripts/hypercode_health_check.py
 
 # 2. If Redis/Postgres are down
-docker-compose up -d redis postgres
+docker compose up -d redis postgres
 
 # 3. If any agent is down
-docker-compose up -d
+docker compose up -d
 ```
 
 ---
@@ -29,7 +33,7 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 docker logs <container-name> --tail 50
 
 # Restart one service
-docker-compose restart <service-name>
+docker compose restart <service-name>
 ```
 
 ---
@@ -38,10 +42,12 @@ docker-compose restart <service-name>
 
 ```powershell
 # Full restart everything
-docker-compose down && docker-compose up -d
+docker compose down
+docker compose up -d
 
 # Nuke and rebuild (last resort)
-docker-compose down -v && docker-compose up -d --build
+docker compose down -v
+docker compose up -d --build
 
 # Check disk space
 docker system df
@@ -56,13 +62,12 @@ docker image prune -f
 
 | Service | URL |
 |---------|-----|
-| API | http://localhost:8000 |
-| Dashboard | http://localhost:8088 |
-| Mission UI | http://localhost:8099 |
-| Grafana | http://localhost:3001 |
-| Prometheus | http://localhost:9090 |
-| Ollama | http://localhost:11434 |
-| MCP Gateway | http://localhost:8820 |
+| API Docs | http://127.0.0.1:8000/api/v1/docs |
+| Mission Control (Dashboard) | http://127.0.0.1:8088 |
+| Mission UI | http://127.0.0.1:8099 |
+| Grafana | http://127.0.0.1:3001 |
+| Prometheus | http://127.0.0.1:9090 |
+| Ollama | http://127.0.0.1:11434 |
 
 ---
 

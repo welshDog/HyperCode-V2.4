@@ -1,32 +1,3 @@
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import Request
-from prometheus_fastapi_instrumentator import Instrumentator
-from opentelemetry import trace
-from app.core.config import settings
-from app.core.telemetry import setup_telemetry
-from app.api.api import api_router
-from app.core.http_security import SecurityHeadersMiddleware, RateLimitMiddleware, RateLimitConfig
-from app.routes.stripe import router as stripe_router  # 💳 Phase 10F
-from app.ws.uplink import router as uplink_router      # 🔌 Phase 10J — CognitiveUplink
-from app.cache.multi_tier import cache_response        # 🚀 Gordon Tier 2 — response cache
-from app.middleware.rate_limiting import limiter, setup_rate_limiting  # 🚦 Gordon Tier 2 — per-route rate limits
-
-try:
-    from app.core.logging import setup_logging as _setup_logging
-    from app.middleware.metrics import MetricsMiddleware as _MetricsMiddleware
-    _HAS_PHASE5 = True
-except Exception:
-    _HAS_PHASE5 = False
-from app.db.base_class import Base
-from app.db.session import engine
-import app.models.models as _models
-del _models
-import app.models.broski as _broski
-del _broski
-import app.models.dashboard_task as _dashboard_task
-del _dashboard_task
 import asyncio
 import datetime
 import json
@@ -35,7 +6,36 @@ import os
 import sys
 import time
 import uuid
+
 import redis.asyncio as aioredis
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from opentelemetry import trace
+from prometheus_fastapi_instrumentator import Instrumentator
+
+from app.api.api import api_router
+from app.cache.multi_tier import cache_response
+from app.core.config import settings
+from app.core.http_security import RateLimitConfig, RateLimitMiddleware, SecurityHeadersMiddleware
+from app.core.telemetry import setup_telemetry
+from app.db.base_class import Base
+from app.db.session import engine
+from app.middleware.rate_limiting import limiter, setup_rate_limiting
+from app.routes.stripe import router as stripe_router
+from app.ws.uplink import router as uplink_router
+
+import app.models.broski as _broski
+import app.models.dashboard_task as _dashboard_task
+import app.models.models as _models
+del _broski, _dashboard_task, _models
+
+try:
+    from app.core.logging import setup_logging as _setup_logging
+    from app.middleware.metrics import MetricsMiddleware as _MetricsMiddleware
+    _HAS_PHASE5 = True
+except Exception:
+    _HAS_PHASE5 = False
 
 # Shared async Redis client for metrics middleware (initialised at startup)
 _metrics_redis: aioredis.Redis | None = None
@@ -268,53 +268,36 @@ if __name__ == "__main__":
 # DASHBOARD ENDPOINT AUDIT — 2026-04-01
 # =============================================================================
 #
-# EXISTING ENDPOINTS (all under /api/v1 prefix):
-#   GET  /health                          — liveness check (root level)
-#   GET  /                                — welcome message (root level)
-#   GET  /metrics                         — Prometheus scrape endpoint
-#   GET  /api/v1/trace-example            — OTel demo
-#   POST /api/v1/auth/*                   — auth flows
-#   GET  /api/v1/users/*                  — user CRUD (JWT required)
-#   GET  /api/v1/projects/*               — project CRUD (JWT required)
-#   GET  /api/v1/tasks/                   — task list (JWT required)
-#   POST /api/v1/tasks/                   — create task (JWT required)
-#   POST /api/v1/execute                  — dashboard command (JWT required)
-#   GET  /api/v1/logs                     — dashboard logs (JWT required, from Tasks table)
-#   GET  /api/v1/memory/*                 — memory endpoints
+# ENDPOINTS (current)
+#   GET  /health                      — root liveness check
+#   GET  /                            — welcome message
+#   GET  /metrics                     — Prometheus scrape endpoint
+#   WS   /ws/uplink                   — Mission Control uplink WebSocket
+#
+#   GET  /api/v1/health               — deep health (Postgres/Redis/Discord + breakers)
+#   GET  /api/v1/metrics              — Mission Control metrics snapshot (JSON)
+#   GET  /api/v1/agents/status        — agent status list for dashboard
+#   GET  /api/v1/system/state         — stable/watch/on_fire snapshot
+#   GET  /api/v1/error-budget         — SLO error budget calculation
+#   WS   /api/v1/ws/events            — live event stream WebSocket
+#   WS   /api/v1/ws/logs              — live log stream WebSocket
+#
+#   POST /api/v1/auth/*               — auth flows
+#   GET  /api/v1/users/*              — user CRUD (JWT required)
+#   GET  /api/v1/projects/*           — project CRUD (JWT required)
+#   GET  /api/v1/tasks                — task list (JWT required)
+#   POST /api/v1/tasks                — create task (JWT required)
+#   POST /api/v1/execute              — dashboard command (JWT required)
+#   GET  /api/v1/logs                 — dashboard logs (JWT required, from Tasks table)
+#   GET  /api/v1/memory/*             — memory endpoints
 #   WS   /api/v1/orchestrator/ws/approvals — approvals WebSocket (Redis pub/sub)
-#   GET  /api/v1/broski/*                 — BROski$ economy endpoints
-#   GET  /api/v1/planning/*               — planning endpoints
-#   POST /api/stripe/checkout             — 💳 Stripe checkout session (Phase 10F)
-#   GET  /api/stripe/plans                — 💳 List Stripe plans (Phase 10F)
-#   POST /api/stripe/webhook              — 💳 Stripe webhook handler (Phase 10F)
+#   GET  /api/v1/broski/*             — BROski$ economy endpoints
+#   GET  /api/v1/planning/*           — planning endpoints
+#   GET  /api/v1/ops/dlq/stats        — DLQ stats (superuser)
+#   GET  /api/v1/ops/dlq              — DLQ list (superuser)
+#   POST /api/v1/ops/dlq/replay       — DLQ replay (superuser)
 #
-# MISSING ENDPOINTS (needed by dashboard — causes "—" display values):
-#   GET  /api/v1/metrics                  — MetricsSnapshot JSON (useMetrics.ts polls this)
-#   GET  /api/v1/agents/status            — agent online/offline status (useAgentStatus.ts)
-#   GET  /api/v1/events                   — SSE event stream (useEventStream.ts)
-#   GET  /api/v1/logs (public/no auth)    — log list without JWT (useLogs.ts)
-#   GET  /api/v1/system/state             — stable/watch/on_fire state
-#   GET  /api/v1/error-budget             — SLO error budget calculation
-#   WS   /ws/metrics                      — 5s broadcast MetricsSnapshot
-#   WS   /ws/agents                       — agent heartbeat broadcast
-#   WS   /ws/events                       — live event stream WebSocket
-#   WS   /ws/logs                         — live log stream WebSocket
-#
-# BROKEN FRONTEND HOOKS:
-#   useAgentStatus.ts   → WS  ws://localhost:8081/ws/agents   (8081 = crew-orchestrator, no such endpoint)
-#   useEventStream.ts   → WS  ws://${host}:8081/ws/events     (same wrong port/endpoint)
-#   useLogs.ts          → WS  ws://${host}:8081/ws/events     (same wrong port/endpoint)
-#
-# FIX PLAN (tasks 2–12):
-#   Task 2  — GET /api/v1/metrics + WS /ws/metrics (metrics_broadcaster.py)
-#   Task 3  — GET /api/v1/agents/status + WS /ws/agents (agent heartbeat)
-#   Task 4  — Fix frontend hooks to point at port 8000
-#   Task 5  — GET /api/v1/events SSE + WS /ws/events (events_broadcaster.py)
-#   Task 6  — GET /api/v1/logs (no auth) + WS /ws/logs (logs_broadcaster.py)
-#   Task 7  — GET /api/v1/error-budget (reliability.py)
-#   Task 8  — GET /api/v1/system/state (extended health)
-#   Task 9  — Public task CRUD at /api/tasks + Alembic migration
-#   Task 10 — HTTP metrics middleware (req count, response times, error rate in Redis)
-#   Task 11 — Frontend Zustand focus-mode store + FocusToggle component
-#   Task 12 — Backend tests for all new endpoints/WS/middleware
+#   POST /api/stripe/checkout         — Stripe checkout session
+#   GET  /api/stripe/plans            — list Stripe plans
+#   POST /api/stripe/webhook          — Stripe webhook handler
 # =============================================================================

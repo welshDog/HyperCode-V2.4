@@ -1,4 +1,8 @@
- Repo: welshDog/HyperCode-V2.4 | Auditor: BROski Brain 🧠
+Repo: welshDog/HyperCode-V2.4 | Auditor: BROski Brain 🧠
+
+**Status:** Snapshot (review)  
+**Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
 
 📋 Executive Summary
 HyperCode V2.4 is one of the most architecturally ambitious neurodivergent-first platforms ever documented in open source. The vision is extraordinary — a self-healing, self-evolving, gamified AI ecosystem built specifically for ADHD/dyslexic/autistic developers. The documentation quality is genuinely world-class in places. However, a significant gap exists between the visionary documentation and the verified implementation state — specifically around test coverage, Phase 2 features, and cross-repo consistency. The bones are incredible. The flesh needs work in targeted areas.
@@ -26,7 +30,7 @@ The token system has documented API endpoints, a 7-tier XP level system, 5 achie
 
 🔴 Gap Analysis — Severity Ratings
 GAP 1 — 🔴 CRITICAL: Test Coverage Falls Short of Target
-Vision says: >80% coverage. Reality: 69% total coverage. The REPOSITORY_REPORT.md self-reports 7 passed, 2 skipped — which for a system this large is underpowered. The cov.json and coverage.xml files committed to the repo suggest coverage is being tracked but the gap to 80% hasn't been closed.
+Vision says: >80% coverage. Reality: 69% total coverage. The PROJECT_REPORT.md self-reports limited test validation — which for a system this large is underpowered. The cov.json and coverage.xml files committed to the repo suggest coverage is being tracked but the gap to 80% hasn't been closed.
 
 Area	Target	Current	Gap
 Total backend	80%+	69%	-11% 🔴
@@ -37,7 +41,7 @@ GAP 2 — 🔴 CRITICAL: Phase 2 Features Not Yet Built
 The README explicitly defers "Agents Earn BROski$ Too (Phase 2)" and the Evolutionary Pipeline (agents self-upgrading autonomously). These are core to the project vision — a system that gamifies itself and evolves without human intervention. Without them, HyperCode is a great tool but not yet the cognitive architecture it's described as.
 
 GAP 3 — 🔴 CRITICAL: Cross-Repo Badge Confusion
-Both the README and REPOSITORY_REPORT.md contain CI/CD badges pointing to github.com/welshDog/HyperCode-V2.0 but the active repo is HyperCode-V2.4. This means: new visitors see potentially broken/wrong CI status, contributors can't trust the build signals, and the repo identity is split across two GitHub addresses.
+Both the README and PROJECT_REPORT.md contain CI/CD badges pointing to github.com/welshDog/HyperCode-V2.0 but the active repo is HyperCode-V2.4. This means: new visitors see potentially broken/wrong CI status, contributors can't trust the build signals, and the repo identity is split across two GitHub addresses.
 
 GAP 4 — 🟡 MEDIUM: HYPER-AGENT-BIBLE is Version 1.0 (Feb 3, 2026)
 The Bible is tagged v1.0, Last Updated: February 3, 2026 — but the repo has evolved significantly since then. The Bible references localhost:5173 for Hyperflow Editor and localhost:3000 for Broski Terminal, but the README now lists localhost:8088 for Mission Control and localhost:3000 for BROski Terminal. Port mappings and service names have drifted.
@@ -61,7 +65,7 @@ The contributor checklist is exceptional but the panel is effectively a panel of
 🚀 Quick Wins (Do This Week)
 1. Fix CI Badge URLs — 2 hours effort, massive impact
 
-Update all github.com/welshDog/HyperCode-V2.0 references in README and REPOSITORY_REPORT.md to V2.4
+Update all github.com/welshDog/HyperCode-V2.0 references in README and PROJECT_REPORT.md to V2.4
 
 Every new visitor sees broken badges right now — this is your first impression
 

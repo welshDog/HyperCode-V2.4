@@ -9,7 +9,7 @@
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
-[![Version](https://img.shields.io/badge/version-2.4.1-blue)](backend/app/core/config.py)
+[![Version](https://img.shields.io/badge/version-2.4.2-blue)](docs/CHANGELOG.md)
 [![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2032%2F32-brightgreen)](WHATS_DONE.md)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-💙%20BROski%20Labs-pink)](https://github.com/sponsors/welshDog)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -25,6 +25,10 @@
 ---
 
 </div>
+
+**Docs Status:** Active  
+**Docs Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
 
 ## 🧠 What Is HyperCode V2.4?
 
@@ -114,11 +118,17 @@ docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
 ## ⚡ Three Commands. Fully Alive.
 
-```bash
+```powershell
 git clone https://github.com/welshDog/HyperCode-V2.4
 cd HyperCode-V2.4
-cp .env.example .env   # Add your API keys
-docker compose up -d   # Everything boots. All agents online. 🚀
+
+# Option A (dev): .env
+Copy-Item .env.example .env
+docker compose up -d
+
+# Option B (prod-like local): Docker secrets
+.\scripts\init-secrets.ps1
+docker compose -f .\docker-compose.yml -f .\docker-compose.secrets.yml up -d
 ```
 
 > Full setup guide: [QUICKSTART.md](QUICKSTART.md) · MCP + Model Runner: [START_HERE.md](START_HERE.md)
@@ -259,7 +269,7 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 - 🖥️ **BROski Terminal**: `http://localhost:3000`
 - 🧠 **Crew Orchestrator**: `http://localhost:8081`
 - ❤️ **Healer Agent**: `http://localhost:8008`
-- 📝 **Core API Docs**: `http://localhost:8000/docs`
+- 📝 **Core API Docs**: `http://localhost:8000/api/v1/docs`
 - 📊 **Grafana**: `http://localhost:3001`
 
 > **See [docs/INDEX.md](docs/INDEX.md) for full documentation.**

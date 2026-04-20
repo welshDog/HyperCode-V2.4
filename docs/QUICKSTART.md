@@ -1,7 +1,12 @@
-# 🚀 HyperCode V2.0 — Quick Setup
+# 🚀 HyperCode V2.4.2 — Quick Setup
 
-> **New here?** Start with this file, then use [START_HERE.md](START_HERE.md) if you also want the MCP Gateway + Model Runner profile.  
-> **Stack stuck?** Jump straight to [RUNBOOK.md](RUNBOOK.md) — it has every fix.
+**Status:** Active  
+**Last Updated:** 2026-04-20  
+**Applies To:** HyperCode v2.4.2
+
+> **New here?** Start with this file, then use [root START_HERE.md](../START_HERE.md) for launch profiles.  
+> **Using MCP?** Use [MCP_QUICK_START.md](MCP_QUICK_START.md).  
+> **Stack stuck?** Jump straight to [RUNBOOK.md](RUNBOOK.md).
 
 ---
 
@@ -91,7 +96,7 @@ Success = Celery logs show `✅ Updated Task X` and `✅ Saved output for Task X
 | Service | URL |
 |---|---|
 | Core API | http://127.0.0.1:8000 |
-| API Docs | http://127.0.0.1:8000/docs |
+| API Docs | http://127.0.0.1:8000/api/v1/docs |
 | Mission Control | http://127.0.0.1:8088 |
 | Crew Orchestrator | http://127.0.0.1:8081 |
 | Grafana | http://127.0.0.1:3001 |

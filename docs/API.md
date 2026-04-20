@@ -1,9 +1,10 @@
 # API Reference 🔌
 
 > **HyperCode V2.4 — FastAPI Backend**
-> **Base:** `http://localhost:8000/api/v1`
-> **Swagger UI:** `http://localhost:8000/api/v1/docs`
-> **Last Updated:** 2026-04-15
+> **Base:** `http://127.0.0.1:8000/api/v1`
+> **Swagger UI:** `http://127.0.0.1:8000/api/v1/docs`
+> **Last Updated:** 2026-04-20
+> **Applies To:** HyperCode v2.4.2
 
 ---
 
@@ -107,19 +108,33 @@ curl -X POST "http://localhost:8000/api/v1/auth/login/access-token" \
 
 ## 🩺 Health Checks
 
-### System Health
+### Liveness (root)
 - **GET** `/health`
 - **Auth:** None required
 
 ```json
 {
+  "status": "ok",
+  "service": "hypercode-core",
+  "version": "2.4.2",
+  "environment": "development"
+}
+```
+
+### Detailed Health (API v1)
+- **GET** `/health`
+- **Auth:** None required
+- **Base URL:** `http://127.0.0.1:8000/api/v1`
+
+```json
+{
   "status": "healthy",
-  "version": "2.1.0",
-  "services": {
-    "database": "ok",
-    "redis": "ok",
-    "agent_x": "ok",
-    "healer": "ok"
+  "version": "2.4.2",
+  "checks": {
+    "postgres": { "status": "ok" },
+    "redis": { "status": "ok" },
+    "discord": { "status": "ok" },
+    "circuit_breakers": []
   }
 }
 ```
@@ -151,15 +166,33 @@ curl -X POST "http://localhost:8000/api/v1/auth/login/access-token" \
 
 ## 📊 Metrics
 
-### Get System Metrics
-- **GET** `/metrics/system`
-- **Auth:** Required
+### Mission Control Snapshot (JSON)
+- **GET** `/metrics`
+- **Auth:** None required
 
-### Get Agent Metrics
-- **GET** `/metrics/agents`
-- **Auth:** Required
+Returns a compact snapshot used by Mission Control:
+- request rate and latency
+- error rate and heals
+- active agent count
+- queue depths (including DLQ)
+- Prometheus alert counts + top firing alert names
 
 ---
+
+## 🔥 Reliability & Ops
+
+### System State
+- **GET** `/system/state`
+- **Auth:** None required
+
+### Error Budget
+- **GET** `/error-budget`
+- **Auth:** None required
+
+### DLQ Operations (admin)
+- **GET** `/ops/dlq/stats`
+- **GET** `/ops/dlq?limit=50&offset=0`
+- **POST** `/ops/dlq/replay`
 
 ## 🔗 Service Ports Quick Reference
 

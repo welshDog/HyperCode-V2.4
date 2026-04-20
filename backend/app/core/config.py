@@ -10,7 +10,7 @@ PrivacyMode = Literal["redact", "none"]
 class Settings(BaseSettings):
     # App
     PROJECT_NAME: str = "HyperCode Core"
-    VERSION: str = "2.0.0"
+    VERSION: str = "2.4.2"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
     

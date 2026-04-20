@@ -1,6 +1,6 @@
 # Documentation Sync Checklist
 
-**Doc Tag:** v2.0.0 | **Last Updated:** 2026-03-10
+**Doc Tag:** v2.4.2 | **Last Updated:** 2026-04-20
 
 Use this checklist to keep documentation aligned with code changes, infra changes, and released features.
 
@@ -23,7 +23,7 @@ Use this checklist to keep documentation aligned with code changes, infra change
 ### 2) Update canonical docs
 
 - [ ] Root README: new features, links, and quick start remain accurate.
-- [ ] [REPOSITORY_REPORT.md](../REPOSITORY_REPORT.md): keep links relative and metrics current.
+- [ ] [PROJECT_REPORT.md](../PROJECT_REPORT.md): keep links relative and metrics current (or mark as snapshot if it’s a point-in-time analysis).
 - [ ] [docs/configuration/TINYLLAMA_CONFIGURATION.md](configuration/TINYLLAMA_CONFIGURATION.md): update model/host defaults.
 - [ ] [CONTRIBUTING.md](../CONTRIBUTING.md): update contributor instructions.
 
