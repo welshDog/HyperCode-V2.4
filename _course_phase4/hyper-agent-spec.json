@@ -1,0 +1,108 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "https://github.com/welshDog/HyperAgent-SDK/hyper-agent-spec.json",
+  "title": "HyperAgent Manifest",
+  "description": "Shared interface contract for agents that can run in both Hyper-Vibe Course (.agents/) and HyperCode V2.4 (Hyper-Agents-Box)",
+  "type": "object",
+  "required": ["name", "version", "runtime", "entrypoint", "tools", "mcp_compatible"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,48}[a-z0-9]$",
+      "description": "kebab-case, 3–50 chars, globally unique within a deployment"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "semver — increment minor for new tools, patch for fixes"
+    },
+    "display_name": {
+      "type": "string",
+      "maxLength": 80,
+      "description": "Human-readable name shown in Discord and Mission Control UI"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "author": {
+      "type": "string",
+      "description": "Discord username or GitHub handle of the builder"
+    },
+    "runtime": {
+      "enum": ["python", "node", "deno"],
+      "description": "Determines which base Docker image is used at graduation"
+    },
+    "entrypoint": {
+      "type": "string",
+      "description": "Relative path from manifest.json to the main file (e.g. main.py, index.ts)"
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "description": "MCP-compatible tool definitions — must have at least 1",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "input_schema"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,62}[a-z0-9]$",
+            "description": "snake_case tool name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "What the tool does — shown to the LLM calling it"
+          },
+          "input_schema": {
+            "type": "object",
+            "description": "JSON Schema for the tool's input parameters"
+          },
+          "output_schema": {
+            "type": "object",
+            "description": "Optional JSON Schema describing tool output shape"
+          }
+        }
+      }
+    },
+    "mcp_compatible": {
+      "type": "boolean",
+      "description": "Set true only if the agent implements the MCP SSE transport. Required for V2.4 gateway registration."
+    },
+    "memory": {
+      "enum": ["none", "redis", "postgres"],
+      "default": "none",
+      "description": "Backing store for agent state. 'none' = stateless. V2.4 provides redis + postgres automatically when docker compose runs."
+    },
+    "env_vars": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of required environment variable names (values NOT stored here). The graduate script will prompt for missing ones.",
+      "examples": [["OPENAI_API_KEY", "SUPABASE_URL"]]
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 3100,
+      "maximum": 3999,
+      "description": "⚠️ REQUIRED if mcp_compatible=true. Port in 3100–3999 range that the agent's MCP server listens on. Must not clash with other agents in the same deployment. V2.4 MCP gateway reverse-proxies this."
+    },
+    "health_check": {
+      "type": "string",
+      "description": "HTTP path for container health check (e.g. /health). Defaults to /health if absent."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Free-form searchable tags (e.g. ['discord', 'writing', 'code-review'])"
+    },
+    "course_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Minimum Course progression level required to build/use this agent template. 1=HyperNewbie, 5=BROski Elite"
+    }
+  }
+}

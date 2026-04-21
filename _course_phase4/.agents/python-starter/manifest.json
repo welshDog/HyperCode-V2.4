@@ -1,0 +1,38 @@
+{
+  "$schema": "../../hyper-agent-spec.json",
+  "name": "python-starter",
+  "version": "0.1.0",
+  "display_name": "Python Starter Agent",
+  "description": "Starter agent template (Python) that demonstrates the HyperAgent manifest contract.",
+  "author": "welshDog",
+  "runtime": "python",
+  "entrypoint": "main.py",
+  "tools": [
+    {
+      "name": "echo_text",
+      "description": "Echo back the provided text.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string" }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string" }
+        }
+      }
+    }
+  ],
+  "mcp_compatible": false,
+  "memory": "none",
+  "env_vars": [],
+  "health_check": "/health",
+  "tags": ["starter", "python"],
+  "course_level": 1
+}
