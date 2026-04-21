@@ -18,9 +18,11 @@ GET /api/v1/access/my-provisions
 """
 from __future__ import annotations
 
+import hmac
 import logging
 import secrets
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime
 from typing import Any, Optional
 
 import httpx
@@ -42,17 +44,20 @@ router = APIRouter()
 
 
 class ProvisionRequest(BaseModel):
-    source_id: str = Field(..., max_length=128, description="shop_purchases.id — idempotency key")
-    discord_id: str = Field(..., max_length=32)
-    item_slug: str = Field(..., max_length=64, description="Must be 'agent-sandbox-access'")
+    purchase_id: str = Field(..., description="uuid-from-shop_purchases.id")
+    user_id: str = Field(..., description="Course user UUID")
+    discord_id: Optional[str] = Field(default=None, max_length=32)
+    item_type: str = Field(..., max_length=32)
+    v24_tier: str = Field(..., max_length=32)
+    idempotency_key: str = Field(..., max_length=128, description="shop_purchase:<purchase_id>")
 
 
 class ProvisionResponse(BaseModel):
-    provisioned: bool
+    status: str
     api_key: str
     mission_control_url: str
-    discord_dm_sent: bool
-    source_id: str
+    expires_at: Optional[str]
+    provision_event_id: str
 
 
 class ProvisionRecord(BaseModel):
@@ -70,8 +75,6 @@ class ProvisionRecord(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-ALLOWED_ITEMS = {"agent-sandbox-access"}
-
 
 def _verify_shop_secret(x_sync_secret: str = Header(..., alias="X-Sync-Secret")) -> None:
     expected = settings.SHOP_SYNC_SECRET
@@ -80,7 +83,7 @@ def _verify_shop_secret(x_sync_secret: str = Header(..., alias="X-Sync-Secret"))
             status_code=503,
             detail="SHOP_SYNC_SECRET not configured — shop bridge disabled",
         )
-    if x_sync_secret != expected:
+    if not hmac.compare_digest(x_sync_secret, expected):
         raise HTTPException(status_code=401, detail="Invalid sync secret")
 
 
@@ -161,32 +164,28 @@ async def provision_access(
     Called by the Supabase `provision-access` edge function on shop_purchases INSERT.
     Idempotent on source_id — returns 409 if already provisioned.
     """
-    # ── 1. Item guard ──────────────────────────────────────────────────────
-    if payload.item_slug not in ALLOWED_ITEMS:
+    if payload.item_type != "agent_access":
         raise HTTPException(
             status_code=422,
-            detail=f"item_slug '{payload.item_slug}' is not a provisionable item",
+            detail=f"item_type '{payload.item_type}' is not provisionable",
         )
 
-    # ── 2. Idempotency check ───────────────────────────────────────────────
+    if not payload.discord_id:
+        raise HTTPException(status_code=422, detail="discord_id is required for provisioning")
+
     existing = (
         db.query(models.AccessProvision)
-        .filter(models.AccessProvision.source_id == payload.source_id)
+        .filter(models.AccessProvision.source_id == payload.idempotency_key)
         .first()
     )
     if existing:
-        logger.info("Provision duplicate ignored: source_id=%s", payload.source_id)
+        logger.info("Provision duplicate ignored: idempotency_key=%s", payload.idempotency_key)
         raise HTTPException(
             status_code=409,
-            detail=f"source_id '{payload.source_id}' already provisioned",
+            detail=f"idempotency_key '{payload.idempotency_key}' already provisioned",
         )
 
-    # ── 3. Resolve discord_id → V2.4 user ─────────────────────────────────
-    user = (
-        db.query(models.User)
-        .filter(models.User.discord_id == payload.discord_id)
-        .first()
-    )
+    user = db.query(models.User).filter(models.User.discord_id == payload.discord_id).first()
     if not user:
         raise HTTPException(
             status_code=404,
@@ -199,15 +198,17 @@ async def provision_access(
     # ── 4. Generate key + store provision ─────────────────────────────────
     api_key = _generate_api_key()
     mission_url = settings.MISSION_CONTROL_URL
+    provision_event_id = str(uuid.uuid4())
 
     provision = models.AccessProvision(
         user_id=user.id,
         discord_id=payload.discord_id,
         api_key=api_key,
-        provision_type="agent_sandbox",
-        source_id=payload.source_id,
+        provision_type=f"agent_access:{payload.v24_tier}",
+        source_id=payload.idempotency_key,
         mission_control_url=mission_url,
         is_active=True,
+        event_id=provision_event_id,
     )
     db.add(provision)
     try:
@@ -215,26 +216,26 @@ async def provision_access(
         db.refresh(provision)
     except IntegrityError:
         db.rollback()
-        logger.warning("Provision race condition for source_id=%s", payload.source_id)
+        logger.warning("Provision race condition for idempotency_key=%s", payload.idempotency_key)
         raise HTTPException(
             status_code=409,
-            detail=f"source_id '{payload.source_id}' already provisioned (race)",
+            detail=f"idempotency_key '{payload.idempotency_key}' already provisioned (race)",
         )
 
     logger.info(
-        "✅ Sandbox provisioned: user=%s discord=%s source_id=%s",
-        user.id, payload.discord_id, payload.source_id,
+        "✅ Agent access provisioned: user=%s discord=%s idempotency_key=%s",
+        user.id, payload.discord_id, payload.idempotency_key,
     )
 
     # ── 5. Discord DM ──────────────────────────────────────────────────────
-    dm_sent = await _send_discord_dm(payload.discord_id, api_key, mission_url)
+    await _send_discord_dm(payload.discord_id, api_key, mission_url)
 
     return ProvisionResponse(
-        provisioned=True,
+        status="provisioned",
         api_key=api_key,
         mission_control_url=mission_url,
-        discord_dm_sent=dm_sent,
-        source_id=payload.source_id,
+        expires_at=provision.expires_at.isoformat() if provision.expires_at else None,
+        provision_event_id=provision_event_id,
     )
 
 

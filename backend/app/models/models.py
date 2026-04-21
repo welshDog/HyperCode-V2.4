@@ -86,12 +86,14 @@ class AccessProvision(Base):
     __table_args__ = (
         UniqueConstraint("api_key",   name="uq_access_provisions_api_key"),
         UniqueConstraint("source_id", name="uq_access_provisions_source_id"),
+        UniqueConstraint("event_id",  name="uq_access_provisions_event_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     discord_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     api_key: Mapped[str] = mapped_column(Text, nullable=False)
+    event_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     provision_type: Mapped[str] = mapped_column(String(64), default="agent_sandbox", nullable=False)
     source_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     mission_control_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

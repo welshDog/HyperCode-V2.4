@@ -1013,14 +1013,16 @@ services:
     command:
       - --servers=github
       - --transport=streaming
-      - --port=8099
+      - --port=8820
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
     expose:
-      - "8099"
+      - "8820"
+    ports:
+      - "127.0.0.1:8820:8820"
     networks:
       - agents-net
     depends_on:
@@ -1060,7 +1062,7 @@ services:
       - PETS_NUM_PREDICT=${PETS_NUM_PREDICT:-80}
       - WORKSPACE_PATH=/workspace
       - SQUAD_JSON_PATH=/workspace/squad.json
-      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8099}
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8820}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
