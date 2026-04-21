@@ -42,6 +42,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import fakeredis
 import pytest
 
+pytestmark = pytest.mark.asyncio
+
 # ── Path setup ────────────────────────────────────────────────────────────────
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../..", "backend"))
@@ -362,33 +364,33 @@ class TestRedisHandoff:
             self.am = am
             yield
 
-    def test_write_handoff_returns_true(self):
+    async def test_write_handoff_returns_true(self):
         assert self.am.write_handoff("agent-a", "agent-b", "Test handoff") is True
 
-    def test_handoff_key_exists_after_write(self):
+    async def test_handoff_key_exists_after_write(self):
         self.am.write_handoff("agent-x", "sender", "Hello")
         assert self.r.exists("memory:handoff:agent-x")
 
-    def test_read_handoffs_returns_written_note(self):
+    async def test_read_handoffs_returns_written_note(self):
         self.am.write_handoff("agent-a", "plan_executor", "Phase 1 complete")
         notes = self.am.read_handoffs("agent-a", limit=5)
         assert len(notes) == 1
         assert notes[0]["summary"] == "Phase 1 complete"
         assert notes[0]["from_agent_id"] == "plan_executor"
 
-    def test_read_handoffs_multiple_notes(self):
+    async def test_read_handoffs_multiple_notes(self):
         for i in range(5):
             self.am.write_handoff("agent-b", "sender", f"Note {i}")
         notes = self.am.read_handoffs("agent-b", limit=10)
         assert len(notes) == 5
 
-    def test_read_handoffs_respects_limit(self):
+    async def test_read_handoffs_respects_limit(self):
         for i in range(10):
             self.am.write_handoff("agent-c", "sender", f"Note {i}")
         notes = self.am.read_handoffs("agent-c", limit=3)
         assert len(notes) == 3
 
-    def test_consume_removes_notes(self):
+    async def test_consume_removes_notes(self):
         self.am.write_handoff("agent-d", "sender", "Note A")
         self.am.write_handoff("agent-d", "sender", "Note B")
         consumed = self.am.read_handoffs("agent-d", limit=2, consume=True)
@@ -396,13 +398,13 @@ class TestRedisHandoff:
         remaining = self.am.read_handoffs("agent-d", limit=10)
         assert len(remaining) == 0
 
-    def test_non_consume_does_not_remove_notes(self):
+    async def test_non_consume_does_not_remove_notes(self):
         self.am.write_handoff("agent-e", "sender", "Persistent")
         self.am.read_handoffs("agent-e", limit=5, consume=False)
         still_there = self.am.read_handoffs("agent-e", limit=5)
         assert len(still_there) == 1
 
-    def test_handoff_note_has_required_fields(self):
+    async def test_handoff_note_has_required_fields(self):
         self.am.write_handoff("agent-f", "plan_executor", "Summary text")
         note = self.am.read_handoffs("agent-f")[0]
         assert "ts" in note
@@ -410,39 +412,39 @@ class TestRedisHandoff:
         assert "to_agent_id" in note
         assert "summary" in note
 
-    def test_handoff_json_survives_round_trip(self):
+    async def test_handoff_json_survives_round_trip(self):
         plan_json = json.dumps({"key": "value", "phases": [1, 2, 3]})
         self.am.write_handoff("agent-g", "plan_executor", "Test", links=[{"plan_json": plan_json}])
         note = self.am.read_handoffs("agent-g")[0]
         recovered = json.loads(note["links"][0]["plan_json"])
         assert recovered["phases"] == [1, 2, 3]
 
-    def test_secret_redacted_in_handoff_summary(self):
+    async def test_secret_redacted_in_handoff_summary(self):
         self.am.write_handoff("agent-h", "sender", "bearer: sk-abc12345678901234567890")
         note = self.am.read_handoffs("agent-h")[0]
         assert "sk-abc" not in note["summary"]
         assert "[REDACTED]" in note["summary"]
 
-    def test_api_key_pattern_redacted(self):
+    async def test_api_key_pattern_redacted(self):
         self.am.write_handoff("agent-i", "sender", "api_key: super-secret-value")
         note = self.am.read_handoffs("agent-i")[0]
         assert "super-secret-value" not in note["summary"]
 
-    def test_read_empty_inbox_returns_empty_list(self):
+    async def test_read_empty_inbox_returns_empty_list(self):
         notes = self.am.read_handoffs("nonexistent-agent", limit=5)
         assert notes == []
 
-    def test_write_handoff_redis_unavailable_returns_false(self):
+    async def test_write_handoff_redis_unavailable_returns_false(self):
         with patch("app.core.agent_memory._get_redis", return_value=None):
             result = self.am.write_handoff("agent-j", "sender", "Test")
         assert result is False
 
-    def test_read_handoffs_redis_unavailable_returns_empty(self):
+    async def test_read_handoffs_redis_unavailable_returns_empty(self):
         with patch("app.core.agent_memory._get_redis", return_value=None):
             notes = self.am.read_handoffs("agent-j", limit=5)
         assert notes == []
 
-    def test_large_plan_json_survives_round_trip(self):
+    async def test_large_plan_json_survives_round_trip(self):
         """Full plan JSON (~2 KB) must round-trip without data loss."""
         plan = _sample_plan()
         plan_dict = {
@@ -466,7 +468,7 @@ class TestRedisHandoff:
         assert len(recovered["phases"]) == 3
         assert recovered["summary"] == plan.summary
 
-    def test_overflow_trims_to_max_entries(self):
+    async def test_overflow_trims_to_max_entries(self):
         """After HANDOFF_MAX_ENTRIES + 10 writes, list stays bounded."""
         from app.core.agent_memory import HANDOFF_MAX_ENTRIES
         for i in range(HANDOFF_MAX_ENTRIES + 10):
@@ -569,7 +571,7 @@ class TestPlanExecutor:
 
     # Agent routing tests
 
-    def test_classify_backend_by_extension(self):
+    async def test_classify_backend_by_extension(self):
         phase = PlanPhase(phase_number=1, title="API", description="x", workflow_steps=[])
         changes = [
             FileChange(file_path="backend/models.py", change_type=FileChangeType.CREATE, description="", rationale=""),
@@ -577,7 +579,7 @@ class TestPlanExecutor:
         ]
         assert self._classify(phase, changes) == "backend-specialist"
 
-    def test_classify_frontend_by_extension(self):
+    async def test_classify_frontend_by_extension(self):
         phase = PlanPhase(phase_number=1, title="UI", description="x", workflow_steps=[])
         changes = [
             FileChange(file_path="src/App.tsx", change_type=FileChangeType.CREATE, description="", rationale=""),
@@ -585,7 +587,7 @@ class TestPlanExecutor:
         ]
         assert self._classify(phase, changes) == "frontend-specialist"
 
-    def test_classify_mixed_extensions_uses_majority(self):
+    async def test_classify_mixed_extensions_uses_majority(self):
         phase = PlanPhase(phase_number=1, title="Full Stack", description="x", workflow_steps=[])
         changes = [
             FileChange(file_path="backend/api.py", change_type=FileChangeType.CREATE, description="", rationale=""),
@@ -594,19 +596,19 @@ class TestPlanExecutor:
         ]
         assert self._classify(phase, changes) == "backend-specialist"
 
-    def test_classify_no_file_changes_uses_title_keyword(self):
+    async def test_classify_no_file_changes_uses_title_keyword(self):
         phase = PlanPhase(phase_number=1, title="Frontend Component", description="x", workflow_steps=[])
         assert self._classify(phase, []) == "frontend-specialist"
 
-    def test_classify_api_keyword_in_title_routes_backend(self):
+    async def test_classify_api_keyword_in_title_routes_backend(self):
         phase = PlanPhase(phase_number=1, title="API Gateway Setup", description="x", workflow_steps=[])
         assert self._classify(phase, []) == "backend-specialist"
 
-    def test_classify_unknown_routes_to_general(self):
+    async def test_classify_unknown_routes_to_general(self):
         phase = PlanPhase(phase_number=1, title="Documentation", description="x", workflow_steps=[])
         assert self._classify(phase, []) == "general-specialist"
 
-    def test_classify_schema_keyword_routes_backend(self):
+    async def test_classify_schema_keyword_routes_backend(self):
         phase = PlanPhase(phase_number=1, title="Schema Migration", description="x", workflow_steps=[])
         assert self._classify(phase, []) == "backend-specialist"
 
@@ -868,13 +870,13 @@ class TestTimeouts:
 class TestDataConsistency:
     """Verify JSON round-trips and plan identity across serialization boundaries."""
 
-    def test_coding_plan_serializes_to_dict(self):
+    async def test_coding_plan_serializes_to_dict(self):
         plan = _sample_plan()
         d = plan.model_dump()
         assert d["summary"] == plan.summary
         assert len(d["phases"]) == 3
 
-    def test_coding_plan_survives_json_dumps_loads(self):
+    async def test_coding_plan_survives_json_dumps_loads(self):
         plan = _sample_plan()
         raw = plan.model_dump_json()
         restored = CodingPlan.model_validate_json(raw)
@@ -882,21 +884,21 @@ class TestDataConsistency:
         assert len(restored.phases) == len(plan.phases)
         assert [p.phase_number for p in restored.phases] == [p.phase_number for p in plan.phases]
 
-    def test_file_change_types_serialize_as_strings(self):
+    async def test_file_change_types_serialize_as_strings(self):
         plan = _sample_plan()
         d = plan.model_dump()
         for fc in d["file_changes_summary"]:
             assert isinstance(fc["change_type"], str)
             assert fc["change_type"] in {"create", "modify", "delete"}
 
-    def test_phases_preserve_workflow_steps(self):
+    async def test_phases_preserve_workflow_steps(self):
         plan = _sample_plan()
         raw = plan.model_dump_json()
         restored = CodingPlan.model_validate_json(raw)
         for orig, rest in zip(plan.phases, restored.phases):
             assert orig.workflow_steps == rest.workflow_steps
 
-    def test_plan_json_handoff_link_round_trip(self):
+    async def test_plan_json_handoff_link_round_trip(self):
         """Full plan_json as stored in Redis handoff link survives round trip."""
         plan = _sample_plan()
         plan_dict = plan.model_dump()
@@ -910,24 +912,23 @@ class TestDataConsistency:
         assert recovered["summary"] == plan.summary
         assert len(recovered["phases"]) == 3
 
-    def test_executor_plan_json_all_fields_present(self):
+    async def test_executor_plan_json_all_fields_present(self):
         """plan_reference written by executor must have all required keys."""
         plan = _sample_plan()
         required_keys = {"summary", "phases", "file_changes_summary", "follow_up_instructions"}
+        send_task = MagicMock()
         with patch("app.core.agent_memory._get_redis", return_value=_make_fake_redis()), \
-             patch("app.core.celery_app.celery_app", MagicMock(send_task=MagicMock())):
-            import asyncio as _asyncio
+             patch("app.core.celery_app.celery_app", MagicMock(send_task=send_task)):
             from app.services.plan_executor import PlanExecutor
             executor = PlanExecutor()
-            result = _asyncio.get_event_loop().run_until_complete(
-                executor.submit_plan_to_orchestrator(plan, task_id=1)
-            )
+            result = await executor.submit_plan_to_orchestrator(plan, task_id=1)
 
-        mock_celery = patch("app.core.celery_app.celery_app").__enter__()
-        # Verify via dispatched_jobs output
+        assert send_task.call_count == len(plan.phases)
+        payload = send_task.call_args_list[0].kwargs["args"][0]
+        assert required_keys.issubset(set(json.loads(payload["plan_reference"]).keys()))
         assert all(j["status"] in ("dispatched", "error") for j in result["dispatched_jobs"])
 
-    def test_parsed_document_round_trips_via_pydantic(self):
+    async def test_parsed_document_round_trips_via_pydantic(self):
         doc = _parsed_doc(n_reqs=3)
         raw = doc.model_dump_json()
         restored = ParsedDocument.model_validate_json(raw)
@@ -1036,7 +1037,7 @@ class TestSharedRedisEnvironment:
             self.executor = PlanExecutor()
             yield
 
-    def test_different_agents_have_isolated_inboxes(self):
+    async def test_different_agents_have_isolated_inboxes(self):
         self.am.write_handoff("agent-alpha", "sender", "Message for alpha")
         self.am.write_handoff("agent-beta", "sender", "Message for beta")
 
@@ -1048,7 +1049,7 @@ class TestSharedRedisEnvironment:
         assert len(beta_notes) == 1
         assert beta_notes[0]["summary"] == "Message for beta"
 
-    def test_agents_do_not_read_each_others_messages(self):
+    async def test_agents_do_not_read_each_others_messages(self):
         self.am.write_handoff("agent-x", "sender", "Secret for X")
         notes_for_y = self.am.read_handoffs("agent-y")
         assert len(notes_for_y) == 0
@@ -1078,7 +1079,7 @@ class TestSharedRedisEnvironment:
         # Frontend routes to frontend-specialist
         assert r2["dispatched_jobs"][0]["agent"] == "frontend-specialist"
 
-    def test_conversation_history_isolated_by_id(self):
+    async def test_conversation_history_isolated_by_id(self):
         self.am.append_turn("conv-1", "agent-a", "user", "Hello from conv 1")
         self.am.append_turn("conv-2", "agent-a", "user", "Hello from conv 2")
 
@@ -1090,7 +1091,7 @@ class TestSharedRedisEnvironment:
         assert len(hist2) == 1
         assert hist2[0]["content"] == "Hello from conv 2"
 
-    def test_clear_handoffs_does_not_affect_other_agents(self):
+    async def test_clear_handoffs_does_not_affect_other_agents(self):
         self.am.write_handoff("agent-clean", "sender", "Will be cleared")
         self.am.write_handoff("agent-keep", "sender", "Should stay")
 
