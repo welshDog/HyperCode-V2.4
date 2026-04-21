@@ -81,6 +81,8 @@ class AccessProvision(Base):
     One row per provisioned sandbox. source_id ties back to the
     Course shop_purchases row — same UNIQUE guard as Phase 2.
     api_key is the credential sent to the student via Discord DM.
+    event_id is a UUID returned in the provision response for
+    cross-system traceability (Course fulfillment_metadata stores it).
     """
     __tablename__ = "access_provisions"
     __table_args__ = (
@@ -93,9 +95,9 @@ class AccessProvision(Base):
     user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     discord_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     api_key: Mapped[str] = mapped_column(Text, nullable=False)
-    event_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     provision_type: Mapped[str] = mapped_column(String(64), default="agent_sandbox", nullable=False)
     source_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    event_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     mission_control_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
