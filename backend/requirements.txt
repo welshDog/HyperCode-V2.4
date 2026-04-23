@@ -122,7 +122,7 @@ jsonschema==4.25.0
 jsonschema-specifications==2025.4.1
 kiwisolver==1.4.8
 kombu==5.6.2
-kubernetes==33.1.0
+kubernetes==35.0.0
 langgraph==1.1.0
 langgraph-checkpoint==4.0.1
 langgraph-prebuilt==1.0.8
