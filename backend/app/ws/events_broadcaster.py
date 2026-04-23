@@ -13,7 +13,6 @@ Event schema (stored as JSON):
   { id, channel, agentId, taskId, status, payload, timestamp }
 """
 
-import asyncio
 import datetime
 import json
 import logging

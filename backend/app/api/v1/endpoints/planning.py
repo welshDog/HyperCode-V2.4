@@ -19,7 +19,7 @@ from app.db.session import get_db
 from app.models import models
 from app.schemas.planning import CodingPlan, DocumentInput, DocumentType
 from app.services.document_parser import document_parser
-from app.services.plan_formatter import format_plan_json, format_plan_markdown
+from app.services.plan_formatter import format_plan_json
 from app.services.plan_generator import plan_generator
 
 logger = logging.getLogger(__name__)

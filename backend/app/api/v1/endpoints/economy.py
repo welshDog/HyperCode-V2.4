@@ -21,7 +21,6 @@ from app.core.config import settings
 from app.db.session import get_db
 from app.models import models
 from app.models.broski import CourseSyncEvent
-from app.schemas.broski import WalletResponse
 from app.services import broski_service
 
 logger = logging.getLogger(__name__)

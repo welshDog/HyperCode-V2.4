@@ -5,12 +5,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
-
+from app.api import deps
 from app.db.session import get_db
 from app.models import models
 from app.schemas import schemas
-from app.api import deps
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

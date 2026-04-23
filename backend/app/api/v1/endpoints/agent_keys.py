@@ -6,7 +6,6 @@ GET    /api/v1/agent-keys             — list all registered agent keys
 DELETE /api/v1/agent-keys/{agent_name} — revoke a key
 """
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field

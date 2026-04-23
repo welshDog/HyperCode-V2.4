@@ -4,10 +4,10 @@
   "label": "LEGENDARY",
   "emoji": "\ud83c\udfc6",
   "colour": 65416,
-  "files_scanned": 10783,
-  "lint_issues": 225,
+  "files_scanned": 10799,
+  "lint_issues": 222,
   "ast_issues": 129,
-  "total_issues": 354,
+  "total_issues": 351,
   "top_lint": [
     {
       "file": "agents\\01-frontend-specialist\\base_agent.py",
@@ -55,5 +55,5 @@
       "severity": "medium"
     }
   ],
-  "scanned_at": "2026-04-17T10:04:07.026309+00:00"
+  "scanned_at": "2026-04-23T13:13:55.465094+00:00"
 }

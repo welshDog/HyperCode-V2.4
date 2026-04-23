@@ -1,4 +1,3 @@
-import secrets
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session

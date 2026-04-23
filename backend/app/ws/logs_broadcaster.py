@@ -16,8 +16,6 @@ The existing dashboard.py /logs endpoint (JWT-gated) remains untouched.
 This module adds a public (no-auth) fast-path for the live dashboard.
 """
 
-import asyncio
-import datetime
 import json
 import logging
 import uuid
