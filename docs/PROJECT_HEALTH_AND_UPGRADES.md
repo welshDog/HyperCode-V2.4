@@ -1,6 +1,7 @@
-# 🎯 HyperCode V2.0 - Project Health Check & Upgrade Roadmap
+# 🎯 HyperCode V2.4.2 - Project Health Check & Upgrade Roadmap
 
-**Generated:** 2026-03-11 | **System Status:** ✅ **HEALTHY** | **Ready for Production:** YES
+**Generated:** 2026-03-11 | **System Status:** ✅ **HEALTHY** | **Ready for Production:** YES  
+**Last Updated:** 2026-04-23
 
 ---
 
@@ -29,7 +30,7 @@
 - 🐍 Python 3.11 (slim, optimized)
 - ⚡ FastAPI 0.115+ (async-first, performant)
 - 🔄 Celery 5.3+ (task queue, distributed work)
-- 🧠 PERPLEXITY SDK + LangChain (AI/LLM integration)
+- 🧠 AI/LLM integration is optional via the `ai` compose profile (separate image with AI dependencies)
 - 🗄️ SQLAlchemy 2.0+ (ORM, modern)
 - 📊 OpenTelemetry (observability, traces)
 - 🔐 Python-Jose + Passlib (auth, secure)
@@ -167,13 +168,13 @@
 
 **Current State:**
 - Tests folder exists: ✅ YES
-- Unit tests: ⚠️ Minimal
-- Integration tests: ⚠️ Minimal
+- Unit tests: ✅ Present (`backend/tests/unit/`)
+- Integration tests: ✅ Present (`backend/tests/integration/`)
 - E2E tests: ❌ None
 - Coverage reporting: ✅ Pytest configured
 
 **Opportunities:**
-- Need to expand unit tests (target: 70%+ coverage)
+- Keep expanding unit tests (target: 70%+ total coverage gate)
 - Add integration tests for agent communication
 - Add E2E tests for critical workflows
 - Implement CI/CD test gates

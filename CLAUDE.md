@@ -45,12 +45,12 @@ Verdict from Gordon (Docker AI), April 15 2026:
 
 ---
 
-## 📊 System Status (April 19, 2026)
+## 📊 System Status (April 23, 2026)
 
 | Metric | Value |
 |---|---|
 | Containers | 32/32 🟢 all healthy |
-| Tests | 217 passed, 6 skipped ✅ |
+| Tests | 221 passed, 6 skipped ✅ |
 | Prometheus targets | 7/7 UP ✅ |
 | OTLP traces | LIVE in Tempo ✅ |
 | Circuit breakers | 3 active — all CLOSED ✅ |
@@ -72,6 +72,7 @@ Networks:
 
 Key ports:
   8000  hypercode-core API
+  8002  hypercode-ai API (profile: ai)
   8081  crew-orchestrator
   8088  hypercode-dashboard
   8095  hyperhealth-api

@@ -1,7 +1,7 @@
 # START HERE — HyperCode V2.4.2
 
 **Status:** Active  
-**Last Updated:** 2026-04-20  
+**Last Updated:** 2026-04-23  
 **Applies To:** HyperCode v2.4.2
 
 ## Pick a launch path
@@ -31,6 +31,12 @@ docker compose --profile agents up -d
 docker compose -f .\docker-compose.yml -f .\docker-compose.monitoring.yml up -d
 ```
 
+### Path 5 — Core + AI backend (optional AI dependencies)
+
+```powershell
+docker compose --profile ai up -d
+```
+
 ## Secrets strategy (local-safe)
 
 - Local dev can use `.env` for convenience.
@@ -46,6 +52,7 @@ docker compose -f .\docker-compose.yml -f .\docker-compose.secrets.yml up -d
 ```powershell
 docker compose ps
 curl http://127.0.0.1:8000/api/v1/health
+curl http://127.0.0.1:8002/api/v1/health
 curl http://127.0.0.1:8000/api/v1/metrics
 curl http://127.0.0.1:8000/api/v1/agents/status
 Start-Process http://127.0.0.1:8088
@@ -57,6 +64,7 @@ Start-Process http://127.0.0.1:8088
 |---|---:|---|
 | Mission Control (dashboard) | 8088 | http://127.0.0.1:8088 |
 | HyperCode Core (FastAPI) | 8000 | http://127.0.0.1:8000/api/v1/docs |
+| HyperCode AI (FastAPI) | 8002 | http://127.0.0.1:8002/api/v1/docs |
 | Crew Orchestrator | 8081 | http://127.0.0.1:8081 |
 | Healer Agent | 8008 | http://127.0.0.1:8008 |
 | Grafana | 3001 | http://127.0.0.1:3001 |

@@ -96,6 +96,9 @@ docker compose -f docker-compose.monitoring.yml up -d
 # Everything on (standard):
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
+# Optional AI backend (separate image with AI dependencies):
+docker compose --profile ai up -d
+
 # Check all containers:
 docker ps --format "table {{.Names}}\t{{.Status}}"
 

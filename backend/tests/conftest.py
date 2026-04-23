@@ -12,7 +12,8 @@ import redis.asyncio as redis
 
 # Import your app modules
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.main import app
 from app.core.config import settings

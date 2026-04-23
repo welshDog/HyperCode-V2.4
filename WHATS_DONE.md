@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 19, 2026** — update this every session.
+> **Updated: April 23, 2026** — update this every session.
 
 ---
 
@@ -47,6 +47,8 @@
 - Security headers middleware ✅
 - HTTP metrics middleware — req count, response times, error rate → Redis ✅
 - `validate_security()` — rejects weak JWT in prod/staging ✅
+- **Core deps split for security** — `backend/requirements.txt` = core only, `backend/requirements-ai.txt` = optional AI deps ✅ ← **April 23**
+- **AI backend profile** — `docker compose --profile ai up -d` runs `ai-backend` with `INSTALL_AI_DEPS=true` ✅ ← **April 23**
 
 ### Database
 - PostgreSQL running, Alembic migrations up to `009` ✅ ← **April 19**
@@ -107,6 +109,8 @@
   - New `docker-socket-proxy-healer`: CONTAINERS + POST + PING only — used by healer-agent + throttle-agent
   - Reasoning: coder-agent runs LLM-generated code; if compromised it can enumerate only, not restart/kill containers
 - **Healer Dockerfile GID fix** ✅ ← **April 19** — `groupadd -o -g 999 docker` (Debian Trixie's appuser system GID collides with 999)
+- **GoalKeeper dev API key hardened** — never accepts empty key in dev; only `dev-key` when unset ✅ ← **April 23**
+- **Trivy noise fix** — removed vendored `wheel-*.dist-info` from setuptools vendor dir in runtime image ✅ ← **April 23**
 
 ### Celery
 - Celery + Redis task queue running ✅
@@ -175,7 +179,8 @@ These need YOU to do them (can't be automated):
 
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-Tests:           pytest -q  (217 passed, 6 skipped — skips are expected)
+AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
+Tests:           pytest backend/tests -q  (221 passed, 6 skipped — skips are expected)
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook

@@ -1,7 +1,7 @@
-# 📡 HyperCode V2.0 — Complete Ports List
-**Date**: March 19, 2026  
-**Status**: Current & Active Ports  
-**Total Services**: 34 running
+# 📡 HyperCode V2.4.2 — Complete Ports List
+**Date**: April 23, 2026  
+**Status**: Snapshot (not source of truth)  
+**Source of truth**: `docker-compose.yml` + [START_HERE.md](../START_HERE.md)
 
 ---
 

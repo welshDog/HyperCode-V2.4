@@ -1,4 +1,4 @@
-# 🚀 HyperCode V2.0 Quickstart
+# 🚀 HyperCode V2.4.2 Quickstart
 
 **Goal:** Run the entire ecosystem (Agents, API, Dashboard, Observability) in under 2 minutes.
 
@@ -12,8 +12,8 @@
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/welshDog/HyperCode-V2.0.git
-cd HyperCode-V2.0
+git clone https://github.com/welshDog/HyperCode-V2.4.git
+cd HyperCode-V2.4
 ```
 
 ### 2. Configure Environment
@@ -24,7 +24,7 @@ cp .env.example .env
 ```
 
 ### 3. Launch the Stack
-Start all services including the Agent Swarm, Core API, and Observability stack.
+Start the core services (API + dashboard + observability).
 ```bash
 docker compose up -d
 ```
@@ -39,11 +39,10 @@ docker compose ps
 
 | Service | URL | Credentials (Default) |
 |---------|-----|-----------------------|
-| **Web Terminal** | [http://localhost:3000](http://localhost:3000) | N/A |
+| **Mission Control** | [http://localhost:8088](http://localhost:8088) | Uses Core auth (see `seed_data.py`) |
+| **Core API Docs** | [http://localhost:8000/api/v1/docs](http://localhost:8000/api/v1/docs) | N/A |
 | **Grafana** | [http://localhost:3001](http://localhost:3001) | Set via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD` in `.env` |
 | **Prometheus** | [http://localhost:9090](http://localhost:9090) | N/A |
-| **API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | N/A |
-| **Jaeger** | [http://localhost:16686](http://localhost:16686) | N/A |
 
 ## 🧭 Ports + Profiles
 
@@ -53,11 +52,9 @@ Some services are always on, while others are opt-in via Docker Compose profiles
 |---|---:|---|---|
 | Core API | 8000 | default | Always on |
 | Mission Control | 8088 | default | Always on |
-| Healer Agent | 8010 | default | Always on |
-| BROski Terminal | 3000 | default | Always on |
-| Hyper-Mission UI | 8099 | mission | `docker compose --profile mission up -d` |
-| Hyper-Mission API | 5000 | mission | Internal; UI is the entrypoint |
-| MCP tools | - | mcp-* | Profile-gated; enable as needed |
+| Healer Agent | 8008 | default | Always on |
+| Project Strategist | 8001 | agents | `docker compose --profile agents up -d` |
+| AI API | 8002 | ai | `docker compose --profile ai up -d` |
 | Grafana | 3001 | default | Always on |
 | Prometheus | 9090 | default | Always on |
 

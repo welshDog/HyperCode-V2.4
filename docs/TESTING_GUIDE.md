@@ -4,19 +4,19 @@
 
 | Layer | Tool | Command | Report |
 |-------|------|---------|--------|
-| Python Unit | pytest | `pytest tests/unit/` | `reports/junit-python.xml` |
+| Python Unit | pytest | `pytest backend/tests/unit/` | `reports/junit-python.xml` |
 | Frontend Unit | Vitest | `npm run test` | `reports/junit-frontend.xml` |
-| Integration | pytest + httpx | `pytest tests/integration/` | `reports/junit-integration.xml` |
+| Integration | pytest + httpx | `pytest backend/tests/integration/` | `reports/junit-integration.xml` |
 | E2E UI | Playwright | `npx playwright test` | `playwright-report/` |
 | Performance | k6 | `k6 run tests/performance/k6-api-load.js` | `reports/k6-report.json` |
-| Security | Bandit + npm audit | `bash tests/security/run_security.sh` | `reports/bandit-report.json` |
+| Security | Bandit + pip-audit + npm audit | `bash tests/security/run_security.sh` | `reports/bandit-report.json` |
 
 ## Running Tests Locally
 
 ### Python Unit Tests
 ```bash
-pip install pytest pytest-asyncio pytest-cov
-pytest tests/unit/ --asyncio-mode=auto --cov=backend -v
+pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+pytest backend/tests/unit/ --asyncio-mode=auto -q
 ```
 
 ### Frontend Unit Tests
@@ -29,7 +29,7 @@ npm run test -- --run  # single run
 ### Integration Tests (requires running Docker stack)
 ```bash
 docker compose up -d redis postgres hypercode-core healer-agent
-pytest tests/integration/ --asyncio-mode=auto -v -m integration
+pytest backend/tests/integration/ --asyncio-mode=auto -q
 ```
 
 ### E2E Tests (requires dashboard running)
@@ -57,7 +57,7 @@ bash tests/security/run_security.sh
 
 | Layer | Target | Current |
 |-------|--------|------|
-| Python Backend | \u226580% | See `reports/coverage-html/` |
+| Python Backend | \u226570% (total) | See CI / `quality-gate-thresholds.yml` |
 | Frontend Components | \u226570% | See `reports/coverage-frontend/` |
 | Integration | All key flows | See CI artifacts |
 

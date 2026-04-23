@@ -1,7 +1,7 @@
 # 🚀 HyperCode V2.4.2 — Quick Setup
 
 **Status:** Active  
-**Last Updated:** 2026-04-20  
+**Last Updated:** 2026-04-23  
 **Applies To:** HyperCode v2.4.2
 
 > **New here?** Start with this file, then use [root START_HERE.md](../START_HERE.md) for launch profiles.  
@@ -69,6 +69,11 @@ Expected: `✅ DB tables ensured`
    docker compose --profile agents up -d
    ```
 
+5. **Start AI backend (optional):**
+   ```bash
+   docker compose --profile ai up -d
+   ```
+
 ---
 
 ## 🌱 Seed + Test Chain (after DB bootstrap)
@@ -96,6 +101,7 @@ Success = Celery logs show `✅ Updated Task X` and `✅ Saved output for Task X
 | Service | URL |
 |---|---|
 | Core API | http://127.0.0.1:8000 |
+| AI API (profile: ai) | http://127.0.0.1:8002 |
 | API Docs | http://127.0.0.1:8000/api/v1/docs |
 | Mission Control | http://127.0.0.1:8088 |
 | Crew Orchestrator | http://127.0.0.1:8081 |

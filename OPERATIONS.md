@@ -59,6 +59,9 @@ Agents are enabled via profiles:
 # Enable all agents
 docker compose --profile agents up -d
 
+# Enable AI backend (optional AI dependencies)
+docker compose --profile ai up -d
+
 # Enable specific profile
 docker compose --profile hyper up -d
 
