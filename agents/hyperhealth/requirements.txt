@@ -11,4 +11,4 @@ prometheus-client==0.24.1
 slowapi==0.1.9
 structlog==24.1.0
 pyOpenSSL==24.1.0
-python-multipart==0.0.9
+python-multipart==0.0.24
