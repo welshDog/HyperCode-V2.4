@@ -197,7 +197,7 @@ pip-api==0.0.34
 pip-requirements-parser==32.0.1
 pip-tools==7.5.3
 pip_audit==2.8.0
-platformdirs==4.3.8
+platformdirs==4.9.4
 plotly==6.2.0
 pluggy==1.6.0
 posthog==5.4.0
