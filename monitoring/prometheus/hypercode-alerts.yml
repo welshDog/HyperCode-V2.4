@@ -1,0 +1,145 @@
+groups:
+  - name: hypercode-system
+    interval: 30s
+    rules:
+      # ==================================================================
+      # CRITICAL ALERTS (Immediate escalation)
+      # ==================================================================
+
+      - alert: ContainerCrashed
+        expr: increase(container_last_seen{name!=""}[5m]) == 0 and container_last_seen{name!=""} > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} has crashed or restarted"
+          description: "{{ $labels.name }} last seen more than 2 minutes ago. Possible OOM or crash."
+
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) > 0.9
+        for: 2m
+        labels:
+          severity: critical
+          component: resource
+        annotations:
+          summary: "Container {{ $labels.name }} at 90%+ memory"
+          description: "{{ $labels.name }} is consuming {{ $value | humanizePercentage }} of limit. Risk of OOM kill."
+
+      - alert: HighCPUUsage
+        expr: (rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: resource
+        annotations:
+          summary: "Container {{ $labels.name }} CPU at {{ $value | humanize }}%"
+          description: "Sustained high CPU usage detected. May cause slow responsiveness."
+
+      - alert: HypercodeCoreFailed
+        expr: up{job="prometheus", instance="hypercode-core:8000"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: core
+        annotations:
+          summary: "hypercode-core is DOWN"
+          description: "Core service unreachable for >1 min. All agents will fail."
+
+      - alert: PostgresUnhealthy
+        expr: up{job="prometheus", instance="postgres:5432"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "Database unreachable. Data layer is offline."
+
+      - alert: RedisUnhealthy
+        expr: up{job="prometheus", instance="redis:6379"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis is DOWN"
+          description: "Cache layer offline. Agents may experience degradation."
+
+      # ==================================================================
+      # HIGH PRIORITY ALERTS (Watch closely)
+      # ==================================================================
+
+      - alert: AgentHealthCheckFailing
+        expr: (node_exporter_scrape_error{job="agent-health"} > 0) or (up{job="agent-health"} == 0)
+        for: 3m
+        labels:
+          severity: warning
+          component: agents
+        annotations:
+          summary: "Agent health check failed: {{ $labels.agent_name }}"
+          description: "{{ $labels.agent_name }} failed health probe 3+ times."
+
+      - alert: PrometheusOOM
+        expr: process_resident_memory_bytes{job="prometheus"} > 1.8e9
+        for: 5m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Prometheus using >1.8GB memory"
+          description: "Prometheus memory high; consider retention size reduction."
+
+      - alert: LogDiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Root disk <15% free"
+          description: "Disk space critically low. Log rotation or cleanup needed."
+
+      - alert: CeleryQueueBacklog
+        expr: celery_task_queue_length > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: async
+        annotations:
+          summary: "Celery queue backlog >1000 tasks"
+          description: "Worker pool may be overwhelmed. Check celery-worker logs."
+
+      - alert: HealerAgentCircuitBreakerActive
+        expr: healer_circuit_breaker_active == 1
+        for: 2m
+        labels:
+          severity: warning
+          component: healer
+        annotations:
+          summary: "Healer circuit breaker ACTIVE"
+          description: "Healer has detected cascading failure. Check healer logs."
+
+      # ==================================================================
+      # INFO/MONITORING ALERTS (Informational)
+      # ==================================================================
+
+      - alert: HighContainerRestartRate
+        expr: increase(container_last_seen[15m]) > 5
+        for: 5m
+        labels:
+          severity: info
+          component: infrastructure
+        annotations:
+          summary: "{{ $labels.name }} restarted 5+ times in 15min"
+          description: "High restart rate detected. Check logs for crash loop."
+
+      - alert: MissingHealthcheck
+        expr: container_health_status{status!~"healthy|none"} > 0
+        for: 5m
+        labels:
+          severity: info
+          component: infrastructure
+        annotations:
+          summary: "{{ $labels.name }} unhealthy status"
+          description: "Container {{ $labels.name }} health status is {{ $labels.status }}."

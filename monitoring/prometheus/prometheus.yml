@@ -13,6 +13,7 @@ rule_files:
   - "/etc/prometheus/docker_alerts.yml"
   - "/etc/prometheus/recording_rules.yaml"
   - "/etc/prometheus/tier3_pools_queues.yml"
+  - "/etc/prometheus/hypercode-alerts.yml"
 
 scrape_configs:
   - job_name: "prometheus"

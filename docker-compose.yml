@@ -279,6 +279,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 30s
     environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
@@ -316,8 +317,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          cpus: "1.5"
+          memory: 1.2G
         reservations:
           cpus: "0.5"
           memory: 512M
@@ -1030,6 +1031,12 @@ services:
     depends_on:
       docker-socket-proxy:
         condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8820/mcp"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
     deploy:
       resources:
@@ -1064,7 +1071,7 @@ services:
       - PETS_NUM_PREDICT=${PETS_NUM_PREDICT:-80}
       - WORKSPACE_PATH=/workspace
       - SQUAD_JSON_PATH=/workspace/squad.json
-      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-tcp://mcp-gateway:8820}
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://mcp-gateway:8820}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
@@ -1088,22 +1095,22 @@ services:
       hypercode-ollama:
         condition: service_healthy
       mcp-gateway:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.5"
+          memory: 512M
         reservations:
-          cpus: "0.05"
-          memory: 64M
+          cpus: "0.15"
+          memory: 128M
     logging:
       driver: "json-file"
       options:

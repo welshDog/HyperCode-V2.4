@@ -1,0 +1,26 @@
+# ============================================================================
+# HyperCode Docker Backup Cron Schedule
+# ============================================================================
+# Install this crontab with:
+#   crontab -e
+#   # Paste content below
+#   # Save and exit
+#
+# Or install via file:
+#   crontab scripts/hypercode-backup.cron
+#
+# Verify installation:
+#   crontab -l
+# ============================================================================
+
+# Run backup daily at 2 AM (adjust time as needed)
+0 2 * * * cd /path/to/hypercode && bash scripts/backup-volumes.sh
+
+# Weekly offsite sync (e.g., to S3/Azure Blob) — uncomment if configured
+# 0 3 * * 0 cd /path/to/hypercode && bash scripts/sync-backups-offsite.sh
+
+# Monthly volume prune (remove volumes older than 30 days)
+# 0 4 1 * * cd /path/to/hypercode && docker volume prune -f --filter 'until=720h'
+
+# Daily log rotation check (ensure json-file logs don't exceed 50MB per container)
+# 0 5 * * * cd /path/to/hypercode && bash scripts/rotate-logs.sh
