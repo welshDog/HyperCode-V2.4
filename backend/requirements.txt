@@ -3,7 +3,7 @@ aiofiles==24.1.0
 aiohappyeyeballs==2.6.1
 aiohttp==3.12.15
 aiosignal==1.4.0
-aiosqlite==0.21.0
+aiosqlite==0.22.1
 alembic==1.18.4
 altair==5.5.0
 amqp==5.3.1
