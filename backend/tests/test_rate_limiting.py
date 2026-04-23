@@ -5,7 +5,6 @@ Tests that per-route limits fire correctly and return 429 with Retry-After.
 Does NOT need Redis — error handler and route registration are tested in isolation.
 """
 import json
-import pytest
 from unittest.mock import MagicMock
 from starlette.requests import Request
 from slowapi.errors import RateLimitExceeded
@@ -107,7 +106,7 @@ class TestRateLimitRoutesRegistered:
         import app.routes.stripe  # noqa
         key = "app.routes.stripe.get_plans"
         limits = limiter._route_limits.get(key, [])
-        assert limits, f"get_plans should be in limiter._route_limits"
+        assert limits, "get_plans should be in limiter._route_limits"
         limit_strs = [str(lim.limit) for lim in limits]
         assert any("60" in s for s in limit_strs), (
             f"get_plans should have 60/minute limit, got: {limit_strs}"
@@ -118,7 +117,7 @@ class TestRateLimitRoutesRegistered:
         import app.main  # noqa — registers health_check limits
         key = "app.main.health_check"
         limits = limiter._route_limits.get(key, [])
-        assert limits, f"health_check should be in limiter._route_limits"
+        assert limits, "health_check should be in limiter._route_limits"
         limit_strs = [str(lim.limit) for lim in limits]
         assert any("120" in s for s in limit_strs), (
             f"health_check should have 120/minute limit, got: {limit_strs}"

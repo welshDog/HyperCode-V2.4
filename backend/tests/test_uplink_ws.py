@@ -4,7 +4,6 @@ Uses starlette.testclient.TestClient.websocket_connect (sync WS testing).
 Tests: ping/pong, execute dispatch, empty command, unknown type, timeout, error.
 """
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from starlette.testclient import TestClient
 from app.main import app

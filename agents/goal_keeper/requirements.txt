@@ -1,7 +1,7 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
-redis==5.0.1
-httpx==0.25.2
-structlog==23.3.0
+fastapi==0.135.3
+uvicorn==0.35.0
+pydantic>=2.10.0,<2.12
+redis==5.3.1
+httpx==0.28.1
+structlog==24.1.0
 python-json-logger==2.0.7

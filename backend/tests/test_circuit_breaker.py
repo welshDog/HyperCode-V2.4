@@ -4,8 +4,6 @@ Gordon Tier 2 Step 4 — Circuit breaker tests.
 Tests state transitions: CLOSED → OPEN → HALF_OPEN → CLOSED.
 No external dependencies needed.
 """
-import asyncio
-import time
 import pytest
 
 from app.core.circuit_breaker import (

@@ -26,8 +26,31 @@ from enum import Enum
 import hashlib
 import structlog
 from collections import defaultdict, deque
+import random
 
 logger = structlog.get_logger()
+
+def _json_default(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, Enum):
+        return value.value
+    return str(value)
+
+
+def _safe_json_dumps(payload: Any) -> str:
+    return json.dumps(payload, default=_json_default, ensure_ascii=False)
+
+
+def _parse_datetime(raw: Any) -> datetime:
+    if isinstance(raw, datetime):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return datetime.fromisoformat(raw)
+        except Exception:
+            return datetime.now()
+    return datetime.now()
 
 
 # ============================================================================
@@ -148,8 +171,10 @@ class ImprovementProposal:
     # A/B testing
     control_group_size: int = 0
     test_group_size: int = 0
-    baseline_metrics: Dict[str, float] = field(default_factory=dict)
-    current_metrics: Dict[str, float] = field(default_factory=dict)
+    control_agents: List[str] = field(default_factory=list)
+    test_agents: List[str] = field(default_factory=list)
+    baseline_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
+    current_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
     statistical_significance: Optional[float] = None  # p-value
 
 
@@ -172,7 +197,7 @@ class FailurePattern:
     recovery_success_rate: float = 0.0
     
     # Prevention
-    prevention_strategy: Optional[str]
+    prevention_strategy: Optional[str] = None
     automated_prevention_enabled: bool = False
 
 
@@ -211,8 +236,10 @@ class MetricsEngine:
     def __init__(self, redis_client):
         self.redis = redis_client
         self.agent_metrics: Dict[str, AgentMetrics] = {}
-        self.system_metrics_history: deque = deque(maxlen=1000)
-        self.baseline_metrics: Dict[str, Dict] = {}
+        self.system_metrics_history: deque[Dict[str, Any]] = deque(maxlen=1000)
+        self.baseline_metrics: Dict[str, Dict[str, float]] = {}
+        self._last_system_total_tasks: int = 0
+        self._last_system_timestamp: datetime | None = None
         self.metric_thresholds = {
             "success_rate": {"min": 0.95, "max": 1.0},
             "quality_score": {"min": 80.0},
@@ -261,10 +288,7 @@ class MetricsEngine:
         metrics.cost_per_task_usd = metrics.total_cost_usd / metrics.tasks_completed if metrics.tasks_completed > 0 else 0
         
         # Store in Redis
-        await self.redis.hset(
-            f"metrics:{agent_name}",
-            mapping=asdict(metrics)
-        )
+        await self.redis.set(f"metrics:{agent_name}", _safe_json_dumps(asdict(metrics)))
         
         # Check for threshold breaches
         await self._check_metric_thresholds(agent_name, metrics)
@@ -285,6 +309,7 @@ class MetricsEngine:
         
         if memory_mb > metrics.peak_memory_mb:
             metrics.peak_memory_mb = memory_mb
+        await self.redis.set(f"metrics:{agent_name}", _safe_json_dumps(asdict(metrics)))
     
     async def _check_metric_thresholds(self, agent_name: str, metrics: AgentMetrics):
         """Check if metrics breach thresholds"""
@@ -307,10 +332,25 @@ class MetricsEngine:
             })
         
         if breaches:
-            await logger.alog(
+            logger.info(
                 "metric_threshold_breached",
                 agent=agent_name,
                 breaches=breaches
+            )
+            await self.redis.xadd(
+                "goal_keeper:events",
+                {
+                    "data": _safe_json_dumps(
+                        {
+                            "event": "metric_threshold_breached",
+                            "agent": agent_name,
+                            "timestamp": datetime.now().isoformat(),
+                            "breaches": breaches,
+                        }
+                    )
+                },
+                maxlen=1000,
+                approximate=True,
             )
             
             # Trigger improvement proposal
@@ -327,17 +367,34 @@ class MetricsEngine:
     
     async def get_agent_metrics(self, agent_name: str) -> Optional[AgentMetrics]:
         """Get current metrics for an agent"""
-        return self.agent_metrics.get(agent_name)
+        if agent_name in self.agent_metrics:
+            return self.agent_metrics[agent_name]
+        raw = await self.redis.get(f"metrics:{agent_name}")
+        if not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+            payload["window_start"] = _parse_datetime(payload.get("window_start"))
+            payload["window_end"] = _parse_datetime(payload.get("window_end"))
+            metrics = AgentMetrics(**payload)
+            self.agent_metrics[agent_name] = metrics
+            return metrics
+        except Exception:
+            return None
     
     async def get_system_metrics(self) -> SystemMetrics:
         """Calculate system-wide metrics"""
         total_tasks = sum(m.tasks_completed + m.tasks_failed for m in self.agent_metrics.values())
         total_completed = sum(m.tasks_completed for m in self.agent_metrics.values())
         total_failed = sum(m.tasks_failed for m in self.agent_metrics.values())
-        
-        tasks_per_minute = (
-            total_tasks / max(1, len(self.system_metrics_history))
-        ) if self.system_metrics_history else 0
+        now = datetime.now()
+        tasks_per_minute = 0.0
+        if self._last_system_timestamp is not None:
+            delta_tasks = total_tasks - self._last_system_total_tasks
+            delta_seconds = max(1.0, (now - self._last_system_timestamp).total_seconds())
+            tasks_per_minute = (delta_tasks / delta_seconds) * 60.0
+        self._last_system_total_tasks = total_tasks
+        self._last_system_timestamp = now
         
         overall_success = total_completed / total_tasks if total_tasks > 0 else 1.0
         avg_quality = sum(m.avg_quality_score for m in self.agent_metrics.values()) / max(1, len(self.agent_metrics))
@@ -365,7 +422,7 @@ class MetricsEngine:
             improvements_pending=0  # Computed elsewhere
         )
         
-        self.system_metrics_history.append(metrics)
+        self.system_metrics_history.append(asdict(metrics))
         return metrics
 
 
@@ -396,7 +453,7 @@ class SkillRegistry:
             json.dumps(asdict(skill), default=str)
         )
         
-        await logger.alog("skill_registered", skill=skill.skill_id, agent=skill.agent_name)
+        logger.info("skill_registered", skill=skill.skill_id, agent=skill.agent_name)
     
     async def record_skill_usage(self, agent_name: str, skill_id: str, success: bool):
         """Record usage of a skill"""
@@ -472,7 +529,7 @@ class FailurePatternDetector:
     def __init__(self, redis_client):
         self.redis = redis_client
         self.failure_patterns: Dict[str, FailurePattern] = {}
-        self.failure_history: deque = deque(maxlen=10000)
+        self.failure_history: deque[Dict[str, Any]]  = deque(maxlen=10000)
     
     async def record_failure(
         self,
@@ -494,7 +551,7 @@ class FailurePatternDetector:
         pattern = await self._detect_pattern(agent_name, task_type, error_message)
         
         if pattern:
-            await logger.alog(
+            logger.info(
                 "failure_pattern_detected",
                 pattern_id=pattern.pattern_id,
                 frequency=pattern.frequency
@@ -588,6 +645,8 @@ class ABTestingFramework:
         """Start A/B test of improvement"""
         proposal.control_group_size = len(control_agents)
         proposal.test_group_size = len(test_agents)
+        proposal.control_agents = list(control_agents)
+        proposal.test_agents = list(test_agents)
         proposal.status = "in_progress"
         
         # Capture baseline metrics
@@ -605,10 +664,10 @@ class ABTestingFramework:
         await self.redis.hset(
             "ab_tests",
             proposal.proposal_id,
-            json.dumps(asdict(proposal), default=str)
+            _safe_json_dumps(asdict(proposal))
         )
         
-        await logger.alog(
+        logger.info(
             "ab_test_started",
             proposal_id=proposal.proposal_id,
             control_size=len(control_agents),
@@ -630,7 +689,7 @@ class ABTestingFramework:
         proposal = self.active_tests[proposal_id]
         proposal.current_metrics[agent_name] = metrics
     
-    async def evaluate_ab_test(self, proposal_id: str) -> Tuple[bool, float]:
+    async def evaluate_ab_test(self, proposal_id: str, p_value_threshold: float = 0.05) -> Tuple[bool, float]:
         """
         Evaluate if test shows statistically significant improvement.
         Returns (success: bool, p_value: float)
@@ -640,37 +699,69 @@ class ABTestingFramework:
         
         proposal = self.active_tests[proposal_id]
         
-        # Simple comparison: mean improvement in test group vs control
-        control_improvements = []
-        test_improvements = []
-        
-        for agent, baseline in proposal.baseline_metrics.items():
-            current = proposal.current_metrics.get(agent, {})
-            
-            if not current:
+        metric_name = "quality"
+        if proposal.expected_impact:
+            metric_name = next(iter(proposal.expected_impact.keys()))
+
+        direction = 1.0
+        if metric_name in {"duration", "cost"}:
+            direction = -1.0
+
+        async def _current_snapshot(agent: str) -> Optional[Dict[str, float]]:
+            metrics = await self.metrics.get_agent_metrics(agent)
+            if not metrics:
+                return None
+            return {
+                "quality": metrics.avg_quality_score,
+                "duration": metrics.avg_task_duration_ms,
+                "cost": metrics.cost_per_task_usd,
+            }
+
+        control_values: list[float] = []
+        test_values: list[float] = []
+        for agent in proposal.control_agents:
+            baseline = proposal.baseline_metrics.get(agent)
+            current = await _current_snapshot(agent)
+            if not baseline or not current:
                 continue
-            
-            # Calculate improvement (higher is better)
-            quality_improvement = (current.get("quality", baseline["quality"]) - baseline["quality"]) / baseline["quality"]
-            
-            if agent in [self.active_tests[proposal_id].agent_name] * len(proposal.baseline_metrics):
-                # This is simplistic; in production use proper stats
-                test_improvements.append(quality_improvement)
-            else:
-                control_improvements.append(quality_improvement)
-        
-        # Calculate p-value (simplified)
-        if test_improvements and control_improvements:
-            test_mean = sum(test_improvements) / len(test_improvements)
-            control_mean = sum(control_improvements) / len(control_improvements)
-            
-            # If test mean > control mean, improvement likely
-            improvement_detected = test_mean > control_mean
-            p_value = abs(test_mean - control_mean)  # Simplified
-            
-            return improvement_detected and p_value > 0.05, p_value
-        
-        return False, 1.0
+            proposal.current_metrics[agent] = current
+            denom = baseline.get(metric_name, 0.0) or 1.0
+            delta = (current.get(metric_name, denom) - denom) / denom
+            control_values.append(delta * direction)
+
+        for agent in proposal.test_agents:
+            baseline = proposal.baseline_metrics.get(agent)
+            current = await _current_snapshot(agent)
+            if not baseline or not current:
+                continue
+            proposal.current_metrics[agent] = current
+            denom = baseline.get(metric_name, 0.0) or 1.0
+            delta = (current.get(metric_name, denom) - denom) / denom
+            test_values.append(delta * direction)
+
+        if not control_values or not test_values:
+            return False, 1.0
+
+        observed = (sum(test_values) / len(test_values)) - (sum(control_values) / len(control_values))
+        if observed <= 0:
+            return False, 1.0
+
+        combined = control_values + test_values
+        control_n = len(control_values)
+        test_n = len(test_values)
+        seed = int(hashlib.md5(proposal_id.encode()).hexdigest(), 16) % (2**32)
+        rng = random.Random(seed)
+        permutations = 2000 if len(combined) <= 20 else 1000
+        count = 0
+        for _ in range(permutations):
+            rng.shuffle(combined)
+            c = combined[:control_n]
+            t = combined[control_n : control_n + test_n]
+            diff = (sum(t) / len(t)) - (sum(c) / len(c))
+            if diff >= observed:
+                count += 1
+        p_value = (count + 1) / (permutations + 1)
+        return p_value < p_value_threshold, p_value
 
 
 # ============================================================================
@@ -721,10 +812,27 @@ class ImprovementProposalEngine:
         
         await self.redis.lpush(
             "improvement_proposals",
-            json.dumps(asdict(proposal), default=str)
+            _safe_json_dumps(asdict(proposal))
+        )
+        await self.redis.xadd(
+            "goal_keeper:events",
+            {
+                "data": _safe_json_dumps(
+                    {
+                        "event": "improvement_proposed",
+                        "agent": agent_name,
+                        "proposal_id": proposal_id,
+                        "improvement_type": improvement_type.value,
+                        "risk_level": risk_level,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+            },
+            maxlen=1000,
+            approximate=True,
         )
         
-        await logger.alog(
+        logger.info(
             "improvement_proposed",
             proposal_id=proposal_id,
             agent=agent_name,
@@ -735,10 +843,11 @@ class ImprovementProposalEngine:
     
     async def auto_approve_low_risk(self, proposal: ImprovementProposal) -> bool:
         """Auto-approve low-risk improvements without user input"""
+        impact_score = sum(abs(v) for v in proposal.expected_impact.values())
         if (
             proposal.risk_level == "low" and
             proposal.estimated_effort_hours < 0.5 and
-            sum(proposal.expected_impact.values()) > 0
+            impact_score > 0
         ):
             proposal.status = "approved"
             return True
@@ -779,22 +888,40 @@ class GoalKeeper:
         self.proposal_engine = ImprovementProposalEngine(redis_client, self.metrics_engine)
         
         self.improvement_queue: List[ImprovementProposal] = []
+        self._failure_cursor: int = 0
+        self._tasks: list[asyncio.Task[None]] = []
         self.running = False
     
     async def start(self):
         """Start the GoalKeeper monitoring loop"""
         self.running = True
         
-        await logger.alog("goal_keeper_started")
-        
-        # Run continuous improvement loops
-        await asyncio.gather(
-            self._monitor_metrics_loop(),
-            self._detect_improvements_loop(),
-            self._execute_improvements_loop(),
-            self._learn_from_failures_loop(),
-            self._discover_emergent_skills_loop()
+        logger.info("goal_keeper_started")
+        await self.redis.xadd(
+            "goal_keeper:events",
+            {"data": _safe_json_dumps({"event": "goal_keeper_started", "timestamp": datetime.now().isoformat()})},
+            maxlen=1000,
+            approximate=True,
         )
+        self._tasks = [
+            asyncio.create_task(self._monitor_metrics_loop()),
+            asyncio.create_task(self._detect_improvements_loop()),
+            asyncio.create_task(self._execute_improvements_loop()),
+            asyncio.create_task(self._learn_from_failures_loop()),
+            asyncio.create_task(self._discover_emergent_skills_loop()),
+        ]
+        try:
+            await asyncio.gather(*self._tasks)
+        except asyncio.CancelledError:
+            raise
+        finally:
+            for task in self._tasks:
+                task.cancel()
+            for task in self._tasks:
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
     
     async def _monitor_metrics_loop(self):
         """Continuously monitor agent metrics"""
@@ -802,7 +929,7 @@ class GoalKeeper:
             try:
                 system_metrics = await self.metrics_engine.get_system_metrics()
                 
-                await logger.alog(
+                logger.info(
                     "system_metrics_update",
                     success_rate=system_metrics.overall_success_rate,
                     healthy_agents=system_metrics.healthy_agents,
@@ -811,13 +938,15 @@ class GoalKeeper:
                 
                 # Check system health
                 if system_metrics.overall_success_rate < 0.9:
-                    await logger.alog("system_health_degraded", severity="high")
+                    logger.info("system_health_degraded", severity="high")
                     await self._trigger_emergency_optimization()
                 
                 await asyncio.sleep(60)  # Check every minute
             
+            except asyncio.CancelledError:
+                return
             except Exception as e:
-                await logger.alog("metrics_loop_error", error=str(e))
+                logger.error("metrics_loop_error", error=str(e))
     
     async def _detect_improvements_loop(self):
         """Detect opportunities for improvement"""
@@ -843,8 +972,10 @@ class GoalKeeper:
                 
                 await asyncio.sleep(300)  # Check every 5 minutes
             
+            except asyncio.CancelledError:
+                return
             except Exception as e:
-                await logger.alog("improvement_detection_error", error=str(e))
+                logger.error("improvement_detection_error", error=str(e))
     
     async def _analyze_agent_for_improvements(
         self,
@@ -911,7 +1042,7 @@ class GoalKeeper:
                 if self.improvement_queue:
                     # Sort by impact/effort ratio
                     self.improvement_queue.sort(
-                        key=lambda p: sum(p.expected_impact.values()) / max(p.estimated_effort_hours, 0.1),
+                        key=lambda p: sum(abs(v) for v in p.expected_impact.values()) / max(p.estimated_effort_hours, 0.1),
                         reverse=True
                     )
                     
@@ -924,16 +1055,33 @@ class GoalKeeper:
                 
                 await asyncio.sleep(10)
             
+            except asyncio.CancelledError:
+                return
             except Exception as e:
-                await logger.alog("improvement_execution_error", error=str(e))
+                logger.error("improvement_execution_error", error=str(e))
     
     async def _execute_improvement(self, proposal: ImprovementProposal):
         """Execute a specific improvement"""
-        await logger.alog(
+        logger.info(
             "executing_improvement",
             proposal_id=proposal.proposal_id,
             agent=proposal.agent_name,
             description=proposal.description
+        )
+        await self.redis.xadd(
+            "goal_keeper:events",
+            {
+                "data": _safe_json_dumps(
+                    {
+                        "event": "improvement_execution_started",
+                        "proposal_id": proposal.proposal_id,
+                        "agent": proposal.agent_name,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+            },
+            maxlen=1000,
+            approximate=True,
         )
         
         try:
@@ -952,7 +1100,7 @@ class GoalKeeper:
             )
             
             # Wait for test results
-            await asyncio.sleep(60)  # 1-minute test
+            await asyncio.sleep(60)
             
             success, p_value = await self.ab_testing.evaluate_ab_test(test_id)
             
@@ -960,29 +1108,66 @@ class GoalKeeper:
                 proposal.status = "completed"
                 proposal.statistical_significance = p_value
                 
-                await logger.alog(
+                logger.info(
                     "improvement_successful",
                     proposal_id=proposal.proposal_id,
                     p_value=p_value
                 )
+                await self.redis.xadd(
+                    "goal_keeper:events",
+                    {
+                        "data": _safe_json_dumps(
+                            {
+                                "event": "improvement_completed",
+                                "proposal_id": proposal.proposal_id,
+                                "agent": proposal.agent_name,
+                                "p_value": p_value,
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        )
+                    },
+                    maxlen=1000,
+                    approximate=True,
+                )
             else:
                 proposal.status = "failed"
                 
-                await logger.alog(
+                logger.info(
                     "improvement_failed",
                     proposal_id=proposal.proposal_id,
                     reason="A/B test inconclusive"
                 )
+                await self.redis.xadd(
+                    "goal_keeper:events",
+                    {
+                        "data": _safe_json_dumps(
+                            {
+                                "event": "improvement_failed",
+                                "proposal_id": proposal.proposal_id,
+                                "agent": proposal.agent_name,
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        )
+                    },
+                    maxlen=1000,
+                    approximate=True,
+                )
         
+        except asyncio.CancelledError:
+            proposal.status = "failed"
+            raise
         except Exception as e:
             proposal.status = "failed"
-            await logger.alog("improvement_execution_failed", error=str(e))
+            logger.error("improvement_execution_failed", error=str(e))
     
     async def _learn_from_failures_loop(self):
         """Learn from failures and prevent recurrence"""
         while self.running:
             try:
-                for failure in self.failure_detector.failure_history:
+                failures = list(self.failure_detector.failure_history)
+                new_failures = failures[self._failure_cursor :]
+                self._failure_cursor = len(failures)
+                for failure in new_failures:
                     pattern = await self.failure_detector._detect_pattern(
                         failure["agent"],
                         failure["task_type"],
@@ -1005,8 +1190,10 @@ class GoalKeeper:
                 
                 await asyncio.sleep(120)  # Check every 2 minutes
             
+            except asyncio.CancelledError:
+                return
             except Exception as e:
-                await logger.alog("failure_learning_error", error=str(e))
+                logger.error("failure_learning_error", error=str(e))
     
     async def _discover_emergent_skills_loop(self):
         """Discover new skills emerging in agents"""
@@ -1016,7 +1203,7 @@ class GoalKeeper:
                     emergent = await self.skill_registry.discover_emergent_skills(agent_name)
                     
                     if emergent:
-                        await logger.alog(
+                        logger.info(
                             "emergent_skills_detected",
                             agent=agent_name,
                             skills=[s.name for s in emergent]
@@ -1024,19 +1211,21 @@ class GoalKeeper:
                 
                 await asyncio.sleep(600)  # Check every 10 minutes
             
+            except asyncio.CancelledError:
+                return
             except Exception as e:
-                await logger.alog("skill_discovery_error", error=str(e))
+                logger.error("skill_discovery_error", error=str(e))
     
     async def _trigger_emergency_optimization(self):
         """Emergency system optimization when health degrades"""
-        await logger.alog("emergency_optimization_triggered")
+        logger.info("emergency_optimization_triggered")
         
         # Disable expensive features
         # Scale down non-critical agents
         # Switch to faster/cheaper models
         # Implement aggressive caching
         
-        proposal = await self.proposal_engine.propose_improvement(
+        await self.proposal_engine.propose_improvement(
             agent_name="system",
             improvement_type=ImprovementType.RELIABILITY,
             description="Emergency optimization: System health <90%",
@@ -1065,4 +1254,17 @@ class GoalKeeper:
     async def stop(self):
         """Stop the GoalKeeper"""
         self.running = False
-        await logger.alog("goal_keeper_stopped")
+        for task in self._tasks:
+            task.cancel()
+        for task in self._tasks:
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+        await self.redis.xadd(
+            "goal_keeper:events",
+            {"data": _safe_json_dumps({"event": "goal_keeper_stopped", "timestamp": datetime.now().isoformat()})},
+            maxlen=1000,
+            approximate=True,
+        )
+        logger.info("goal_keeper_stopped")

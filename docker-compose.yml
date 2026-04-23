@@ -1298,6 +1298,56 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  goal-keeper:
+    profiles: ["agents", "goal-keeper"]
+    build:
+      context: ./agents/goal_keeper
+      dockerfile: Dockerfile
+    container_name: goal-keeper
+    environment:
+      - AGENT_NAME=goal-keeper
+      - AGENT_PORT=8050
+      - CORE_URL=http://hypercode-core:8000
+      - REDIS_URL=redis://redis:6379
+      - GOAL_KEEPER_API_KEY=${GOAL_KEEPER_API_KEY:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - ./agents/goal_keeper:/app
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8050:8050"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
   project-strategist:
     profiles: ["agents"]
     build:

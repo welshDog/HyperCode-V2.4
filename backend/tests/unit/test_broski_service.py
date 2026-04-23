@@ -8,7 +8,6 @@ from __future__ import annotations
 import pytest
 
 from app.models.broski import (
-    BROskiWallet,
     BROskiAchievement,
     xp_to_level,
     XP_LEVELS,

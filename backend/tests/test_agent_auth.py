@@ -108,10 +108,8 @@ async def test_get_agent_from_key_valid():
     mock_db = _mock_db_found()
 
     with patch("app.middleware.agent_auth.AsyncSessionLocal", return_value=mock_db), \
-         patch("app.middleware.agent_auth._check_agent_rate_limit", return_value=True):
+         patch("app.middleware.agent_auth._check_agent_rate_limit", return_value=True):  
         from starlette.requests import Request as StarletteRequest
-        from starlette.datastructures import Headers
-        scope = {"type": "http", "method": "GET", "path": "/", "query_string": b"", "headers": []}
         mock_request = MagicMock(spec=StarletteRequest)
         result = await get_agent_from_key(request=mock_request, x_agent_key=raw_key)
 
@@ -122,7 +120,7 @@ async def test_get_agent_from_key_valid():
 @pytest.mark.asyncio
 async def test_get_agent_from_key_absent_returns_none():
     """No header → None (optional auth)."""
-    from app.middleware.agent_auth import get_agent_from_key
+    from app.middleware.agent_auth import get_agent_from_key 
     from starlette.requests import Request as StarletteRequest
     mock_request = MagicMock(spec=StarletteRequest)
     result = await get_agent_from_key(request=mock_request, x_agent_key=None)
@@ -139,7 +137,7 @@ async def test_get_agent_from_key_invalid_raises_403():
     mock_db = _mock_db_not_found()
     mock_request = MagicMock(spec=StarletteRequest)
 
-    with patch("app.middleware.agent_auth.AsyncSessionLocal", return_value=mock_db):
+    with patch("app.middleware.agent_auth.AsyncSessionLocal", return_value=mock_db):     
         with pytest.raises(HTTPException) as exc_info:
             await get_agent_from_key(request=mock_request, x_agent_key="hc_invalid_key_xyz")
 
@@ -149,7 +147,7 @@ async def test_get_agent_from_key_invalid_raises_403():
 @pytest.mark.asyncio
 async def test_get_agent_from_key_rate_limited_raises_429():
     """Valid key but rate limit hit → 429."""
-    from app.middleware.agent_auth import get_agent_from_key
+    from app.middleware.agent_auth import get_agent_from_key 
     from fastapi import HTTPException
     from starlette.requests import Request as StarletteRequest
 

@@ -8,12 +8,14 @@ Monitors metrics, detects opportunities, proposes improvements, runs A/B tests.
 import asyncio
 import os
 import sys
+import secrets
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional, Dict, Any
 
 import redis.asyncio as redis
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi.security import APIKeyHeader
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 import structlog
@@ -26,9 +28,37 @@ from agents.goal_keeper.self_improvement_framework import (
     MetricsEngine,
     ImprovementType,
 )
-from shared.logging_config import setup_logging
+try:
+    from shared.logging_config import setup_logging
+except Exception:
+    setup_logging = None
 
 logger = structlog.get_logger()
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def require_api_key(api_key: str = Security(_api_key_header)) -> str:
+    expected = os.getenv("GOAL_KEEPER_API_KEY", "").strip()
+    environment = os.getenv("ENVIRONMENT", "development").strip().lower()
+    if not expected:
+        if environment == "development":
+            if api_key and secrets.compare_digest(api_key, "dev-key"):
+                return "dev-key"
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or missing API key",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service misconfigured: GOAL_KEEPER_API_KEY is not set",
+        )
+    if not api_key or not secrets.compare_digest(api_key, expected):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing API key",
+        )
+    return api_key
 
 
 # ============================================================================
@@ -78,9 +108,10 @@ class GoalKeeperAgent:
             "redis_url": os.getenv("REDIS_URL", "redis://redis:6379"),
         }
         
-        self.logger = setup_logging(self.config["name"])
+        self.logger = logger
         self.redis = None
         self.goal_keeper = None
+        self.goal_keeper_task: asyncio.Task[None] | None = None
         self.app = None
         self.agent_registry = {}
     
@@ -117,7 +148,9 @@ class GoalKeeperAgent:
                 raise HTTPException(status_code=503, detail=str(e))
         
         @self.app.post("/improvements/status")
-        async def get_improvement_status(request: ImprovementStatusRequest):
+        async def get_improvement_status(
+            request: ImprovementStatusRequest, api_key: str = Depends(require_api_key)
+        ):
             """Get current improvement status"""
             if not self.goal_keeper:
                 raise HTTPException(status_code=503, detail="GoalKeeper not initialized")
@@ -126,7 +159,7 @@ class GoalKeeperAgent:
             return status
         
         @self.app.post("/metrics/query")
-        async def query_metrics(request: MetricsQueryRequest):
+        async def query_metrics(request: MetricsQueryRequest, api_key: str = Depends(require_api_key)):
             """Query agent metrics"""
             if not self.goal_keeper:
                 raise HTTPException(status_code=503, detail="GoalKeeper not initialized")
@@ -164,7 +197,7 @@ class GoalKeeperAgent:
                 }
         
         @self.app.post("/skills/query")
-        async def query_skills(request: SkillQueryRequest):
+        async def query_skills(request: SkillQueryRequest, api_key: str = Depends(require_api_key)):
             """Get skills for an agent"""
             if not self.goal_keeper:
                 raise HTTPException(status_code=503, detail="GoalKeeper not initialized")
@@ -187,7 +220,9 @@ class GoalKeeperAgent:
             }
         
         @self.app.post("/failures/analyze")
-        async def analyze_failures(request: FailureAnalysisRequest):
+        async def analyze_failures(
+            request: FailureAnalysisRequest, api_key: str = Depends(require_api_key)
+        ):
             """Analyze failure patterns"""
             if not self.goal_keeper:
                 raise HTTPException(status_code=503, detail="GoalKeeper not initialized")
@@ -225,7 +260,9 @@ class GoalKeeperAgent:
                 }
         
         @self.app.post("/improvements/history")
-        async def get_improvement_history(request: ImprovementHistoryRequest):
+        async def get_improvement_history(
+            request: ImprovementHistoryRequest, api_key: str = Depends(require_api_key)
+        ):
             """Get improvement history"""
             if not self.goal_keeper:
                 raise HTTPException(status_code=503, detail="GoalKeeper not initialized")
@@ -256,29 +293,39 @@ class GoalKeeperAgent:
             }
         
         @self.app.get("/stream/improvements")
-        async def stream_improvements():
+        async def stream_improvements(api_key: str = Depends(require_api_key)):
             """Stream real-time improvement events"""
             async def event_generator():
-                while True:
-                    try:
-                        # Get latest events from Redis
-                        events = await self.redis.lrange("goal_keeper:events", 0, 10)
-                        
-                        for event_json in events:
-                            event = json.loads(event_json)
-                            yield f"data: {json.dumps(event)}\n\n"
-                        
-                        await asyncio.sleep(5)
-                    
-                    except Exception as e:
-                        yield f"data: {json.dumps({'error': str(e)})}\n\n"
-                        await asyncio.sleep(5)
+                last_id = "0-0"
+                try:
+                    while True:
+                        if self.redis is None:
+                            yield f"data: {json.dumps({'error': 'Redis not connected'})}\n\n"
+                            return
+                        entries = await self.redis.xread(
+                            streams={"goal_keeper:events": last_id},
+                            count=50,
+                            block=15000,
+                        )
+                        if not entries:
+                            continue
+                        for _, messages in entries:
+                            for message_id, fields in messages:
+                                last_id = message_id
+                                payload = fields.get("data")
+                                if payload is None:
+                                    continue
+                                yield f"data: {payload}\n\n"
+                except asyncio.CancelledError:
+                    return
+                except Exception as e:
+                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
             
             return StreamingResponse(event_generator(), media_type="text/event-stream")
     
     async def startup(self):
         """Initialize on startup"""
-        await logger.alog("goal_keeper_startup")
+        logger.info("goal_keeper_startup")
         
         # Connect to Redis
         try:
@@ -287,9 +334,9 @@ class GoalKeeperAgent:
                 decode_responses=True
             )
             await self.redis.ping()
-            await logger.alog("redis_connected")
+            logger.info("redis_connected")
         except Exception as e:
-            await logger.alog("redis_connection_failed", error=str(e))
+            logger.error("redis_connection_failed", error=str(e))
             raise
         
         # Discover agents from Docker
@@ -303,26 +350,32 @@ class GoalKeeperAgent:
                 if response.status_code == 200:
                     self.agent_registry = response.json().get("agents", {})
         except Exception as e:
-            await logger.alog("agent_discovery_failed", error=str(e))
+            logger.error("agent_discovery_failed", error=str(e))
             # Continue anyway, can work with partial registry
         
         # Initialize GoalKeeper
         self.goal_keeper = GoalKeeper(self.redis, self.agent_registry)
         
         # Start improvement loops
-        asyncio.create_task(self.goal_keeper.start())
+        self.goal_keeper_task = asyncio.create_task(self.goal_keeper.start())
         
-        await logger.alog("goal_keeper_initialized")
+        logger.info("goal_keeper_initialized")
     
     async def shutdown(self):
         """Cleanup on shutdown"""
         if self.goal_keeper:
             await self.goal_keeper.stop()
+        if self.goal_keeper_task:
+            self.goal_keeper_task.cancel()
+            try:
+                await self.goal_keeper_task
+            except asyncio.CancelledError:
+                pass
         
         if self.redis:
             await self.redis.close()
         
-        await logger.alog("goal_keeper_shutdown")
+        logger.info("goal_keeper_shutdown")
     
     def run(self):
         """Run the agent"""

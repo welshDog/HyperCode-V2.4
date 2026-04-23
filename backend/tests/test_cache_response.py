@@ -3,9 +3,8 @@ Tests for @cache_response decorator — Gordon Tier 2 Step 2.
 
 Uses an in-memory fake cache so no Redis connection is required.
 """
-import json
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 
 # ── Fake in-memory MultiTierCache ────────────────────────────────────────────
