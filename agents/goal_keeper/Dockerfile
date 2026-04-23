@@ -8,15 +8,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY agents/goal_keeper/requirements.txt .
+COPY requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy agent code
-COPY agents/goal_keeper/ .
-COPY agents/shared/ /app/shared/
-COPY agents/HYPER-AGENT-BIBLE.md .
+COPY . .
 
 # Non-root user
 RUN useradd -m -u 1000 goalkeeper
