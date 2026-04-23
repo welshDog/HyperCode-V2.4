@@ -137,7 +137,7 @@ MarkupSafe==3.0.2
 marshmallow==3.26.2
 matplotlib==3.10.5
 mccabe==0.7.0
-mcp==1.26.0
+mcp==1.27.0
 mdurl==0.1.2
 minio==7.2.20
 mmh3==5.2.0
