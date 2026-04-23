@@ -7,6 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
+ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + install build deps
 RUN apt-get update --allow-releaseinfo-change && \
@@ -28,7 +29,9 @@ RUN pip install --upgrade --no-cache-dir \
     "jaraco.text>=4.0.0"
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-ai.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install --no-cache-dir -r requirements-ai.txt; fi
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
+ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + explicitly install patched security libs
 RUN apt-get update --allow-releaseinfo-change && \

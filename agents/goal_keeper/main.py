@@ -30,7 +30,7 @@ try:
         ImprovementType,
     )
 except ModuleNotFoundError:
-    from self_improvement_framework import (
+    from agents.goal_keeper.self_improvement_framework import (
         GoalKeeper,
         MetricsEngine,
         ImprovementType,

@@ -259,6 +259,85 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  ai-backend:
+    profiles: ["ai"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        INSTALL_AI_DEPS: "true"
+    image: ${HYPERCODE_AI_IMAGE:-hypercode-ai:latest}
+    container_name: ai-backend
+    environment:
+      - ENVIRONMENT=development
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
+      - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER:-}
+      - STRIPE_PRICE_BUILDER=${STRIPE_PRICE_BUILDER:-}
+      - STRIPE_PRICE_HYPER=${STRIPE_PRICE_HYPER:-}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY:-}
+      - STRIPE_PRICE_PRO_YEARLY=${STRIPE_PRICE_PRO_YEARLY:-}
+      - STRIPE_PRICE_HYPER_MONTHLY=${STRIPE_PRICE_HYPER_MONTHLY:-}
+      - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY:-}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - DEFAULT_LLM_MODEL=auto
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=http://tempo:4317
+      - PROMETHEUS_METRICS_DISABLED=false
+      - DB_AUTO_CREATE=true
+      - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000}
+    env_file:
+      - .env
+    volumes:
+      - ./backend/alembic:/app/alembic:ro
+      - ./backend/alembic.ini:/app/alembic.ini:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    ports:
+      - "127.0.0.1:8001:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   # ====================
   # BUSINESS AGENTS
   # ====================
