@@ -203,7 +203,7 @@ pluggy==1.6.0
 posthog==5.4.0
 prisma==0.15.0
 prometheus-fastapi-instrumentator==7.1.0
-prometheus_client==0.22.1
+prometheus_client==0.25.0
 prompt_toolkit==3.0.52
 propcache==0.3.2
 protobuf==6.31.1
