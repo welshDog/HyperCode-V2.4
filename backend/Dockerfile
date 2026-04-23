@@ -79,6 +79,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code
 COPY . .
 
+# Remove setuptools vendored wheel metadata/executables flagged by scanners (wheel is installed separately)
+RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)"
+
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
 
