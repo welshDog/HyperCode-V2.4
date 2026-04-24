@@ -1,0 +1,921 @@
+{
+  "SchemaVersion": 2,
+  "CreatedAt": "2026-04-24T07:26:00.848034219Z",
+  "ArtifactName": "hypercode-core:latest",
+  "ArtifactType": "container_image",
+  "Metadata": {
+    "OS": {
+      "Family": "debian",
+      "Name": "13.4"
+    },
+    "ImageID": "sha256:382eadd58023c501d9559988aa87e29a64cd3fce785a1d3a6552115e29f94703",
+    "DiffIDs": [
+      "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
+      "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
+      "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
+      "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
+      "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
+      "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631",
+      "sha256:983271f9db0843787e467220c68139a8fa9c2222483d5b8094eebf17b803dcc7",
+      "sha256:1a3f160015076551083ac093fc421aa063fab313ee251b6a32f03839f490daf0",
+      "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
+      "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
+      "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
+      "sha256:8fecdc3890f1bb9f2287a568de375be2a5a56c4e3f4c7a3de1cbc51972266402",
+      "sha256:2e55f7f971b9ccfb6c10b254e16b750df59605bb76d62c8cd7065d42367d8d39",
+      "sha256:00a71aca65fd7f60f3978007d2abb0bdb37cb9509f4eacdac5f5485ee9f7def6"
+    ],
+    "RepoTags": [
+      "hypercode-core:latest"
+    ],
+    "RepoDigests": [
+      "hypercode-core@sha256:382eadd58023c501d9559988aa87e29a64cd3fce785a1d3a6552115e29f94703"
+    ],
+    "ImageConfig": {
+      "architecture": "amd64",
+      "created": "2026-04-23T21:38:53.664509555Z",
+      "history": [
+        {
+          "created": "2026-04-21T00:00:00Z",
+          "created_by": "# debian.sh --arch 'amd64' out/ 'trixie' '@1776729600'",
+          "comment": "debuerreotype 0.17"
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "ENV PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "ENV LANG=C.UTF-8",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "RUN /bin/sh -c set -eux; \tapt-get update; \tapt-get install -y --no-install-recommends \t\tca-certificates \t\tnetbase \t\ttzdata \t; \tapt-get dist-clean # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "ENV GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "ENV PYTHON_VERSION=3.11.15",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-22T02:01:45Z",
+          "created_by": "ENV PYTHON_SHA256=272179ddd9a2e41a0fc8e42e33dfbdca0b3711aa5abf372d3f2d51543d09b625",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-22T02:09:07Z",
+          "created_by": "RUN /bin/sh -c set -eux; \t\tsavedAptMark=\"$(apt-mark showmanual)\"; \tapt-get update; \tapt-get install -y --no-install-recommends \t\tdpkg-dev \t\tgcc \t\tgnupg \t\tlibbluetooth-dev \t\tlibbz2-dev \t\tlibc6-dev \t\tlibdb-dev \t\tlibffi-dev \t\tlibgdbm-dev \t\tliblzma-dev \t\tlibncursesw5-dev \t\tlibreadline-dev \t\tlibsqlite3-dev \t\tlibssl-dev \t\tmake \t\ttk-dev \t\tuuid-dev \t\twget \t\txz-utils \t\tzlib1g-dev \t; \t\twget -O python.tar.xz \"https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz\"; \techo \"$PYTHON_SHA256 *python.tar.xz\" | sha256sum -c -; \twget -O python.tar.xz.asc \"https://www.python.org/ftp/python/${PYTHON_VERSION%%[a-z]*}/Python-$PYTHON_VERSION.tar.xz.asc\"; \tGNUPGHOME=\"$(mktemp -d)\"; export GNUPGHOME; \tgpg --batch --keyserver hkps://keys.openpgp.org --recv-keys \"$GPG_KEY\"; \tgpg --batch --verify python.tar.xz.asc python.tar.xz; \tgpgconf --kill all; \trm -rf \"$GNUPGHOME\" python.tar.xz.asc; \tmkdir -p /usr/src/python; \ttar --extract --directory /usr/src/python --strip-components=1 --file python.tar.xz; \trm python.tar.xz; \t\tcd /usr/src/python; \tgnuArch=\"$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)\"; \t./configure \t\t--build=\"$gnuArch\" \t\t--enable-loadable-sqlite-extensions \t\t--enable-optimizations \t\t--enable-option-checking=fatal \t\t--enable-shared \t\t$(test \"${gnuArch%%-*}\" != 'riscv64' \u0026\u0026 echo '--with-lto') \t\t--with-ensurepip \t; \tnproc=\"$(nproc)\"; \tEXTRA_CFLAGS=\"$(dpkg-buildflags --get CFLAGS)\"; \tLDFLAGS=\"$(dpkg-buildflags --get LDFLAGS)\"; \tLDFLAGS=\"${LDFLAGS:-} -Wl,--strip-all\"; \tmake -j \"$nproc\" \t\t\"EXTRA_CFLAGS=${EXTRA_CFLAGS:-}\" \t\t\"LDFLAGS=${LDFLAGS:-}\" \t; \trm python; \tmake -j \"$nproc\" \t\t\"EXTRA_CFLAGS=${EXTRA_CFLAGS:-}\" \t\t\"LDFLAGS=${LDFLAGS:-} -Wl,-rpath='\\$\\$ORIGIN/../lib'\" \t\tpython \t; \tmake install; \t\tcd /; \trm -rf /usr/src/python; \t\tfind /usr/local -depth \t\t\\( \t\t\t\\( -type d -a \\( -name test -o -name tests -o -name idle_test \\) \\) \t\t\t-o \\( -type f -a \\( -name '*.pyc' -o -name '*.pyo' -o -name 'libpython*.a' \\) \\) \t\t\\) -exec rm -rf '{}' + \t; \t\tldconfig; \t\tapt-mark auto '.*' \u003e /dev/null; \tapt-mark manual $savedAptMark; \tfind /usr/local -type f -executable -not \\( -name '*tkinter*' \\) -exec ldd '{}' ';' \t\t| awk '/=\u003e/ { so = $(NF-1); if (index(so, \"/usr/local/\") == 1) { next }; gsub(\"^/(usr/)?\", \"\", so); printf \"*%s\\n\", so }' \t\t| sort -u \t\t| xargs -rt dpkg-query --search \t\t| awk 'sub(\":$\", \"\", $1) { print $1 }' \t\t| sort -u \t\t| xargs -r apt-mark manual \t; \tapt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \tapt-get dist-clean; \t\texport PYTHONDONTWRITEBYTECODE=1; \tpython3 --version; \t\tpip3 install \t\t--disable-pip-version-check \t\t--no-cache-dir \t\t--no-compile \t\t'setuptools==79.0.1' \t\t'wheel\u003c0.46' \t; \tpip3 --version # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-22T02:09:07Z",
+          "created_by": "RUN /bin/sh -c set -eux; \tfor src in idle3 pip3 pydoc3 python3 python3-config; do \t\tdst=\"$(echo \"$src\" | tr -d 3)\"; \t\t[ -s \"/usr/local/bin/$src\" ]; \t\t[ ! -e \"/usr/local/bin/$dst\" ]; \t\tln -svT \"$src\" \"/usr/local/bin/$dst\"; \tdone # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-22T02:09:07Z",
+          "created_by": "CMD [\"python3\"]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T17:16:13Z",
+          "created_by": "WORKDIR /app",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "ENV PYTHONDONTWRITEBYTECODE=1",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "ENV PYTHONUNBUFFERED=1",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "ENV HF_HOME=/app/cache/huggingface",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "ARG INSTALL_AI_DEPS=false",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:32:49Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c apt-get update --allow-releaseinfo-change \u0026\u0026     apt-get upgrade -y \u0026\u0026     apt-get install -y --no-install-recommends         libpq5         curl         ca-certificates         libexpat1         openssl \u0026\u0026     apt-get clean \u0026\u0026     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:33:08Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c pip install --upgrade --no-cache-dir     \"pip==26.0.1\"     \"setuptools\u003e=80.0.0\"     \"wheel==0.46.2\"     \"jaraco.context\u003e=6.0.0\"     \"jaraco.functools\u003e=4.1.0\"     \"jaraco.text\u003e=4.0.0\" # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:33:09Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c addgroup --system appuser \u0026\u0026 adduser --system --group appuser # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:33:10Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c mkdir -p /app/cache/huggingface /app/cache/sentence_transformers \u0026\u0026     chown -R appuser:appuser /app/cache # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:45Z",
+          "created_by": "COPY /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:48Z",
+          "created_by": "COPY /usr/local/bin /usr/local/bin # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:48Z",
+          "created_by": "COPY . . # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:51Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c python -c \"import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)\" # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:53Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c chown -R appuser:appuser /app # buildkit",
+          "comment": "buildkit.dockerfile.v0"
+        },
+        {
+          "created": "2026-04-23T21:38:53Z",
+          "created_by": "USER appuser",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:38:53Z",
+          "created_by": "EXPOSE [8000/tcp]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:38:53Z",
+          "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"curl -f http://localhost:8000/health || exit 1\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        },
+        {
+          "created": "2026-04-23T21:38:53Z",
+          "created_by": "CMD [\"python\" \"-m\" \"uvicorn\" \"app.main:app\" \"--host\" \"0.0.0.0\" \"--port\" \"8000\"]",
+          "comment": "buildkit.dockerfile.v0",
+          "empty_layer": true
+        }
+      ],
+      "os": "linux",
+      "rootfs": {
+        "type": "layers",
+        "diff_ids": [
+          "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
+          "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
+          "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
+          "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
+          "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
+          "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631",
+          "sha256:983271f9db0843787e467220c68139a8fa9c2222483d5b8094eebf17b803dcc7",
+          "sha256:1a3f160015076551083ac093fc421aa063fab313ee251b6a32f03839f490daf0",
+          "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
+          "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
+          "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
+          "sha256:8fecdc3890f1bb9f2287a568de375be2a5a56c4e3f4c7a3de1cbc51972266402",
+          "sha256:2e55f7f971b9ccfb6c10b254e16b750df59605bb76d62c8cd7065d42367d8d39",
+          "sha256:00a71aca65fd7f60f3978007d2abb0bdb37cb9509f4eacdac5f5485ee9f7def6"
+        ]
+      },
+      "config": {
+        "Cmd": [
+          "python",
+          "-m",
+          "uvicorn",
+          "app.main:app",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ],
+        "Healthcheck": {
+          "Test": [
+            "CMD-SHELL",
+            "curl -f http://localhost:8000/health || exit 1"
+          ],
+          "Interval": 30000000000,
+          "Timeout": 10000000000,
+          "Retries": 3
+        },
+        "Env": [
+          "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "LANG=C.UTF-8",
+          "GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D",
+          "PYTHON_VERSION=3.11.15",
+          "PYTHON_SHA256=272179ddd9a2e41a0fc8e42e33dfbdca0b3711aa5abf372d3f2d51543d09b625",
+          "PYTHONDONTWRITEBYTECODE=1",
+          "PYTHONUNBUFFERED=1",
+          "HF_HOME=/app/cache/huggingface",
+          "SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers"
+        ],
+        "Labels": {
+          "com.docker.compose.project": "hypercode-v24",
+          "com.docker.compose.service": "hypercode-core",
+          "com.docker.compose.version": "5.1.2"
+        },
+        "User": "appuser",
+        "WorkingDir": "/app",
+        "ArgsEscaped": true
+      }
+    }
+  },
+  "Results": [
+    {
+      "Target": "hypercode-core:latest (debian 13.4)",
+      "Class": "os-pkgs",
+      "Type": "debian",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2026-25210",
+          "PkgID": "libexpat1@2.7.1-2",
+          "PkgName": "libexpat1",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libexpat1@2.7.1-2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "d31dfe69ce0fbd88"
+          },
+          "InstalledVersion": "2.7.1-2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3319eba6c5fa60af60a2322f31e8b11b079bef59efae0f150a063eddf5605179",
+            "DiffID": "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25210",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "libexpat: libexpat: Information disclosure and data integrity issues due to integer overflow in buffer reallocation",
+          "Description": "In libexpat before 2.7.4, the doContent function does not properly determine the buffer size bufSize because there is no integer overflow check for tag buffer reallocation.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-190"
+          ],
+          "VendorSeverity": {
+            "amazon": 2,
+            "azure": 2,
+            "cbl-mariner": 2,
+            "nvd": 3,
+            "photon": 2,
+            "redhat": 2,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:L",
+              "V3Score": 6.9
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-25210",
+            "https://github.com/libexpat/libexpat/pull/1075",
+            "https://github.com/libexpat/libexpat/pull/1075/commits/9c2d990389e6abe2e44527eeaa8b39f16fe859c7",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-25210",
+            "https://ubuntu.com/security/notices/USN-8022-1",
+            "https://ubuntu.com/security/notices/USN-8022-2",
+            "https://ubuntu.com/security/notices/USN-8023-1",
+            "https://www.cve.org/CVERecord?id=CVE-2026-25210"
+          ],
+          "PublishedDate": "2026-01-30T07:16:15.57Z",
+          "LastModifiedDate": "2026-03-10T18:17:12.78Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgID": "libncursesw6@6.5+20250216-2",
+          "PkgName": "libncursesw6",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libncursesw6@6.5%2B20250216-2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "a7a7175960077352"
+          },
+          "InstalledVersion": "6.5+20250216-2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:f3ba2250c52436e41e9f2f3830af92de466fcacc2d848264e1f9fdc76975d803",
+            "DiffID": "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-69720",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "ncurses: ncurses: Buffer overflow vulnerability may lead to arbitrary code execution.",
+          "Description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-121",
+            "CWE-120"
+          ],
+          "VendorSeverity": {
+            "alma": 2,
+            "azure": 4,
+            "cbl-mariner": 4,
+            "nvd": 3,
+            "oracle-oval": 2,
+            "redhat": 2,
+            "rocky": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:5913",
+            "https://access.redhat.com/security/cve/CVE-2025-69720",
+            "https://bugzilla.redhat.com/2449037",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2449037",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-69720",
+            "https://errata.almalinux.org/10/ALSA-2026-5913.html",
+            "https://errata.rockylinux.org/RLSA-2026:5913",
+            "https://github.com/Cao-Wuhui/CVE-2025-69720",
+            "https://invisible-island.net/archives/ncurses/6.5/",
+            "https://invisible-island.net/ncurses/",
+            "https://linux.oracle.com/cve/CVE-2025-69720.html",
+            "https://linux.oracle.com/errata/ELSA-2026-5913.html",
+            "https://marc.info/?l=ncurses-bug\u0026m=176539968328570\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176540731801330\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176545557728083\u0026w=2",
+            "https://nvd.nist.gov/vuln/detail/CVE-2025-69720",
+            "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+          ],
+          "PublishedDate": "2026-03-19T15:16:21.293Z",
+          "LastModifiedDate": "2026-03-26T19:35:10.547Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-27135",
+          "PkgID": "libnghttp2-14@1.64.0-1.1",
+          "PkgName": "libnghttp2-14",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libnghttp2-14@1.64.0-1.1?arch=amd64\u0026distro=debian-13.4",
+            "UID": "f2c86b6bdca38d12"
+          },
+          "InstalledVersion": "1.64.0-1.1",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3319eba6c5fa60af60a2322f31e8b11b079bef59efae0f150a063eddf5605179",
+            "DiffID": "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-27135",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "nghttp2: nghttp2: Denial of Service via malformed HTTP/2 frames after session termination",
+          "Description": "nghttp2 is an implementation of the Hypertext Transfer Protocol version 2 in C. Prior to version 1.68.1, the nghttp2 library stops reading the incoming data when user facing public API `nghttp2_session_terminate_session` or `nghttp2_session_terminate_session2` is called by the application. They might be called internally by the library when it detects the situation that is subject to connection error. Due to the missing internal state validation, the library keeps reading the rest of the data after one of those APIs is called. Then receiving a malformed frame that causes FRAME_SIZE_ERROR causes assertion failure. nghttp2 v1.68.1 adds missing state validation to avoid assertion failure. No known workarounds are available.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-617"
+          ],
+          "VendorSeverity": {
+            "alma": 3,
+            "amazon": 3,
+            "azure": 3,
+            "cbl-mariner": 3,
+            "oracle-oval": 3,
+            "photon": 3,
+            "redhat": 3,
+            "rocky": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "http://www.openwall.com/lists/oss-security/2026/03/20/3",
+            "https://access.redhat.com/errata/RHSA-2026:7896",
+            "https://access.redhat.com/security/cve/CVE-2026-27135",
+            "https://bugzilla.redhat.com/2441268",
+            "https://bugzilla.redhat.com/2442922",
+            "https://bugzilla.redhat.com/2448754",
+            "https://bugzilla.redhat.com/2453151",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
+            "https://errata.almalinux.org/9/ALSA-2026-7896.html",
+            "https://errata.rockylinux.org/RLSA-2026:7667",
+            "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
+            "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
+            "https://linux.oracle.com/cve/CVE-2026-27135.html",
+            "https://linux.oracle.com/errata/ELSA-2026-8339.html",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-27135",
+            "https://www.cve.org/CVERecord?id=CVE-2026-27135"
+          ],
+          "PublishedDate": "2026-03-18T18:16:26.723Z",
+          "LastModifiedDate": "2026-03-23T17:51:17.017Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-29111",
+          "PkgID": "libsystemd0@257.9-1~deb13u1",
+          "PkgName": "libsystemd0",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libsystemd0@257.9-1~deb13u1?arch=amd64\u0026distro=debian-13.4",
+            "UID": "9ca6d4b1f8d36498"
+          },
+          "InstalledVersion": "257.9-1~deb13u1",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-29111",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "systemd: systemd: Arbitrary code execution or Denial of Service via spurious IPC API call data",
+          "Description": "systemd, a system and service manager, (as PID 1) hits an assert and freezes execution when an unprivileged IPC API call is made with spurious data. On version v249 and older the effect is not an assert, but stack overwriting, with the attacker controlled content. From version v250 and newer this is not possible as the safety check causes an assert instead. This IPC call was added in v239, so versions older than that are not affected. Versions 260-rc1, 259.2, 258.5, and 257.11 contain patches. No known workarounds are available.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-269"
+          ],
+          "VendorSeverity": {
+            "azure": 2,
+            "cbl-mariner": 2,
+            "photon": 3,
+            "redhat": 2,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
+            "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
+            "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
+            "https://github.com/systemd/systemd/commit/3cee294fe8cf4fa0eff933ab21416d099942cabd",
+            "https://github.com/systemd/systemd/commit/42aee39107fbdd7db1ccd402a2151822b2805e9f",
+            "https://github.com/systemd/systemd/commit/54588d2dedff54bfb6036670820650e4ea74628f",
+            "https://github.com/systemd/systemd/commit/7ac3220213690e8a8d6d2a6e81e43bd1dce01d69",
+            "https://github.com/systemd/systemd/commit/80acea4ef80a4bb78560ed970c34952299b890d6",
+            "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
+            "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
+            "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
+            "https://ubuntu.com/security/notices/USN-8119-1",
+            "https://ubuntu.com/security/notices/USN-8119-2",
+            "https://www.cve.org/CVERecord?id=CVE-2026-29111"
+          ],
+          "PublishedDate": "2026-03-23T22:16:26.267Z",
+          "LastModifiedDate": "2026-04-15T16:44:38.387Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgID": "libtinfo6@6.5+20250216-2",
+          "PkgName": "libtinfo6",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libtinfo6@6.5%2B20250216-2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "7db0802046fd705e"
+          },
+          "InstalledVersion": "6.5+20250216-2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-69720",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "ncurses: ncurses: Buffer overflow vulnerability may lead to arbitrary code execution.",
+          "Description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-121",
+            "CWE-120"
+          ],
+          "VendorSeverity": {
+            "alma": 2,
+            "azure": 4,
+            "cbl-mariner": 4,
+            "nvd": 3,
+            "oracle-oval": 2,
+            "redhat": 2,
+            "rocky": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:5913",
+            "https://access.redhat.com/security/cve/CVE-2025-69720",
+            "https://bugzilla.redhat.com/2449037",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2449037",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-69720",
+            "https://errata.almalinux.org/10/ALSA-2026-5913.html",
+            "https://errata.rockylinux.org/RLSA-2026:5913",
+            "https://github.com/Cao-Wuhui/CVE-2025-69720",
+            "https://invisible-island.net/archives/ncurses/6.5/",
+            "https://invisible-island.net/ncurses/",
+            "https://linux.oracle.com/cve/CVE-2025-69720.html",
+            "https://linux.oracle.com/errata/ELSA-2026-5913.html",
+            "https://marc.info/?l=ncurses-bug\u0026m=176539968328570\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176540731801330\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176545557728083\u0026w=2",
+            "https://nvd.nist.gov/vuln/detail/CVE-2025-69720",
+            "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+          ],
+          "PublishedDate": "2026-03-19T15:16:21.293Z",
+          "LastModifiedDate": "2026-03-26T19:35:10.547Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-29111",
+          "PkgID": "libudev1@257.9-1~deb13u1",
+          "PkgName": "libudev1",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libudev1@257.9-1~deb13u1?arch=amd64\u0026distro=debian-13.4",
+            "UID": "3a8447fbea27b0de"
+          },
+          "InstalledVersion": "257.9-1~deb13u1",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-29111",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "systemd: systemd: Arbitrary code execution or Denial of Service via spurious IPC API call data",
+          "Description": "systemd, a system and service manager, (as PID 1) hits an assert and freezes execution when an unprivileged IPC API call is made with spurious data. On version v249 and older the effect is not an assert, but stack overwriting, with the attacker controlled content. From version v250 and newer this is not possible as the safety check causes an assert instead. This IPC call was added in v239, so versions older than that are not affected. Versions 260-rc1, 259.2, 258.5, and 257.11 contain patches. No known workarounds are available.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-269"
+          ],
+          "VendorSeverity": {
+            "azure": 2,
+            "cbl-mariner": 2,
+            "photon": 3,
+            "redhat": 2,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
+            "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
+            "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
+            "https://github.com/systemd/systemd/commit/3cee294fe8cf4fa0eff933ab21416d099942cabd",
+            "https://github.com/systemd/systemd/commit/42aee39107fbdd7db1ccd402a2151822b2805e9f",
+            "https://github.com/systemd/systemd/commit/54588d2dedff54bfb6036670820650e4ea74628f",
+            "https://github.com/systemd/systemd/commit/7ac3220213690e8a8d6d2a6e81e43bd1dce01d69",
+            "https://github.com/systemd/systemd/commit/80acea4ef80a4bb78560ed970c34952299b890d6",
+            "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
+            "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
+            "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
+            "https://ubuntu.com/security/notices/USN-8119-1",
+            "https://ubuntu.com/security/notices/USN-8119-2",
+            "https://www.cve.org/CVERecord?id=CVE-2026-29111"
+          ],
+          "PublishedDate": "2026-03-23T22:16:26.267Z",
+          "LastModifiedDate": "2026-04-15T16:44:38.387Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgID": "ncurses-base@6.5+20250216-2",
+          "PkgName": "ncurses-base",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/ncurses-base@6.5%2B20250216-2?arch=all\u0026distro=debian-13.4",
+            "UID": "76a1fb5936f344dc"
+          },
+          "InstalledVersion": "6.5+20250216-2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-69720",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "ncurses: ncurses: Buffer overflow vulnerability may lead to arbitrary code execution.",
+          "Description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-121",
+            "CWE-120"
+          ],
+          "VendorSeverity": {
+            "alma": 2,
+            "azure": 4,
+            "cbl-mariner": 4,
+            "nvd": 3,
+            "oracle-oval": 2,
+            "redhat": 2,
+            "rocky": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:5913",
+            "https://access.redhat.com/security/cve/CVE-2025-69720",
+            "https://bugzilla.redhat.com/2449037",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2449037",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-69720",
+            "https://errata.almalinux.org/10/ALSA-2026-5913.html",
+            "https://errata.rockylinux.org/RLSA-2026:5913",
+            "https://github.com/Cao-Wuhui/CVE-2025-69720",
+            "https://invisible-island.net/archives/ncurses/6.5/",
+            "https://invisible-island.net/ncurses/",
+            "https://linux.oracle.com/cve/CVE-2025-69720.html",
+            "https://linux.oracle.com/errata/ELSA-2026-5913.html",
+            "https://marc.info/?l=ncurses-bug\u0026m=176539968328570\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176540731801330\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176545557728083\u0026w=2",
+            "https://nvd.nist.gov/vuln/detail/CVE-2025-69720",
+            "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+          ],
+          "PublishedDate": "2026-03-19T15:16:21.293Z",
+          "LastModifiedDate": "2026-03-26T19:35:10.547Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgID": "ncurses-bin@6.5+20250216-2",
+          "PkgName": "ncurses-bin",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/ncurses-bin@6.5%2B20250216-2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "d03e89ad6a7a5243"
+          },
+          "InstalledVersion": "6.5+20250216-2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2025-69720",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "ncurses: ncurses: Buffer overflow vulnerability may lead to arbitrary code execution.",
+          "Description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-121",
+            "CWE-120"
+          ],
+          "VendorSeverity": {
+            "alma": 2,
+            "azure": 4,
+            "cbl-mariner": 4,
+            "nvd": 3,
+            "oracle-oval": 2,
+            "redhat": 2,
+            "rocky": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:5913",
+            "https://access.redhat.com/security/cve/CVE-2025-69720",
+            "https://bugzilla.redhat.com/2449037",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2449037",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2025-69720",
+            "https://errata.almalinux.org/10/ALSA-2026-5913.html",
+            "https://errata.rockylinux.org/RLSA-2026:5913",
+            "https://github.com/Cao-Wuhui/CVE-2025-69720",
+            "https://invisible-island.net/archives/ncurses/6.5/",
+            "https://invisible-island.net/ncurses/",
+            "https://linux.oracle.com/cve/CVE-2025-69720.html",
+            "https://linux.oracle.com/errata/ELSA-2026-5913.html",
+            "https://marc.info/?l=ncurses-bug\u0026m=176539968328570\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176540731801330\u0026w=2",
+            "https://marc.info/?l=ncurses-bug\u0026m=176545557728083\u0026w=2",
+            "https://nvd.nist.gov/vuln/detail/CVE-2025-69720",
+            "https://www.cve.org/CVERecord?id=CVE-2025-69720"
+          ],
+          "PublishedDate": "2026-03-19T15:16:21.293Z",
+          "LastModifiedDate": "2026-03-26T19:35:10.547Z"
+        }
+      ]
+    },
+    {
+      "Target": "Node.js",
+      "Class": "lang-pkgs",
+      "Type": "node-pkg"
+    },
+    {
+      "Target": "Python",
+      "Class": "lang-pkgs",
+      "Type": "python-pkg",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2024-23342",
+          "PkgName": "ecdsa",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/ecdsa-0.19.2.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/ecdsa@0.19.2",
+            "UID": "9134ae781de996a1"
+          },
+          "InstalledVersion": "0.19.2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:1ecf12c3c0ce386cacd0e8d4021fb9c6736c321bcc7e1e16a0debd2343eb1c84",
+            "DiffID": "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-23342",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "python-ecdsa: vulnerable to the Minerva attack",
+          "Description": "The `ecdsa` PyPI package is a pure Python implementation of ECC (Elliptic Curve Cryptography) with support for ECDSA (Elliptic Curve Digital Signature Algorithm), EdDSA (Edwards-curve Digital Signature Algorithm) and ECDH (Elliptic Curve Diffie-Hellman). Versions 0.18.0 and prior are vulnerable to the Minerva attack. As of time of publication, no known patched version exists.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-203",
+            "CWE-208",
+            "CWE-385"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3,
+            "redhat": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2024-23342",
+            "https://github.com/tlsfuzzer/python-ecdsa",
+            "https://github.com/tlsfuzzer/python-ecdsa/blob/master/SECURITY.md",
+            "https://github.com/tlsfuzzer/python-ecdsa/security/advisories/GHSA-wj6h-64fc-37mp",
+            "https://minerva.crocs.fi.muni.cz",
+            "https://minerva.crocs.fi.muni.cz/",
+            "https://nvd.nist.gov/vuln/detail/CVE-2024-23342",
+            "https://securitypitfalls.wordpress.com/2018/08/03/constant-time-compare-in-python",
+            "https://securitypitfalls.wordpress.com/2018/08/03/constant-time-compare-in-python/",
+            "https://www.cve.org/CVERecord?id=CVE-2024-23342"
+          ],
+          "PublishedDate": "2024-01-23T00:15:26.397Z",
+          "LastModifiedDate": "2025-08-26T21:33:47.87Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-23949",
+          "PkgName": "jaraco.context",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/setuptools/_vendor/jaraco.context-5.3.0.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/jaraco.context@5.3.0",
+            "UID": "f7ada31fec6eb6e1"
+          },
+          "InstalledVersion": "5.3.0",
+          "FixedVersion": "6.1.0",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:f3ba2250c52436e41e9f2f3830af92de466fcacc2d848264e1f9fdc76975d803",
+            "DiffID": "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-23949",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "jaraco.context: jaraco.context: Path traversal via malicious tar archives",
+          "Description": "jaraco.context, an open-source software package that provides some useful decorators and context managers, has a Zip Slip path traversal vulnerability in the `jaraco.context.tarball()` function starting in version 5.2.0 and prior to version 6.1.0. The vulnerability may allow attackers to extract files outside the intended extraction directory when malicious tar archives are processed. The strip_first_component filter splits the path on the first `/` and extracts the second component, while allowing `../` sequences. Paths like `dummy_dir/../../etc/passwd` become `../../etc/passwd`. Note that this suffers from a nested tarball attack as well with multi-level tar files such as `dummy_dir/inner.tar.gz`, where the inner.tar.gz includes a traversal `dummy_dir/../../config/.env` that also gets translated to `../../config/.env`. Version 6.1.0 contains a patch for the issue.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-22"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "redhat": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+              "V3Score": 8.6
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:N/A:N",
+              "V3Score": 8.6
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-23949",
+            "https://github.com/jaraco/jaraco.context",
+            "https://github.com/jaraco/jaraco.context/blob/main/jaraco/context/__init__.py#L74-L91",
+            "https://github.com/jaraco/jaraco.context/commit/7b26a42b525735e4085d2e994e13802ea339d5f9",
+            "https://github.com/jaraco/jaraco.context/security/advisories/GHSA-58pv-8j8x-9vj2",
+            "https://github.com/pypa/setuptools/blob/main/setuptools/_vendor/jaraco/context.py#L55-L76",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-23949",
+            "https://ubuntu.com/security/notices/USN-7979-1",
+            "https://www.cve.org/CVERecord?id=CVE-2026-23949"
+          ],
+          "PublishedDate": "2026-01-20T01:15:57.723Z",
+          "LastModifiedDate": "2026-03-11T23:12:19.323Z"
+        }
+      ]
+    }
+  ]
+}

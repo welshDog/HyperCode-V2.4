@@ -1,6 +1,8 @@
 *
 !healer/
 !healer/**
+!test-agent/
+!test-agent/**
 !shared/
 !shared/**
 !__init__.py

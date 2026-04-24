@@ -4,7 +4,10 @@ from chromadb.utils import embedding_functions
 from app.core.config import settings
 from typing import List, Dict, Any
 import uuid
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+try:
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+except ModuleNotFoundError:
+    RecursiveCharacterTextSplitter = None
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +25,35 @@ class RAGService:
         self.embedding_fn = None
         
         # Text Splitter
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-        )
+        if RecursiveCharacterTextSplitter is not None:
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,
+                chunk_overlap=200,
+                length_function=len,
+            )
+        else:
+            self.text_splitter = None
 
         # Lazy connection (don't connect on import)
         # self._connect()
+
+    def _split_text(self, content: str) -> list[str]:
+        content = content or ""
+        if self.text_splitter is not None:
+            return self.text_splitter.split_text(content)
+
+        chunk_size = 1000
+        chunk_overlap = 200
+        if chunk_size <= 0:
+            return [content]
+
+        step = max(1, chunk_size - chunk_overlap)
+        chunks: list[str] = []
+        for start in range(0, len(content), step):
+            chunk = content[start : start + chunk_size]
+            if chunk:
+                chunks.append(chunk)
+        return chunks
 
     def _get_embedding_function(self):
         if self.embedding_fn:
@@ -76,7 +100,7 @@ class RAGService:
 
         try:
             # 1. Chunking
-            chunks = self.text_splitter.split_text(content)
+            chunks = self._split_text(content)
             if not chunks:
                 return 0
 

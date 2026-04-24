@@ -932,7 +932,7 @@ services:
     read_only: true
 
   docker-socket-proxy-build:
-    profiles: ["ops", "hyper"]
+    profiles: ["ops", "health", "hyper"]
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
     container_name: docker-socket-proxy-build
     restart: unless-stopped
@@ -1111,7 +1111,7 @@ services:
       docker-socket-proxy:
         condition: service_started
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8820/mcp"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8820/health >/dev/null 2>&1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -1841,8 +1841,8 @@ services:
   test-agent:
     profiles: ["agents"]
     build:
-      context: ./agents/test-agent
-      dockerfile: Dockerfile
+      context: ./agents
+      dockerfile: test-agent/Dockerfile
     container_name: test-agent
     environment:
       - CORE_URL=http://hypercode-core:8000

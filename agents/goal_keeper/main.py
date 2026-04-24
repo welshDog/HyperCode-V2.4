@@ -24,17 +24,24 @@ import json
 # Add shared modules
 sys.path.insert(0, "/app")
 try:
-    from agents.goal_keeper.self_improvement_framework import (
+    from .self_improvement_framework import (
         GoalKeeper,
         MetricsEngine,
         ImprovementType,
     )
-except ModuleNotFoundError:
-    from agents.goal_keeper.self_improvement_framework import (
-        GoalKeeper,
-        MetricsEngine,
-        ImprovementType,
-    )
+except Exception:
+    try:
+        from agents.goal_keeper.self_improvement_framework import (
+            GoalKeeper,
+            MetricsEngine,
+            ImprovementType,
+        )
+    except Exception:
+        from self_improvement_framework import (
+            GoalKeeper,
+            MetricsEngine,
+            ImprovementType,
+        )
 try:
     from shared.logging_config import setup_logging
 except Exception:
