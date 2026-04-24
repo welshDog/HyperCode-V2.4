@@ -1054,6 +1054,7 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
+      - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-qwen2.5:3b}
       - AGENT_PORT=8002
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
     volumes:

@@ -99,6 +99,31 @@
 - super-hyper-broski-agent, broski-bot ✅
 - Redis attached to both `data-net` + `agents-net` — fixes agent DNS/connectivity to `redis:6379` ✅ ← **April 24**
 - crew-orchestrator now forwards `X-API-Key` to agent `/execute` calls (required by agent auth middleware) ✅ ← **April 24**
+- coder-agent ↔ Ollama is end-to-end working with safe fallbacks ✅ ← **April 24**
+  - Compose uses `CODER_OLLAMA_MODEL` (prevents global `OLLAMA_MODEL` overrides)
+  - Auto-fallback on Ollama errors: missing model / insufficient memory → tries smaller local models
+  - Verified success path: `tinyllama:latest`
+
+### April 24 — Agents E2E Smoke Test (Proved the platform is alive)
+- Health checks: `GoalKeeper:8050`, `crew-orchestrator:8081`, `mcp-gateway:8820`, `hypercode-core:8000` ✅
+- Cross-agent dispatch works (orchestrator → agent `/execute`) ✅
+- Ollama reachable from agents via `hypercode-ollama:11434` ✅
+- MCP Gateway `/health` returns `200` with an empty body (use `curl -i` to see status) ✅
+
+Smoke flow (PowerShell):
+```
+curl.exe -s http://127.0.0.1:8050/health
+curl.exe -s http://127.0.0.1:8081/health
+curl.exe -i http://127.0.0.1:8820/health
+curl.exe -s http://127.0.0.1:8000/health
+
+curl.exe -s http://127.0.0.1:11434/api/tags
+
+curl.exe -s -X POST http://127.0.0.1:8081/execute `
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d '{"task":{"id":"smoke-cross","type":"system_smoke","description":"Ping agents and report status","agents":["frontend-specialist","backend-specialist","database-architect","qa-engineer"],"requires_approval":false}}'
+```
 
 ### Security
 - Trivy scanner (`hyper-shield-scanner`) running as container ✅

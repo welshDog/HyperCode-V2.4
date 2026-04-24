@@ -1,10 +1,9 @@
 import os
-import json
 import logging
 from typing import Dict, Any, Optional
 import httpx
 import secrets
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import uvicorn
 from pydantic import BaseModel
@@ -158,22 +157,39 @@ class CoderAgent:
             "analysis": "System is running within normal parameters."
         }
 
-    async def generate_code_with_ollama(self, prompt: str, model: str = "qwen2.5-coder:7b") -> Dict[str, Any]:
+    async def generate_code_with_ollama(self, prompt: str, model: str | None = None) -> Dict[str, Any]:
         """Generate code using Ollama."""
-        url = os.getenv("OLLAMA_URL", "http://ollama:11434/api/generate")
-        payload = {
-            "model": model,
-            "prompt": prompt,
-            "stream": False
-        }
+        url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434/api/generate")
+        resolved_model = (model or os.getenv("OLLAMA_MODEL") or "qwen2.5:3b").strip()
         try:
-            response = await self.http_client.post(url, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return {"status": "completed", "code": data.get("response", "")}
-        except httpx.HTTPStatusError as e:
-            logger.error(f"Ollama HTTP error: {e.response.text}")
-            return {"status": "error", "message": f"Ollama Error: {e.response.text}"}
+            models_to_try: list[str] = [resolved_model]
+            fallback_model = (os.getenv("OLLAMA_MODEL_FALLBACK") or "").strip()
+            if fallback_model and fallback_model not in models_to_try:
+                models_to_try.append(fallback_model)
+            for candidate in ("qwen2.5:3b", "tinyllama:latest"):
+                if candidate not in models_to_try:
+                    models_to_try.append(candidate)
+
+            last_error_text: str | None = None
+            for candidate_model in models_to_try:
+                payload = {"model": candidate_model, "prompt": prompt, "stream": False}
+                try:
+                    response = await self.http_client.post(url, json=payload)
+                    response.raise_for_status()
+                    data = response.json()
+                    return {"status": "completed", "code": data.get("response", ""), "model": candidate_model}
+                except httpx.HTTPStatusError as e:
+                    error_text = e.response.text or ""
+                    last_error_text = error_text
+                    if e.response.status_code == 404 and "model" in error_text and "not found" in error_text:
+                        continue
+                    if "requires more system memory" in error_text:
+                        continue
+                    logger.error(f"Ollama HTTP error: {error_text}")
+                    return {"status": "error", "message": f"Ollama Error: {error_text}"}
+
+            logger.error(f"Ollama model not available: {last_error_text or 'unknown error'}")
+            return {"status": "error", "message": f"Ollama Error: {last_error_text or 'model not available'}"}
         except httpx.RequestError as e:
             logger.error(f"Ollama request failed: {str(e)}")
             return {"status": "error", "message": f"Connection Error: {str(e)}"}
