@@ -258,12 +258,13 @@ Will auto-add MCP metrics + state graph visualization.
 
 ```bash
 curl http://localhost:8820/health
-# → {"status": "healthy", "tools": 4}
+# → 200 OK (body may be empty depending on gateway build)
 ```
 
 ### 2. Tool Discovery
 
 ```bash
+# If gateway auth is disabled in your setup, you can omit the Authorization header.
 curl -H "Authorization: Bearer agent-key-001" \
   http://localhost:8820/tools/discover
 # → {"tools": [{"name": "github:list_repos", ...}]}
@@ -272,8 +273,8 @@ curl -H "Authorization: Bearer agent-key-001" \
 ### 3. Model Runner Health
 
 ```bash
-curl http://localhost:11434/api/health
-# → {"status": "ready"}
+curl http://localhost:11434/api/tags
+# → {"models":[...]}
 ```
 
 ### 4. Agent Integration
@@ -310,7 +311,7 @@ docker system df
 
 ```bash
 # Inside agent container
-docker exec backend-specialist-mcp curl http://mcp-gateway:8820/health
+docker exec mcp-gateway wget -qO- http://localhost:8820/health
 # Check: Network connectivity, DNS resolution
 ```
 

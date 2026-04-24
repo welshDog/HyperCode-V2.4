@@ -182,21 +182,31 @@ Resources per agent:
 
 ### Plan a Feature
 ```bash
-curl -X POST http://localhost:8081/plan \
+curl -X POST http://127.0.0.1:8081/execute \
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "task": "Create shopping cart feature",
-    "context": {"tech_stack": "React, FastAPI, PostgreSQL"}
+    "task": {
+      "id": "feat-001",
+      "type": "feature_plan",
+      "description": "Create shopping cart feature (React + FastAPI + PostgreSQL)",
+      "agents": ["project-strategist", "backend-specialist", "frontend-specialist"],
+      "requires_approval": false
+    }
   }'
 ```
 
 ### Execute with Specific Agent
 ```bash
-curl -X POST http://localhost:8081/agent/coder-agent/execute \
+curl -X POST http://127.0.0.1:8081/task \
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "message": "Generate a TypeScript utility for date formatting",
-    "context": {}
+    "id": "code-001",
+    "task": "Generate a TypeScript utility for date formatting",
+    "type": "code_generation",
+    "agent": "coder-agent",
+    "requires_approval": false
   }'
 ```
 

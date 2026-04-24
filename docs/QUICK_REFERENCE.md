@@ -129,33 +129,28 @@ curl http://127.0.0.1:8010/playbook/healer-agent/alert_service_unhealthy | jq .
 curl http://127.0.0.1:8010/all-metrics | jq .
 ```
 
-## Workflow Execution
+## Orchestrator Execution
 
 ```bash
-# Submit workflow
-curl -X POST http://127.0.0.1:8081/workflow/execute \
-  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)" \
+# Multi-agent execution
+curl -X POST http://127.0.0.1:8081/execute \
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "Test Workflow",
-    "parallel": false,
-    "steps": [
-      {
-        "id": "step-1",
-        "agent_type": "test-agent",
-        "task_description": "Run health check",
-        "timeout_seconds": 60
-      }
-    ]
+    "task": {
+      "id": "smoke-001",
+      "type": "system_smoke",
+      "description": "Ping all agents and report status",
+      "agents": ["frontend-specialist", "backend-specialist", "database-architect", "qa-engineer"],
+      "requires_approval": false
+    }
   }'
 
-# Check status
-curl http://127.0.0.1:8081/workflow/test-workflow-1 \
-  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)"
-
-# List workflows
-curl http://127.0.0.1:8081/workflows \
-  -H "X-API-Key: $(grep API_KEY .env | cut -d= -f2)"
+# Single-agent dispatch
+curl -X POST http://127.0.0.1:8081/task \
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"code-001","task":"Write a python function","type":"code_generation","agent":"coder-agent","requires_approval":false}'
 ```
 
 ## CodeRabbit Integration

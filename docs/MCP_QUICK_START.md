@@ -22,6 +22,7 @@ docker compose ps -f name=mcp
 
 ```bash
 # Discover available tools
+# If gateway auth is disabled in your setup, you can omit the Authorization header.
 curl -H "Authorization: Bearer agent-key-001" http://localhost:8820/tools/discover
 
 # Call a tool
@@ -104,5 +105,5 @@ docker logs model-runner
 
 Can't connect?
 ```bash
-docker exec backend-specialist-mcp curl http://mcp-gateway:8820/health
+docker exec mcp-gateway wget -qO- http://localhost:8820/health
 ```

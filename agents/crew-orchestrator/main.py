@@ -28,14 +28,20 @@ import hashlib
 import secrets
 from time import perf_counter
 from contextlib import asynccontextmanager
-from task_queue import get_redis_pool
+try:
+    from task_queue import get_redis_pool
+except Exception:
+    from .task_queue import get_redis_pool
 import redis.asyncio as redis
 from datetime import datetime, timezone
 from prometheus_client import Counter
 from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 
 # Import configuration
-from config import settings
+try:
+    from config import settings
+except Exception:
+    from .config import settings
 
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
@@ -63,7 +69,7 @@ async def monitor_agent_health():
             for agent_name in settings.enabled_agent_keys():
                 url = settings.agents[agent_name]
                 try:
-                    async with httpx.AsyncClient(timeout=5.0) as client:
+                    async with httpx.AsyncClient(timeout=5.0, headers=_agent_auth_headers()) as client:
                         start_time = datetime.now()
                         response = await client.get(f"{url}/health")
                         latency = (datetime.now() - start_time).total_seconds() * 1000
@@ -172,6 +178,13 @@ async def require_api_key(api_key: str = Security(api_key_header)) -> str:
             detail="Invalid or missing API key",
         )
     return api_key
+
+
+def _agent_auth_headers() -> dict[str, str]:
+    api_key = (os.getenv("HYPERCODE_API_KEY") or os.getenv("API_KEY") or "").strip()
+    if not api_key:
+        return {}
+    return {"X-API-Key": api_key}
 
 
 _smoke_request_total = Counter(
@@ -556,13 +569,13 @@ async def execute_task(
 
         if not agent_url:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=422,
                 detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
             )
 
         # Call the agent
         try:
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=120.0, headers=_agent_auth_headers()) as client:
                 agent_payload = {
                     "id": task.id,
                     "task": plan_description,
@@ -571,7 +584,10 @@ async def execute_task(
                 }
 
                 response = await client.post(
-                    f"{agent_url}/execute", json=agent_payload, timeout=120.0
+                    f"{agent_url}/execute",
+                    json=agent_payload,
+                    headers=_agent_auth_headers(),
+                    timeout=120.0,
                 )
                 if response.status_code == 200:
                     result = response.json()
@@ -659,8 +675,13 @@ async def dispatch_task(
     }
 
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(f"{agent_url}/execute", json=payload, timeout=120.0)
+        async with httpx.AsyncClient(timeout=120.0, headers=_agent_auth_headers()) as client:
+            resp = await client.post(
+                f"{agent_url}/execute",
+                json=payload,
+                headers=_agent_auth_headers(),
+                timeout=120.0,
+            )
         if resp.status_code != 200:
             logger.error(
                 json.dumps(
@@ -727,7 +748,7 @@ async def execute_smoke(
     async def probe(name: str, url: str) -> tuple[str, SmokeAgentResult]:
         try:
             start = perf_counter()
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with httpx.AsyncClient(timeout=5.0, headers=_agent_auth_headers()) as client:
                 resp = await client.get(f"{url}/health")
             agent_latency_ms = (perf_counter() - start) * 1000.0
             if resp.status_code == 200:

@@ -36,6 +36,7 @@ def test_list_agents():
     # so mock the entire settings object instead of individual methods.
     mock_settings = MagicMock()
     mock_settings.api_key = None  # disable auth check (dev mode)
+    mock_settings.environment = "development"
     mock_settings.enabled_agent_keys.return_value = ["backend_specialist"]
     mock_settings.agents = {"backend_specialist": "http://backend-specialist:8003"}
     with patch("main.settings", mock_settings):

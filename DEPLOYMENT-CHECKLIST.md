@@ -171,8 +171,8 @@ docker stats --no-stream | head -3
 docker ps --format "table {{.Names}}\t{{.Health}}"
 # Expected: mcp-gateway shows "healthy" or "starting"
 
-curl http://localhost:8820/mcp
-# Expected: 400 (bad request) — proves endpoint is reachable
+curl http://localhost:8820/health
+# Expected: 200 (may be empty body) — proves gateway is reachable
 ```
 
 ### ✓ Alerting Active

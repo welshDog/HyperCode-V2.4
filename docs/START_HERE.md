@@ -113,7 +113,7 @@ python scripts/verify_mcp_setup.py
 
 # Option B: Manual checks
 curl http://localhost:8820/health
-curl http://localhost:11434/api/health
+curl http://localhost:11434/api/tags
 ```
 
 **Expected**: All services respond with `200 OK`
@@ -298,8 +298,7 @@ sleep 30
 python scripts/verify_mcp_setup.py
 
 # Test gateway
-curl -H "Authorization: Bearer agent-key-001" \
-  http://localhost:8820/tools/discover
+curl -H "Authorization: Bearer agent-key-001" http://localhost:8820/tools/discover
 
 # Test tool call
 curl -X POST \

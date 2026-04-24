@@ -17,6 +17,7 @@ client = TestClient(app)
 def mock_settings():
     settings = MagicMock()
     settings.api_key = None
+    settings.environment = "development"
     settings.agents = {
         "coder": "http://coder:8000",
         "agent_x": "http://agent-x:8000",

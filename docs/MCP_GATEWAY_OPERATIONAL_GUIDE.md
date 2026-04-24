@@ -47,6 +47,9 @@ MODEL_RUNNER_DEFAULT_MODEL=phi3:3.8b-mini-instruct-4k-q4_K_M
 # Check all MCP services healthy
 docker compose ps | grep mcp
 
+# Windows (PowerShell)
+# docker compose ps | findstr mcp
+
 # Expected output:
 # mcp-gateway          mcp-gateway:8820     Up (healthy)
 # mcp-github           mcp-github:3001      Up (healthy)
@@ -60,6 +63,7 @@ docker compose ps | grep mcp
 
 ```bash
 # Discover available tools
+# If gateway auth is disabled in your setup, you can omit the Authorization header.
 curl -H "Authorization: Bearer agent-key-001" \
   http://localhost:8820/tools/discover
 

@@ -25,8 +25,8 @@ class Settings(BaseSettings):
         "devops_engineer": "http://devops-engineer:8006",
         "security_engineer": "http://security-engineer:8007",
         "system_architect": "http://system-architect:8008",
-        "coder": "http://coder:8000",
-        "coder_agent": "http://coder:8000",
+        "coder": "http://coder-agent:8002",
+        "coder_agent": "http://coder-agent:8002",
         "agent_x": "http://agent-x:8000",
     }
 

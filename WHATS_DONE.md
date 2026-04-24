@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 23, 2026** — update this every session.
+> **Updated: April 24, 2026** — update this every session.
 
 ---
 
@@ -49,6 +49,7 @@
 - `validate_security()` — rejects weak JWT in prod/staging ✅
 - **Core deps split for security** — `backend/requirements.txt` = core only, `backend/requirements-ai.txt` = optional AI deps ✅ ← **April 23**
 - **AI backend profile** — `docker compose --profile ai up -d` runs `ai-backend` with `INSTALL_AI_DEPS=true` ✅ ← **April 23**
+- Core RAG boot no longer hard-requires `langchain_text_splitters` (optional import + fallback chunker) ✅ ← **April 24**
 
 ### Database
 - PostgreSQL running, Alembic migrations up to `009` ✅ ← **April 19**
@@ -96,6 +97,8 @@
 - crew-orchestrator — agent lifecycle ✅
 - hyper-architect, hyper-observer, hyper-worker ✅
 - super-hyper-broski-agent, broski-bot ✅
+- Redis attached to both `data-net` + `agents-net` — fixes agent DNS/connectivity to `redis:6379` ✅ ← **April 24**
+- crew-orchestrator now forwards `X-API-Key` to agent `/execute` calls (required by agent auth middleware) ✅ ← **April 24**
 
 ### Security
 - Trivy scanner (`hyper-shield-scanner`) running as container ✅

@@ -15,8 +15,6 @@ sys.modules["arq.connections"] = MagicMock()
 sys.modules["arq.worker"] = MagicMock()
 sys.modules["crewai"] = MagicMock()
 
-from main import app
-
 @pytest.fixture
 def mock_redis():
     mock = AsyncMock()
@@ -43,7 +41,9 @@ def mock_httpx_response():
 
 @pytest_asyncio.fixture
 async def client(mock_redis):
+    import main
+
     # Patch the global redis_client in main
     with patch("main.redis_client", mock_redis):
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as ac:
             yield ac
