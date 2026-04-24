@@ -123,6 +123,12 @@ curl.exe -s -X POST http://127.0.0.1:8081/execute `
   -H "X-API-Key: <ORCHESTRATOR_API_KEY>" `
   -H "Content-Type: application/json" `
   -d '{"task":{"id":"smoke-cross","type":"system_smoke","description":"Ping agents and report status","agents":["frontend-specialist","backend-specialist","database-architect","qa-engineer"],"requires_approval":false}}'
+
+# coder-agent specific (proves Ollama + fallbacks end-to-end)
+curl.exe -s -X POST http://127.0.0.1:8081/execute `
+  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" `
+  -H "Content-Type: application/json" `
+  -d '{"task":{"id":"coder-smoke","type":"code_generation","description":"Write hello world in Python.","agents":["coder-agent"],"requires_approval":false}}' | python -c "import json,sys; r=json.load(sys.stdin); print(r.get('status'), r['results']['coder-agent']['result'].get('status'), r['results']['coder-agent']['result'].get('model'))"
 ```
 
 ### Security
