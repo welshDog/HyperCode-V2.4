@@ -7,8 +7,8 @@
 
 ## ✅ Already done (this session)
 
-- **B2 V2.4 side**: `COURSE_SYNC_SECRET` inlined in `.env` line 112 = `2Hog/dg3sPOLJQpyOmMoyMoISH2gjYWZGpvap4qk5Uc=`
-  (+ `SHOP_SYNC_SECRET` inlined for when Phase 3 lands)
+- **B2 V2.4 side**: `COURSE_SYNC_SECRET` set in `.env` ✅
+  (+ `SHOP_SYNC_SECRET` set for when Phase 3 lands) ✅
 - **B4**: Celery `task_acks_late=True` verified live ✅
 - **B5**: endpoint verified — wrong secret → 401, missing header → 422, unknown discord_id → 404 ✅
 - **Q3**: `VITE_STRIPE_PAYMENT_LINK_URL` set in `frontend/.env.local` (Course repo) + V2.4 .env
@@ -48,9 +48,9 @@ VALUES ('<your-test-user-uuid>', 10, 'B1 webhook test');
 1. Go to https://supabase.com/dashboard/project/yhtmuibgdnxhbgboajhc/settings/functions
 2. Under **Secrets**, click **Add new secret** (or Edit if it exists)
 3. Name: `COURSE_SYNC_SECRET`
-   Value: `2Hog/dg3sPOLJQpyOmMoyMoISH2gjYWZGpvap4qk5Uc=`
+   Value: `<use the same value as V2.4 COURSE_SYNC_SECRET>`
 4. Also set (for when Phase 3 lands):
-   `SHOP_SYNC_SECRET` = `qB3M/0DJa2032HSfZcukgrIE84i5uvBBo577h/6VlQk=`
+   `SHOP_SYNC_SECRET` = `<use the same value as V2.4 SHOP_SYNC_SECRET>`
 5. Save.
 
 > Note: the mission list calls it `COURSE_WEBHOOK_SECRET` but the V2.4 code reads
@@ -70,7 +70,7 @@ After saving, the Edge Function will pick it up on next invocation.
 stripe listen --forward-to localhost:8000/api/stripe/webhook
 ```
 Copy the `whsec_...` signing secret it prints.
-Check V2.4 `.env` line 123: `STRIPE_WEBHOOK_SECRET=whsec_eE9ouOGmXaNMpdIfOWQhRTydbGlCAgKg`.
+Check V2.4 `.env`: `STRIPE_WEBHOOK_SECRET=<value printed by stripe listen>`.
 If `stripe listen` prints a different secret, update `.env` to match, then:
 ```bash
 cd "H:/HyperStation zone/HyperCode/HyperCode-V2.4"
