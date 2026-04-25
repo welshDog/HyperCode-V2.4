@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 25, 2026** — update this every session.
+> **Updated: April 26, 2026** — update this every session.
 
 ---
 
@@ -114,6 +114,12 @@
   - Calls Ollama via `OLLAMA_HOST` env var, model `OLLAMA_MODEL`
   - Registered in `docker-compose.agents.yml` on `agents-net`
   - Quick test: `curl -X POST http://localhost:8096/split -H "Content-Type: application/json" -d '{"task": "your big task here"}'`
+- **sys.path import fix** ✅ ← **April 26** — sibling-module imports now safe regardless of cwd/uvicorn context
+  - `session-snapshot/main.py` (imports `snapshot_writer`)
+  - `hyperhealth/main.py` + `hyperhealth/worker.py` (imports `models`)
+  - `crew-orchestrator/main.py` — same pattern applied
+  - **Bonus:** removed eager DB engine creation at import-time in hyperhealth (was causing `asyncpg` import errors in unit tests)
+  - Added missing `status_to_int()` helper that hyperhealth tests expect
 
 ### Hyperfocus Features ✅ DONE April 25
 - **Feature 1: Micro-Achievement Git Hook** ✅
@@ -222,12 +228,11 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **B3 verify** — open checkout URL, pay 4242, confirm Postgres rows written ← IN PROGRESS
-2. **Feature 4: Morning Briefing** — Discord `/briefing` command
-3. **Feature 5: Focus Mode** — `make focus` / `make calm`
-5. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
-6. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-7. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **Feature 4: Morning Briefing** — Discord `/briefing` command
+2. **Feature 5: Focus Mode** — `make focus` / `make calm`
+3. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
+4. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
+5. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -237,6 +242,7 @@ These need YOU to do them (can't be automated):
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
 Tests:           pytest backend/tests -q  (223 passed, 6 skipped — skips are expected)
+Agent tests:     crew-orchestrator: 15p | session-snapshot: 3p | hyperhealth: 12p
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook
@@ -247,7 +253,7 @@ Docker context:  must be 'desktop-linux' on Windows
 Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
 Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
 OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
-HyperSplit:      POST /api/v1/hypersplit | agent port 8096 | agents/hyper-split-agent/
+sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe sibling-import bootstrap
 ```
 
 ---
@@ -261,7 +267,10 @@ backend/app/main.py         — FastAPI core (routes, middleware, startup)
 backend/app/core/config.py  — all settings
 monitoring/prometheus/      — live Prometheus config
 agents/                     — all agent code
-agents/hypersplit/           — HyperSplit Agent (Feature 2) ← NEW
+agents/hyper-split-agent/   — HyperSplit Agent (Feature 2)
+agents/session-snapshot/    — Session Snapshot Agent (Feature 3)
+agents/hyperhealth/         — HyperHealth API + worker
+agents/crew-orchestrator/   — Central task orchestrator
 secrets/                    — Docker secrets (.txt files, gitignored)
 docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
 docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
