@@ -104,10 +104,12 @@ async def stripe_webhook(
     """
     Handle incoming Stripe webhook events.
     Verifies signature using STRIPE_WEBHOOK_SECRET.
+
+    Production: STRIPE_WEBHOOK_SECRET MUST be set — requests are rejected if missing.
+    Dev/staging: signature check is skipped with a warning log when secret is absent.
     """
     payload = await request.body()
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-
     is_production = settings.ENVIRONMENT.lower() == "production"
 
     if is_production:
