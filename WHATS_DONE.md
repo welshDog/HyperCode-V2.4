@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 24, 2026** — update this every session.
+> **Updated: April 25, 2026** — update this every session.
 
 ---
 
@@ -67,6 +67,11 @@
 - Webhook writes: saves payment, awards BROski$, updates subscription tier ✅
 - Idempotency: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 - Token grants: starter=200, builder=800, hyper=2500 ✅
+- **B3 E2E Stripe loop PROVED** ✅ ← **April 25**
+  - Stripe listener → `http://127.0.0.1:8000/api/stripe/webhook` (IPv4 — IPv6 issue avoided)
+  - `checkout.session.completed` → writes `public.payments` row + `public.token_transactions` row
+  - `broski_tokens` balance increases by +200 on `starter` plan purchase
+  - Webhook secret refreshed per listener session ✅
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance column ✅
@@ -103,6 +108,22 @@
   - Compose uses `CODER_OLLAMA_MODEL` (prevents global `OLLAMA_MODEL` overrides)
   - Auto-fallback on Ollama errors: missing model / insufficient memory → tries smaller local models
   - Verified success path: `tinyllama:latest`
+- **hyper-split-agent** ✅ ← **April 25** (Feature 2 DONE)
+  - Port: `8096` | Route: `POST /api/v1/hypersplit`
+  - Takes a plain-English task → returns 3–7 ADHD-friendly microtasks with time estimates
+  - Calls Ollama via `OLLAMA_URL` env var, model `OLLAMA_MODEL`
+  - Registered in `docker-compose.agents.yml` on `agents-net`
+  - Quick test: `curl -X POST http://localhost:8096/split -H "Content-Type: application/json" -d '{"task": "your big task here"}'`
+
+### Hyperfocus Features ✅ DONE April 25
+- **Feature 1: Micro-Achievement Git Hook** ✅
+  - `.git/hooks/post-commit` + `scripts/award-commit-tokens.py`
+  - Awards BROski$ on commit type: `fix:` = 25 tokens, `docs:` = 5 tokens, streaks = 100–250
+  - `GET /api/v1/achievements/history` + `GET /api/v1/achievements/streak`
+- **Feature 2: HyperSplit Agent** ✅
+  - `agents/hypersplit/` — FastAPI on port 8096
+  - `POST /api/v1/hypersplit` — proxied through hypercode-core
+  - Discord `/split` command in broski-bot
 
 ### April 24 — Agents E2E Smoke Test (Proved the platform is alive)
 - Health checks: `GoalKeeper:8050`, `crew-orchestrator:8081`, `mcp-gateway:8820`, `hypercode-core:8000` ✅
@@ -178,12 +199,12 @@ These need YOU to do them (can't be automated):
 
 ---
 
-## 📋 PLANS WRITTEN THIS SESSION (ready to build)
+## 📋 PLANS WRITTEN / IN PROGRESS
 
-- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features, full prompts inside:
-  - Feature 1: Micro-Achievement Git Hook (~2h)
-  - Feature 2: HyperSplit Agent (~3h)
-  - Feature 3: Session Snapshot Agent (~2h)
+- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features:
+  - Feature 1: Micro-Achievement Git Hook ✅ DONE April 25
+  - Feature 2: HyperSplit Agent ✅ DONE April 25
+  - Feature 3: Session Snapshot Agent (~2h) — next up
   - Feature 4: Morning Briefing `/briefing` (~1.5h)
   - Feature 5: Focus / Panic Mode `make focus` / `make calm` (~1h)
 - `BROSKI_PETS_INTEGRATION_PLAN.md` — full BROskiPets × HyperCode plan:
@@ -198,14 +219,13 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
-2. **`git push origin main`** — 2 commits ready: `d27b67a` (alembic 009) + `8cbc5c9` (security+heal)
-3. **E2E checkout test** — `stripe listen --forward-to localhost:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
-4. **Gordon Tier 3 verify** — `docker exec celery-worker python -c "from app.core.celery_app import celery_app; print(celery_app.conf.task_acks_late)"` → should print `True`
-5. **Token sync smoke test** — manual curl to `/api/v1/economy/award-from-course` with the shared secret
-6. **Hyperfocus Features** — start with Feature 1 (git hook, 50 lines, quick win)
-7. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-8. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **B3 verify** — open checkout URL, pay 4242, confirm Postgres rows written ← IN PROGRESS
+2. **Feature 3: Session Snapshot Agent** — `make snapshot` → SESSION.md auto-written
+3. **Feature 4: Morning Briefing** — Discord `/briefing` command
+4. **Feature 5: Focus Mode** — `make focus` / `make calm`
+5. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
+6. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
+7. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -214,7 +234,7 @@ These need YOU to do them (can't be automated):
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
-Tests:           pytest backend/tests -q  (221 passed, 6 skipped — skips are expected)
+Tests:           pytest backend/tests -q  (223 passed, 6 skipped — skips are expected)
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook
@@ -224,6 +244,7 @@ Docker context:  must be 'desktop-linux' on Windows
 Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
 Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
 OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
+HyperSplit:      POST /api/v1/hypersplit | agent port 8096 | agents/hypersplit/
 ```
 
 ---
@@ -237,6 +258,7 @@ backend/app/main.py         — FastAPI core (routes, middleware, startup)
 backend/app/core/config.py  — all settings
 monitoring/prometheus/      — live Prometheus config
 agents/                     — all agent code
+agents/hypersplit/           — HyperSplit Agent (Feature 2) ← NEW
 secrets/                    — Docker secrets (.txt files, gitignored)
 docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
 docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
