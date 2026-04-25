@@ -104,20 +104,27 @@ async def stripe_webhook(
     """
     Handle incoming Stripe webhook events.
     Verifies signature using STRIPE_WEBHOOK_SECRET.
+
+    Production: STRIPE_WEBHOOK_SECRET MUST be set — requests are rejected if missing.
+    Dev/staging: signature check is skipped with a warning log when secret is absent.
     """
     payload = await request.body()
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
-
     is_production = settings.ENVIRONMENT.lower() == "production"
 
-    if (not webhook_secret) or ((not is_production) and (not stripe_signature)):
-        logger.warning("STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev mode)")
-        try:
-            import json
-            event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
-    else:
+    # ── Production guard — hard fail if secret not configured ────────────────
+    if is_production and not webhook_secret:
+        logger.critical(
+            "STRIPE_WEBHOOK_SECRET is not set in production — rejecting webhook request. "
+            "Set a valid whsec_... value and restart the service."
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Webhook secret not configured. Contact the platform administrator.",
+        )
+
+    # ── Verified path — secret present ───────────────────────────────────────
+    if webhook_secret:
         if not stripe_signature:
             raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
         try:
@@ -127,6 +134,17 @@ async def stripe_webhook(
         except stripe.error.SignatureVerificationError as e:
             logger.error(f"Webhook signature failed: {e}")
             raise HTTPException(status_code=400, detail="Invalid signature")
+
+    # ── Dev/staging fallback — no secret, skip verification ──────────────────
+    else:
+        logger.warning(
+            "STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev/staging mode only)"
+        )
+        try:
+            import json
+            event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
 
     result = await handle_webhook_event(event)
     return {"status": "ok", "event_type": event["type"], "result": result}
