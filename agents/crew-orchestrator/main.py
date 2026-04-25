@@ -29,9 +29,9 @@ import secrets
 from time import perf_counter
 from contextlib import asynccontextmanager
 try:
-    from task_queue import get_redis_pool
-except Exception:
     from .task_queue import get_redis_pool
+except ImportError:
+    from task_queue import get_redis_pool
 import redis.asyncio as redis
 from datetime import datetime, timezone
 from prometheus_client import Counter
@@ -39,9 +39,9 @@ from prometheus_client.exposition import CONTENT_TYPE_LATEST, generate_latest
 
 # Import configuration
 try:
-    from config import settings
-except Exception:
     from .config import settings
+except ImportError:
+    from config import settings
 
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
