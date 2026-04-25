@@ -111,19 +111,22 @@
 - **hyper-split-agent** ✅ ← **April 25** (Feature 2 DONE)
   - Port: `8096` | Route: `POST /api/v1/hypersplit`
   - Takes a plain-English task → returns 3–7 ADHD-friendly microtasks with time estimates
-  - Calls Ollama via `OLLAMA_URL` env var, model `OLLAMA_MODEL`
+  - Calls Ollama via `OLLAMA_HOST` env var, model `OLLAMA_MODEL`
   - Registered in `docker-compose.agents.yml` on `agents-net`
   - Quick test: `curl -X POST http://localhost:8096/split -H "Content-Type: application/json" -d '{"task": "your big task here"}'`
 
 ### Hyperfocus Features ✅ DONE April 25
 - **Feature 1: Micro-Achievement Git Hook** ✅
-  - `.git/hooks/post-commit` + `scripts/award-commit-tokens.py`
-  - Awards BROski$ on commit type: `fix:` = 25 tokens, `docs:` = 5 tokens, streaks = 100–250
-  - `GET /api/v1/achievements/history` + `GET /api/v1/achievements/streak`
+  - `scripts/git-hooks/post-commit` + `scripts/install-git-hooks.ps1`
+  - Awards tokens via `POST /api/v1/economy/award-from-course` (idempotent `source_id=git_<sha>`)
+  - Commit-type awards: `fix:` = 25, `docs:` = 5, fallback = 10
 - **Feature 2: HyperSplit Agent** ✅
-  - `agents/hypersplit/` — FastAPI on port 8096
+  - `agents/hyper-split-agent/` — FastAPI on port 8096
   - `POST /api/v1/hypersplit` — proxied through hypercode-core
-  - Discord `/split` command in broski-bot
+- **Feature 3: Session Snapshot Agent** ✅
+  - `agents/session-snapshot/` — FastAPI on port 8097
+  - `make snapshot` writes `SESSION.md` (gitignored)
+  - `make up` / `make start` / `make agents` prints the last SESSION.md via `scripts/show-session.sh`
 
 ### April 24 — Agents E2E Smoke Test (Proved the platform is alive)
 - Health checks: `GoalKeeper:8050`, `crew-orchestrator:8081`, `mcp-gateway:8820`, `hypercode-core:8000` ✅
@@ -204,7 +207,7 @@ These need YOU to do them (can't be automated):
 - `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features:
   - Feature 1: Micro-Achievement Git Hook ✅ DONE April 25
   - Feature 2: HyperSplit Agent ✅ DONE April 25
-  - Feature 3: Session Snapshot Agent (~2h) — next up
+  - Feature 3: Session Snapshot Agent ✅ DONE April 25
   - Feature 4: Morning Briefing `/briefing` (~1.5h)
   - Feature 5: Focus / Panic Mode `make focus` / `make calm` (~1h)
 - `BROSKI_PETS_INTEGRATION_PLAN.md` — full BROskiPets × HyperCode plan:
@@ -220,9 +223,8 @@ These need YOU to do them (can't be automated):
 ## 🚀 NEXT UP (in order)
 
 1. **B3 verify** — open checkout URL, pay 4242, confirm Postgres rows written ← IN PROGRESS
-2. **Feature 3: Session Snapshot Agent** — `make snapshot` → SESSION.md auto-written
-3. **Feature 4: Morning Briefing** — Discord `/briefing` command
-4. **Feature 5: Focus Mode** — `make focus` / `make calm`
+2. **Feature 4: Morning Briefing** — Discord `/briefing` command
+3. **Feature 5: Focus Mode** — `make focus` / `make calm`
 5. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
 6. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
 7. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
@@ -245,7 +247,7 @@ Docker context:  must be 'desktop-linux' on Windows
 Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
 Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
 OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
-HyperSplit:      POST /api/v1/hypersplit | agent port 8096 | agents/hypersplit/
+HyperSplit:      POST /api/v1/hypersplit | agent port 8096 | agents/hyper-split-agent/
 ```
 
 ---

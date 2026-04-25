@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all
 
 # Default target
 help:
@@ -14,6 +14,7 @@ help:
 	@echo "  make status       - Check agent status"
 	@echo "  make clean        - Remove containers and volumes"
 	@echo "  make test         - Test orchestrator API"
+	@echo "  make snapshot     - Generate SESSION.md (Session Snapshot Agent)"
 	@echo "  make network-init - Ensure hypercode_public_net exists"
 	@echo ""
 	@echo "Scanning & Quality Gates:"
@@ -61,6 +62,7 @@ build: pre-build-check network-init
 # Start full stack with secrets
 up:
 	docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+	@bash scripts/show-session.sh || true
 
 # Stop full stack
 down:
@@ -176,10 +178,15 @@ init: ## First-time setup: create networks, data dirs, validate .env
 # Start the full production stack
 start: init ## Start the full production stack
 	docker compose up -d
+	@bash scripts/show-session.sh || true
 
 # Start only the agents stack
 agents: init ## Start only the agents stack (standalone)
 	docker compose -f docker-compose.agents.yml up -d --build
+	@bash scripts/show-session.sh || true
+
+snapshot:
+	@curl -s -X POST http://localhost:8097/snapshot -H "Content-Type: application/json" -d '{}' 2>/dev/null | python3 -m json.tool || echo "Session Snapshot agent not responding (start it with: make agents)"
 
 # Stop everything
 stop: ## Stop all running stacks

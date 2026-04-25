@@ -75,6 +75,7 @@ Core Crew:
   • coder-agent            — Code generation & development
   • tips-tricks-writer     — Content & documentation
   • hyper-split-agent      — Task decomposition (3–7 ADHD-friendly microtasks)
+  • session-snapshot       — Writes SESSION.md + shows last session on startup
 
 Specialists:
   • frontend-specialist    — UI/UX development
@@ -142,6 +143,7 @@ docker rm <agent-name>
 | **tips-tricks-writer** | 8011 | Content generation | 512M | agents |
 | **healer-agent** | 8010 | System monitoring & healing | 512M | agents |
 | **hyper-split-agent** | 8096 | Task decomposition (HyperSplit) | 256M | hyper |
+| **session-snapshot** | 8097 | Session snapshot (writes SESSION.md) | 256M | hyper |
 | frontend-specialist | 8012 | UI/UX development | 1G | agents |
 | backend-specialist | 8003 | API & server development | 1G | agents |
 | database-architect | 8004 | Database design & optimization | 1G | agents |
@@ -218,6 +220,7 @@ curl http://localhost:8081/health          # Orchestrator
 curl http://localhost:8002/health          # Coder agent
 curl http://localhost:8012/health          # Frontend specialist
 curl http://localhost:8096/health          # HyperSplit agent
+curl http://localhost:8097/health          # Session Snapshot agent
 ```
 
 ---

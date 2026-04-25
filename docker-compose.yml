@@ -2366,6 +2366,45 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  session-snapshot:
+    build: ./agents/session-snapshot
+    container_name: session-snapshot
+    hostname: session-snapshot
+    profiles: ["hyper"]
+    ports:
+      - "127.0.0.1:8097:8097"
+    environment:
+      WORKSPACE_PATH: /workspace
+      SNAPSHOT_POLL_SECONDS: "300"
+      SNAPSHOT_IDLE_MINUTES: "30"
+    volumes:
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
   agent-x:
     build:
       context: .

@@ -224,6 +224,32 @@ services:
         - path: ./agents/hyper-split-agent/requirements.txt
           action: rebuild
 
+  session-snapshot:
+    build: ./agents/session-snapshot
+    restart: unless-stopped
+    ports: ["127.0.0.1:8097:8097"]
+    networks: [hypercode-net]
+    volumes:
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    environment:
+      WORKSPACE_PATH: /workspace
+      SNAPSHOT_POLL_SECONDS: "300"
+      SNAPSHOT_IDLE_MINUTES: "30"
+    develop:
+      watch:
+        - path: ./agents/session-snapshot
+          action: sync+restart
+          target: /app
+          ignore: [__pycache__, .pytest_cache, "*.pyc"]
+        - path: ./agents/session-snapshot/requirements.txt
+          action: rebuild
+
   frontend-specialist:
     build: ./agents/01-frontend-specialist
     restart: unless-stopped

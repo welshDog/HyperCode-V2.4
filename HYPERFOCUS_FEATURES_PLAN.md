@@ -1,7 +1,7 @@
 # 🧠 HYPERFOCUS FEATURES — Build Plan
 > Neurodivergent-first additions to HyperCode V2.4
 > Written: April 16, 2026 | **Updated: April 25, 2026**
-> **Overall Status: Feature 1 ✅ DONE | Feature 2 ✅ DONE | Features 3–5 PLANNED**
+> **Overall Status: Feature 1 ✅ DONE | Feature 2 ✅ DONE | Feature 3 ✅ DONE | Features 4–5 PLANNED**
 
 ---
 
@@ -10,7 +10,7 @@
 ```
 1. Micro-Achievement Git Hook    ✅ DONE April 25
 2. HyperSplit Agent              ✅ DONE April 25
-3. Session Snapshot Agent        ← NEXT — solves "where was I?"
+3. Session Snapshot Agent        ✅ DONE April 25
 4. Morning Briefing              ← one Discord command, huge daily impact
 5. Focus / Panic Mode            ← signature feature, goes viral
 ```
@@ -27,38 +27,20 @@
 
 ## Real file paths (actual implementation)
 ```
-.git/hooks/post-commit                              ← git hook (chmod +x)
-scripts/award-commit-tokens.py                      ← Python logic, calls token API
-agents/broski-business-agents/achievement_engine.py ← achievement rules engine
-backend/app/routes/achievements.py                  ← API endpoints
+scripts/git-hooks/post-commit        ← post-commit hook entrypoint
+scripts/install-git-hooks.ps1        ← installs hook into .git/hooks/
+scripts/pets/git_post_commit.py      ← awards tokens (idempotent source_id=git_<sha>)
 ```
 
-## API endpoints live
+## API endpoint used
 ```
-GET /api/v1/achievements/history   — last 20 achievements for a user
-GET /api/v1/achievements/streak    — current streak count
-```
-
-## Achievement rules (live)
-```python
-ACHIEVEMENTS = [
-    {"id": "first_commit_today",   "tokens": 10,  "msg": "First commit today! 🌅"},
-    {"id": "test_fixed",           "tokens": 25,  "msg": "Test fixed! 🟢"},
-    {"id": "docstring_written",    "tokens": 5,   "msg": "Docs written! 📝"},
-    {"id": "no_critical_cve",      "tokens": 50,  "msg": "Clean security scan! 🔒"},
-    {"id": "streak_3_days",        "tokens": 100, "msg": "3-day streak! 🔥"},
-    {"id": "streak_7_days",        "tokens": 250, "msg": "7-day streak! 🏆 LEGENDARY"},
-]
+POST /api/v1/economy/award-from-course  (X-Sync-Secret)
 ```
 
 ## Verify it's working
 ```bash
-# Make a commit
+powershell -File scripts/install-git-hooks.ps1
 git commit --allow-empty -m "fix: test the hook"
-# Should see: 🔥 +25 BROski$ — Test fixed!
-
-# Check streak
-curl http://localhost:8000/api/v1/achievements/streak
 ```
 
 ---
@@ -75,18 +57,17 @@ curl http://localhost:8000/api/v1/achievements/streak
 
 ## Real file paths (actual implementation)
 ```
-agents/hypersplit/
-    main.py          ← FastAPI agent, port 8096
-    Dockerfile       ← python:3.11-slim, non-root, security hardened
-    requirements.txt ← fastapi, uvicorn, httpx, pydantic, slowapi
-    splitter.py      ← core LLM logic (calls Ollama)
-    models.py        ← TaskSplitRequest, TaskStep, TaskSplitResponse pydantic models
+agents/hyper-split-agent/main.py               ← agent service (FastAPI), port 8096
+agents/hyper-split-agent/Dockerfile            ← hardened, non-root
+agents/hyper-split-agent/requirements.txt
+backend/app/api/v1/endpoints/hypersplit.py     ← POST /api/v1/hypersplit (auth)
+backend/tests/unit/test_hypersplit.py          ← unit tests (mocked downstream)
 ```
 
 ## Env vars
 ```
-OLLAMA_URL=http://hypercode-ollama:11434   (set in docker-compose.agents.yml)
-OLLAMA_MODEL=llama3                         (or tinyllama as fallback)
+OLLAMA_HOST=http://hypercode-ollama:11434
+OLLAMA_MODEL=qwen2.5-coder:3b
 ```
 
 ## API shape
@@ -133,7 +114,7 @@ curl -X POST http://localhost:8000/api/v1/hypersplit \
 ---
 
 # 🥉 FEATURE 3 — Session Snapshot Agent
-> **Time:** ~2 hours | **Status: PLANNED — next up**
+> **Time:** ~2 hours | **Status: DONE April 25**
 
 ## What it does
 - Watches for git idle >30 mins OR explicit `make snapshot`
@@ -146,13 +127,20 @@ curl -X POST http://localhost:8000/api/v1/hypersplit \
 
 ## Files to create
 ```
-agents/session-snapshot/
-    main.py
-    Dockerfile
-    requirements.txt
-    snapshot_writer.py   ← git analysis logic
-SESSION.md               ← auto-written, gitignored
-scripts/show-session.sh  ← displays SESSION.md on stack start
+agents/session-snapshot/main.py
+agents/session-snapshot/Dockerfile
+agents/session-snapshot/requirements.txt
+agents/session-snapshot/snapshot_writer.py   ← git + WHATS_DONE parsing + writer
+scripts/show-session.sh                      ← displays SESSION.md on stack start
+Makefile                                     ← snapshot target + auto-show on up/start/agents
+docker-compose.agents.yml                    ← session-snapshot service (port 8097)
+docker-compose.yml                           ← session-snapshot service (profile: hyper)
+```
+
+## Health + smoke test
+```bash
+curl http://localhost:8097/health
+make snapshot
 ```
 
 ## Terminal prompt — paste this to build it
@@ -358,16 +346,16 @@ Then build:
 |---|---|---|
 | Micro-Achievement Git Hook | 2h | ✅ DONE April 25 |
 | HyperSplit Agent | 2h | ✅ DONE April 25 |
-| Session Snapshot Agent | 2h | 🔲 Next up |
+| Session Snapshot Agent | 2h | ✅ DONE April 25 |
 | Morning Briefing | 1.5h | 🔲 Planned |
 | Focus / Panic Mode | 1h | 🔲 Planned |
-| **Remaining** | **~4.5h** | |
+| **Remaining** | **~2.5h** | |
 
 ---
 
 ## ✅ DONE CHECKLIST
 - [x] Micro-Achievement Git Hook
 - [x] HyperSplit Agent
-- [ ] Session Snapshot Agent  
+- [x] Session Snapshot Agent  
 - [ ] Morning Briefing `/briefing`
 - [ ] Focus / Panic Mode `make focus` / `make calm`
