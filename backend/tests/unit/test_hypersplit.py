@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
 
-def _make_mock_client(return_value: dict):
+
+def _make_mock_client(return_value: dict[str, Any]):
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = return_value
@@ -23,8 +25,8 @@ def test_hypersplit_requires_auth(client):
 
 
 def test_hypersplit_proxies_agent(client, monkeypatch):
-    from app.api import deps
-    from app.main import app
+    from backend.app.api import deps
+    from backend.app.main import app
 
     monkeypatch.setenv("HYPER_SPLIT_AGENT_URL", "http://hyper-split-agent:8096")
 
