@@ -5,10 +5,16 @@ Added: PATCH /checks/{id} for in-place updates (used by seed --force)
 from __future__ import annotations
 
 import os
+import sys
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
 import structlog
 from fastapi import FastAPI, Depends, HTTPException, Header, Query
@@ -67,20 +73,46 @@ INCIDENTS_OPEN  = Gauge("hyperhealth_incidents_open",  "Open incidents",        
 SELFHEALS_TOTAL = Counter("hyperhealth_selfheals_executed_total", "Self-heals run",  ["action","service"],                   registry=REGISTRY)
 SELFHEALS_FAIL  = Counter("hyperhealth_selfheals_failed_total",   "Self-heals failed",["action","service"],                   registry=REGISTRY)
 
+
+def status_to_int(value: str) -> int:
+    mapping = {"OK": 0, "WARN": 1, "CRIT": 2}
+    return mapping.get(value.strip().upper(), 3)
+
+
 # ── DB ───────────────────────────────────────────────────────────────────────────
-engine = create_async_engine(ASYNC_DB_URL, pool_size=10, max_overflow=20, pool_pre_ping=True, echo=False)
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+_engine = None
+_async_session_factory = None
+
+
+def _get_engine():
+    global _engine, _async_session_factory
+    if _engine is None:
+        _engine = create_async_engine(
+            ASYNC_DB_URL, pool_size=10, max_overflow=20, pool_pre_ping=True, echo=False
+        )
+        _async_session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+    return _engine
+
+
+def _get_session_factory():
+    _get_engine()
+    assert _async_session_factory is not None
+    return _async_session_factory
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("hyperhealth.startup", environment=ENVIRONMENT)
+    engine = _get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     log.info("hyperhealth.db_ready")
     await _ping_healer()
     yield
     await engine.dispose()
+    global _engine, _async_session_factory
+    _engine = None
+    _async_session_factory = None
     log.info("hyperhealth.shutdown")
 
 
@@ -104,7 +136,8 @@ async def verify_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
 
 
 async def get_db() -> AsyncSession:
-    async with AsyncSessionLocal() as session:
+    session_factory = _get_session_factory()
+    async with session_factory() as session:
         yield session
 
 

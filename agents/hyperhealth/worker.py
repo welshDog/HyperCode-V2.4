@@ -7,12 +7,18 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 import ssl
 import socket
 import time
 import uuid
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, Optional
+
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
 import httpx
 import structlog
@@ -54,10 +60,19 @@ ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 LIVENESS_KEY = "hyperhealth:worker:heartbeat"
 
 # ── DB Engine ─────────────────────────────────────────────────────────────────
-engine = create_async_engine(
-    ASYNC_DB_URL, pool_size=5, max_overflow=10, pool_pre_ping=True, echo=False,
-)
-SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+_engine = None
+_session_factory = None
+
+
+def _get_session_factory():
+    global _engine, _session_factory
+    if _engine is None:
+        _engine = create_async_engine(
+            ASYNC_DB_URL, pool_size=5, max_overflow=10, pool_pre_ping=True, echo=False
+        )
+        _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+    assert _session_factory is not None
+    return _session_factory
 
 # ── Shared HTTP client ───────────────────────────────────────────────────────────
 HTTP_CLIENT: Optional[httpx.AsyncClient] = None
@@ -171,7 +186,7 @@ async def execute_check(check: CheckDefinitionORM) -> Dict[str, Any]:
 
 # ── Storage & self-heal ───────────────────────────────────────────────────────────
 async def store_result(check: CheckDefinitionORM, result: Dict, started_at: datetime):
-    async with SessionLocal() as db:
+    async with _get_session_factory()() as db:
         row = CheckResultORM(
             id=uuid.uuid4(),
             check_id=check.id,
@@ -223,7 +238,7 @@ async def run_check_job(check: CheckDefinitionORM):
 
 
 async def load_checks() -> list:
-    async with SessionLocal() as db:
+    async with _get_session_factory()() as db:
         result = await db.execute(
             select(CheckDefinitionORM).where(CheckDefinitionORM.enabled.is_(True))
         )

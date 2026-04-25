@@ -3,11 +3,17 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
+import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+
+_HERE = Path(__file__).resolve().parent
+if str(_HERE) not in sys.path:
+    sys.path.insert(0, str(_HERE))
 
 from snapshot_writer import get_changed_files, write_session_md, workspace_from_env
 
