@@ -74,6 +74,7 @@ Core Crew:
   • healer-agent           — System health monitoring & auto-healing
   • coder-agent            — Code generation & development
   • tips-tricks-writer     — Content & documentation
+  • hyper-split-agent      — Task decomposition (3–7 ADHD-friendly microtasks)
 
 Specialists:
   • frontend-specialist    — UI/UX development
@@ -140,6 +141,7 @@ docker rm <agent-name>
 | **coder-agent** | 8002 | Code generation & development | 512M | agents |
 | **tips-tricks-writer** | 8011 | Content generation | 512M | agents |
 | **healer-agent** | 8010 | System monitoring & healing | 512M | agents |
+| **hyper-split-agent** | 8096 | Task decomposition (HyperSplit) | 256M | hyper |
 | frontend-specialist | 8012 | UI/UX development | 1G | agents |
 | backend-specialist | 8003 | API & server development | 1G | agents |
 | database-architect | 8004 | Database design & optimization | 1G | agents |
@@ -215,6 +217,7 @@ curl -X POST http://127.0.0.1:8081/task \
 curl http://localhost:8081/health          # Orchestrator
 curl http://localhost:8002/health          # Coder agent
 curl http://localhost:8012/health          # Frontend specialist
+curl http://localhost:8096/health          # HyperSplit agent
 ```
 
 ---

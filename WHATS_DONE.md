@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 24, 2026** — update this every session.
+> **Updated: April 25, 2026** — update this every session.
 
 ---
 
@@ -67,6 +67,7 @@
 - Webhook writes: saves payment, awards BROski$, updates subscription tier ✅
 - Idempotency: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 - Token grants: starter=200, builder=800, hyper=2500 ✅
+- **B3 E2E Stripe loop proven** — `stripe listen` 200 OK → payments row + token_transactions row → BROski$ balance +200 ✅ ← **April 25**
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance column ✅
@@ -180,9 +181,9 @@ These need YOU to do them (can't be automated):
 
 ## 📋 PLANS WRITTEN THIS SESSION (ready to build)
 
-- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features, full prompts inside:
-  - Feature 1: Micro-Achievement Git Hook (~2h)
-  - Feature 2: HyperSplit Agent (~3h)
+- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features:
+  - Feature 1: Micro-Achievement Git Hook ✅ ← **April 25**
+  - Feature 2: HyperSplit Agent ✅ ← **April 25**
   - Feature 3: Session Snapshot Agent (~2h)
   - Feature 4: Morning Briefing `/briefing` (~1.5h)
   - Feature 5: Focus / Panic Mode `make focus` / `make calm` (~1h)
@@ -200,12 +201,10 @@ These need YOU to do them (can't be automated):
 
 1. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
 2. **`git push origin main`** — 2 commits ready: `d27b67a` (alembic 009) + `8cbc5c9` (security+heal)
-3. **E2E checkout test** — `stripe listen --forward-to localhost:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
+3. **`VITE_STRIPE_PAYMENT_LINK_URL`** — set in `.env.local` + Vercel env vars when ready
 4. **Gordon Tier 3 verify** — `docker exec celery-worker python -c "from app.core.celery_app import celery_app; print(celery_app.conf.task_acks_late)"` → should print `True`
-5. **Token sync smoke test** — manual curl to `/api/v1/economy/award-from-course` with the shared secret
-6. **Hyperfocus Features** — start with Feature 1 (git hook, 50 lines, quick win)
-7. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-8. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+5. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
+6. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -214,10 +213,11 @@ These need YOU to do them (can't be automated):
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
-Tests:           pytest backend/tests -q  (221 passed, 6 skipped — skips are expected)
+Tests:           pytest backend/tests -q  (223 passed, 6 skipped — skips are expected)
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
 Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
 Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook
+HyperSplit:      POST /api/v1/hypersplit (auth) → proxies to hyper-split-agent:8096
 Alembic:         if missing alembic_version table → run 'alembic stamp 008' first, then upgrade head
 Supabase table:  courses uses price_pence (int) + is_active (bool)
 Docker context:  must be 'desktop-linux' on Windows

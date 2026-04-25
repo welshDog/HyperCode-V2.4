@@ -1,6 +1,6 @@
 # 🧠 HYPERFOCUS FEATURES — Build Plan
 > Neurodivergent-first additions to HyperCode V2.4
-> Written: April 16, 2026 | Status: PLANNED — ready to build
+> Written: April 16, 2026 | Status: Feature 1–2 ✅ DONE (April 25) | Feature 3–5 PLANNED
 
 ---
 
@@ -21,77 +21,30 @@
 # 🥇 FEATURE 1 — Micro-Achievement Git Hook
 > **Time:** ~2 hours | **Impact:** Every single commit feels rewarding
 
-## What it does
-- Fires on every `git commit` in V2.4 (and optionally SDK + Course repos)
-- POSTs to existing BROski$ token service
-- Awards coins for: first commit of day, fixing a test, writing a docstring, streaks
-- Sends a one-line Discord message via broski-bot: "🔥 +25 BROski$ — test fixed!"
+## Status
+✅ Implemented in HyperCode V2.4 (April 25, 2026)
 
-## Files to create / edit
-```
-.git/hooks/post-commit                    ← git hook script
-scripts/award-commit-tokens.py            ← Python logic, calls token API
-agents/broski-business-agents/achievement_engine.py  ← achievement rules
-backend/app/routes/achievements.py        ← new API endpoint (if not exists)
-```
+## What it does (current implementation)
+- Fires on every `git commit` in this repo
+- Calls the existing Phase 2 token sync endpoint with an idempotency `source_id=git_<sha>`
+- Never blocks commits (fails silently if API is down)
 
-## Achievement rules
-```python
-ACHIEVEMENTS = [
-    {"id": "first_commit_today",   "tokens": 10,  "msg": "First commit today! 🌅"},
-    {"id": "test_fixed",           "tokens": 25,  "msg": "Test fixed! 🟢"},
-    {"id": "docstring_written",    "tokens": 5,   "msg": "Docs written! 📝"},
-    {"id": "no_critical_cve",      "tokens": 50,  "msg": "Clean security scan! 🔒"},
-    {"id": "streak_3_days",        "tokens": 100, "msg": "3-day streak! 🔥"},
-    {"id": "streak_7_days",        "tokens": 250, "msg": "7-day streak! 🏆 LEGENDARY"},
-]
+## Implementation (files)
+```
+scripts/git-hooks/post-commit           ← hook entrypoint (calls the Python script)
+scripts/install-git-hooks.ps1           ← installs the hook into .git/hooks/
+scripts/pets/git_post_commit.py         ← commit detector + award call
 ```
 
-## Terminal prompt — paste this to build it
-
+## Required env vars
 ```
-You are building the Micro-Achievement Git Hook for HyperCode V2.4.
-Repo: /sessions/keen-clever-franklin/mnt/HyperCode/HyperCode-V2.4/
+COURSE_SYNC_SECRET=<shared secret for /api/v1/economy/award-from-course>
+PETS_DISCORD_ID=<discord user id>  (or GIT_DISCORD_ID)
+```
 
-Sacred Rules:
-- from app.X import Y — never from backend.app.X
-- 4 spaces Python indent
-- Stripe webhook always rate-limit exempt — don't touch it
-- Conventional commits: feat: fix: docs: chore:
-
-Read these files first:
-1. backend/app/services/broski_service.py — find award_tokens() function signature
-2. backend/app/core/config.py — get API URL + token settings
-3. agents/broski-business-agents/ — see what's already there
-4. .git/hooks/ — check what hooks exist
-
-Then build:
-
-1. scripts/award-commit-tokens.py
-   - Reads git log --oneline -1 to get commit message
-   - Detects achievement type from message (fix: = test_fixed candidate, docs: = docstring candidate)
-   - Checks Redis key "achievements:last_commit_date:{user}" to detect first-commit-today
-   - Checks Redis key "achievements:streak:{user}" for streak count
-   - POSTs to http://localhost:8000/api/v1/broski/award with {"discord_id": from .env or git config, "amount": tokens, "reason": achievement_msg}
-   - Prints coloured output: "🔥 +25 BROski$ — Test fixed!"
-   - Gracefully fails silently if API is down (never block a commit)
-
-2. .git/hooks/post-commit (executable script)
-   - Calls: python scripts/award-commit-tokens.py
-   - Must be chmod +x
-   - Fails silently — never block git operations
-
-3. backend/app/routes/achievements.py
-   - GET /api/v1/achievements/history — returns last 20 achievements for a user
-   - GET /api/v1/achievements/streak — returns current streak count
-   - Use existing broski DB patterns
-
-4. Wire achievements router into backend/app/api/api.py
-
-5. Write tests/test_achievements.py with at least 3 test cases
-
-After writing all files, verify the hook is executable:
-ls -la .git/hooks/post-commit
+## Endpoint used
+```
+POST /api/v1/economy/award-from-course
 ```
 
 ---
@@ -103,110 +56,42 @@ ls -la .git/hooks/post-commit
 
 ## What it does
 - Takes a plain-English task description
-- Returns 3–5 steps, max 25 mins each
+- Returns 3–7 microtasks, each normalized to 10–25 mins
 - Orders them: quick win → hard bit → polish
 - Each step has a clear "done state" (curl command, test to run, visual to see)
 - Optionally creates GitHub issues for each step
 - Available via: Discord `/split`, API endpoint, CLI command
 
-## Files to create
-```
-agents/hypersplit/
-    main.py              ← FastAPI agent, port 8096
-    Dockerfile           ← python:3.11-slim + security hardening
-    requirements.txt
-    splitter.py          ← core LLM logic
-    models.py            ← Task, Step pydantic models
-```
+## Status
+✅ Implemented in HyperCode V2.4 (April 25, 2026)
 
-## API shape
-```python
-POST /split
-{
-  "task": "Add rate limiting to the agent endpoints",
-  "context": "FastAPI, Redis already available, slowapi installed",
-  "max_steps": 5,
-  "step_duration_minutes": 25
-}
-
-Response:
-{
-  "task": "Add rate limiting...",
-  "steps": [
-    {
-      "order": 1,
-      "title": "Verify slowapi is importable",
-      "description": "Run: python -c 'import slowapi; print(slowapi.__version__)'",
-      "done_state": "See version printed, no ImportError",
-      "estimated_minutes": 5,
-      "type": "quick_win"
-    },
-    ...
-  ],
-  "total_minutes": 45,
-  "broski_reward": 75
-}
+## Implementation (files)
+```
+agents/hyper-split-agent/main.py                         ← agent service (FastAPI), port 8096
+agents/hyper-split-agent/Dockerfile                      ← hardened, non-root
+agents/hyper-split-agent/requirements.txt
+backend/app/api/v1/endpoints/hypersplit.py               ← POST /api/v1/hypersplit (auth)
+backend/app/api/api.py                                   ← router wiring
+backend/tests/unit/test_hypersplit.py                    ← unit tests (mocked downstream)
+docker-compose.yml                                       ← hyper-split-agent service (profile: hyper)
+docker-compose.agents.yml                                ← hyper-split-agent service (agents stack)
 ```
 
-## Terminal prompt — paste this to build it
-
+## Service endpoints
 ```
-You are building the HyperSplit Agent for HyperCode V2.4.
-Repo: /sessions/keen-clever-franklin/mnt/HyperCode/HyperCode-V2.4/
+Agent:   POST http://localhost:8096/split
+Backend: POST http://localhost:8000/api/v1/hypersplit
+```
 
-Sacred Rules:
-- from app.X import Y — never from backend.app.X
-- python:3.11-slim base image
-- 4 spaces Python indent
-- Port convention: check agents/ for used ports, use next available around 8096
-- Security hardening: non-root user, apt-get upgrade, pip upgrade in Dockerfile
-- Conventional commits: feat: fix: docs: chore:
+## Agent env vars
+```
+OLLAMA_HOST=http://hypercode-ollama:11434
+OLLAMA_MODEL=qwen2.5-coder:3b
+```
 
-Read these files first:
-1. agents/healer-agent/main.py — use as pattern for agent FastAPI structure
-2. agents/healer-agent/Dockerfile — use as Dockerfile pattern exactly
-3. backend/app/core/config.py — get ANTHROPIC_API_KEY / OPENAI_API_KEY setting names
-4. docker-compose.agents.yml — see how agents are registered
-5. agents/ directory listing — find an unused port around 8096
-
-Then build:
-
-1. agents/hypersplit/models.py
-   - TaskSplitRequest: task (str), context (str default ""), max_steps (int default 5), step_duration_minutes (int default 25)
-   - TaskStep: order, title, description, done_state, estimated_minutes, type (quick_win/hard/polish)
-   - TaskSplitResponse: task, steps list, total_minutes, broski_reward (int, 15 per step)
-
-2. agents/hypersplit/splitter.py
-   - Uses Anthropic Claude API (anthropic library) — check what's in existing agent requirements
-   - System prompt: "You are HyperSplit, a task decomposition agent for neurodivergent developers with ADHD. Break tasks into steps that are max 25 minutes, have a clear done state, and are ordered with a quick win first."
-   - Returns structured JSON matching TaskSplitResponse
-   - Include fallback if API fails: return 3 generic steps with the task split naively
-
-3. agents/hypersplit/main.py
-   - FastAPI app on correct port
-   - POST /split — calls splitter, returns TaskSplitResponse
-   - GET /health — standard health check matching other agents pattern
-   - Rate limit: 10/minute on /split (uses slowapi pattern from main hypercode-core)
-
-4. agents/hypersplit/Dockerfile
-   - Match healer-agent Dockerfile EXACTLY for security hardening
-   - python:3.11-slim, non-root user, apt-get upgrade, pip upgrade
-
-5. agents/hypersplit/requirements.txt
-   - fastapi, uvicorn, anthropic, pydantic, slowapi — pin versions matching other agents
-
-6. Add hypersplit to docker-compose.agents.yml following existing agent pattern
-   - profile: agents
-   - network: agents-net
-   - env: ANTHROPIC_API_KEY from secrets
-
-7. Wire /split command into broski-bot Discord:
-   - Read agents/broski-bot/ structure first
-   - Add /split slash command that calls http://hypersplit:8096/split
-   - Returns a Discord embed with each step as a field
-   - Each step numbered with emoji: 1️⃣ 2️⃣ 3️⃣
-
-After writing: verify Dockerfile syntax and that all imports resolve.
+## Backend env vars (optional override)
+```
+HYPER_SPLIT_AGENT_URL=http://hyper-split-agent:8096
 ```
 
 ---

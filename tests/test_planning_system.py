@@ -139,38 +139,42 @@ def t_task_generate_plan_field():
     r = httpx.post(f"{API}/tasks", json=payload, headers=HEADERS, timeout=60)
     return r.status_code in (200, 201, 401, 403), f"HTTP {r.status_code} (generate_plan field accepted)"
 
-# ── Run all tests ─────────────────────────────────────────────────────────────
-console.print(Panel.fit(
-    "[bold cyan]🦅 HyperCode V2.0 — Planning System Tests[/bold cyan]\n"
-    f"Target: [yellow]{BASE_URL}[/yellow]",
-    border_style="cyan"
-))
+def main() -> None:
+    console.print(
+        Panel.fit(
+            "[bold cyan]🦅 HyperCode V2.0 — Planning System Tests[/bold cyan]\n"
+            f"Target: [yellow]{BASE_URL}[/yellow]",
+            border_style="cyan",
+        )
+    )
 
-test("1. API health check",            t_health)
-test("2. Generate plan from PRD",      t_generate_prd)
-test("3. Generate plan from Issue",    t_generate_issue)
-test("4. Generate plan from Design",   t_generate_design)
-test("5. Auto-detect generic doc",     t_generate_generic)
-test("6. generate with ?persist=true", t_generate_persist)
-test("7. generate-from-task 404",      t_generate_from_task_404)
-test("8. Schema validation (422)",     t_schema_validation)
-test("9. Router plan keyword detect",  t_router_plan_keyword)
-test("10. TaskCreate generate_plan",   t_task_generate_plan_field)
+    test("1. API health check",            t_health)
+    test("2. Generate plan from PRD",      t_generate_prd)
+    test("3. Generate plan from Issue",    t_generate_issue)
+    test("4. Generate plan from Design",   t_generate_design)
+    test("5. Auto-detect generic doc",     t_generate_generic)
+    test("6. generate with ?persist=true", t_generate_persist)
+    test("7. generate-from-task 404",      t_generate_from_task_404)
+    test("8. Schema validation (422)",     t_schema_validation)
+    test("9. Router plan keyword detect",  t_router_plan_keyword)
+    test("10. TaskCreate generate_plan",   t_task_generate_plan_field)
 
-# ── Summary table ─────────────────────────────────────────────────────────────
-passed = sum(1 for r in results if r[0] == "✅")
-total = len(results)
+    passed = sum(1 for r in results if r[0] == "✅")
+    total = len(results)
 
-table = Table(title=f"Results: {passed}/{total} passed", show_lines=True)
-table.add_column("", width=3)
-table.add_column("Test", style="bold")
-table.add_column("Detail", style="dim")
-for emoji, name, detail in results:
-    table.add_row(emoji, name, detail)
-console.print(table)
+    table = Table(title=f"Results: {passed}/{total} passed", show_lines=True)
+    table.add_column("", width=3)
+    table.add_column("Test", style="bold")
+    table.add_column("Detail", style="dim")
+    for emoji, name, detail in results:
+        table.add_row(emoji, name, detail)
+    console.print(table)
 
-if passed < total:
-    console.print(f"\n[red]⚠️  {total - passed} test(s) failed — check server logs![/red]")
-    sys.exit(1)
-else:
+    if passed < total:
+        console.print(f"\n[red]⚠️  {total - passed} test(s) failed — check server logs![/red]")
+        raise SystemExit(1)
     console.print("\n[green bold]🔥 ALL SYSTEMS GO BROski♾![/green bold]")
+
+
+if __name__ == "__main__":
+    main()
