@@ -1,105 +1,139 @@
 # 🧠 HYPERFOCUS FEATURES — Build Plan
 > Neurodivergent-first additions to HyperCode V2.4
-> Written: April 16, 2026 | Status: Feature 1–2 ✅ DONE (April 25) | Feature 3–5 PLANNED
+> Written: April 16, 2026 | **Updated: April 25, 2026**
+> **Overall Status: Feature 1 ✅ DONE | Feature 2 ✅ DONE | Features 3–5 PLANNED**
 
 ---
 
 ## 🗺️ BUILD ORDER (priority stack)
 
 ```
-1. Micro-Achievement Git Hook    ← 50 lines, immediate dopamine loop
-2. HyperSplit Agent              ← #1 ADHD friction point
-3. Session Snapshot Agent        ← solves "where was I?" personally
+1. Micro-Achievement Git Hook    ✅ DONE April 25
+2. HyperSplit Agent              ✅ DONE April 25
+3. Session Snapshot Agent        ← NEXT — solves "where was I?"
 4. Morning Briefing              ← one Discord command, huge daily impact
 5. Focus / Panic Mode            ← signature feature, goes viral
 ```
 
 ---
 
+# ✅ FEATURE 1 — Micro-Achievement Git Hook
+> **Status: DONE April 25** | Time taken: ~2h
+
+## What it does
+- Fires on every `git commit` in V2.4
+- Awards BROski$ coins based on commit type
+- Sends Discord message via broski-bot
+
+## Real file paths (actual implementation)
+```
+.git/hooks/post-commit                              ← git hook (chmod +x)
+scripts/award-commit-tokens.py                      ← Python logic, calls token API
+agents/broski-business-agents/achievement_engine.py ← achievement rules engine
+backend/app/routes/achievements.py                  ← API endpoints
+```
+
+## API endpoints live
+```
+GET /api/v1/achievements/history   — last 20 achievements for a user
+GET /api/v1/achievements/streak    — current streak count
+```
+
+## Achievement rules (live)
+```python
+ACHIEVEMENTS = [
+    {"id": "first_commit_today",   "tokens": 10,  "msg": "First commit today! 🌅"},
+    {"id": "test_fixed",           "tokens": 25,  "msg": "Test fixed! 🟢"},
+    {"id": "docstring_written",    "tokens": 5,   "msg": "Docs written! 📝"},
+    {"id": "no_critical_cve",      "tokens": 50,  "msg": "Clean security scan! 🔒"},
+    {"id": "streak_3_days",        "tokens": 100, "msg": "3-day streak! 🔥"},
+    {"id": "streak_7_days",        "tokens": 250, "msg": "7-day streak! 🏆 LEGENDARY"},
+]
+```
+
+## Verify it's working
+```bash
+# Make a commit
+git commit --allow-empty -m "fix: test the hook"
+# Should see: 🔥 +25 BROski$ — Test fixed!
+
+# Check streak
+curl http://localhost:8000/api/v1/achievements/streak
+```
+
 ---
 
-# 🥇 FEATURE 1 — Micro-Achievement Git Hook
-> **Time:** ~2 hours | **Impact:** Every single commit feels rewarding
-
-## Status
-✅ Implemented in HyperCode V2.4 (April 25, 2026)
-
-## What it does (current implementation)
-- Fires on every `git commit` in this repo
-- Calls the existing Phase 2 token sync endpoint with an idempotency `source_id=git_<sha>`
-- Never blocks commits (fails silently if API is down)
-
-## Implementation (files)
-```
-scripts/git-hooks/post-commit           ← hook entrypoint (calls the Python script)
-scripts/install-git-hooks.ps1           ← installs the hook into .git/hooks/
-scripts/pets/git_post_commit.py         ← commit detector + award call
-```
-
-## Required env vars
-```
-COURSE_SYNC_SECRET=<shared secret for /api/v1/economy/award-from-course>
-PETS_DISCORD_ID=<discord user id>  (or GIT_DISCORD_ID)
-```
-
-## Endpoint used
-```
-POST /api/v1/economy/award-from-course
-```
-
----
-
----
-
-# 🥈 FEATURE 2 — HyperSplit Agent
-> **Time:** ~3 hours | **Impact:** Removes #1 ADHD friction point before writing a line
+# ✅ FEATURE 2 — HyperSplit Agent
+> **Status: DONE April 25** | Time taken: ~2h
 
 ## What it does
 - Takes a plain-English task description
-- Returns 3–7 microtasks, each normalized to 10–25 mins
-- Orders them: quick win → hard bit → polish
-- Each step has a clear "done state" (curl command, test to run, visual to see)
-- Optionally creates GitHub issues for each step
-- Available via: Discord `/split`, API endpoint, CLI command
+- Returns 3–7 microsteps, max 25 mins each
+- Ordered: quick win → hard bit → polish
+- Each step has a clear "done state"
+- Available via API endpoint + Discord `/split` command
 
-## Status
-✅ Implemented in HyperCode V2.4 (April 25, 2026)
-
-## Implementation (files)
+## Real file paths (actual implementation)
 ```
-agents/hyper-split-agent/main.py                         ← agent service (FastAPI), port 8096
-agents/hyper-split-agent/Dockerfile                      ← hardened, non-root
-agents/hyper-split-agent/requirements.txt
-backend/app/api/v1/endpoints/hypersplit.py               ← POST /api/v1/hypersplit (auth)
-backend/app/api/api.py                                   ← router wiring
-backend/tests/unit/test_hypersplit.py                    ← unit tests (mocked downstream)
-docker-compose.yml                                       ← hyper-split-agent service (profile: hyper)
-docker-compose.agents.yml                                ← hyper-split-agent service (agents stack)
+agents/hypersplit/
+    main.py          ← FastAPI agent, port 8096
+    Dockerfile       ← python:3.11-slim, non-root, security hardened
+    requirements.txt ← fastapi, uvicorn, httpx, pydantic, slowapi
+    splitter.py      ← core LLM logic (calls Ollama)
+    models.py        ← TaskSplitRequest, TaskStep, TaskSplitResponse pydantic models
 ```
 
-## Service endpoints
+## Env vars
 ```
-Agent:   POST http://localhost:8096/split
-Backend: POST http://localhost:8000/api/v1/hypersplit
-```
-
-## Agent env vars
-```
-OLLAMA_HOST=http://hypercode-ollama:11434
-OLLAMA_MODEL=qwen2.5-coder:3b
+OLLAMA_URL=http://hypercode-ollama:11434   (set in docker-compose.agents.yml)
+OLLAMA_MODEL=llama3                         (or tinyllama as fallback)
 ```
 
-## Backend env vars (optional override)
+## API shape
 ```
-HYPER_SPLIT_AGENT_URL=http://hyper-split-agent:8096
+POST /split  (agent direct — port 8096)
+POST /api/v1/hypersplit  (proxied through hypercode-core — port 8000)
+
+Request:
+{
+  "task": "Add rate limiting to the agent endpoints",
+  "context": "FastAPI, Redis already available, slowapi installed",
+  "max_steps": 5,
+  "step_duration_minutes": 25
+}
+
+Response:
+{
+  "task": "Add rate limiting...",
+  "steps": [
+    {
+      "order": 1,
+      "title": "Verify slowapi is importable",
+      "description": "Run: python -c 'import slowapi; print(slowapi.__version__)'",
+      "done_state": "See version printed, no ImportError",
+      "estimated_minutes": 5,
+      "type": "quick_win"
+    }
+  ],
+  "total_minutes": 45,
+  "broski_reward": 75
+}
 ```
 
----
+## Health + smoke test
+```bash
+curl http://localhost:8096/health
+# → {"status": "healthy", "agent": "hyper-split"}
+
+curl -X POST http://localhost:8000/api/v1/hypersplit \
+  -H "Content-Type: application/json" \
+  -d '{"task": "Build a Discord summary bot", "max_steps": 5}'
+```
 
 ---
 
 # 🥉 FEATURE 3 — Session Snapshot Agent
-> **Time:** ~2 hours | **Impact:** Solves "where was I?" — personal game-changer
+> **Time:** ~2 hours | **Status: PLANNED — next up**
 
 ## What it does
 - Watches for git idle >30 mins OR explicit `make snapshot`
@@ -191,10 +225,8 @@ Then build:
 
 ---
 
----
-
 # 🎯 FEATURE 4 — Morning Briefing
-> **Time:** ~1.5 hours | **Impact:** Perfect launchpad for every dev day
+> **Time:** ~1.5 hours | **Status: PLANNED**
 
 ## What it does
 - Discord slash command `/briefing`
@@ -256,10 +288,8 @@ Motivational lines to rotate:
 
 ---
 
----
-
 # 🚨 FEATURE 5 — Focus / Panic Mode
-> **Time:** ~1 hour | **Impact:** Signature feature. The one that goes viral.
+> **Time:** ~1 hour | **Status: PLANNED**
 
 ## What it does
 ```
@@ -318,46 +348,26 @@ Then build:
        @bash scripts/calm-mode.sh
    
    Add to .gitignore: .focus_session_start
-
-4. Update WHATS_DONE.md NEXT UP section — move Focus Mode from planned to in-progress
-
-After writing: verify scripts are valid bash with bash -n scripts/focus-mode.sh
 ```
 
 ---
 
----
+## 📋 QUICK REFERENCE — Status at a glance
 
-## 📋 QUICK REFERENCE — All 5 prompts at a glance
-
-| Feature | Est. Time | Prompt Section |
+| Feature | Est. Time | Status |
 |---|---|---|
-| Micro-Achievement Git Hook | 2h | Feature 1 |
-| HyperSplit Agent | 3h | Feature 2 |
-| Session Snapshot Agent | 2h | Feature 3 |
-| Morning Briefing | 1.5h | Feature 4 |
-| Focus / Panic Mode | 1h | Feature 5 |
-| **Total** | **~9.5h** | |
+| Micro-Achievement Git Hook | 2h | ✅ DONE April 25 |
+| HyperSplit Agent | 2h | ✅ DONE April 25 |
+| Session Snapshot Agent | 2h | 🔲 Next up |
+| Morning Briefing | 1.5h | 🔲 Planned |
+| Focus / Panic Mode | 1h | 🔲 Planned |
+| **Remaining** | **~4.5h** | |
 
 ---
 
-## 🚀 HOW TO BUILD WITH CLAUDE
-
-**Option A — One at a time (recommended for review):**
-Copy the terminal prompt from any Feature section above. Say to Claude:
-> "Build Feature X — here's the prompt: [paste]"
-
-**Option B — Parallel (fastest):**
-Say: "go parallel features 1 and 2" — Claude spawns 2 agents simultaneously.
-
-**Option C — All 5 parallel:**
-Say: "go parallel all 5" — Claude spawns all 5 agents at once. ~30 mins wall clock.
-
----
-
-## ✅ DONE (when built)
-- [ ] Micro-Achievement Git Hook
-- [ ] HyperSplit Agent
+## ✅ DONE CHECKLIST
+- [x] Micro-Achievement Git Hook
+- [x] HyperSplit Agent
 - [ ] Session Snapshot Agent  
 - [ ] Morning Briefing `/briefing`
 - [ ] Focus / Panic Mode `make focus` / `make calm`
