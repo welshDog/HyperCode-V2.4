@@ -3,7 +3,7 @@ import asyncio
 from unittest.mock import patch
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import text
-from testcontainers.postgres import PostgresContainer
+PostgresContainer = pytest.importorskip("testcontainers.postgres").PostgresContainer
 from alembic.config import Config
 from alembic import command
 

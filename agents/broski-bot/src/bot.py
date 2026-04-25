@@ -58,6 +58,7 @@ class BroskiBot(commands.Bot):
             "src.cogs.focus",
             "src.cogs.ai_relay",
             "src.cogs.slash_ask",
+            "src.cogs.briefing",
             "src.cogs.hypercode_sync",
             "src.cogs.pets",
             "src.cogs.admin",

@@ -131,6 +131,11 @@ class Settings(BaseSettings):
         description="Ollama LLM service URL (Docker service name in stack)",
     )
 
+    workspace_path: str = Field(
+        default="/workspace",
+        description="Mounted repo root path (for WHATS_DONE.md + git log in /briefing)",
+    )
+
     # Backup
     backup_enabled: bool = Field(default=True, description="Enable automatic backups")
     backup_interval_hours: int = Field(default=6, description="Backup interval in hours")

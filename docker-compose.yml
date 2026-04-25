@@ -381,6 +381,7 @@ services:
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       - OLLAMA_HOST=http://hypercode-ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:3b}
+      - WORKSPACE_PATH=/workspace
     depends_on:
       redis:
         condition: service_healthy
@@ -414,6 +415,7 @@ services:
       - ./backend:/app/backend_src:ro
       - ./agents:/app/project_agents:ro
       - ./reports/broski-analysis:/app/health_reports
+      - .:/workspace:ro
 
   # OBSERVABILITY
   prometheus:

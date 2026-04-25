@@ -1,6 +1,7 @@
 """BROski$ Token System — API Endpoints"""
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import redis
@@ -13,6 +14,7 @@ from app.models import models
 from app.models.broski import BROskiAchievement
 from app.schemas.broski import (
     WalletResponse,
+    DiscordBalanceResponse,
     TransactionPage,
     AchievementResponse,
     UserAchievementResponse,
@@ -186,4 +188,35 @@ def daily_login(
     return {
         "message": "Already claimed today — come back tomorrow for more coins! ⏰",
         "wallet": WalletResponse.model_validate(wallet),
+    }
+
+
+@router.get("/balance/{discord_id}", response_model=DiscordBalanceResponse)
+def get_balance_by_discord_id(
+    discord_id: str,
+    db: Session = Depends(get_db),
+) -> Any:
+    user = (
+        db.query(models.User)
+        .filter(models.User.discord_id == discord_id)
+        .first()
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="No V2.4 user linked to that Discord ID")
+
+    wallet = broski_service.get_wallet(user.id, db)
+
+    now = datetime.now(timezone.utc)
+    last = wallet.last_daily_login
+    if last is not None and last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    daily_claimed = bool(last and (now - last) < timedelta(hours=24))
+
+    return {
+        "discord_id": discord_id,
+        "coins": wallet.coins,
+        "xp": wallet.xp,
+        "level": wallet.level,
+        "level_name": wallet.level_name,
+        "daily_claimed": daily_claimed,
     }

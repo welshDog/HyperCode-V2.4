@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 from sqlalchemy import text
-from testcontainers.postgres import PostgresContainer
+PostgresContainer = pytest.importorskip("testcontainers.postgres").PostgresContainer
 from alembic.config import Config
 from alembic import command
 from src.config.settings import Settings

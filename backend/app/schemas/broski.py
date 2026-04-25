@@ -23,6 +23,15 @@ class WalletResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
 
+class DiscordBalanceResponse(BaseModel):
+    discord_id: str
+    coins: int
+    xp: int
+    level: int
+    level_name: str
+    daily_claimed: bool
+
+
 # ── Transaction ───────────────────────────────────────────────────────
 class TransactionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
