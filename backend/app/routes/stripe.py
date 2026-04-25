@@ -110,23 +110,34 @@ async def stripe_webhook(
 
     is_production = settings.ENVIRONMENT.lower() == "production"
 
-    if (not webhook_secret) or ((not is_production) and (not stripe_signature)):
-        logger.warning("STRIPE_WEBHOOK_SECRET not set — skipping signature check (dev mode)")
-        try:
-            import json
-            event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
-    else:
+    if is_production:
+        if not webhook_secret:
+            raise HTTPException(
+                status_code=503,
+                detail="STRIPE_WEBHOOK_SECRET not configured — webhook signature verification required in production",
+            )
         if not stripe_signature:
             raise HTTPException(status_code=400, detail="Missing Stripe-Signature header")
         try:
-            event = stripe.Webhook.construct_event(
-                payload, stripe_signature, webhook_secret
-            )
+            event = stripe.Webhook.construct_event(payload, stripe_signature, webhook_secret)
         except stripe.error.SignatureVerificationError as e:
             logger.error(f"Webhook signature failed: {e}")
             raise HTTPException(status_code=400, detail="Invalid signature")
+    else:
+        if not webhook_secret or not stripe_signature:
+            logger.warning("Stripe webhook signature verification disabled (dev mode)")
+            try:
+                import json
+
+                event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid payload: {e}")
+        else:
+            try:
+                event = stripe.Webhook.construct_event(payload, stripe_signature, webhook_secret)
+            except stripe.error.SignatureVerificationError as e:
+                logger.error(f"Webhook signature failed: {e}")
+                raise HTTPException(status_code=400, detail="Invalid signature")
 
     result = await handle_webhook_event(event)
     return {"status": "ok", "event_type": event["type"], "result": result}
