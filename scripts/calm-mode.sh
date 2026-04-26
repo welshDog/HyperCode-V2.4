@@ -44,26 +44,48 @@ if [ -f .focus_session_start ]; then
   echo "⏱️  Focus session: ${DURATION_MINS} minutes"
 
   if [ "$DURATION" -gt 600 ]; then
-    # Get discord_id from .env or git email fallback
-    DISCORD_ID=""
-    if [ -f .env ]; then
-      DISCORD_ID=$(grep -E '^DISCORD_USER_ID=' .env | cut -d= -f2 | tr -d '"' || true)
+    DISCORD_ID="${FOCUS_DISCORD_ID:-${DISCORD_USER_ID:-${PETS_DISCORD_ID:-}}}"
+    if [ -z "$DISCORD_ID" ] && [ -f .env ]; then
+      DISCORD_ID=$(
+        grep -E '^(FOCUS_DISCORD_ID|DISCORD_USER_ID|PETS_DISCORD_ID)=' .env \
+          | head -n 1 \
+          | cut -d= -f2 \
+          | tr -d '"' \
+          || true
+      )
     fi
+
+    SYNC_SECRET="${COURSE_SYNC_SECRET:-}"
+    if [ -z "$SYNC_SECRET" ] && [ -f .env ]; then
+      SYNC_SECRET=$(
+        grep -E '^COURSE_SYNC_SECRET=' .env \
+          | head -n 1 \
+          | cut -d= -f2 \
+          | tr -d '"' \
+          || true
+      )
+    fi
+
     if [ -z "$DISCORD_ID" ]; then
-      DISCORD_ID=$(git config user.email 2>/dev/null || echo "hypercode-user")
-    fi
-
-    # Award BROski$
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-      -X POST http://localhost:8000/api/v1/broski/award \
-      -H "Content-Type: application/json" \
-      -d "{\"discord_id\": \"${DISCORD_ID}\", \"amount\": 75, \"reason\": \"Focus session complete \\ud83c\\udfaf\"}" \
-      2>/dev/null || echo "000")
-
-    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
-      echo "🏆 75 BROski$ awarded! Nice focus session bro! ♾️"
+      echo "💰 Token award skipped (missing DISCORD_USER_ID / FOCUS_DISCORD_ID). You still crushed it! 🔥"
+    elif [ -z "$SYNC_SECRET" ]; then
+      echo "💰 Token award skipped (missing COURSE_SYNC_SECRET). Set it to enable local awards."
     else
-      echo "💰 Token award skipped (core offline or endpoint missing) — you still crushed it! 🔥"
+      SOURCE_ID="focus_${START}_${DISCORD_ID}"
+      HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+        -X POST http://localhost:8000/api/v1/economy/award-from-course \
+        -H "Content-Type: application/json" \
+        -H "X-Sync-Secret: ${SYNC_SECRET}" \
+        -d "{\"source_id\":\"${SOURCE_ID}\",\"discord_id\":\"${DISCORD_ID}\",\"tokens\":75,\"reason\":\"Focus session complete\"}" \
+        2>/dev/null || echo "000")
+
+      if [ "$HTTP_STATUS" = "200" ]; then
+        echo "🏆 75 BROski$ awarded! Nice focus session bro! ♾️"
+      elif [ "$HTTP_STATUS" = "409" ]; then
+        echo "🏆 Award already processed (idempotent). Nice focus session bro! ♾️"
+      else
+        echo "💰 Token award skipped (core offline, user not linked, or secret invalid) — you still crushed it! 🔥"
+      fi
     fi
   else
     echo "⚡ Session under 10 mins — no tokens this time. Longer next session! 💪"
