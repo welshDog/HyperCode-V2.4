@@ -37,7 +37,8 @@ echo "✅ All containers restored."
 
 # Calculate session duration + award tokens if > 10 mins
 if [ -f .focus_session_start ]; then
-  START=$(cat .focus_session_start)
+  # tr -d '\r' strips Windows CRLF from PowerShell Out-File
+  START=$(cat .focus_session_start | tr -d '\r\n')
   NOW=$(date +%s)
   DURATION=$(( NOW - START ))
   DURATION_MINS=$(( DURATION / 60 ))
@@ -53,7 +54,7 @@ if [ -f .focus_session_start ]; then
     # Fallback: read from .env file
     if [ -z "$DISCORD_ID" ] && [ -f .env ]; then
       for KEY in FOCUS_DISCORD_ID DISCORD_USER_ID PETS_DISCORD_ID; do
-        DISCORD_ID=$(grep -E "^${KEY}=" .env | head -1 | cut -d= -f2 | tr -d '"' || true)
+        DISCORD_ID=$(grep -E "^${KEY}=" .env | head -1 | cut -d= -f2 | tr -d '"\r' || true)
         [ -n "$DISCORD_ID" ] && break
       done
     fi
@@ -65,12 +66,12 @@ if [ -f .focus_session_start ]; then
     # ── Resolve COURSE_SYNC_SECRET ─────────────────────────────────────────
     SYNC_SECRET="${COURSE_SYNC_SECRET:-}"
     if [ -z "$SYNC_SECRET" ] && [ -f .env ]; then
-      SYNC_SECRET=$(grep -E '^COURSE_SYNC_SECRET=' .env | head -1 | cut -d= -f2 | tr -d '"' || true)
+      SYNC_SECRET=$(grep -E '^COURSE_SYNC_SECRET=' .env | head -1 | cut -d= -f2 | tr -d '"\r' || true)
     fi
 
     if [ -z "$SYNC_SECRET" ]; then
       echo "⚠️  COURSE_SYNC_SECRET not set — skipping token award."
-      echo "   Set it in your shell or .env then re-run 'make calm'."
+      echo "   Set it in your shell or .env then re-run: bash scripts/calm-mode.sh"
     else
       # ── Unique source_id so this session can only award once ──────────────
       SOURCE_ID="focus_session_${START}"
