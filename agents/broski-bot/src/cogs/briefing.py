@@ -125,15 +125,18 @@ class MorningBriefing(commands.Cog):
 
         health_url = f"{settings.hypercode_core_url}/health"
         balance_url = f"{settings.hypercode_core_url}/api/v1/broski/balance/{discord_id}"
+        pulse_url = f"{settings.hypercode_core_url}/api/v1/broski/pulse"
 
         health_task = asyncio.create_task(self._fetch_json(health_url))
         balance_task = asyncio.create_task(self._fetch_json(balance_url))
+        pulse_task = asyncio.create_task(self._fetch_json(pulse_url))
         next_up_task = asyncio.to_thread(_read_next_up_from_whats_done, settings.workspace_path)
         last_commit_task = asyncio.to_thread(_get_last_commit_line, settings.workspace_path)
 
-        health, balance, next_up, last_commit = await asyncio.gather(
+        health, balance, pulse, next_up, last_commit = await asyncio.gather(
             health_task,
             balance_task,
+            pulse_task,
             next_up_task,
             last_commit_task,
         )
@@ -169,6 +172,16 @@ class MorningBriefing(commands.Cog):
         )
         embed.add_field(name="Stack", value=stack_text, inline=False)
         embed.add_field(name="BROski$", value=broski_text, inline=False)
+        if pulse:
+            agents_online = pulse.get("agentsOnline")
+            user_count = pulse.get("userCount")
+            pulse_parts = []
+            if isinstance(agents_online, int):
+                pulse_parts.append(f"Agents: {agents_online}")
+            if isinstance(user_count, int):
+                pulse_parts.append(f"Users: {user_count}")
+            if pulse_parts:
+                embed.add_field(name="Pulse", value=" · ".join(pulse_parts), inline=False)
         embed.add_field(name="Next Task", value=next_task_text, inline=False)
         embed.add_field(name="Last Commit", value=last_commit_text, inline=False)
 

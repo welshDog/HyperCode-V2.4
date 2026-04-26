@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     discord_command_prefix: str = Field(default="/", description="Command prefix")
     discord_intents_all: bool = Field(default=False, description="Enable all intents")
     discord_owner_ids: list[int] = Field(default_factory=list, description="Bot owner user IDs")
+    discord_guild_id: Optional[int] = Field(
+        default=None,
+        description="Optional guild ID for fast slash-command sync (dev)",
+    )
     
     # Database
     db_host: str = Field(default="localhost", description="Database host")

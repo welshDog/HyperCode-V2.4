@@ -105,8 +105,24 @@ class BroskiBot(commands.Bot):
         
         # Sync slash commands
         try:
-            synced = await self.tree.sync()
-            logger.info(f"Synced {len(synced)} slash commands")
+            if settings.discord_guild_id and settings.is_development:
+                guild = discord.Object(id=settings.discord_guild_id)
+                self.tree.copy_global_to(guild=guild)
+                synced = await self.tree.sync(guild=guild)
+                logger.info(
+                    "Synced %d slash commands to guild %s",
+                    len(synced),
+                    settings.discord_guild_id,
+                )
+
+                try:
+                    global_synced = await self.tree.sync()
+                    logger.info("Also synced %d global slash commands", len(global_synced))
+                except Exception as e:
+                    logger.warning("Global slash command sync failed", error=str(e))
+            else:
+                synced = await self.tree.sync()
+                logger.info(f"Synced {len(synced)} slash commands")
         except Exception as e:
             logger.error("Failed to sync commands", error=str(e), exc_info=True)
     

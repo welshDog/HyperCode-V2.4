@@ -2,11 +2,14 @@
 Integration Test Fixtures
 Uses httpx for async HTTP + environment variables for service URLs.
 """
-import pytest
-import httpx
 import os
+import sys
+
+import httpx
 import pytest_asyncio
 
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../..", "backend"))
 
 CORE_BASE_URL = os.getenv("CORE_BASE_URL", "http://localhost:8000")
 HEALER_BASE_URL = os.getenv("HEALER_BASE_URL", "http://localhost:8008")

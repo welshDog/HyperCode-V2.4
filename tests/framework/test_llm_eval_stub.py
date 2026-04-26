@@ -12,13 +12,14 @@ EvaluationMethod.LLM_EVAL) is:
 from __future__ import annotations
 
 import json
+import os
+import sys
 import warnings
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 
-import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from framework.evaluator import Evaluator
@@ -78,8 +79,6 @@ class TestNoNetworkCalls:
     def test_does_not_call_socket(self, monkeypatch):
         """Patch socket.socket to raise if touched — stub must not use network."""
         import socket
-
-        original = socket.socket
 
         def no_socket(*args, **kwargs):
             raise AssertionError("LLM_EVAL stub must NOT open a socket")

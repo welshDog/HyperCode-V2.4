@@ -7,8 +7,8 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend.app.api import deps
-from backend.app.models import models
+from app.api import deps
+from app.models import models
 
 router = APIRouter()
 

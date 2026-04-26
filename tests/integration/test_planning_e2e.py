@@ -34,21 +34,12 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-import warnings
-from types import SimpleNamespace
-from typing import Any, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Optional
+from unittest.mock import MagicMock, patch
 
 import fakeredis
 import pytest
 
-pytestmark = pytest.mark.asyncio
-
-# ── Path setup ────────────────────────────────────────────────────────────────
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../..", "backend"))
-
-# ── Import planning schemas (no app deps) ─────────────────────────────────────
 from app.schemas.planning import (
     CodingPlan,
     DocumentType,
@@ -58,6 +49,8 @@ from app.schemas.planning import (
     ParsedDocument,
     PlanPhase,
 )
+
+pytestmark = pytest.mark.asyncio
 
 # ── Deterministic Brain stub ──────────────────────────────────────────────────
 
@@ -780,7 +773,7 @@ class TestErrorHandling:
             from app.services.plan_executor import PlanExecutor
             executor = PlanExecutor()
             plan = _sample_plan()
-            result = await executor.submit_plan_to_orchestrator(plan, task_id=1)
+            await executor.submit_plan_to_orchestrator(plan, task_id=1)
         # Celery should still be called
         assert self.mock_celery.send_task.call_count == len(plan.phases)
 
