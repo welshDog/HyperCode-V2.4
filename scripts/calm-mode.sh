@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Feature 5 — Calm Mode
 # Restores all containers, awards BROski$ if session > 10 mins
+# Uses POST /api/v1/economy/award-from-course (idempotent, auth-safe)
 
 set -euo pipefail
 
@@ -44,27 +45,57 @@ if [ -f .focus_session_start ]; then
   echo "⏱️  Focus session: ${DURATION_MINS} minutes"
 
   if [ "$DURATION" -gt 600 ]; then
-    # Get discord_id from .env or git email fallback
-    DISCORD_ID=""
-    if [ -f .env ]; then
-      DISCORD_ID=$(grep -E '^DISCORD_USER_ID=' .env | cut -d= -f2 | tr -d '"' || true)
+
+    # ── Resolve Discord ID (first match wins) ──────────────────────────────
+    DISCORD_ID="${FOCUS_DISCORD_ID:-}"
+    if [ -z "$DISCORD_ID" ]; then DISCORD_ID="${DISCORD_USER_ID:-}"; fi
+    if [ -z "$DISCORD_ID" ]; then DISCORD_ID="${PETS_DISCORD_ID:-}"; fi
+    # Fallback: read from .env file
+    if [ -z "$DISCORD_ID" ] && [ -f .env ]; then
+      for KEY in FOCUS_DISCORD_ID DISCORD_USER_ID PETS_DISCORD_ID; do
+        DISCORD_ID=$(grep -E "^${KEY}=" .env | head -1 | cut -d= -f2 | tr -d '"' || true)
+        [ -n "$DISCORD_ID" ] && break
+      done
     fi
+    # Last resort: git email
     if [ -z "$DISCORD_ID" ]; then
       DISCORD_ID=$(git config user.email 2>/dev/null || echo "hypercode-user")
     fi
 
-    # Award BROski$
-    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-      -X POST http://localhost:8000/api/v1/broski/award \
-      -H "Content-Type: application/json" \
-      -d "{\"discord_id\": \"${DISCORD_ID}\", \"amount\": 75, \"reason\": \"Focus session complete \\ud83c\\udfaf\"}" \
-      2>/dev/null || echo "000")
-
-    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
-      echo "🏆 75 BROski$ awarded! Nice focus session bro! ♾️"
-    else
-      echo "💰 Token award skipped (core offline or endpoint missing) — you still crushed it! 🔥"
+    # ── Resolve COURSE_SYNC_SECRET ─────────────────────────────────────────
+    SYNC_SECRET="${COURSE_SYNC_SECRET:-}"
+    if [ -z "$SYNC_SECRET" ] && [ -f .env ]; then
+      SYNC_SECRET=$(grep -E '^COURSE_SYNC_SECRET=' .env | head -1 | cut -d= -f2 | tr -d '"' || true)
     fi
+
+    if [ -z "$SYNC_SECRET" ]; then
+      echo "⚠️  COURSE_SYNC_SECRET not set — skipping token award."
+      echo "   Set it in your shell or .env then re-run 'make calm'."
+    else
+      # ── Unique source_id so this session can only award once ──────────────
+      SOURCE_ID="focus_session_${START}"
+
+      PAYLOAD=$(printf \
+        '{"source_id":"%s","discord_id":"%s","tokens":75,"reason":"Focus session complete 🎯"}' \
+        "$SOURCE_ID" "$DISCORD_ID")
+
+      HTTP_STATUS=$(curl -s -o /tmp/calm_award_response.json -w "%{http_code}" \
+        -X POST http://localhost:8000/api/v1/economy/award-from-course \
+        -H "Content-Type: application/json" \
+        -H "X-Sync-Secret: ${SYNC_SECRET}" \
+        -d "$PAYLOAD" \
+        2>/dev/null || echo "000")
+
+      if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+        echo "🏆 75 BROski$ awarded! Nice focus session bro! ♾️"
+      elif [ "$HTTP_STATUS" = "409" ]; then
+        echo "✅ Tokens already awarded for this session (idempotent — all good)."
+      else
+        echo "💰 Token award skipped (HTTP ${HTTP_STATUS}) — you still crushed it! 🔥"
+        echo "   Response: $(cat /tmp/calm_award_response.json 2>/dev/null || echo 'none')"
+      fi
+    fi
+
   else
     echo "⚡ Session under 10 mins — no tokens this time. Longer next session! 💪"
   fi
