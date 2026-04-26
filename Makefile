@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus
 
 # Default target
 help:
@@ -15,6 +15,8 @@ help:
 	@echo "  make clean        - Remove containers and volumes"
 	@echo "  make test         - Test orchestrator API"
 	@echo "  make snapshot     - Generate SESSION.md (Session Snapshot Agent)"
+	@echo "  make focus        - 🎯 Focus Mode: stop non-essential containers + 25min timer"
+	@echo "  make calm         - 🌊 Calm Mode: restore everything + award BROski$"
 	@echo "  make network-init - Ensure hypercode_public_net exists"
 	@echo ""
 	@echo "Scanning & Quality Gates:"
@@ -151,7 +153,11 @@ test:
 	pytest backend/tests/ -v
 
 calm:
-	python scripts/pets/award_focus_session.py
+	@bash scripts/calm-mode.sh
+
+# 🎯 Focus Mode — stop non-essential containers, start 25-min timer
+focus:
+	@bash scripts/focus-mode.sh
 
 # Run ruff linter
 lint:
@@ -317,7 +323,7 @@ load-test-headless: ## Run headless load test: 50 users, 10/s ramp, 2 min, HTML 
 		--html tests/load/report.html
 	@echo "📊 Report saved to tests/load/report.html"
 
-load-test-k6: ## k6 main API test (target up to 1000 req/sec profile)
+load-test-k6: ## k6 main API load test (target up to 1000 req/sec profile)
 	@echo "🔥 Running k6 main load profile: tests/load/hypercode_load_test.js"
 	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/hypercode_load_test.js
 
@@ -334,7 +340,7 @@ load-test-stripe-k6: ## k6 Stripe checkout flow load test (test mode keys only)
 	@echo "💳 Running k6 Stripe load profile (test mode only)"
 	@docker run --rm -i -e BASE_URL=$${BASE_URL:-http://host.docker.internal:8000} grafana/k6 run - < tests/load/stripe_load_test.js
 
-load-test-all: load-test-k6-smoke load-test-k6 load-test-agents load-test-stripe-k6 ## Run every k6 profile sequentially (smoke → main → agents → stripe)
+load-test-all: load-test-k6-smoke load-test-k6 load-test-agents load-test-stripe-k6 ## Run every k6 profile sequentially
 	@echo "✅ All k6 load profiles complete — thresholds: P99<100ms, err<0.1%, target 1000 rps"
 
 ## ─── Production ─────────────────────────────────────────────────────────────
