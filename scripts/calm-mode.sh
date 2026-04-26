@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# scripts/calm-mode.sh — HyperCode V2.4 Calm Mode
-# Brings stopped containers back up, awards BROski$ if session > 10 mins.
-# Usage: make calm
+# Feature 5 — Calm Mode
+# Restores all containers, awards BROski$ if session > 10 mins
 
 set -euo pipefail
 
-COMPOSE_FILES="-f docker-compose.yml -f docker-compose.secrets.yml"
-
-RESTORE_SERVICES=(
+CALM_CONTAINERS=(
   grafana
   prometheus
   loki
@@ -25,61 +22,58 @@ RESTORE_SERVICES=(
 )
 
 echo ""
-echo "🌊 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "   CALM MODE — Restoring your stack"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🌊 CALM MODE — Restoring everything..."
 echo ""
 
 # Spin containers back up
-docker compose ${COMPOSE_FILES} up -d --no-recreate ${RESTORE_SERVICES[*]} 2>/dev/null \
-  || docker compose ${COMPOSE_FILES} up -d ${RESTORE_SERVICES[*]} 2>/dev/null \
-  || echo "⚠️  Some services may not be defined in compose — skipping those."
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.secrets.yml \
+  up -d "${CALM_CONTAINERS[@]}" 2>/dev/null || true
 
 echo ""
-echo "✅ Full stack restored."
-echo ""
+echo "✅ All containers restored."
 
-# Calculate session duration
-DURATION=0
+# Calculate session duration + award tokens if > 10 mins
 if [ -f .focus_session_start ]; then
   START=$(cat .focus_session_start)
   NOW=$(date +%s)
   DURATION=$(( NOW - START ))
-  MINUTES=$(( DURATION / 60 ))
-  echo "⏱️  Session duration: ${MINUTES} minutes"
-  rm -f .focus_session_start
-fi
+  DURATION_MINS=$(( DURATION / 60 ))
 
-# Award tokens if session was > 10 minutes (600 seconds)
-if [ "${DURATION}" -gt 600 ]; then
-  # Resolve Discord ID: try .env first, fallback to git user.email
-  DISCORD_ID=""
-  if [ -f .env ]; then
-    DISCORD_ID=$(grep -E '^DISCORD_DEV_USER_ID=' .env 2>/dev/null | cut -d= -f2 || true)
-  fi
-  if [ -z "${DISCORD_ID}" ]; then
-    DISCORD_ID=$(git config user.email 2>/dev/null || echo "dev-user")
-  fi
+  echo "⏱️  Focus session: ${DURATION_MINS} minutes"
 
-  echo "🏆 Awarding 75 BROski\$ for your focus session..."
-  RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST http://localhost:8000/api/v1/broski/award \
-    -H "Content-Type: application/json" \
-    -d "{\"discord_id\": \"${DISCORD_ID}\", \"amount\": 75, \"reason\": \"Focus session complete 🎯\"}" \
-    2>/dev/null || echo "000")
+  if [ "$DURATION" -gt 600 ]; then
+    # Get discord_id from .env or git email fallback
+    DISCORD_ID=""
+    if [ -f .env ]; then
+      DISCORD_ID=$(grep -E '^DISCORD_USER_ID=' .env | cut -d= -f2 | tr -d '"' || true)
+    fi
+    if [ -z "$DISCORD_ID" ]; then
+      DISCORD_ID=$(git config user.email 2>/dev/null || echo "hypercode-user")
+    fi
 
-  if [ "${RESPONSE}" = "200" ] || [ "${RESPONSE}" = "201" ]; then
-    echo "✅ 75 BROski\$ awarded to ${DISCORD_ID}!"
+    # Award BROski$
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+      -X POST http://localhost:8000/api/v1/broski/award \
+      -H "Content-Type: application/json" \
+      -d "{\"discord_id\": \"${DISCORD_ID}\", \"amount\": 75, \"reason\": \"Focus session complete \\ud83c\\udfaf\"}" \
+      2>/dev/null || echo "000")
+
+    if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
+      echo "🏆 75 BROski$ awarded! Nice focus session bro! ♾️"
+    else
+      echo "💰 Token award skipped (core offline or endpoint missing) — you still crushed it! 🔥"
+    fi
   else
-    echo "⚠️  Token award skipped (core not responding or endpoint not wired yet)."
-    echo "   Manual award: POST /api/v1/broski/award {discord_id, amount: 75}"
+    echo "⚡ Session under 10 mins — no tokens this time. Longer next session! 💪"
   fi
+
+  rm -f .focus_session_start
 else
-  echo "ℹ️  Session < 10 mins — no tokens awarded this time. You've got this next time! 💪"
+  echo "ℹ️  No active focus session found."
 fi
 
 echo ""
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  You built 29 containers. Today is just one more step. 🏆"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🌊 CALM MODE — Stack fully restored. Welcome back, BROski♾️"
 echo ""

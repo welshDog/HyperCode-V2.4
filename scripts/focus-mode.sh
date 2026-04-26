@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
-# scripts/focus-mode.sh — HyperCode V2.4 Focus Mode
-# Stops non-essential containers, keeps the core running, starts a 25-min timer.
-# Usage: make focus
+# Feature 5 — Focus Mode
+# Stops non-essential containers, starts 25-min timer
 
 set -euo pipefail
 
-CORE_ONLY_CONTAINERS=(
+FOCUS_CONTAINERS=(
   grafana
   prometheus
   loki
@@ -23,38 +22,34 @@ CORE_ONLY_CONTAINERS=(
 )
 
 echo ""
-echo "🎯 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "   FOCUS MODE ACTIVATED"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🎯 FOCUS MODE ACTIVATING..."
 echo ""
 
-Stopped=0
-for container in "${CORE_ONLY_CONTAINERS[@]}"; do
-  if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-    docker stop "${container}" > /dev/null 2>&1 && echo "  ⏸  Stopped: ${container}" && ((Stopped++)) || true
+STOPPED=0
+for svc in "${FOCUS_CONTAINERS[@]}"; do
+  if docker ps --format '{{.Names}}' | grep -q "^${svc}$"; then
+    docker stop "$svc" > /dev/null 2>&1 && echo "  ⏸  Stopped: $svc" && ((STOPPED++)) || true
   fi
 done
 
 echo ""
-echo "✅ ${Stopped} non-essential containers stopped."
-echo "🟢 Core stack running: hypercode-core, redis, postgres, broski-bot, healer-agent"
+echo "✅ FOCUS MODE — $STOPPED containers stopped. Core stack running."
+echo "   Kept alive: hypercode-core | redis | postgres | broski-bot | healer-agent"
+echo ""
+echo "⏱️  25 minute timer started. GO. 🚀"
 echo ""
 
-# Write timestamp for calm-mode to calculate duration
+# Write session start timestamp
 date +%s > .focus_session_start
-echo "⏱️  25 minute timer started. GO. 🔥"
-echo ""
 
-# Background timer — notifies when 25 mins are up
+# Background 25-min countdown — cross-platform notify
 (
   sleep 1500
   echo ""
-  echo "⏰  25 mins up! Run 'make calm' to restore everything and claim your BROski\$! 🏆"
-  # Desktop notify if available (Linux/WSL with libnotify)
+  echo "⏰ 25 mins up! Run 'make calm' to restore everything and grab your BROski$ 🏆"
+  echo ""
   notify-send "HyperCode" "Focus session complete! Run make calm 🏆" 2>/dev/null || true
 ) &
 
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  One task. One win. That's the whole plan. 🎯"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "💡 Tip: Run 'make calm' when done to restore + earn 75 BROski$"
 echo ""
