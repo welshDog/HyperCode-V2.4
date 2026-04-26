@@ -28,7 +28,6 @@
   - `make build` now runs it automatically — aborts if <15GB free
 - **OOM recovery completed April 17** — 34.4GB freed, 24/24 containers restored ✅
 - **Socket-proxy split** — main proxy read-only (coder-agent etc.), new `docker-socket-proxy-healer` with CONTAINERS+POST+PING for healer/throttle-agent only ✅ ← **April 19**
-  - Blast radius shrunk: LLM-generated code can enumerate, can't mutate
 - **Healer on obs-net** — can now reach Grafana/Prometheus for diagnostics ✅ ← **April 19**
 
 ### Observability
@@ -57,8 +56,6 @@
 - Async engine + connection pooling (`asyncpg`, pool_size=10) ✅ ← **April 16**
 - `get_async_db()` dependency available for async routes ✅ ← **April 16**
 - Migration 009 — `pgcrypto` + `uuid-ossp` extensions enabled ✅ ← **April 19**
-  - `gen_random_uuid()` + `uuid_generate_v4()` available everywhere
-  - Alembic state synced: stamped `008` then `upgrade head` (create_all had left `alembic_version` missing)
 
 ### Stripe + Payments
 - `POST /api/stripe/checkout` — creates Stripe Checkout Session ✅
@@ -102,90 +99,44 @@
 - crew-orchestrator — agent lifecycle ✅
 - hyper-architect, hyper-observer, hyper-worker ✅
 - super-hyper-broski-agent, broski-bot ✅
-- Redis attached to both `data-net` + `agents-net` — fixes agent DNS/connectivity to `redis:6379` ✅ ← **April 24**
-- crew-orchestrator now forwards `X-API-Key` to agent `/execute` calls (required by agent auth middleware) ✅ ← **April 24**
+- Redis attached to both `data-net` + `agents-net` ✅ ← **April 24**
+- crew-orchestrator now forwards `X-API-Key` to agent `/execute` calls ✅ ← **April 24**
 - coder-agent ↔ Ollama is end-to-end working with safe fallbacks ✅ ← **April 24**
-  - Compose uses `CODER_OLLAMA_MODEL` (prevents global `OLLAMA_MODEL` overrides)
-  - Auto-fallback on Ollama errors: missing model / insufficient memory → tries smaller local models
-  - Verified success path: `tinyllama:latest`
 - **hyper-split-agent** ✅ ← **April 25** (Feature 2 DONE)
-  - Port: `8096` | Route: `POST /api/v1/hypersplit`
-  - Takes a plain-English task → returns 3–7 ADHD-friendly microtasks with time estimates
-  - Calls Ollama via `OLLAMA_HOST` env var, model `OLLAMA_MODEL`
-  - Registered in `docker-compose.agents.yml` on `agents-net`
-  - Quick test: `curl -X POST http://localhost:8096/split -H "Content-Type: application/json" -d '{"task": "your big task here"}'`
-- **sys.path import fix** ✅ ← **April 26** — sibling-module imports now safe regardless of cwd/uvicorn context
-  - `session-snapshot/main.py` (imports `snapshot_writer`)
-  - `hyperhealth/main.py` + `hyperhealth/worker.py` (imports `models`)
-  - `crew-orchestrator/main.py` — same pattern applied
-  - **Bonus:** removed eager DB engine creation at import-time in hyperhealth (was causing `asyncpg` import errors in unit tests)
-  - Added missing `status_to_int()` helper that hyperhealth tests expect
-- **hypersplit import bug fixed** ✅ ← **April 26** — SQLAlchemy "Table users already defined" resolved
-  - `backend/app/api/v1/endpoints/hypersplit.py` — removed rogue model import
-  - `backend/tests/unit/test_hypersplit.py` — updated to match
+- **sys.path import fix** ✅ ← **April 26**
+- **hypersplit import bug fixed** ✅ ← **April 26**
 
-### Hyperfocus Features ✅ DONE April 25–26
-- **Feature 1: Micro-Achievement Git Hook** ✅
+### 🏆 Hyperfocus Features — ALL 5 DONE
+- **Feature 1: Micro-Achievement Git Hook** ✅ April 25
   - `scripts/git-hooks/post-commit` + `scripts/install-git-hooks.ps1`
-  - Awards tokens via `POST /api/v1/economy/award-from-course` (idempotent `source_id=git_<sha>`)
+  - Awards tokens via `POST /api/v1/economy/award-from-course` (idempotent)
   - Commit-type awards: `fix:` = 25, `docs:` = 5, fallback = 10
-- **Feature 2: HyperSplit Agent** ✅
+- **Feature 2: HyperSplit Agent** ✅ April 25
   - `agents/hyper-split-agent/` — FastAPI on port 8096
   - `POST /api/v1/hypersplit` — proxied through hypercode-core
-- **Feature 3: Session Snapshot Agent** ✅
+- **Feature 3: Session Snapshot Agent** ✅ April 25
   - `agents/session-snapshot/` — FastAPI on port 8097
   - `make snapshot` writes `SESSION.md` (gitignored)
-  - `make up` / `make start` / `make agents` prints the last SESSION.md via `scripts/show-session.sh`
-- **Feature 4: Morning Briefing `/briefing`** ✅ ← **April 26**
+  - `make up` / `make start` / `make agents` prints SESSION.md automatically
+- **Feature 4: Morning Briefing `/briefing`** ✅ April 26
   - `agents/broski-bot/src/cogs/briefing.py` — Discord slash command
-  - Pulls: stack health, BROski$ balance (by Discord ID), Pulse (agents online + user count), Next Up from WHATS_DONE.md, last git commit
+  - Pulls: stack health + BROski$ balance + Pulse + Next Up + last git commit
   - Output: single clean Discord embed
-  - `settings.py` — `DISCORD_GUILD_ID` wired for fast dev guild-first sync
-  - `bot.py` — guild-first slash command sync (instant in dev), then global sync attempt
-  - Start: `docker compose --profile discord up -d broski-bot` → run `/briefing` in Discord
-  - `ruff check` passes ✅ | unit tests pass ✅
-
-### April 24 — Agents E2E Smoke Test (Proved the platform is alive)
-- Health checks: `GoalKeeper:8050`, `crew-orchestrator:8081`, `mcp-gateway:8820`, `hypercode-core:8000` ✅
-- Cross-agent dispatch works (orchestrator → agent `/execute`) ✅
-- Ollama reachable from agents via `hypercode-ollama:11434` ✅
-- MCP Gateway `/health` returns `200` with an empty body (use `curl -i` to see status) ✅
-
-Smoke flow (PowerShell):
-```
-curl.exe -s http://127.0.0.1:8050/health
-curl.exe -s http://127.0.0.1:8081/health
-curl.exe -i http://127.0.0.1:8820/health
-curl.exe -s http://127.0.0.1:8000/health
-
-curl.exe -s http://127.0.0.1:11434/api/tags
-
-curl.exe -s -X POST http://127.0.0.1:8081/execute `
-  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" `
-  -H "Content-Type: application/json" `
-  -d '{"task":{"id":"smoke-cross","type":"system_smoke","description":"Ping agents and report status","agents":["frontend-specialist","backend-specialist","database-architect","qa-engineer"],"requires_approval":false}}'
-
-# coder-agent specific (proves Ollama + fallbacks end-to-end)
-curl.exe -s -X POST http://127.0.0.1:8081/execute `
-  -H "X-API-Key: <ORCHESTRATOR_API_KEY>" `
-  -H "Content-Type: application/json" `
-  -d '{"task":{"id":"coder-smoke","type":"code_generation","description":"Write hello world in Python.","agents":["coder-agent"],"requires_approval":false}}' | python -c "import json,sys; r=json.load(sys.stdin); print(r.get('status'), r['results']['coder-agent']['result'].get('status'), r['results']['coder-agent']['result'].get('model'))"
-```
+- **Feature 5: Focus / Panic Mode** ✅ April 26
+  - `scripts/focus-mode.sh` — stops 14 non-essential containers + 25-min bg timer
+  - `scripts/calm-mode.sh` — restores all containers + awards 75 BROski$ (if >10 min)
+  - `make focus` / `make calm` in Makefile ✔️
+  - `.focus_session_start` in `.gitignore` ✔️
+  - Token award via `POST /api/v1/broski/award` (graceful fallback if core offline)
 
 ### Security
 - Trivy scanner (`hyper-shield-scanner`) running as container ✅
 - GitHub Actions CI — Trivy on every push/PR ✅ (currently **blocked** — GitHub account billing lock, fix on github.com/settings/billing)
 - Phase 7–9: Dockerfile hardening, CVE elimination, secrets management ✅
 - Stripe keys rotated + scrubbed from 218 commits with `git filter-repo` ✅ ← **April 16**
-- OOM crash root cause: Agent X built 30+ images with no memory limit — fixed ✅ ← **April 17**
-  - Exit 137 = OOM killed | Exit 128 = SIGTERM under stress (reference for future debugging)
 - **Socket-proxy least privilege** ✅ ← **April 19**
-  - Main `docker-socket-proxy`: read-only (no POST) — used by coder-agent, agent-x, devops-engineer
-  - New `docker-socket-proxy-healer`: CONTAINERS + POST + PING only — used by healer-agent + throttle-agent
-  - Reasoning: coder-agent runs LLM-generated code; if compromised it can enumerate only, not restart/kill containers
-- **Healer Dockerfile GID fix** ✅ ← **April 19** — `groupadd -o -g 999 docker` (Debian Trixie's appuser system GID collides with 999)
-- **GoalKeeper dev API key hardened** — never accepts empty key in dev; only `dev-key` when unset ✅ ← **April 23**
-- **Trivy noise fix** — removed vendored `wheel-*.dist-info` from setuptools vendor dir in runtime image ✅ ← **April 23**
+- **GoalKeeper dev API key hardened** ✅ ← **April 23**
+- **Trivy noise fix** ✅ ← **April 23**
 
 ### Celery
 - Celery + Redis task queue running ✅
@@ -203,7 +154,7 @@ curl.exe -s -X POST http://127.0.0.1:8081/execute `
 ### Phase 2 Token Sync (Course ↔ V2.4)
 - V2.4 endpoint `POST /api/v1/economy/award-from-course` ✅
 - `X-Sync-Secret` header auth (constant-time compare) ✅
-- `CoursSyncEvent` idempotency guard ✅
+- `CourseSyncEvent` idempotency guard ✅
 - Supabase Edge Function `sync-tokens-to-v24` written ✅ ← **April 16**
 
 ---
@@ -216,17 +167,13 @@ These need YOU to do them (can't be automated):
 - [ ] Set `COURSE_WEBHOOK_SECRET` in both V2.4 `.env` AND Supabase Edge Function env vars
 - [ ] Fix frontend hooks: any remaining hardcoded port 8081 → 8000 (Task 4)
 - [ ] `VITE_STRIPE_PAYMENT_LINK_URL` — set in `.env.local` + Vercel env vars when ready
+- [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens to the right account
 
 ---
 
 ## 📋 PLANS WRITTEN / IN PROGRESS
 
-- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features:
-  - Feature 1: Micro-Achievement Git Hook ✅ DONE April 25
-  - Feature 2: HyperSplit Agent ✅ DONE April 25
-  - Feature 3: Session Snapshot Agent ✅ DONE April 25
-  - Feature 4: Morning Briefing `/briefing` ✅ DONE April 26
-  - Feature 5: Focus / Panic Mode `make focus` / `make calm` (~1h)
+- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features: **ALL ✅ DONE April 25–26**
 - `BROSKI_PETS_INTEGRATION_PLAN.md` — full BROskiPets × HyperCode plan:
   - Phase 0: Shared infra (1 day)
   - Phase 1: Mint your first pet via BROski$ (3 days)
@@ -239,7 +186,7 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **Feature 5: Focus Mode** — `make focus` / `make calm`
+1. **Hyper-Vibe-Coding-Course** — move over, review current state, plan next features
 2. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
 3. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
 4. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
@@ -266,6 +213,8 @@ Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if 
 OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
 sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe sibling-import bootstrap
 /briefing:       pulls health + BROski$ + pulse + WHATS_DONE next + last git commit → Discord embed
+make focus:      stops 14 non-essential containers + 25-min bg timer
+make calm:       restores all + awards 75 BROski$ if session >10 mins
 ```
 
 ---
@@ -284,6 +233,8 @@ agents/session-snapshot/    — Session Snapshot Agent (Feature 3)
 agents/hyperhealth/         — HyperHealth API + worker
 agents/crew-orchestrator/   — Central task orchestrator
 agents/broski-bot/          — Discord bot (Feature 4: /briefing)
+scripts/focus-mode.sh       — Focus Mode (Feature 5)
+scripts/calm-mode.sh        — Calm Mode (Feature 5)
 secrets/                    — Docker secrets (.txt files, gitignored)
 docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
 docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
