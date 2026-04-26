@@ -120,8 +120,11 @@
   - `crew-orchestrator/main.py` — same pattern applied
   - **Bonus:** removed eager DB engine creation at import-time in hyperhealth (was causing `asyncpg` import errors in unit tests)
   - Added missing `status_to_int()` helper that hyperhealth tests expect
+- **hypersplit import bug fixed** ✅ ← **April 26** — SQLAlchemy "Table users already defined" resolved
+  - `backend/app/api/v1/endpoints/hypersplit.py` — removed rogue model import
+  - `backend/tests/unit/test_hypersplit.py` — updated to match
 
-### Hyperfocus Features ✅ DONE April 25
+### Hyperfocus Features ✅ DONE April 25–26
 - **Feature 1: Micro-Achievement Git Hook** ✅
   - `scripts/git-hooks/post-commit` + `scripts/install-git-hooks.ps1`
   - Awards tokens via `POST /api/v1/economy/award-from-course` (idempotent `source_id=git_<sha>`)
@@ -133,6 +136,14 @@
   - `agents/session-snapshot/` — FastAPI on port 8097
   - `make snapshot` writes `SESSION.md` (gitignored)
   - `make up` / `make start` / `make agents` prints the last SESSION.md via `scripts/show-session.sh`
+- **Feature 4: Morning Briefing `/briefing`** ✅ ← **April 26**
+  - `agents/broski-bot/src/cogs/briefing.py` — Discord slash command
+  - Pulls: stack health, BROski$ balance (by Discord ID), Pulse (agents online + user count), Next Up from WHATS_DONE.md, last git commit
+  - Output: single clean Discord embed
+  - `settings.py` — `DISCORD_GUILD_ID` wired for fast dev guild-first sync
+  - `bot.py` — guild-first slash command sync (instant in dev), then global sync attempt
+  - Start: `docker compose --profile discord up -d broski-bot` → run `/briefing` in Discord
+  - `ruff check` passes ✅ | unit tests pass ✅
 
 ### April 24 — Agents E2E Smoke Test (Proved the platform is alive)
 - Health checks: `GoalKeeper:8050`, `crew-orchestrator:8081`, `mcp-gateway:8820`, `hypercode-core:8000` ✅
@@ -214,7 +225,7 @@ These need YOU to do them (can't be automated):
   - Feature 1: Micro-Achievement Git Hook ✅ DONE April 25
   - Feature 2: HyperSplit Agent ✅ DONE April 25
   - Feature 3: Session Snapshot Agent ✅ DONE April 25
-  - Feature 4: Morning Briefing `/briefing` (~1.5h)
+  - Feature 4: Morning Briefing `/briefing` ✅ DONE April 26
   - Feature 5: Focus / Panic Mode `make focus` / `make calm` (~1h)
 - `BROSKI_PETS_INTEGRATION_PLAN.md` — full BROskiPets × HyperCode plan:
   - Phase 0: Shared infra (1 day)
@@ -228,11 +239,10 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **Feature 4: Morning Briefing** — Discord `/briefing` command
-2. **Feature 5: Focus Mode** — `make focus` / `make calm`
-3. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
-4. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-5. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **Feature 5: Focus Mode** — `make focus` / `make calm`
+2. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
+3. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
+4. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -241,6 +251,7 @@ These need YOU to do them (can't be automated):
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
+Discord bot:     docker compose --profile discord up -d broski-bot
 Tests:           pytest backend/tests -q  (223 passed, 6 skipped — skips are expected)
 Agent tests:     crew-orchestrator: 15p | session-snapshot: 3p | hyperhealth: 12p
 Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
@@ -254,6 +265,7 @@ Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=
 Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
 OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
 sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe sibling-import bootstrap
+/briefing:       pulls health + BROski$ + pulse + WHATS_DONE next + last git commit → Discord embed
 ```
 
 ---
@@ -271,6 +283,7 @@ agents/hyper-split-agent/   — HyperSplit Agent (Feature 2)
 agents/session-snapshot/    — Session Snapshot Agent (Feature 3)
 agents/hyperhealth/         — HyperHealth API + worker
 agents/crew-orchestrator/   — Central task orchestrator
+agents/broski-bot/          — Discord bot (Feature 4: /briefing)
 secrets/                    — Docker secrets (.txt files, gitignored)
 docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
 docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
