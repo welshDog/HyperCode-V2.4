@@ -169,7 +169,7 @@ opentelemetry-instrumentation-sqlalchemy==0.61b0
 opentelemetry-instrumentation-system-metrics==0.61b0
 opentelemetry-proto==1.40.0
 opentelemetry-sdk==1.40.0
-opentelemetry-semantic-conventions==0.61b0
+opentelemetry-semantic-conventions==0.62b1
 opentelemetry-util-http==0.61b0
 orjson==3.11.7
 ormsgpack==1.12.2
