@@ -105,7 +105,7 @@ jobs:
             -v
 
       - name: Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: coverage.xml
           flags: hyper-agents-unit
