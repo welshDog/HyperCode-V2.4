@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.11.0",
     "openai": "^6.34.0",
     "recharts": "^3.8.1"
   },
