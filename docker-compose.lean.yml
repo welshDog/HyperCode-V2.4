@@ -1,0 +1,63 @@
+# ============================================================
+# HyperCode V2.4 — LEAN MODE
+# Starts only the essentials. Safe startup order. No data loss.
+# Usage: docker compose -f docker-compose.yml -f docker-compose.lean.yml -f docker-compose.secrets.yml up -d
+# Shutdown: scripts/lean-stop.ps1
+# ============================================================
+#
+# LEAN STACK (~15 containers):
+#   Layer 1 (Data):    redis, postgres
+#   Layer 2 (Core):    hypercode-core, hypercode-ollama, celery-worker
+#   Layer 3 (Agents):  healer-agent, crew-orchestrator, docker-socket-proxy, docker-socket-proxy-healer
+#   Layer 4 (Obs):     prometheus, grafana, loki, tempo, promtail
+#   Layer 5 (UI):      hypercode-dashboard
+#
+# NOT STARTED in lean mode (use --profile to add):
+#   agents profile   → specialist agents (coder, qa, backend etc)
+#   hyper profile    → agent-x, hyper-architect, hyper-worker, hyper-observer
+#   health profile   → hyperhealth-api, hyperhealth-worker
+#   ops profile      → hyper-shield-scanner, hyper-sweeper-prune
+#   discord profile  → broski-bot
+#   pets profile     → broski-pets-bridge
+# ============================================================
+
+services:
+  # Override: disable services that are NOT needed in lean mode
+  # by assigning them to a "lean-disabled" profile
+
+  # --- OPS / SECURITY (not needed day-to-day) ---
+  hyper-sweeper-prune:
+    profiles: ["ops", "health", "hyper", "lean-disabled"]
+
+  hyper-shield-scanner:
+    profiles: ["ops", "health", "lean-disabled"]
+
+  docker-socket-proxy-build:
+    profiles: ["ops", "health", "hyper", "lean-disabled"]
+
+  # --- OBS extras (keep prometheus+grafana, skip heavy exporters) ---
+  celery-exporter:
+    profiles: ["lean-disabled"]
+
+  cadvisor:
+    profiles: ["lean-disabled"]
+
+  node-exporter:
+    profiles: ["lean-disabled"]
+
+  # --- STORAGE extras (skip unless needed) ---
+  minio:
+    profiles: ["lean-disabled"]
+
+  chroma:
+    profiles: ["lean-disabled"]
+
+  # --- MCP / MISSION (optional extras) ---
+  hypercode-mcp-server:
+    profiles: ["lean-disabled"]
+
+  alertmanager:
+    profiles: ["lean-disabled"]
+
+  redis-commander:
+    profiles: ["lean-disabled"]
