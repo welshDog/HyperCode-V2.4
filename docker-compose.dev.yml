@@ -120,7 +120,7 @@ services:
     container_name: redis-dev
     command: ["redis-server", "--appendonly", "no", "--save", ""]
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:6380:6379"
     networks:
       - dev-net
     healthcheck:
@@ -156,7 +156,7 @@ services:
     environment:
       - REDIS_HOSTS=local:redis-dev:6379
     ports:
-      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:8089:8081"
     depends_on:
       - redis-dev
     networks:
