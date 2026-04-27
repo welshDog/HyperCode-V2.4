@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
     ORCHESTRATOR_API_KEY: Optional[str] = None
+    DOCKER_SOCKET_PROXY_URL: str = "http://docker-socket-proxy:2375"
 
     # Phase 2: Token Sync — shared secret between Supabase edge fn and this API
     COURSE_SYNC_SECRET: Optional[str] = None

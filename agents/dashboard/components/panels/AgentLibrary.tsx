@@ -1,12 +1,61 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { API_BASE_URL } from '@/lib/api';
 import { AGENT_TEMPLATES } from '../../data/agentTemplates';
 
 export const AgentLibrary = () => {
+  const [remoteAgents, setRemoteAgents] = useState<typeof AGENT_TEMPLATES | null>(null)
+
+  const agents = useMemo(() => remoteAgents ?? AGENT_TEMPLATES, [remoteAgents])
+
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, agent: typeof AGENT_TEMPLATES[0]) => {
     e.dataTransfer.setData('application/hyperflow', JSON.stringify(agent));
     e.dataTransfer.effectAllowed = 'move';
   };
+
+  useEffect(() => {
+    let cancelled = false
+    const controller = new AbortController()
+    const t = setTimeout(() => controller.abort(), 5_000)
+
+    const load = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') ?? '' : ''
+        const res = await fetch(`${API_BASE_URL}/orchestrator/agents`, {
+          headers: token ? { Authorization: `Bearer ${token}`, Accept: 'application/json' } : { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        if (!res.ok) return
+        const data: unknown = await res.json()
+        if (!Array.isArray(data)) return
+        const mapped = data
+          .map((raw): (typeof AGENT_TEMPLATES)[0] | null => {
+            if (!raw || typeof raw !== 'object') return null
+            const a = raw as Record<string, unknown>
+            const name = typeof a.name === 'string' ? a.name : typeof a.role === 'string' ? a.role : ''
+            const role = typeof a.role === 'string' ? a.role : name
+            if (!name || !role) return null
+            const tools = Array.isArray(a.tools) ? a.tools.filter((x): x is string => typeof x === 'string') : []
+            const description = typeof a.description === 'string' ? a.description : ''
+            const avatar = typeof a.avatar === 'string' ? a.avatar : '🤖'
+            const color = typeof a.color === 'string' ? a.color : '#00F0FF'
+            return { role, name, tools, description, avatar, color }
+          })
+          .filter((x): x is (typeof AGENT_TEMPLATES)[0] => x != null)
+        if (!cancelled && mapped.length > 0) setRemoteAgents(mapped)
+      } catch {
+        if (!cancelled) setRemoteAgents(null)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+      clearTimeout(t)
+      controller.abort()
+    }
+  }, [])
 
   return (
     <div className="w-64 h-full bg-black/90 border-r border-cyan-500/20 backdrop-blur-xl flex flex-col overflow-hidden">
@@ -16,7 +65,7 @@ export const AgentLibrary = () => {
         </h2>
       </div>
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        {AGENT_TEMPLATES.map((agent) => (
+        {agents.map((agent) => (
           <div
             key={agent.role}
             draggable

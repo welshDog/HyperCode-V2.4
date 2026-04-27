@@ -3,6 +3,7 @@
 // Auto-reconnects with exponential backoff (3s → 6s → 12s … cap 30s)
 
 import { useEffect, useState } from 'react';
+import { fetchAgents } from '@/lib/api';
 
 interface Agent {
   id: string;
@@ -17,6 +18,45 @@ interface UseAgentStatusReturn {
   agents: Agent[];
   connected: boolean;
   error: string | null;
+}
+
+function normaliseStatus(raw: unknown): Agent['status'] {
+  const s = typeof raw === 'string' ? raw.toLowerCase() : ''
+  if (s === 'idle') return 'idle'
+  if (s === 'thinking') return 'thinking'
+  if (s === 'working') return 'working'
+  if (s === 'busy') return 'busy'
+  if (s === 'error') return 'error'
+  if (s === 'online') return 'online'
+  if (s === 'offline') return 'offline'
+  if (s === 'healthy' || s === 'ok' || s === 'up') return 'online'
+  if (s === 'warning' || s === 'warn' || s === 'degraded') return 'busy'
+  if (s === 'down' || s === 'unhealthy' || s === 'failed') return 'offline'
+  return 'online'
+}
+
+function normaliseAgent(raw: unknown): Agent | null {
+  if (!raw || typeof raw !== 'object') return null
+  const a = raw as Record<string, unknown>
+  const id = typeof a.id === 'string' && a.id ? a.id : typeof a.name === 'string' ? a.name : ''
+  const name = typeof a.name === 'string' && a.name ? a.name : id
+  if (!id || !name) return null
+  const lastActivity = typeof a.lastActivity === 'string'
+    ? a.lastActivity
+    : typeof a.last_action === 'string'
+      ? a.last_action
+      : undefined
+  const last_seen = typeof a.last_seen === 'string' ? a.last_seen : undefined
+  const skills = Array.isArray(a.skills) ? a.skills.filter((s): s is string => typeof s === 'string') : undefined
+
+  return {
+    id,
+    name,
+    status: normaliseStatus(a.status),
+    lastActivity,
+    last_seen,
+    skills,
+  }
 }
 
 function wsUrl(): string {
@@ -38,6 +78,25 @@ export function useAgentStatus(): UseAgentStatusReturn {
     let delay = 3_000;
     let destroyed = false;
 
+    const seed = async () => {
+      try {
+        const data: unknown = await fetchAgents()
+        const obj = data && typeof data === 'object' ? (data as Record<string, unknown>) : null
+        const rawAgents: unknown[] = Array.isArray(obj?.agents)
+          ? (obj?.agents as unknown[])
+          : Array.isArray(data)
+            ? (data as unknown[])
+            : []
+        const mapped = rawAgents.map(normaliseAgent).filter((x): x is Agent => x != null)
+        if (!destroyed && mapped.length > 0) {
+          setAgents(mapped)
+          setError(null)
+        }
+      } catch (e) {
+        if (!destroyed) setError(e instanceof Error ? e.message : 'Failed to seed agents')
+      }
+    }
+
     const connect = () => {
       if (destroyed) return;
       try {
@@ -52,7 +111,9 @@ export function useAgentStatus(): UseAgentStatusReturn {
         ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            setAgents(data.agents || []);
+            const rawAgents: unknown[] = Array.isArray(data?.agents) ? data.agents : [];
+            const mapped = rawAgents.map(normaliseAgent).filter((x): x is Agent => x != null);
+            setAgents(mapped);
             setError(null);
           } catch {
             setError('Failed to parse agent data');
@@ -83,6 +144,7 @@ export function useAgentStatus(): UseAgentStatusReturn {
       }
     };
 
+    seed();
     connect();
 
     return () => {

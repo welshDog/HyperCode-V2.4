@@ -1,27 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { fetchSystemHealth, type SystemHealthData } from "@/lib/api";
+import { useDockerServices } from "@/hooks/useDockerServices";
 import { Activity, AlertTriangle, CheckCircle, ServerCrash } from "lucide-react";
 
 export function SystemHealth() {
-  const [healthData, setHealthData] = useState<Record<string, SystemHealthData> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { services: healthData, loading } = useDockerServices(15_000);
 
-  useEffect(() => {
-    const fetchHealth = async () => {
-      const data = await fetchSystemHealth();
-      setHealthData(data);
-      setLoading(false);
-    };
-
-    fetchHealth();
-    const interval = setInterval(fetchHealth, 30000); // Update every 30s
-
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading || !healthData) {
+  if (loading || Object.keys(healthData).length === 0) {
     return (
         <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
             <div className="flex items-center gap-2 mb-4">
