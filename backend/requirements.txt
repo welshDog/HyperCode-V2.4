@@ -254,7 +254,7 @@ ruamel.yaml.clib==0.2.12
 # ruff bumped to 0.9.3 — gradio==5.41.0 requires ruff>=0.9.3
 ruff==0.9.3
 rustworkx==0.17.1
-s3transfer==0.16.0
+s3transfer==0.16.1
 safehttpx==0.1.6
 # safety + safety-schemas removed from prod image — belongs in CI only (conflicts with mcp>=2.11 pydantic constraint)
 schedule==1.2.2
