@@ -209,7 +209,12 @@ function AppShellInner({
                               {t.message && <div className="hc-notify-msg">{t.message}</div>}
                               <div className="hc-notify-actions">
                                 {t.action && (
-                                  <Link className="hc-toast-action" href={t.action.href} onClick={() => setOpen(false)}>
+                                  <Link
+                                    className="hc-toast-action"
+                                    href={t.action.href}
+                                    prefetch={false}
+                                    onClick={() => setOpen(false)}
+                                  >
                                     {t.action.label}
                                   </Link>
                                 )}
@@ -240,6 +245,7 @@ function AppShellInner({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`hc-nav-item${active ? ' active' : ''}`}
               >
                 {item.label}
