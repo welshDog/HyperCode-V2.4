@@ -7,9 +7,14 @@ import { AgentSwarmView } from '@/components/views/AgentSwarmView'
 import { TasksView } from '@/components/views/TasksView'
 import { BROskiPulseView } from '@/components/views/BROskiPulseView'
 import { SystemHealth } from '@/components/SystemHealth'
+import { LeanModeBadge } from '@/components/LeanModeBadge'
+import { useDockerServices } from '@/hooks/useDockerServices'
 
 export default function HyperStationPage(): React.JSX.Element {
   const [focus, setFocus] = useState<string | null>(null)
+  // Shared services feed — SystemHealth + LeanModeBadge read from the same poll
+  const { services, loading } = useDockerServices(15_000)
+
   const gridTemplate = focus
     ? `"${focus} ${focus}" 1fr / 1fr 1fr`
     : `
@@ -21,6 +26,11 @@ export default function HyperStationPage(): React.JSX.Element {
 
   return (
     <div className="hyper-shell" style={{ gridTemplate }}>
+      {/* 🏷️ Lean Mode badge — floated top-right of the shell */}
+      <div className="fixed top-3 right-4 z-30">
+        <LeanModeBadge services={services} loading={loading} />
+      </div>
+
       <Pane
         id="metrics"
         title="📊 Metrics Home"
@@ -38,6 +48,7 @@ export default function HyperStationPage(): React.JSX.Element {
         focused={focus === 'agents'}
         onFocusToggle={() => setFocus(focus === 'agents' ? null : 'agents')}
       >
+        {/* Agent cards are clickable — opens AgentDetailPopout */}
         <AgentSwarmView />
       </Pane>
 
@@ -58,6 +69,7 @@ export default function HyperStationPage(): React.JSX.Element {
         focused={focus === 'services'}
         onFocusToggle={() => setFocus(focus === 'services' ? null : 'services')}
       >
+        {/* SystemHealth now has sparklines + ghost agents toggle built in */}
         <SystemHealth />
       </Pane>
 

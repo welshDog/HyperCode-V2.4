@@ -1,9 +1,12 @@
 "use client";
 
 import { useDockerServices } from "@/hooks/useDockerServices";
-import { Activity, AlertTriangle, CheckCircle, Loader2, ServerCrash } from "lucide-react";
+import { useLatencyHistory } from "@/hooks/useLatencyHistory";
+import { SparkLine } from "@/components/SparkLine";
+import { OfflineAgentsPanel } from "@/components/panels/OfflineAgentsPanel";
+import { Activity, AlertTriangle, CheckCircle, Loader2, ServerCrash, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
-// --- Status style map — covers every state the backend can return ---
 type ServiceStatus = "healthy" | "starting" | "degraded" | "unknown" | "down" | "unhealthy" | string;
 
 function getStatusStyle(status: ServiceStatus) {
@@ -40,6 +43,8 @@ function getStatusStyle(status: ServiceStatus) {
 
 export function SystemHealth() {
   const { services: healthData, loading } = useDockerServices(15_000);
+  const latencyHistory = useLatencyHistory(healthData);
+  const [showOffline, setShowOffline] = useState(false);
 
   if (loading || Object.keys(healthData).length === 0) {
     return (
@@ -57,7 +62,6 @@ export function SystemHealth() {
     );
   }
 
-  // Only genuinely broken services count toward alert level
   const failedCount = Object.values(healthData).filter(
     (a) => a.status === "down" || a.status === "unhealthy"
   ).length;
@@ -86,7 +90,6 @@ export function SystemHealth() {
       </span>
     );
   } else if (startingCount > 0) {
-    // Starting/degraded — amber, not red
     statusColor = "border-yellow-500/50 shadow-[0_0_10px_rgba(234,179,8,0.1)]";
     statusIconColor = "text-yellow-500";
     statusLabel = (
@@ -106,9 +109,11 @@ export function SystemHealth() {
         {statusLabel}
       </div>
 
+      {/* Service cards with sparklines */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
         {Object.entries(healthData).map(([name, service]) => {
           const { card, icon, badge } = getStatusStyle(service.status);
+          const history = latencyHistory[name] ?? [];
           return (
             <div
               key={name}
@@ -116,13 +121,17 @@ export function SystemHealth() {
             >
               <div className="flex items-center gap-2">
                 {icon}
-                <span className="capitalize truncate max-w-[120px]" title={name}>
+                <span className="capitalize truncate max-w-[100px]" title={name}>
                   {name.replace(/_/g, " ")}
                 </span>
               </div>
-              <div className="text-right">
+              <div className="flex items-center gap-2">
+                {/* 📈 Sparkline — only shows for healthy services with history */}
+                {service.status === "healthy" && history.length >= 2 && (
+                  <SparkLine data={history} width={48} height={16} />
+                )}
                 {service.status === "healthy" ? (
-                  <span className="text-zinc-500">{Math.round(service.latency_ms || 0)}ms</span>
+                  <span className="text-zinc-500 tabular-nums">{Math.round(service.latency_ms || 0)}ms</span>
                 ) : (
                   badge
                 )}
@@ -130,6 +139,22 @@ export function SystemHealth() {
             </div>
           );
         })}
+      </div>
+
+      {/* 👻 Offline agents toggle */}
+      <div className="mt-3 border-t border-zinc-800 pt-3">
+        <button
+          onClick={() => setShowOffline((v) => !v)}
+          className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          {showOffline ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          Ghost Agents
+        </button>
+        {showOffline && (
+          <div className="mt-2">
+            <OfflineAgentsPanel services={healthData} loading={loading} />
+          </div>
+        )}
       </div>
     </div>
   );
