@@ -40,80 +40,107 @@ async def get_system_health(current_user: Any = Depends(deps.get_current_active_
     last_checked = datetime.now(timezone.utc).isoformat()
     services: dict[str, Any] = {}
 
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{settings.DOCKER_SOCKET_PROXY_URL}/containers/json?all=1")
-        if resp.status_code == 200:
-            payload = resp.json()
-            if isinstance(payload, list):
-                for item in payload:
-                    if not isinstance(item, dict):
-                        continue
-                    names = item.get("Names")
-                    name = None
-                    if isinstance(names, list) and names:
-                        raw = names[0]
-                        if isinstance(raw, str):
-                            name = raw.lstrip("/")
-                    if not name:
-                        raw_name = item.get("Name")
-                        if isinstance(raw_name, str):
-                            name = raw_name.lstrip("/")
-                    if not name:
-                        continue
+    # FIX 1: Guard — skip Docker entirely if proxy URL is not configured (e.g. lean mode)
+    docker_proxy_url = getattr(settings, "DOCKER_SOCKET_PROXY_URL", None)
 
-                    state = item.get("State")
-                    status_text = item.get("Status")
-                    status_raw = f"{status_text or ''} {state or ''}".lower()
-                    if "unhealthy" in status_raw or (isinstance(state, str) and state.lower() in {"exited", "dead"}):
-                        status = "down"
-                    elif "healthy" in status_raw or (isinstance(state, str) and state.lower() == "running"):
-                        status = "healthy"
-                    else:
-                        status = "unknown"
+    # FIX 2: Single shared httpx client for both upstream calls
+    async with httpx.AsyncClient(timeout=10.0) as client:
 
-                    services[name] = {
-                        "status": status,
-                        "latency_ms": None,
-                        "last_checked": last_checked,
-                        "error": None,
-                    }
-    except Exception as e:
-        services["docker"] = {
-            "status": "degraded",
-            "latency_ms": None,
-            "last_checked": last_checked,
-            "error": str(e),
-        }
+        # --- Docker socket proxy (optional) ---
+        if docker_proxy_url:
+            try:
+                resp = await client.get(f"{docker_proxy_url}/containers/json?all=1")
+                if resp.status_code == 200:
+                    payload = resp.json()
+                    if isinstance(payload, list):
+                        for item in payload:
+                            if not isinstance(item, dict):
+                                continue
+                            names = item.get("Names")
+                            name = None
+                            if isinstance(names, list) and names:
+                                raw = names[0]
+                                if isinstance(raw, str):
+                                    name = raw.lstrip("/")
+                            if not name:
+                                raw_name = item.get("Name")
+                                if isinstance(raw_name, str):
+                                    name = raw_name.lstrip("/")
+                            if not name:
+                                continue
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(f"{settings.ORCHESTRATOR_URL}/system/health", headers=_orchestrator_headers())
-        if resp.status_code == 200:
-            payload = resp.json()
-            if isinstance(payload, dict):
-                maybe_services = payload.get("services") if isinstance(payload.get("services"), dict) else payload
-                if isinstance(maybe_services, dict):
-                    for name, info in maybe_services.items():
-                        if not isinstance(name, str) or not name:
-                            continue
-                        info_obj = info if isinstance(info, dict) else {"status": str(info)}
-                        status = info_obj.get("status")
-                        if isinstance(status, str):
-                            status_str = status
-                        elif isinstance(status, bool):
-                            status_str = "healthy" if status else "down"
-                        else:
-                            status_str = "unknown"
+                            state = item.get("State")
+                            status_text = item.get("Status")
+                            status_raw = f"{status_text or ''} {state or ''}".lower()
 
-                        services[name] = {
-                            "status": status_str,
-                            "latency_ms": info_obj.get("latency_ms"),
-                            "last_checked": info_obj.get("last_checked") or last_checked,
-                            "error": info_obj.get("error"),
-                        }
-    except Exception:
-        pass
+                            # FIX 3: Handle transitional states — don't show as red/DOWN
+                            if "unhealthy" in status_raw or (
+                                isinstance(state, str) and state.lower() in {"exited", "dead"}
+                            ):
+                                status = "down"
+                            elif "healthy" in status_raw or (
+                                isinstance(state, str) and state.lower() == "running"
+                            ):
+                                status = "healthy"
+                            elif isinstance(state, str) and state.lower() in {
+                                "restarting", "created", "paused"
+                            }:
+                                # FIX 3: Transitional — show as starting, not down
+                                status = "starting"
+                            else:
+                                status = "unknown"
+
+                            services[name] = {
+                                "status": status,
+                                "latency_ms": None,
+                                "last_checked": last_checked,
+                                "error": None,
+                            }
+            except Exception as e:
+                services["docker"] = {
+                    "status": "degraded",
+                    "latency_ms": None,
+                    "last_checked": last_checked,
+                    "error": str(e),
+                }
+
+        # --- Crew-orchestrator health overlay ---
+        # FIX 4: Reduced to 3s timeout — prevents hanging during lean mode startup
+        try:
+            resp = await client.get(
+                f"{settings.ORCHESTRATOR_URL}/system/health",
+                headers=_orchestrator_headers(),
+                timeout=3.0,
+            )
+            if resp.status_code == 200:
+                payload = resp.json()
+                if isinstance(payload, dict):
+                    maybe_services = (
+                        payload.get("services")
+                        if isinstance(payload.get("services"), dict)
+                        else payload
+                    )
+                    if isinstance(maybe_services, dict):
+                        for name, info in maybe_services.items():
+                            if not isinstance(name, str) or not name:
+                                continue
+                            info_obj = info if isinstance(info, dict) else {"status": str(info)}
+                            status = info_obj.get("status")
+                            if isinstance(status, str):
+                                status_str = status
+                            elif isinstance(status, bool):
+                                status_str = "healthy" if status else "down"
+                            else:
+                                status_str = "unknown"
+
+                            services[name] = {
+                                "status": status_str,
+                                "latency_ms": info_obj.get("latency_ms"),
+                                "last_checked": info_obj.get("last_checked") or last_checked,
+                                "error": info_obj.get("error"),
+                            }
+        except Exception:
+            pass
 
     return services
 
@@ -198,4 +225,3 @@ async def approvals_ws(websocket: WebSocket, token: str | None = None, db: Sessi
             await r.close()
         except Exception:
             pass
-
