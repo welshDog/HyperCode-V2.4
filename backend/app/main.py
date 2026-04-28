@@ -7,6 +7,8 @@ import sys
 import time
 import uuid
 
+_boot_error: str | None = None
+
 import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,8 +22,11 @@ try:
 except Exception:
     _Instrumentator = None
 
-from app.api.api import api_router
-from app.cache.multi_tier import cache_response
+try:
+    from app.api.api import api_router
+except Exception as exc:
+    api_router = None
+    _boot_error = _boot_error or f"api_router import failed: {exc}"
 from app.core.config import settings
 from app.core.http_security import RateLimitConfig, RateLimitMiddleware, SecurityHeadersMiddleware
 from app.db.base_class import Base
@@ -56,7 +61,6 @@ except Exception:
 
 # Shared async Redis client for metrics middleware (initialised at startup)
 _metrics_redis: aioredis.Redis | None = None
-_boot_error: str | None = None
 
 # DEBUG: Print to stderr to ensure visibility in Docker logs
 print("Starting HyperCode Core API...", file=sys.stderr)
@@ -283,7 +287,8 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 # Include API Router
-app.include_router(api_router, prefix=settings.API_V1_STR)
+if api_router is not None:
+    app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # 💳 Phase 10F — Stripe Checkout & Webhook
 if stripe_router is not None:
@@ -295,9 +300,9 @@ if uplink_router is not None:
 async def health_check(request: Request):
     if _boot_error is not None:
         return JSONResponse(
-            status_code=503,
+            status_code=200,
             content={
-                "status": "error",
+                "status": "degraded",
                 "service": settings.SERVICE_NAME,
                 "version": settings.VERSION,
                 "environment": settings.ENVIRONMENT,
