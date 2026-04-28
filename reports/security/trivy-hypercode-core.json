@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-04-27T08:46:11.309513234Z",
+  "CreatedAt": "2026-04-28T11:14:31.814867489Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -8,7 +8,7 @@
       "Family": "debian",
       "Name": "13.4"
     },
-    "ImageID": "sha256:6c33fbc8655831061d9d89ffeac82ba1a16a0ff370a181253c589789f1230ae2",
+    "ImageID": "sha256:e41da9f99eadd7694697ac140bb610f556b6f5a8d5b2ffbd730ce6b67c929767",
     "DiffIDs": [
       "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
       "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
@@ -21,19 +21,19 @@
       "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
       "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
       "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
-      "sha256:90b5cc5f887bb06984b7b76575fe1f0ce4fa9f539de2ec803bc191acf5be1d01",
-      "sha256:8d8269f3e14b82a63e98e1cf5d98114180b8f54108af4813c5487ba4c4eead85",
-      "sha256:dfc707a7c7b29f49c9e3e836a9d5b64e445cd84c458ddc3481162b2b118cca9b"
+      "sha256:a35a70596e75d6d33b7ad841f3ea5ab44867f596c42749425f338ba2df2b20f9",
+      "sha256:ab0ad48e1cbd72e2425573ad8d4f86814477ebb6d438b134efe85dc1d752d652",
+      "sha256:21eec73c7eb64c2be71d23667cdd4851c19a4b33adc4a4525254f9b743f7c39e"
     ],
     "RepoTags": [
       "hypercode-core:latest"
     ],
     "RepoDigests": [
-      "hypercode-core@sha256:6c33fbc8655831061d9d89ffeac82ba1a16a0ff370a181253c589789f1230ae2"
+      "hypercode-core@sha256:e41da9f99eadd7694697ac140bb610f556b6f5a8d5b2ffbd730ce6b67c929767"
     ],
     "ImageConfig": {
       "architecture": "amd64",
-      "created": "2026-04-24T09:12:51.125974579Z",
+      "created": "2026-04-28T07:44:36.629471416Z",
       "history": [
         {
           "created": "2026-04-21T00:00:00Z",
@@ -157,40 +157,40 @@
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-24T09:12:43Z",
+          "created": "2026-04-28T07:44:26Z",
           "created_by": "COPY . . # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-24T09:12:48Z",
+          "created": "2026-04-28T07:44:29Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c python -c \"import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-24T09:12:51Z",
+          "created": "2026-04-28T07:44:36Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c chown -R appuser:appuser /app # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-24T09:12:51Z",
+          "created": "2026-04-28T07:44:36Z",
           "created_by": "USER appuser",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-24T09:12:51Z",
+          "created": "2026-04-28T07:44:36Z",
           "created_by": "EXPOSE [8000/tcp]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-24T09:12:51Z",
+          "created": "2026-04-28T07:44:36Z",
           "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"curl -f http://localhost:8000/health || exit 1\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-24T09:12:51Z",
+          "created": "2026-04-28T07:44:36Z",
           "created_by": "CMD [\"python\" \"-m\" \"uvicorn\" \"app.main:app\" \"--host\" \"0.0.0.0\" \"--port\" \"8000\"]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
@@ -211,9 +211,9 @@
           "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
           "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
           "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
-          "sha256:90b5cc5f887bb06984b7b76575fe1f0ce4fa9f539de2ec803bc191acf5be1d01",
-          "sha256:8d8269f3e14b82a63e98e1cf5d98114180b8f54108af4813c5487ba4c4eead85",
-          "sha256:dfc707a7c7b29f49c9e3e836a9d5b64e445cd84c458ddc3481162b2b118cca9b"
+          "sha256:a35a70596e75d6d33b7ad841f3ea5ab44867f596c42749425f338ba2df2b20f9",
+          "sha256:ab0ad48e1cbd72e2425573ad8d4f86814477ebb6d438b134efe85dc1d752d652",
+          "sha256:21eec73c7eb64c2be71d23667cdd4851c19a4b33adc4a4525254f9b743f7c39e"
         ]
       },
       "config": {
@@ -250,7 +250,7 @@
         "Labels": {
           "com.docker.compose.project": "hypercode-v24",
           "com.docker.compose.service": "hypercode-core",
-          "com.docker.compose.version": "5.1.2"
+          "com.docker.compose.version": "5.1.3"
         },
         "User": "appuser",
         "WorkingDir": "/app",
@@ -445,7 +445,7 @@
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
             "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7668",
+            "https://errata.rockylinux.org/RLSA-2026:7666",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
