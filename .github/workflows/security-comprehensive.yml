@@ -60,7 +60,7 @@ jobs:
           category: semgrep-sast
       - name: Upload Semgrep report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-report
           path: ${{ env.REPORTS_DIR }}/semgrep.json
@@ -81,7 +81,7 @@ jobs:
         continue-on-error: true
       - name: Upload Gitleaks report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gitleaks-report
           path: results.sarif
@@ -115,7 +115,7 @@ jobs:
         continue-on-error: true
       - name: Upload pip-audit reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pip-audit-reports
           path: ${{ env.REPORTS_DIR }}/pip-audit-*.json
