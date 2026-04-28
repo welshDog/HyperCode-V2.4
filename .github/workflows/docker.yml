@@ -64,7 +64,7 @@ jobs:
 
       - name: Build and push Core API image
         id: build_core
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -93,7 +93,7 @@ jobs:
 
       - name: Build and push Dashboard image
         id: build_dashboard
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./agents/dashboard
           file: ./agents/dashboard/Dockerfile
