@@ -108,6 +108,7 @@ export function HealthView(): React.JSX.Element {
         status: s,
         latency_ms: typeof h?.latency_ms === 'number' ? h?.latency_ms : null,
         last_checked: typeof h?.last_checked === 'string' ? h?.last_checked : null,
+        color: svc.color,
       }
     })
   }, [services])

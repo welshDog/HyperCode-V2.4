@@ -11,32 +11,33 @@ export interface KnownService {
   profiles: string[];    // which docker compose profiles start it — [] = always on
   port?: number;         // internal port for health ping
   isAgent: boolean;      // true = shows in agents panel
+  color?: string;        // hex color for the agent tile
 }
 
 export const KNOWN_SERVICES: KnownService[] = [
   // --- INFRA (always on) ---
-  { name: 'redis',                    label: 'Redis',                   group: 'infra',        profiles: [],                  port: 6379,  isAgent: false },
-  { name: 'postgres',                 label: 'Postgres',                group: 'infra',        profiles: [],                  port: 5432,  isAgent: false },
-  { name: 'hypercode-ollama',         label: 'Ollama',                  group: 'infra',        profiles: [],                  port: 11434, isAgent: false },
-  { name: 'minio',                    label: 'MinIO',                   group: 'infra',        profiles: [],                  port: 9000,  isAgent: false },
+  { name: 'redis',                    label: 'Redis',                   group: 'infra',        profiles: [],                  port: 6379,  isAgent: false, color: '#FF4500' },
+  { name: 'postgres',                 label: 'Postgres',                group: 'infra',        profiles: [],                  port: 5432,  isAgent: false, color: '#006400' },
+  { name: 'hypercode-ollama',         label: 'Ollama',                  group: 'infra',        profiles: [],                  port: 11434, isAgent: false, color: '#FFD700' },
+  { name: 'minio',                    label: 'MinIO',                   group: 'infra',        profiles: [],                  port: 9000,  isAgent: false, color: '#0078D4' },
   { name: 'chroma',                   label: 'Chroma',                  group: 'infra',        profiles: [],                  port: 8009,  isAgent: false },
 
   // --- CORE (always on) ---
-  { name: 'hypercode-core',           label: 'HyperCode Core',          group: 'core',         profiles: [],                  port: 8000,  isAgent: false },
-  { name: 'hypercode-dashboard',      label: 'Dashboard',               group: 'core',         profiles: [],                  port: 3000,  isAgent: false },
-  { name: 'celery-worker',            label: 'Celery Worker',           group: 'core',         profiles: [],                  port: undefined, isAgent: false },
-  { name: 'celery-exporter',          label: 'Celery Exporter',         group: 'core',         profiles: [],                  port: 9808,  isAgent: false },
-  { name: 'healer-agent',             label: 'Healer Agent',            group: 'core',         profiles: [],                  port: 8008,  isAgent: true  },
+  { name: 'hypercode-core',           label: 'HyperCode Core',          group: 'core',         profiles: [],                  port: 8000,  isAgent: false, color: '#00F0FF' },
+  { name: 'hypercode-dashboard',      label: 'Dashboard',               group: 'core',         profiles: [],                  port: 3000,  isAgent: false, color: '#FF00FF' },
+  { name: 'celery-worker',            label: 'Celery Worker',           group: 'core',         profiles: [],                  port: undefined, isAgent: false, color: '#00FF00' },
+  { name: 'celery-exporter',          label: 'Celery Exporter',         group: 'core',         profiles: [],                  port: 9808,  isAgent: false, color: '#FFFF00' },
+  { name: 'healer-agent',             label: 'Healer Agent',            group: 'core',         profiles: [],                  port: 8008,  isAgent: true,  color: '#FF0000' },
   { name: 'hypercode-mcp-server',     label: 'MCP Server',              group: 'core',         profiles: [],                  port: 8823,  isAgent: false },
 
   // --- PROXY ---
-  { name: 'docker-socket-proxy',       label: 'Docker Proxy (read)',     group: 'proxy',        profiles: [],                  port: 2375,  isAgent: false },
-  { name: 'docker-socket-proxy-healer',label: 'Docker Proxy (healer)',   group: 'proxy',        profiles: [],                  port: 2375,  isAgent: false },
-  { name: 'docker-socket-proxy-build', label: 'Docker Proxy (build)',    group: 'proxy',        profiles: ['ops','health','hyper'], port: 2375, isAgent: false },
+  { name: 'docker-socket-proxy',       label: 'Docker Proxy (read)',     group: 'proxy',        profiles: [],                  port: 2375,  isAgent: false, color: '#00F0FF' },
+  { name: 'docker-socket-proxy-healer',label: 'Docker Proxy (healer)',   group: 'proxy',        profiles: [],                  port: 2375,  isAgent: false, color: '#00F0FF' },
+  { name: 'docker-socket-proxy-build', label: 'Docker Proxy (build)',    group: 'proxy',        profiles: ['ops','health','hyper'], port: 2375, isAgent: false, color: '#00F0FF'  },
 
   // --- OBSERVABILITY ---
-  { name: 'prometheus',               label: 'Prometheus',              group: 'observability', profiles: [],                  port: 9090,  isAgent: false },
-  { name: 'grafana',                  label: 'Grafana',                 group: 'observability', profiles: [],                  port: 3001,  isAgent: false },
+  { name: 'prometheus',               label: 'Prometheus',              group: 'observability', profiles: [],                  port: 9090,  isAgent: false, color: '#00F0FF' },
+  { name: 'grafana',                  label: 'Grafana',                 group: 'observability', profiles: [],                  port: 3001,  isAgent: false, color: '#00F0FF' },
   { name: 'loki',                     label: 'Loki',                    group: 'observability', profiles: [],                  port: 3100,  isAgent: false },
   { name: 'tempo',                    label: 'Tempo',                   group: 'observability', profiles: [],                  port: 3200,  isAgent: false },
   { name: 'alertmanager',             label: 'Alertmanager',            group: 'observability', profiles: [],                  port: 9093,  isAgent: false },
