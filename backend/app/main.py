@@ -33,9 +33,11 @@ del _broski, _dashboard_task, _models
 try:
     from app.core.logging import setup_logging as _setup_logging
     from app.middleware.metrics import MetricsMiddleware as _MetricsMiddleware
-    _HAS_PHASE5 = True
+    _has_phase5 = True
 except Exception:
-    _HAS_PHASE5 = False
+    _setup_logging = None
+    _MetricsMiddleware = None
+    _has_phase5 = False
 
 # Shared async Redis client for metrics middleware (initialised at startup)
 _metrics_redis: aioredis.Redis | None = None
@@ -48,7 +50,7 @@ print("Starting HyperCode Core API...", file=sys.stderr)
 # See LICENSE file for details.
 
 # Configure logging — JSON structured if available, plain otherwise
-if _HAS_PHASE5:
+if _has_phase5 and _setup_logging is not None:
     _setup_logging(log_level=os.getenv("LOG_LEVEL", "INFO"))
 else:
     logging.basicConfig(level=logging.INFO)
@@ -91,12 +93,13 @@ async def _startup_validate_security() -> None:
     except Exception:
         logger.exception("Failed to seed BROski achievements")
     try:
-        _metrics_redis = aioredis.from_url(
+        redis_client = aioredis.from_url(
             settings.HYPERCODE_REDIS_URL,
             decode_responses=True,
             socket_connect_timeout=2,
         )
-        await _metrics_redis.ping()
+        await redis_client.ping()
+        _metrics_redis = redis_client
         logger.info("Metrics Redis client connected")
         # Start background heartbeat so dashboard shows this service as an active agent
         asyncio.create_task(_core_heartbeat_loop())
@@ -136,7 +139,7 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-if _HAS_PHASE5:
+if _has_phase5 and _MetricsMiddleware is not None:
     app.add_middleware(_MetricsMiddleware)
     # Gordon Tier 3 — register DB pool collector + Celery queue collector
     # so /metrics emits live SQLAlchemy pool stats and Redis queue depth.

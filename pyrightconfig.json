@@ -1,5 +1,12 @@
 {
     "reportMissingImports": false,
+    "reportImplicitRelativeImport": "none",
+    "executionEnvironments": [
+        {
+            "root": "backend",
+            "extraPaths": ["backend"]
+        }
+    ],
     "ignore": [
         "agents/broski-pets-bridge/**",
         "agents/broski-bot/**"
