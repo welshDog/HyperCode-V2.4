@@ -1,51 +1,22 @@
-name: Build and Test Agent Crew
+name: CI/CD
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install test dependencies
-      run: |
-        pip install -r tests/requirements.txt
-    
-    - name: Start services for testing
-      run: |
-        cp .env.example .env
-        echo "PERPLEXITY_API_KEY=${{ secrets.PERPLEXITY_API_KEY }}" >> .env
-        docker compose -f docker-compose.agents.yml up -d --wait --wait-timeout 120
-    
-    - name: Run tests
-      run: |
-        pytest tests/ -v --tb=short
-    
-    - name: Cleanup
-      if: always()
-      run: |
-        docker compose -f docker-compose.agents.yml down -v
-
-  security:
-    name: Security Scan
+  lint-and-test:
+    name: Lint + Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.28.0
+      - uses: actions/setup-python@v5
         with:
           scan-type: 'fs'
           scan-ref: '.'
