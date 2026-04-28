@@ -17,6 +17,7 @@ jobs:
   analyze:
     name: CodeQL Analyze
     runs-on: ubuntu-latest
+    if: github.event.repository.private == false
     strategy:
       fail-fast: false
       matrix:

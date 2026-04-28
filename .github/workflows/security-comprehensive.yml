@@ -70,7 +70,7 @@ jobs:
             --error || echo "SEMGREP_FINDINGS=true" >> $GITHUB_ENV
 
       - name: Upload Semgrep SARIF
-        if: always()
+        if: always() && github.event.repository.private == false
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ env.REPORTS_DIR }}/semgrep.sarif
@@ -269,14 +269,14 @@ jobs:
               /project || true
 
       - name: Upload Trivy SARIF (FS)
-        if: always()
+        if: always() && github.event.repository.private == false
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-filesystem
 
       - name: Upload Trivy SARIF (IaC)
-        if: always()
+        if: always() && github.event.repository.private == false
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-iac.sarif
