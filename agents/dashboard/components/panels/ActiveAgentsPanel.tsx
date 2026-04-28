@@ -5,8 +5,10 @@
 
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useAgentStatus } from '../../hooks/useAgentStatus';
 import { useCircuitBreakers } from '../../hooks/useHealerTelemetry';
+import { AgentDetailPopout, type AgentSummary } from '@/components/panels/AgentDetailPopout';
 
 // -- Status config ------------------------------------------------------------
 
@@ -42,18 +44,20 @@ interface AgentCardProps {
   skills?: string[];
   circuitState?: string;
   circuitFailures?: number;
+  onSelect?: () => void;
 }
 
 function AgentCard({
-  id, name, status, lastActivity, skills, circuitState, circuitFailures
+  id, name, status, lastActivity, skills, circuitState, circuitFailures, onSelect
 }: AgentCardProps): React.JSX.Element {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.idle;
   const cbState = circuitState ?? 'closed';
 
   return (
     <li
-      className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 text-xs"
+      className="rounded-lg border border-gray-800 bg-gray-900/60 p-3 text-xs cursor-pointer hover:border-gray-700"
       aria-label={`Agent ${name} - ${cfg.label}`}
+      onClick={onSelect}
     >
       <div className="flex items-center gap-2 mb-2">
         <span
@@ -104,13 +108,31 @@ function AgentCard({
 export default function ActiveAgentsPanel(): React.JSX.Element {
   const { agents, connected, error: wsError } = useAgentStatus();
   const { status: cbStatus, error: cbError }  = useCircuitBreakers();
+  const [selectedAgent, setSelectedAgent] = useState<AgentSummary | null>(null);
 
   const openBreakers = Object.entries(cbStatus).filter(
     ([, cb]) => cb.state !== 'closed'
   );
 
+  const agentSummaries = useMemo(() => {
+    return agents.map((agent) => {
+      const cb = cbStatus[agent.id];
+      return {
+        id: agent.id,
+        name: agent.name,
+        status: agent.status,
+        lastActivity: agent.lastActivity,
+        last_seen: agent.last_seen,
+        skills: agent.skills,
+        circuitState: cb?.state,
+        circuitFailures: cb?.failure_count,
+      } satisfies AgentSummary;
+    });
+  }, [agents, cbStatus]);
+
   return (
     <section aria-label="Active Agents" className="flex flex-col gap-2">
+      <AgentDetailPopout agent={selectedAgent} onClose={() => setSelectedAgent(null)} />
 
       <div className="flex items-center gap-2">
         <h2 className="text-sm font-bold uppercase tracking-widest text-gray-400">
@@ -150,8 +172,7 @@ export default function ActiveAgentsPanel(): React.JSX.Element {
       )}
 
       <ul className="flex flex-col gap-2">
-        {agents.map((agent) => {
-          const cb = cbStatus[agent.id];
+        {agentSummaries.map((agent) => {
           return (
             <AgentCard
               key={agent.id}
@@ -160,8 +181,9 @@ export default function ActiveAgentsPanel(): React.JSX.Element {
               status={agent.status}
               lastActivity={agent.lastActivity}
               skills={agent.skills}
-              circuitState={cb?.state}
-              circuitFailures={cb?.failure_count}
+              circuitState={agent.circuitState}
+              circuitFailures={agent.circuitFailures}
+              onSelect={() => setSelectedAgent(agent)}
             />
           );
         })}
