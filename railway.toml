@@ -1,4 +1,5 @@
 [build]
+rootDirectory = "backend"
 dockerfilePath = "Dockerfile"
 
 [deploy]
