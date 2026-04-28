@@ -11,7 +11,6 @@ ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + install build deps
 RUN apt-get update --allow-releaseinfo-change && \
-    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         gcc \
         libpq-dev \
@@ -47,7 +46,6 @@ ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + explicitly install patched security libs
 RUN apt-get update --allow-releaseinfo-change && \
-    apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
         libpq5 \
         curl \
