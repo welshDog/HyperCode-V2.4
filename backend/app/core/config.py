@@ -172,9 +172,16 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore"  # Allow extra fields in env
     )
-
-settings = Settings()
+_settings_boot_error: str | None = None
+try:
+    settings = Settings()
+except Exception as exc:
+    _settings_boot_error = str(exc)
+    settings = Settings.model_validate({})
 
 @lru_cache()
 def get_settings() -> Settings:
-    return Settings()
+    return settings
+
+def get_settings_boot_error() -> str | None:
+    return _settings_boot_error

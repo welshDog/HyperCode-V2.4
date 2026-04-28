@@ -36,7 +36,9 @@ async def get_agents(current_user: Any = Depends(deps.get_current_active_user)) 
 
 
 @router.get("/system/health")
-async def get_system_health(current_user: Any = Depends(deps.get_current_active_user)) -> Any:
+async def get_system_health(current_user: Any | None = Depends(deps.get_optional_current_user)) -> Any:
+    if settings.ENVIRONMENT.lower() in {"production", "staging"} and current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     last_checked = datetime.now(timezone.utc).isoformat()
     services: dict[str, Any] = {}
 

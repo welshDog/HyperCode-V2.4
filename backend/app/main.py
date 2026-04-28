@@ -22,12 +22,15 @@ try:
 except Exception:
     _Instrumentator = None
 
+from app.core.config import settings, get_settings_boot_error
+
 try:
     from app.api.api import api_router
 except Exception as exc:
     api_router = None
     _boot_error = _boot_error or f"api_router import failed: {exc}"
-from app.core.config import settings
+
+_boot_error = _boot_error or get_settings_boot_error()
 from app.core.http_security import RateLimitConfig, RateLimitMiddleware, SecurityHeadersMiddleware
 from app.db.base_class import Base
 from app.db.session import engine
