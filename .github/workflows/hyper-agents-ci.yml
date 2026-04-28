@@ -219,7 +219,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build hyper-agents Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/agents/hyper_agents
           push: false
