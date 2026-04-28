@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload Hadolint JSON
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hadolint-report
           path: reports/iac/hadolint.json
@@ -93,7 +93,7 @@ jobs:
 
       - name: Upload Trivy IaC JSON
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-iac-report
           path: reports/iac/trivy-iac.json
@@ -218,7 +218,7 @@ jobs:
 
       - name: Upload Kubernetes validation report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kubeconform-report
           path: reports/iac/kubeconform.json

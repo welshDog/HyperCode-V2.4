@@ -84,7 +84,7 @@ jobs:
 
       - name: Upload Playwright Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
@@ -99,7 +99,7 @@ jobs:
 
       - name: Upload JS reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: js-reports
           path: |

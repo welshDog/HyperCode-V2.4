@@ -26,7 +26,7 @@ jobs:
             --junitxml=reports/junit-python.xml \
             -v
       - name: Upload Python coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-coverage
           path: reports/
@@ -54,7 +54,7 @@ jobs:
             --coverage \
             --coverage.reporter=lcov \
             --coverage.reportsDirectory=../../reports/coverage-frontend
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: frontend-coverage
           path: reports/

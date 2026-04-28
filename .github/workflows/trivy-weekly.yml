@@ -100,7 +100,7 @@ jobs:
           exit-code: '0'  # weekly scan never blocks — just reports
 
       - name: Upload JSON artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-${{ matrix.agent }}
           path: trivy-${{ matrix.agent }}.json
@@ -173,7 +173,7 @@ jobs:
         run: cat weekly-trivy-report.md >> $GITHUB_STEP_SUMMARY
 
       - name: Upload fleet report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: weekly-fleet-report
           path: weekly-trivy-report.md
