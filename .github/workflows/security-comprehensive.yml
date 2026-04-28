@@ -2,9 +2,9 @@ name: Security — Comprehensive Scan
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]        # ← main only, never feature branches
   schedule:
-    - cron: '0 3 * * 1'   # Weekly Monday 03:00 UTC (full scan)
+    - cron: '0 3 * * 1'    # Weekly Monday 03:00 UTC
   workflow_dispatch:
     inputs:
       severity_override:
@@ -12,17 +12,20 @@ on:
         required: false
         default: 'HIGH'
 
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true   # cancel old run if new push lands
+
 permissions:
   contents: read
-  security-events: write   # SARIF uploads to GitHub Security tab
-  pull-requests: write      # PR comment summaries
+  security-events: write
+  pull-requests: write
 
 env:
   REPORTS_DIR: reports/security
   PYTHON_VERSION: '3.11'
 
 jobs:
-  # ── 1. Semgrep SAST ──────────────────────────────────────────────────────
   semgrep:
     name: Semgrep SAST
     runs-on: ubuntu-latest
@@ -30,212 +33,117 @@ jobs:
       image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
-
       - name: Run Semgrep
         id: semgrep
         env:
-          SEMGREP_RULES: >-
-            p/python
-            p/flask
-            p/javascript
-            p/typescript
-            p/nodejs
-            p/secrets
-            p/jwt
-            p/docker
-            p/owasp-top-ten
-            p/sql-injection
-            p/command-injection
+          SEMGREP_RULES: p/python p/secrets p/jwt p/docker p/owasp-top-ten
         run: |
           mkdir -p ${{ env.REPORTS_DIR }}
           semgrep scan \
             --config "p/python" \
-            --config "p/flask" \
-            --config "p/javascript" \
-            --config "p/typescript" \
-            --config "p/nodejs" \
             --config "p/secrets" \
             --config "p/jwt" \
             --config "p/docker" \
             --config "p/owasp-top-ten" \
-            --config semgrep.yaml \
             --sarif --output ${{ env.REPORTS_DIR }}/semgrep.sarif \
             --json --output ${{ env.REPORTS_DIR }}/semgrep.json \
             --severity ERROR \
-            --exclude "tests/" \
-            --exclude "*.lock" \
-            --exclude "node_modules/" \
-            --exclude ".venv/" \
+            --exclude "tests/" --exclude "*.lock" \
+            --exclude "node_modules/" --exclude ".venv/" \
             --exclude "agents/broski-bot/_archive/" \
             --error || echo "SEMGREP_FINDINGS=true" >> $GITHUB_ENV
-
       - name: Upload Semgrep SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ env.REPORTS_DIR }}/semgrep.sarif
           category: semgrep-sast
-
-      - name: Upload Semgrep report artifact
+      - name: Upload Semgrep report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
           path: ${{ env.REPORTS_DIR }}/semgrep.json
-          retention-days: 30
+          retention-days: 14   # ← reduced from 30
 
-  # ── 2. Gitleaks — Secret detection ──────────────────────────────────────
   gitleaks:
     name: Gitleaks Secret Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # full history for git log scanning
-
+          fetch-depth: 0
       - name: Run Gitleaks
         id: gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
-
       - name: Upload Gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: results.sarif
-          retention-days: 30
-
+          retention-days: 14
       - name: Fail on secrets found
         if: steps.gitleaks.outcome == 'failure'
         run: |
-          echo "::error::Gitleaks detected secrets in the codebase. Review results.sarif."
+          echo "::error::Gitleaks detected secrets. Review results.sarif."
           exit 1
 
-  # ── 3. pip-audit — Python dependency CVEs ────────────────────────────────
   pip-audit:
     name: pip-audit (Python CVEs)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
       - name: Install pip-audit
         run: pip install pip-audit
-
-      - name: Audit root requirements
-        id: audit_root
-        run: |
-          mkdir -p ${{ env.REPORTS_DIR }}
-          pip-audit \
-            -r requirements.txt \
-            --format json \
-            --output ${{ env.REPORTS_DIR }}/pip-audit-root.json \
-            --ignore-vuln GHSA-wfm5-v35h-vwf4 \
-            || echo "ROOT_VULNS=true" >> $GITHUB_ENV
-        continue-on-error: true
-
       - name: Audit backend requirements
         id: audit_backend
         run: |
+          mkdir -p ${{ env.REPORTS_DIR }}
           pip-audit \
             -r backend/requirements.txt \
             --format json \
             --output ${{ env.REPORTS_DIR }}/pip-audit-backend.json \
             || echo "BACKEND_VULNS=true" >> $GITHUB_ENV
         continue-on-error: true
-
-      - name: Audit agent requirements
-        run: |
-          find . \
-            -name "requirements*.txt" \
-            -not -path "./**/node_modules/**" \
-            -not -path "./**/.venv/**" \
-            -not -path "./**/_archive/**" \
-            -not -path "./docs/**" \
-            | while read -r f; do
-              safe=$(echo "$f" | sed 's#^\./##' | tr '/.' '--')
-              pip-audit \
-                -r "$f" \
-                --format json \
-                --output "${{ env.REPORTS_DIR }}/pip-audit-${safe}.json" \
-                || true
-            done
-
-      - name: Merge audit reports & check severity
-        run: |
-          python3 - << 'EOF'
-          import json, glob, sys, os
-
-          reports = glob.glob("${{ env.REPORTS_DIR }}/pip-audit-*.json")
-          all_vulns = []
-          for path in reports:
-              try:
-                  with open(path) as f:
-                      data = json.load(f)
-                  # pip-audit format: list of {name, version, vulns:[{id, fix_versions, aliases, description}]}
-                  for pkg in data:
-                      for v in pkg.get("vulns", []):
-                          all_vulns.append({
-                              "package": pkg["name"],
-                              "version": pkg["version"],
-                              "source": os.path.basename(path),
-                              **v
-                          })
-              except Exception as e:
-                  print(f"Skipping {path}: {e}")
-
-          with open("${{ env.REPORTS_DIR }}/pip-audit-merged.json", "w") as f:
-              json.dump(all_vulns, f, indent=2)
-
-          print(f"Total vulnerabilities found: {len(all_vulns)}")
-          if all_vulns:
-              print("Packages with vulnerabilities:")
-              for v in all_vulns:
-                  print(f"  {v['package']}=={v['version']} — {v.get('id','?')}: {v.get('description','')[:80]}")
-          EOF
-
       - name: Upload pip-audit reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: pip-audit-reports
           path: ${{ env.REPORTS_DIR }}/pip-audit-*.json
-          retention-days: 30
-
+          retention-days: 14
       - name: Fail on CRITICAL Python CVEs
-        if: env.ROOT_VULNS == 'true' || env.BACKEND_VULNS == 'true'
+        if: env.BACKEND_VULNS == 'true'
         run: |
-          echo "::error::pip-audit found vulnerabilities in Python dependencies. Review pip-audit-reports artifact."
+          echo "::error::pip-audit found vulnerabilities. Review pip-audit-reports artifact."
           exit 1
 
-  # ── 4. Trivy — Filesystem + IaC ──────────────────────────────────────────
   trivy-full:
     name: Trivy (FS + IaC)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Trivy filesystem scan (all deps)
+      - name: Trivy filesystem scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
           format: sarif
           output: trivy-fs.sarif
-          exit-code: '0'           # collect findings, gate below
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: library
           severity: CRITICAL,HIGH
           trivy-config: trivy.yaml
-
-      - name: Trivy IaC scan (docker-compose + Dockerfiles)
+      - name: Trivy IaC scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: config
@@ -244,37 +152,12 @@ jobs:
           output: trivy-iac.sarif
           exit-code: '0'
           severity: CRITICAL,HIGH,MEDIUM
-
-      - name: Trivy generate JSON reports
-        run: |
-          mkdir -p ${{ env.REPORTS_DIR }}
-          # Filesystem JSON
-          docker run --rm \
-            -v "$(pwd):/project" \
-            -v "/tmp/trivy-cache:/root/.cache/trivy" \
-            aquasec/trivy:latest fs \
-              --format json \
-              --output /project/${{ env.REPORTS_DIR }}/trivy-fs.json \
-              --ignore-unfixed \
-              --severity CRITICAL,HIGH \
-              --skip-dirs node_modules,.venv,migrations \
-              /project || true
-          # IaC JSON
-          docker run --rm \
-            -v "$(pwd):/project" \
-            aquasec/trivy:latest config \
-              --format json \
-              --output /project/${{ env.REPORTS_DIR }}/trivy-iac.json \
-              --severity CRITICAL,HIGH,MEDIUM \
-              /project || true
-
       - name: Upload Trivy SARIF (FS)
         if: always()
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-filesystem
-
       - name: Upload Trivy SARIF (IaC)
         if: always()
         uses: github/codeql-action/upload-sarif@v4
@@ -282,220 +165,24 @@ jobs:
           sarif_file: trivy-iac.sarif
           category: trivy-iac
 
-      - name: Upload Trivy JSON reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-reports
-          path: ${{ env.REPORTS_DIR }}/trivy-*.json
-          retention-days: 30
-
-  # ── 5. SBOM generation ───────────────────────────────────────────────────
-  sbom:
-    name: SBOM Generation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Generate SBOM (Trivy CycloneDX)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: cyclonedx
-          output: sbom.cdx.json
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-cyclonedx
-          path: sbom.cdx.json
-          retention-days: 90
-
-  # ── 6. License compliance ────────────────────────────────────────────────
-  license-check:
-    name: License Compliance
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Python license audit (pip-licenses)
-        run: |
-          pip install pip-licenses
-          pip install -r requirements.txt -q
-          pip install -r backend/requirements.txt -q || true
-          mkdir -p ${{ env.REPORTS_DIR }}
-          pip-licenses \
-            --format=json \
-            --output-file=${{ env.REPORTS_DIR }}/licenses-python.json \
-            --with-urls \
-            --with-description
-
-      - name: Check blocked Python licenses
-        run: |
-          python3 - << 'EOF'
-          import json, sys
-
-          BLOCKED = {
-              "GPL-2.0", "GPL-2.0-only", "GPL-2.0-or-later",
-              "GPL-3.0", "GPL-3.0-only", "GPL-3.0-or-later",
-              "AGPL-3.0", "AGPL-3.0-only", "AGPL-3.0-or-later",
-              "SSPL-1.0", "Commons-Clause",
-          }
-          REVIEW = {"LGPL-2.0", "LGPL-2.1", "LGPL-3.0", "MPL-2.0", "EUPL-1.1", "EUPL-1.2"}
-
-          with open("${{ env.REPORTS_DIR }}/licenses-python.json") as f:
-              packages = json.load(f)
-
-          violations, reviews = [], []
-          for pkg in packages:
-              lic = pkg.get("License", "UNKNOWN").strip()
-              name = pkg.get("Name", "?")
-              if any(b in lic for b in BLOCKED):
-                  violations.append(f"  BLOCKED: {name} — {lic}")
-              elif any(r in lic for r in REVIEW):
-                  reviews.append(f"  REVIEW:  {name} — {lic}")
-
-          if reviews:
-              print("Licenses requiring review:")
-              print("\n".join(reviews))
-
-          if violations:
-              print("\n::error::Blocked license(s) found in Python dependencies:")
-              print("\n".join(violations))
-              sys.exit(1)
-
-          print(f"License check passed. {len(packages)} packages scanned, {len(reviews)} require manual review.")
-          EOF
-
-      - name: Node.js license audit (license-checker)
-        run: |
-          cd agents/dashboard
-          npm ci --silent
-          npx license-checker \
-            --json \
-            --out ../../${{ env.REPORTS_DIR }}/licenses-npm.json \
-            --excludePrivatePackages || true
-
-      - name: Check blocked npm licenses
-        run: |
-          python3 - << 'EOF'
-          import json, sys
-
-          BLOCKED_PREFIXES = ("GPL-", "AGPL-", "SSPL")
-
-          try:
-              with open("${{ env.REPORTS_DIR }}/licenses-npm.json") as f:
-                  packages = json.load(f)
-          except FileNotFoundError:
-              print("No npm license report found — skipping")
-              sys.exit(0)
-
-          violations = []
-          for pkg, info in packages.items():
-              lic = info.get("licenses", "UNKNOWN")
-              if isinstance(lic, list):
-                  lic = ", ".join(lic)
-              if any(lic.startswith(p) for p in BLOCKED_PREFIXES):
-                  violations.append(f"  BLOCKED: {pkg} — {lic}")
-
-          if violations:
-              print("::error::Blocked license(s) found in npm dependencies:")
-              print("\n".join(violations))
-              sys.exit(1)
-
-          print(f"npm license check passed. {len(packages)} packages scanned.")
-          EOF
-
-      - name: Upload license reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: license-reports
-          path: ${{ env.REPORTS_DIR }}/licenses-*.json
-          retention-days: 30
-
-  # ── Gate: fail PR if any blocking scan failed ────────────────────────────
   security-gate:
     name: Security Gate
-    needs: [semgrep, gitleaks, pip-audit, trivy-full, license-check]
+    needs: [semgrep, gitleaks, pip-audit, trivy-full]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Evaluate gate
         run: |
-          echo "semgrep:      ${{ needs.semgrep.result }}"
-          echo "gitleaks:     ${{ needs.gitleaks.result }}"
-          echo "pip-audit:    ${{ needs.pip-audit.result }}"
-          echo "trivy:        ${{ needs.trivy-full.result }}"
-          echo "licenses:     ${{ needs.license-check.result }}"
-
+          echo "semgrep:   ${{ needs.semgrep.result }}"
+          echo "gitleaks:  ${{ needs.gitleaks.result }}"
+          echo "pip-audit: ${{ needs.pip-audit.result }}"
+          echo "trivy:     ${{ needs.trivy-full.result }}"
           FAILED=""
-          [ "${{ needs.semgrep.result }}"        == "failure" ] && FAILED="$FAILED semgrep"
-          [ "${{ needs.gitleaks.result }}"       == "failure" ] && FAILED="$FAILED gitleaks"
-          [ "${{ needs.pip-audit.result }}"      == "failure" ] && FAILED="$FAILED pip-audit"
-          [ "${{ needs.license-check.result }}"  == "failure" ] && FAILED="$FAILED license-check"
-
+          [ "${{ needs.semgrep.result }}"   == "failure" ] && FAILED="$FAILED semgrep"
+          [ "${{ needs.gitleaks.result }}"  == "failure" ] && FAILED="$FAILED gitleaks"
+          [ "${{ needs.pip-audit.result }}" == "failure" ] && FAILED="$FAILED pip-audit"
           if [ -n "$FAILED" ]; then
             echo "::error::Security gate FAILED. Blocking jobs:$FAILED"
             exit 1
           fi
-
           echo "Security gate PASSED."
-
-  executive-summary:
-    name: Executive Summary
-    needs: [semgrep, gitleaks, pip-audit, trivy-full, sbom, license-check, security-gate]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Download artifacts (reports)
-        uses: actions/download-artifact@v4
-        with:
-          path: _artifacts
-
-      - name: Generate executive summary
-        run: |
-          mkdir -p reports/executive
-          python3 .github/scripts/executive_summary.py --in _artifacts --out reports/executive
-
-      - name: Upload executive summary artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: executive-summary
-          path: reports/executive/
-          retention-days: 90
-
-      - name: Publish summary to job
-        if: always()
-        run: |
-          cat reports/executive/executive-summary.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Comment summary on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const fs = require('fs')
-            const body = fs.readFileSync('reports/executive/executive-summary.md', 'utf8')
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body
-            })

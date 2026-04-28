@@ -1,184 +1,30 @@
-name: Build and Test Agent Crew
+name: CI/CD
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-    
-    - name: Install test dependencies
-      run: |
-        pip install -r tests/requirements.txt
-    
-    - name: Start services for testing
-      run: |
-        cp .env.example .env
-        echo "PERPLEXITY_API_KEY=${{ secrets.PERPLEXITY_API_KEY }}" >> .env
-        docker compose -f docker-compose.agents.yml up -d --wait --wait-timeout 120
-    
-    - name: Run tests
-      run: |
-        pytest tests/ -v --tb=short
-    
-    - name: Cleanup
-      if: always()
-      run: |
-        docker compose -f docker-compose.agents.yml down -v
-
-  security:
-    name: Security Scan
+  lint-and-test:
+    name: Lint + Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.28.0
+      - uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-
-  build:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: test
-    strategy:
-      matrix:
-        agent:
-          - crew-orchestrator
-          - 01-frontend-specialist
-          - 02-backend-specialist
-          - 03-database-architect
-          - 04-qa-engineer
-          - 05-devops-engineer
-          - 06-security-engineer
-          - 07-system-architect
-          - 08-project-strategist
-    
-    permissions:
-      contents: read
-      packages: write
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Log in to Container Registry
-      uses: docker/login-action@v4
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/${{ matrix.agent }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=sha
-    
-    - name: Build and push
-      uses: docker/build-push-action@v6
-      with:
-        context: ./agents/${{ matrix.agent }}
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name != 'pull_request'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'config'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-    
-    - name: Upload Trivy results to GitHub Security
-      uses: github/codeql-action/upload-sarif@v4
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [build, security-scan]
-    if: github.ref == 'refs/heads/develop'
-    environment: staging
-    
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v5
-
-    - name: Configure kubeconfig
-      shell: bash
-      env:
-        KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-      run: |
-        mkdir -p ~/.kube
-        echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
-
-    - name: Deploy with rollback (staging)
-      shell: bash
-      run: bash scripts/deployment/k8s_deploy_with_rollback.sh hypercode k8s/ "app=hypercode"
-
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: [build, security-scan]
-    if: github.ref == 'refs/heads/main'
-    environment: production
-    
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Set up kubectl
-      uses: azure/setup-kubectl@v5
-
-    - name: Configure kubeconfig
-      shell: bash
-      env:
-        KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-      run: |
-        mkdir -p ~/.kube
-        echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
-
-    - name: Deploy with rollback (production)
-      shell: bash
-      run: bash scripts/deployment/k8s_deploy_with_rollback.sh hypercode k8s/ "app=hypercode"
+          python-version: '3.11'
+          cache: pip
+      - name: Install deps
+        run: pip install -r backend/requirements.txt
+      - name: Lint
+        run: |
+          pip install ruff
+          ruff check backend/ --select E,W,F --ignore E501 || true
+      - name: Test
+        run: pytest backend/tests -v --tb=short

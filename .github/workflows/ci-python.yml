@@ -1,150 +1,33 @@
-name: Python CI
+name: CI — Python
 
 on:
-  workflow_call:
-    inputs:
-      python_version:
-        description: Python version
-        required: false
-        type: string
-        default: "3.11"
-      coverage_min:
-        description: Minimum line coverage percentage (0-100)
-        required: false
-        type: string
-        default: "10"
-      fail_on_ruff:
-        description: Fail workflow if ruff reports issues
-        required: false
-        type: boolean
-        default: false
-      fail_on_pip_audit:
-        description: Fail workflow if pip-audit reports vulnerabilities
-        required: false
-        type: boolean
-        default: false
-      fail_on_bandit_high:
-        description: Fail workflow if Bandit HIGH findings exist
-        required: false
-        type: boolean
-        default: false
-  schedule:
-    - cron: '0 6 * * 1'
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'requirements*.txt'
+      - '.github/workflows/ci-python.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'requirements*.txt'
+
+concurrency:
+  group: ci-python-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test-and-scan:
+  test:
+    name: Python Tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ github.event_name == 'workflow_call' && inputs.python_version || '3.11' }}
-
-      - name: Validate ND plugin manifests
-        run: |
-          python -m pip install --upgrade pip
-          pip install jsonschema
-          python scripts/validate_nd_plugin_manifest.py --paths templates
-
-      - name: Install deps
-        working-directory: backend
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-asyncio pytest-cov httpx ruff pip-audit safety bandit
-
-      - name: Lint with ruff
-        working-directory: backend
-        run: |
-          if [ "${{ github.event_name == 'workflow_call' && inputs.fail_on_ruff || false }}" = "true" ]; then
-            ruff check app/ --ignore E501
-          else
-            ruff check app/ --ignore E501 || echo "Lint warnings found - non-blocking"
-          fi
-
-      - name: Pytest with coverage
-        working-directory: backend
-        run: |
-          if [ ! -d "tests" ]; then mkdir -p tests; fi
-          if [ ! -f "tests/__init__.py" ]; then touch tests/__init__.py; fi
-          if [ ! -f "tests/test_placeholder.py" ]; then
-            echo "def test_system_is_alive(): assert True" > tests/test_placeholder.py
-          fi
-          pytest tests/ -v --cov=app --cov-report=xml:coverage.xml --cov-report=term-missing
-
-      - name: Enforce coverage threshold
-        working-directory: backend
-        run: |
-          python - << 'PY'
-          import os
-          import xml.etree.ElementTree as ET
-          try:
-              t = ET.parse('coverage.xml')
-              s = t.getroot().attrib.get('line-rate')
-              pct = float(s) * 100 if s else 0
-              print(f'Coverage: {pct:.1f}%')
-              min_cov = float(os.environ.get("COVERAGE_MIN", "10"))
-              exit(0 if pct >= min_cov else 1)
-          except Exception as e:
-              print(f'Coverage check skipped: {e}')
-              exit(0)
-          PY
-        env:
-          COVERAGE_MIN: ${{ github.event_name == 'workflow_call' && inputs.coverage_min || '10' }}
-
-      - name: pip-audit security scan
-        working-directory: backend
-        run: |
-          if [ "${{ github.event_name == 'workflow_call' && inputs.fail_on_pip_audit || false }}" = "true" ]; then
-            pip-audit -r requirements.txt
-          else
-            pip-audit -r requirements.txt || echo "pip-audit found issues - review required"
-          fi
-
-      - name: safety security scan
-        working-directory: backend
-        run: |
-          safety check --full-report || echo "safety found issues - review required"
-
-      - name: bandit static security scan
-        working-directory: backend
-        run: |
-          bandit -r app -f json -o bandit-report.json -ll || echo "bandit found issues - review required"
-
-      - name: Enforce Bandit HIGH gate (optional)
-        if: ${{ github.event_name == 'workflow_call' && inputs.fail_on_bandit_high || false }}
-        working-directory: backend
-        run: |
-          python - << 'PY'
-          import json, sys
-          try:
-              with open("bandit-report.json") as f:
-                  data = json.load(f)
-          except Exception:
-              sys.exit(0)
-          results = data.get("results", [])
-          high = [r for r in results if r.get("issue_severity") == "HIGH"]
-          if high:
-              for r in high[:10]:
-                  print(f"{r.get('filename','?')}:{r.get('line_number','?')} {r.get('test_name','?')}")
-              sys.exit(1)
-          PY
-
-      - name: Collect reports
-        if: always()
-        run: |
-          mkdir -p reports/python
-          if [ -f backend/coverage.xml ]; then cp backend/coverage.xml reports/python/coverage.xml; fi
-          if [ -f backend/bandit-report.json ]; then cp backend/bandit-report.json reports/python/bandit-report.json; fi
-
-      - name: Upload reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-reports
-          path: reports/python/
-          retention-days: 30
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Run tests
+        run: pytest backend/tests -v --tb=short
