@@ -11,19 +11,34 @@ import redis.asyncio as aioredis
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from opentelemetry import trace
-from prometheus_fastapi_instrumentator import Instrumentator
+try:
+    from opentelemetry import trace as _trace
+except Exception:
+    _trace = None
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator as _Instrumentator
+except Exception:
+    _Instrumentator = None
 
 from app.api.api import api_router
 from app.cache.multi_tier import cache_response
 from app.core.config import settings
 from app.core.http_security import RateLimitConfig, RateLimitMiddleware, SecurityHeadersMiddleware
-from app.core.telemetry import setup_telemetry
 from app.db.base_class import Base
 from app.db.session import engine
-from app.middleware.rate_limiting import limiter, setup_rate_limiting
-from app.routes.stripe import router as stripe_router
-from app.ws.uplink import router as uplink_router
+try:
+    from app.middleware.rate_limiting import limiter, setup_rate_limiting
+except Exception:
+    limiter = None
+    setup_rate_limiting = None
+try:
+    from app.routes.stripe import router as stripe_router
+except Exception:
+    stripe_router = None
+try:
+    from app.ws.uplink import router as uplink_router
+except Exception:
+    uplink_router = None
 
 import app.models.broski as _broski
 import app.models.dashboard_task as _dashboard_task
@@ -137,18 +152,22 @@ async def _startup_validate_security() -> None:
         logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
 
     try:
-        setup_rate_limiting(app)
+        if setup_rate_limiting is not None:
+            setup_rate_limiting(app)
     except Exception:
         logger.exception("Rate limiting init failed (non-fatal)")
 
     try:
-        setup_telemetry(app)
+        from app.core.telemetry import setup_telemetry as _setup_telemetry
+
+        _setup_telemetry(app)
     except Exception:
         logger.exception("Telemetry init failed (non-fatal)")
 
     if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
         try:
-            Instrumentator().instrument(app).expose(app)
+            if _Instrumentator is not None:
+                _Instrumentator().instrument(app).expose(app)
         except Exception:
             logger.exception("Prometheus instrumentation failed (non-fatal)")
 
@@ -267,8 +286,10 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # 💳 Phase 10F — Stripe Checkout & Webhook
-app.include_router(stripe_router)
-app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
+if stripe_router is not None:
+    app.include_router(stripe_router)
+if uplink_router is not None:
+    app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
 async def health_check(request: Request):
@@ -294,19 +315,19 @@ async def health_check(request: Request):
 async def root():
     return JSONResponse({"message": "Welcome to HyperCode Core API"})
 
-# Example Endpoint for Custom Tracing
-tracer = trace.get_tracer(__name__)
+if _trace is not None:
+    tracer = _trace.get_tracer(__name__)
 
-@app.get("/api/v1/trace-example")
-async def trace_example():
-    with tracer.start_as_current_span("custom_operation") as span:
-        span.set_attribute("custom.attribute", "example_value")
-        logger.info("Performing a traced operation")
-        await asyncio.sleep(0.1)  # Simulate work
-        with tracer.start_as_current_span("inner_operation"):
-            logger.info("Inside inner operation")
-            await asyncio.sleep(0.05)
-    return {"message": "Traced operation completed"}
+    @app.get("/api/v1/trace-example")
+    async def trace_example():
+        with tracer.start_as_current_span("custom_operation") as span:
+            span.set_attribute("custom.attribute", "example_value")
+            logger.info("Performing a traced operation")
+            await asyncio.sleep(0.1)  # Simulate work
+            with tracer.start_as_current_span("inner_operation"):
+                logger.info("Inside inner operation")
+                await asyncio.sleep(0.05)
+        return {"message": "Traced operation completed"}
 
 if __name__ == "__main__":
     import uvicorn
