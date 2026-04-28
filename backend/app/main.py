@@ -41,6 +41,7 @@ except Exception:
 
 # Shared async Redis client for metrics middleware (initialised at startup)
 _metrics_redis: aioredis.Redis | None = None
+_boot_error: str | None = None
 
 # DEBUG: Print to stderr to ensure visibility in Docker logs
 print("Starting HyperCode Core API...", file=sys.stderr)
@@ -65,6 +66,15 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
 )
 
+@app.middleware("http")
+async def _boot_guard(request: Request, call_next):
+    if _boot_error is not None and request.url.path != "/health":
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Service misconfigured", "boot_error": _boot_error},
+        )
+    return await call_next(request)
+
 @app.on_event("shutdown")
 async def _shutdown_event() -> None:
     global _metrics_redis
@@ -79,19 +89,39 @@ async def _shutdown_event() -> None:
 @app.on_event("startup")
 async def _startup_validate_security() -> None:
     global _metrics_redis
-    settings.validate_security()
-    if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
-        Base.metadata.create_all(bind=engine)
+    global _boot_error
     try:
-        from app.db.session import SessionLocal
-        from app.services.broski_service import seed_achievements
-        db = SessionLocal()
+        settings.validate_security()
+    except Exception as exc:
+        _boot_error = str(exc)
+        logger.error("Startup security validation failed: %s", _boot_error)
+        return
+
+    async def _init_db_background() -> None:
+        if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
+            try:
+                await asyncio.to_thread(Base.metadata.create_all, bind=engine)
+            except Exception:
+                logger.exception("DB_AUTO_CREATE failed (non-fatal)")
+
         try:
-            seed_achievements(db)
-        finally:
-            db.close()
-    except Exception:
-        logger.exception("Failed to seed BROski achievements")
+            from app.db.session import SessionLocal
+            from app.services.broski_service import seed_achievements
+
+            def _seed_sync() -> None:
+                db = SessionLocal()
+                try:
+                    seed_achievements(db)
+                finally:
+                    db.close()
+
+            await asyncio.wait_for(asyncio.to_thread(_seed_sync), timeout=8)
+        except TimeoutError:
+            logger.warning("Seed achievements timed out (non-fatal)")
+        except Exception:
+            logger.exception("Failed to seed BROski achievements (non-fatal)")
+
+    asyncio.create_task(_init_db_background())
     try:
         redis_client = aioredis.from_url(
             settings.HYPERCODE_REDIS_URL,
@@ -105,6 +135,22 @@ async def _startup_validate_security() -> None:
         asyncio.create_task(_core_heartbeat_loop())
     except Exception:
         logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
+
+    try:
+        setup_rate_limiting(app)
+    except Exception:
+        logger.exception("Rate limiting init failed (non-fatal)")
+
+    try:
+        setup_telemetry(app)
+    except Exception:
+        logger.exception("Telemetry init failed (non-fatal)")
+
+    if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
+        try:
+            Instrumentator().instrument(app).expose(app)
+        except Exception:
+            logger.exception("Prometheus instrumentation failed (non-fatal)")
 
 async def _core_heartbeat_loop() -> None:
     """
@@ -217,16 +263,6 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
     logger.exception("Unhandled exception")
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
-# 🚦 Per-route rate limiting (Redis DB 2) — must be called before routes are registered
-setup_rate_limiting(app)
-
-# Initialize OpenTelemetry
-setup_telemetry(app)
-
-# Prometheus Instrumentation
-if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
-    instrumentator = Instrumentator().instrument(app).expose(app)
-
 # Include API Router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -236,6 +272,17 @@ app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
 async def health_check(request: Request):
+    if _boot_error is not None:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "service": settings.SERVICE_NAME,
+                "version": settings.VERSION,
+                "environment": settings.ENVIRONMENT,
+                "boot_error": _boot_error,
+            },
+        )
     return {
         "status": "ok",
         "service": settings.SERVICE_NAME,
