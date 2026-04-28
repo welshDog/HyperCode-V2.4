@@ -232,8 +232,6 @@ app.include_router(stripe_router)
 app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
-@limiter.limit("120/minute")
-@cache_response("health", ttl=10)
 async def health_check(request: Request):
     return {
         "status": "ok",
