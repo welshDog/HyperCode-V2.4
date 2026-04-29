@@ -311,6 +311,15 @@ async def _unhandled_exception_handler(request: Request, exc: Exception):
 if api_router is not None:
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
+try:
+    from app.api.v1.endpoints import pets as _pets_endpoints
+
+    _pets_provision_path = f"{settings.API_V1_STR}/pets/provision"
+    if not any(getattr(r, "path", None) == _pets_provision_path for r in app.router.routes):
+        app.include_router(_pets_endpoints.router, prefix=f"{settings.API_V1_STR}/pets", tags=["pets"])
+except Exception:
+    pass
+
 # 💳 Phase 10F — Stripe Checkout & Webhook
 if stripe_router is not None:
     app.include_router(stripe_router)
