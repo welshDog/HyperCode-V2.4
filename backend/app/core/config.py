@@ -2,6 +2,7 @@ import os
 from functools import lru_cache
 from typing import Any, Optional, List, Literal
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import PydanticBaseSettingsSource
 
@@ -32,7 +33,10 @@ class Settings(BaseSettings):
     DOCKER_SOCKET_PROXY_URL: str = "http://docker-socket-proxy:2375"
 
     # Phase 2: Token Sync — shared secret between Supabase edge fn and this API
-    COURSE_SYNC_SECRET: Optional[str] = None
+    COURSE_SYNC_SECRET: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("COURSE_SYNC_SECRET", "COURSE_WEBHOOK_SECRET"),
+    )
 
     # Phase 3: Agent Access + Shop Bridge
     SHOP_SYNC_SECRET: Optional[str] = None          # shared secret for provision-access edge fn

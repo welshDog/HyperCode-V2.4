@@ -10,6 +10,7 @@ POST /api/v1/economy/award-from-course
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -61,7 +62,7 @@ def _verify_sync_secret(x_sync_secret: str = Header(..., alias="X-Sync-Secret"))
             status_code=503,
             detail="COURSE_SYNC_SECRET not configured — token sync disabled",
         )
-    if x_sync_secret != expected:
+    if not secrets.compare_digest(x_sync_secret, expected):
         raise HTTPException(status_code=401, detail="Invalid sync secret")
 
 
