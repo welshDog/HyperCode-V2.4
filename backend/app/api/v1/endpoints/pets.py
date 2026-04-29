@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_active_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.models import models
@@ -176,7 +177,12 @@ async def feed_pet(
 
 
 @router.get("/status/{discord_id}")
-async def get_pet_status(discord_id: str) -> Any:
+async def get_pet_status(
+    discord_id: str,
+    current_user: models.User = Depends(get_current_active_user),
+) -> Any:
+    if current_user.discord_id != discord_id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not allowed to access this pet")
     resp = await _pets_bridge_get(f"/pet/{discord_id}/status", timeout_s=6.0)
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
@@ -184,7 +190,13 @@ async def get_pet_status(discord_id: str) -> Any:
 
 
 @router.post("/chat/{discord_id}")
-async def chat_with_pet(discord_id: str, body: dict[str, Any]) -> Any:
+async def chat_with_pet(
+    discord_id: str,
+    body: dict[str, Any],
+    current_user: models.User = Depends(get_current_active_user),
+) -> Any:
+    if current_user.discord_id != discord_id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not allowed to access this pet")
     resp = await _pets_bridge_post(f"/pet/{discord_id}/chat", body, timeout_s=30.0)
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
@@ -192,7 +204,12 @@ async def chat_with_pet(discord_id: str, body: dict[str, Any]) -> Any:
 
 
 @router.get("/powers/{discord_id}")
-async def get_pet_powers(discord_id: str) -> Any:
+async def get_pet_powers(
+    discord_id: str,
+    current_user: models.User = Depends(get_current_active_user),
+) -> Any:
+    if current_user.discord_id != discord_id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Not allowed to access this pet")
     resp = await _pets_bridge_get(f"/pet/{discord_id}/powers", timeout_s=6.0)
     if resp.status_code != 200:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
