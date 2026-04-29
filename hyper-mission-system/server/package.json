@@ -27,7 +27,7 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.14",
     "supertest": "^6.3.3"
   }
