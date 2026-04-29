@@ -6,6 +6,7 @@ import os
 import sys
 import time
 import uuid
+from contextlib import asynccontextmanager, suppress
 
 _boot_error: str | None = None
 
@@ -80,12 +81,104 @@ else:
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI Application
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    global _metrics_redis
+    global _boot_error
+
+    heartbeat_task: asyncio.Task | None = None
+
+    try:
+        settings.validate_security()
+    except Exception as exc:
+        _boot_error = str(exc)
+        logger.error("Startup security validation failed: %s", _boot_error)
+    else:
+
+        async def _init_db_background() -> None:
+            if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
+                try:
+                    await asyncio.to_thread(Base.metadata.create_all, bind=engine)
+                except Exception:
+                    logger.exception("DB_AUTO_CREATE failed (non-fatal)")
+
+            try:
+                from app.db.session import SessionLocal
+                from app.services.broski_service import seed_achievements
+
+                def _seed_sync() -> None:
+                    db = SessionLocal()
+                    try:
+                        seed_achievements(db)
+                    finally:
+                        db.close()
+
+                await asyncio.wait_for(asyncio.to_thread(_seed_sync), timeout=8)
+            except TimeoutError:
+                logger.warning("Seed achievements timed out (non-fatal)")
+            except Exception:
+                logger.exception("Failed to seed BROski achievements (non-fatal)")
+
+        asyncio.create_task(_init_db_background())
+
+        try:
+            redis_client = aioredis.from_url(
+                settings.HYPERCODE_REDIS_URL,
+                decode_responses=True,
+                socket_connect_timeout=2,
+            )
+            await redis_client.ping()
+            _metrics_redis = redis_client
+            logger.info("Metrics Redis client connected")
+            heartbeat_task = asyncio.create_task(_core_heartbeat_loop())
+        except Exception:
+            logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
+
+        try:
+            if setup_rate_limiting is not None:
+                setup_rate_limiting(app)
+        except Exception:
+            logger.exception("Rate limiting init failed (non-fatal)")
+
+        try:
+            from app.core.telemetry import setup_telemetry as _setup_telemetry
+
+            _setup_telemetry(app)
+        except Exception:
+            logger.exception("Telemetry init failed (non-fatal)")
+
+        if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
+            try:
+                if _Instrumentator is not None:
+                    _Instrumentator().instrument(app).expose(app)
+            except Exception:
+                logger.exception("Prometheus instrumentation failed (non-fatal)")
+
+    yield
+
+    logger.info("Shutdown initiated...")
+    if heartbeat_task is not None:
+        heartbeat_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await heartbeat_task
+
+    if _metrics_redis is not None:
+        await _metrics_redis.aclose()
+        _metrics_redis = None
+
+    from app.db.session import engine as _engine
+
+    _engine.dispose()
+    logger.info("Graceful shutdown complete")
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     description="HyperCode Core API Service",
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=_lifespan,
 )
 
 @app.middleware("http")
@@ -97,91 +190,10 @@ async def _boot_guard(request: Request, call_next):
         )
     return await call_next(request)
 
-@app.on_event("shutdown")
-async def _shutdown_event() -> None:
-    global _metrics_redis
-    logger.info("Shutdown initiated...")
-    if _metrics_redis is not None:
-        await _metrics_redis.aclose()
-    from app.db.session import engine as _engine
-    _engine.dispose()
-    logger.info("Graceful shutdown complete")
-
-
-@app.on_event("startup")
-async def _startup_validate_security() -> None:
-    global _metrics_redis
-    global _boot_error
-    try:
-        settings.validate_security()
-    except Exception as exc:
-        _boot_error = str(exc)
-        logger.error("Startup security validation failed: %s", _boot_error)
-        return
-
-    async def _init_db_background() -> None:
-        if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
-            try:
-                await asyncio.to_thread(Base.metadata.create_all, bind=engine)
-            except Exception:
-                logger.exception("DB_AUTO_CREATE failed (non-fatal)")
-
-        try:
-            from app.db.session import SessionLocal
-            from app.services.broski_service import seed_achievements
-
-            def _seed_sync() -> None:
-                db = SessionLocal()
-                try:
-                    seed_achievements(db)
-                finally:
-                    db.close()
-
-            await asyncio.wait_for(asyncio.to_thread(_seed_sync), timeout=8)
-        except TimeoutError:
-            logger.warning("Seed achievements timed out (non-fatal)")
-        except Exception:
-            logger.exception("Failed to seed BROski achievements (non-fatal)")
-
-    asyncio.create_task(_init_db_background())
-    try:
-        redis_client = aioredis.from_url(
-            settings.HYPERCODE_REDIS_URL,
-            decode_responses=True,
-            socket_connect_timeout=2,
-        )
-        await redis_client.ping()
-        _metrics_redis = redis_client
-        logger.info("Metrics Redis client connected")
-        # Start background heartbeat so dashboard shows this service as an active agent
-        asyncio.create_task(_core_heartbeat_loop())
-    except Exception:
-        logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
-
-    try:
-        if setup_rate_limiting is not None:
-            setup_rate_limiting(app)
-    except Exception:
-        logger.exception("Rate limiting init failed (non-fatal)")
-
-    try:
-        from app.core.telemetry import setup_telemetry as _setup_telemetry
-
-        _setup_telemetry(app)
-    except Exception:
-        logger.exception("Telemetry init failed (non-fatal)")
-
-    if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
-        try:
-            if _Instrumentator is not None:
-                _Instrumentator().instrument(app).expose(app)
-        except Exception:
-            logger.exception("Prometheus instrumentation failed (non-fatal)")
-
-async def _core_heartbeat_loop() -> None:
     """
     Publishes hypercode-core heartbeat to Redis every 10s.
     Key: agents:heartbeat:hypercode-core  (TTL 30s)
+    Read by GET /api/v1/agents/status to populate the dashboard agent count.
     Read by GET /api/v1/agents/status to populate the dashboard agent count.
     """
     key = "agents:heartbeat:hypercode-core"

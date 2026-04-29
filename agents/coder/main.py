@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
 import httpx
 import secrets
@@ -42,7 +43,14 @@ class CoderAgent:
     """
     def __init__(self, config: AgentConfig):
         self.config = config
-        self.app = FastAPI(title="Coder Agent API")
+
+        @asynccontextmanager
+        async def _lifespan(app: FastAPI):
+            await self.startup()
+            yield
+            await self.shutdown()
+
+        self.app = FastAPI(title="Coder Agent API", lifespan=_lifespan)
         self.redis = None
         self.http_client = httpx.AsyncClient(timeout=60.0)
         @self.app.middleware("http")
@@ -73,14 +81,6 @@ class CoderAgent:
             self.redis.close()
 
     def setup_routes(self):
-        @self.app.on_event("startup")
-        async def on_startup():
-            await self.startup()
-
-        @self.app.on_event("shutdown")
-        async def on_shutdown():
-            await self.shutdown()
-
         @self.app.post("/execute", response_model=TaskResponse)
         async def execute_endpoint(request: TaskRequest):
             return await self.execute(request)

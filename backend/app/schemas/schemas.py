@@ -1,5 +1,5 @@
 from typing import Annotated, Optional
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from datetime import datetime
 from enum import Enum
 
@@ -39,8 +39,7 @@ class UserInDBBase(UserBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class User(UserInDBBase):
     pass
@@ -66,8 +65,7 @@ class Project(ProjectBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- TASK SCHEMAS ---
 class TaskBase(BaseModel):
@@ -100,8 +98,7 @@ class Task(TaskBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- AUTH SCHEMAS ---
 class Token(BaseModel):

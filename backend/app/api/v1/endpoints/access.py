@@ -27,7 +27,7 @@ from typing import Any, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -69,8 +69,7 @@ class ProvisionRecord(BaseModel):
     created_at: datetime
     expires_at: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
