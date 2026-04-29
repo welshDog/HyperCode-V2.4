@@ -105,7 +105,7 @@ def setup_rate_limiting(app: FastAPI):
     logger.info("Rate limiting configured")
 
 
-def get_rate_limit_key(request: Request, user_role: str = None) -> str:
+def get_rate_limit_key(request: Request, user_role: str | None = None) -> str:
     """Get rate limit key based on user/IP."""
     if user_role and user_role in RateLimitConfig.AUTHENTICATED_LIMITS:
         return f"user:{user_role}"
@@ -114,7 +114,7 @@ def get_rate_limit_key(request: Request, user_role: str = None) -> str:
 
 
 # Decorator for protected endpoints
-def rate_limit(limit: str = None):
+def rate_limit(limit: str | None = None):
     """Decorator for applying rate limits to endpoints."""
     def decorator(func):
         if limit:
