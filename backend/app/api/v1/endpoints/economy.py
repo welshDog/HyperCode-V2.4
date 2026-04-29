@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import logging
 import secrets
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -51,6 +51,14 @@ class CourseAwardResponse(BaseModel):
     source_id: str
 
 
+class SupabaseDbWebhookPayload(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    type: Literal["INSERT", "UPDATE", "DELETE"]
+    table: str
+    record: dict[str, Any] | None = None
+    old_record: dict[str, Any] | None = None
+
+
 # ── Helpers ────────────────────────────────────────────────────────────────
 
 
@@ -66,28 +74,7 @@ def _verify_sync_secret(x_sync_secret: str = Header(..., alias="X-Sync-Secret"))
         raise HTTPException(status_code=401, detail="Invalid sync secret")
 
 
-# ── Endpoint ────────────────────────────────────────────────────────────────
-
-
-@router.post(
-    "/award-from-course",
-    response_model=CourseAwardResponse,
-    status_code=200,
-    summary="Award BROski$ from Course token transaction (idempotent)",
-)
-def award_from_course(
-    payload: CourseAwardRequest,
-    db: Session = Depends(get_db),
-    _: None = Depends(_verify_sync_secret),
-) -> Any:
-    """
-    Called by the Supabase `sync-tokens-to-v24` edge function whenever
-    a `token_transactions` row is inserted in the Course database.
-
-    Idempotency:
-      - If source_id already exists in course_sync_events → 409 (safe re-delivery)
-      - DB UNIQUE constraint is the last guard if the app check races
-    """
+def _award_from_course(payload: CourseAwardRequest, db: Session) -> CourseAwardResponse:
     # ── 1. Idempotency check ───────────────────────────────────────────────
     existing = (
         db.query(CourseSyncEvent)
@@ -108,8 +95,6 @@ def award_from_course(
         .first()
     )
     if not user:
-        # Not linked yet — record the event as unmatched so it can be retried
-        # once the user links their Discord account.
         logger.warning(
             "Token sync: no V2.4 user for discord_id=%s (source_id=%s) — skipping award",
             payload.discord_id,
@@ -143,7 +128,6 @@ def award_from_course(
     try:
         db.commit()
     except IntegrityError:
-        # Race condition: another request committed the same source_id first
         db.rollback()
         logger.warning("Token sync race condition caught for source_id=%s", payload.source_id)
         raise HTTPException(
@@ -153,7 +137,10 @@ def award_from_course(
 
     logger.info(
         "✅ Token sync: +%d coins to user %s (discord=%s, source_id=%s)",
-        payload.tokens, user.id, payload.discord_id, payload.source_id,
+        payload.tokens,
+        user.id,
+        payload.discord_id,
+        payload.source_id,
     )
 
     return CourseAwardResponse(
@@ -162,4 +149,72 @@ def award_from_course(
         xp_balance=wallet.xp,
         level=wallet.level,
         source_id=payload.source_id,
+    )
+
+
+# ── Endpoint ────────────────────────────────────────────────────────────────
+
+
+@router.post(
+    "/award-from-course",
+    response_model=CourseAwardResponse,
+    status_code=200,
+    summary="Award BROski$ from Course token transaction (idempotent)",
+)
+def award_from_course(
+    payload: CourseAwardRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(_verify_sync_secret),
+) -> Any:
+    """
+    Called by the Supabase `sync-tokens-to-v24` edge function whenever
+    a `token_transactions` row is inserted in the Course database.
+
+    Idempotency:
+      - If source_id already exists in course_sync_events → 409 (safe re-delivery)
+      - DB UNIQUE constraint is the last guard if the app check races
+    """
+    return _award_from_course(payload, db)
+
+
+@router.post(
+    "/webhook/token-transactions",
+    response_model=CourseAwardResponse,
+    status_code=200,
+    summary="Supabase Database Webhook → award BROski$ (INSERT token_transactions)",
+)
+def supabase_webhook_token_transactions(
+    body: SupabaseDbWebhookPayload,
+    db: Session = Depends(get_db),
+    _: None = Depends(_verify_sync_secret),
+) -> CourseAwardResponse:
+    if body.type != "INSERT":
+        raise HTTPException(status_code=422, detail="Only INSERT webhooks are supported")
+    if body.table != "token_transactions":
+        raise HTTPException(status_code=422, detail="Unsupported table for this webhook")
+    if not body.record:
+        raise HTTPException(status_code=422, detail="Missing record")
+
+    record = body.record
+    source_id = str(record.get("id") or record.get("source_id") or record.get("sourceId") or "").strip()
+    discord_id = str(record.get("discord_id") or record.get("discordId") or "").strip()
+    tokens_raw = record.get("tokens")
+    if tokens_raw is None:
+        tokens_raw = record.get("amount")
+    try:
+        tokens = int(tokens_raw)
+    except Exception:
+        tokens = 0
+    reason = str(record.get("reason") or "Course reward").strip()
+
+    if not source_id:
+        raise HTTPException(status_code=422, detail="record.id is required")
+    if not discord_id:
+        raise HTTPException(status_code=422, detail="record.discord_id is required")
+    if tokens <= 0:
+        raise HTTPException(status_code=422, detail="record.tokens must be a positive integer")
+
+    return _award_from_course(
+        CourseAwardRequest(source_id=source_id, discord_id=discord_id, tokens=tokens, reason=reason),
+        db,
     )

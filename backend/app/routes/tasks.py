@@ -95,7 +95,7 @@ async def _publish_event(event_data: dict) -> None:
             "taskId": str(event_data.get("id", "")),
             "status": event_data.get("status", "created"),
             "payload": event_data,
-            "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timestamp": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         })
         async with r.pipeline(transaction=False) as pipe:
             pipe.rpush(EVENTS_LIST, payload)
@@ -230,7 +230,7 @@ async def check_and_create_error_task(db: Session = Depends(get_db)) -> AutoTask
         )
 
     # Check if an auto task was recently created (within 10 minutes)
-    ten_min_ago = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
+    ten_min_ago = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=10)
     recent = (
         db.query(DashboardTask)
         .filter(

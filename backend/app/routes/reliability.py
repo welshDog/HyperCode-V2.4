@@ -97,7 +97,7 @@ async def get_error_budget() -> ErrorBudget:
     Computes the SLO error budget for the last N minutes.
     Returns a gate value that can block deployments or trigger alerts.
     """
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     minute_keys: List[str] = []
     for i in range(WINDOW_MINUTES):
         ts = now - datetime.timedelta(minutes=i)

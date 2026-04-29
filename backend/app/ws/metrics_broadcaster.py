@@ -149,7 +149,7 @@ async def _get_alert_info() -> tuple[int, int, list[AlertTopItem]]:
 
 
 async def _build_snapshot(r: aioredis.Redis) -> MetricsSnapshot:
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     minute_key = now.strftime("%Y%m%d%H%M")
     prev_key = (now - datetime.timedelta(minutes=1)).strftime("%Y%m%d%H%M")
 

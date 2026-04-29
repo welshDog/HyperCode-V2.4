@@ -96,7 +96,7 @@ async def publish_event(
         taskId=body.taskId or "",
         status=body.status,
         payload=body.payload,
-        timestamp=datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        timestamp=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
     payload_json = event.model_dump_json()
 

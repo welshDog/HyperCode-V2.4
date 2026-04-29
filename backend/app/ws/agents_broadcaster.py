@@ -88,7 +88,7 @@ async def _get_agent_statuses(r: aioredis.Redis) -> AgentStatusList:
 
     return AgentStatusList(
         agents=agents,
-        updatedAt=datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        updatedAt=datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
     )
 
 

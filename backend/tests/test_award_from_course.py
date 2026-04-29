@@ -84,3 +84,74 @@ async def test_award_from_course_smoke_idempotent(monkeypatch):
             assert resp3.status_code == 401
     finally:
         db.close()
+
+
+@pytest.mark.asyncio
+async def test_supabase_db_webhook_token_transactions_insert(monkeypatch):
+    monkeypatch.setattr(settings, "COURSE_SYNC_SECRET", "test_sync_secret")
+
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = TestingSessionLocal()
+    try:
+        user = User(
+            email="bro2@example.com",
+            hashed_password="not-used-in-this-test",
+            discord_id="discord_456",
+            is_active=True,
+            is_superuser=False,
+        )
+        db.add(user)
+        db.commit()
+
+        app = FastAPI()
+        app.include_router(economy_router, prefix="/api/v1/economy")
+
+        def override_get_db():
+            session = TestingSessionLocal()
+            try:
+                yield session
+            finally:
+                session.close()
+
+        app.dependency_overrides[get_db] = override_get_db
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            webhook_body = {
+                "type": "INSERT",
+                "table": "token_transactions",
+                "schema": "public",
+                "record": {
+                    "id": "tx_001",
+                    "discord_id": "discord_456",
+                    "tokens": 10,
+                    "reason": "module complete",
+                },
+                "old_record": None,
+            }
+
+            resp1 = await ac.post(
+                "/api/v1/economy/webhook/token-transactions",
+                json=webhook_body,
+                headers={"X-Sync-Secret": "test_sync_secret"},
+            )
+            assert resp1.status_code == 200
+            data1 = resp1.json()
+            assert data1["awarded"] is True
+            assert data1["coins_balance"] == 10
+            assert data1["source_id"] == "tx_001"
+
+            resp2 = await ac.post(
+                "/api/v1/economy/webhook/token-transactions",
+                json=webhook_body,
+                headers={"X-Sync-Secret": "test_sync_secret"},
+            )
+            assert resp2.status_code == 409
+    finally:
+        db.close()

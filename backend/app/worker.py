@@ -35,7 +35,7 @@ def _celery_heartbeat_thread() -> None:
                 mapping={
                     "name": "celery-worker",
                     "status": "online",
-                    "last_seen": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "last_seen": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 },
             )
             r.expire(_HEARTBEAT_KEY, 30)

@@ -3,7 +3,7 @@ import json
 import re
 from app.agents.brain import brain
 from app.core.storage import get_storage
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ class ArchitectAgent:
             metadata = {
                 "agent": self.role,
                 "goal": goal,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "task_id": str(task_id),
             }
             try:

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union, Any
 from jose import jwt
 import bcrypt
@@ -10,12 +10,12 @@ def create_access_token(
     subject: Union[str, Any], expires_delta: Optional[timedelta] = None
 ) -> str:
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
-    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject), "iat": datetime.utcnow()}
+    to_encode: dict[str, Any] = {"exp": expire, "sub": str(subject), "iat": datetime.now(timezone.utc)}
     if settings.JWT_ISSUER:
         to_encode["iss"] = settings.JWT_ISSUER
     if settings.JWT_AUDIENCE:

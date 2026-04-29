@@ -211,7 +211,7 @@ async def _boot_guard(request: Request, call_next):
                     mapping={
                         "name": "hypercode-core",
                         "status": "online",
-                        "last_seen": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            "last_seen": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                     },
                 )
                 await _metrics_redis.expire(key, 30)
@@ -273,7 +273,7 @@ async def _http_metrics_middleware(request: Request, call_next):
 
     if _metrics_redis is not None:
         try:
-            minute_key = datetime.datetime.utcnow().strftime("%Y%m%d%H%M")
+            minute_key = datetime.datetime.now(datetime.UTC).strftime("%Y%m%d%H%M")
             async with _metrics_redis.pipeline(transaction=False) as pipe:
                 pipe.incr(f"req_count:{minute_key}")
                 pipe.expire(f"req_count:{minute_key}", 120)
@@ -288,7 +288,7 @@ async def _http_metrics_middleware(request: Request, call_next):
                     _level = "error" if response.status_code >= 500 else "warn" if response.status_code >= 400 else "info"
                     _entry = json.dumps({
                         "id": str(uuid.uuid4())[:8],
-                        "time": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                         "agent": "hypercode-core",
                         "level": _level,
                         "msg": f"{request.method} {request.url.path} \u2192 {response.status_code} ({elapsed_ms}ms)",
