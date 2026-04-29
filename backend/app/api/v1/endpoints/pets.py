@@ -69,7 +69,7 @@ async def _pets_bridge_get(path: str, timeout_s: float = 6.0) -> httpx.Response:
         return await client.get(_pets_bridge_base_url() + path, headers=_pets_bridge_auth_headers())
 
 
-async def _pets_bridge_post(path: str, json_body: dict, timeout_s: float = 10.0) -> httpx.Response:
+async def _pets_bridge_post(path: str, json_body: dict[str, Any], timeout_s: float = 10.0) -> httpx.Response:
     async with httpx.AsyncClient(timeout=timeout_s) as client:
         return await client.post(
             _pets_bridge_base_url() + path,
@@ -106,7 +106,6 @@ async def provision_pet(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-    provision_resp: httpx.Response | None = None
     try:
         provision_resp = await _pets_bridge_post(
             "/provision",

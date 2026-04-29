@@ -4,6 +4,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.api.v1.endpoints.pets import router as pets_router
@@ -14,7 +15,7 @@ from app.models.broski import BROskiWallet
 from app.models.models import User
 
 
-def _make_httpx_response(status_code: int, json_data: dict | None = None, text: str = ""):
+def _make_httpx_response(status_code: int, json_data: dict[str, Any] | None = None, text: str = ""):
     resp = MagicMock()
     resp.status_code = status_code
     resp.text = text
@@ -25,7 +26,7 @@ def _make_httpx_response(status_code: int, json_data: dict | None = None, text: 
     return resp
 
 
-def _make_mock_client(get_sequence: list, post_sequence: list):
+def _make_mock_client(get_sequence: list[Any], post_sequence: list[Any]):
     mock_client = AsyncMock()
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
