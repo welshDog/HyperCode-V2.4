@@ -6,8 +6,9 @@ Create Date: 2026-03-16
 """
 from __future__ import annotations
 
-from alembic import op
+from alembic.operations import Operations as op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from sqlalchemy import inspect
 
 revision = '001_broski_token_system'
@@ -41,7 +42,13 @@ def upgrade() -> None:
         op.create_index('ix_broski_wallets_user_id', 'broski_wallets', ['user_id'])
 
     # broski_transactions
-    transaction_type = sa.Enum('earn', 'spend', 'bonus', name='transactiontype')
+    transaction_type = postgresql.ENUM(
+        'earn',
+        'spend',
+        'bonus',
+        name='transactiontype',
+        create_type=False,
+    )
     transaction_type.create(bind, checkfirst=True)
     if not inspector.has_table('broski_transactions'):
         op.create_table(
@@ -49,7 +56,7 @@ def upgrade() -> None:
             sa.Column('id', sa.Integer(), nullable=False),
             sa.Column('wallet_id', sa.Integer(), sa.ForeignKey('broski_wallets.id'), nullable=False),
             sa.Column('amount', sa.Integer(), nullable=False),
-            sa.Column('type', sa.Enum('earn', 'spend', 'bonus', name='transactiontype'), nullable=False),
+            sa.Column('type', transaction_type, nullable=False),
             sa.Column('reason', sa.String(255), nullable=False),
             sa.Column('meta', sa.JSON(), nullable=True),
             sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()')),
@@ -105,4 +112,4 @@ def downgrade() -> None:
         op.drop_index('ix_broski_wallets_id', 'broski_wallets')
         op.drop_table('broski_wallets')
 
-    sa.Enum(name='transactiontype').drop(bind, checkfirst=True)
+    postgresql.ENUM(name='transactiontype').drop(bind, checkfirst=True)
