@@ -54,6 +54,16 @@ def _post_json(url: str, payload: dict, headers: dict[str, str] | None = None) -
         except Exception:
             return {"raw": body}
 
+def _agent_key_headers() -> dict[str, str]:
+    key = (
+        os.getenv("HYPERCODE_API_KEY", "").strip()
+        or os.getenv("AGENT_API_KEY", "").strip()
+        or os.getenv("API_KEY", "").strip()
+    )
+    if not key:
+        return {}
+    return {"x-api-key": key}
+
 
 def main() -> None:
     repo_root = ""
@@ -87,6 +97,7 @@ def main() -> None:
         or os.getenv("DISCORD_ID", "").strip()
     )
 
+    awarded_hypercode = False
     if sync_secret and discord_id:
         try:
             res = _post_json(
@@ -111,7 +122,7 @@ def main() -> None:
                     }
                 )
             )
-            return
+            awarded_hypercode = True
         except urllib.error.HTTPError as e:
             if e.code in (409,):
                 sys.stdout.write(
@@ -126,56 +137,74 @@ def main() -> None:
                         }
                     )
                 )
-                return
+                awarded_hypercode = True
         except Exception:
             pass
 
-    pets_bridge_base = os.getenv("PETS_BRIDGE_URL", "").strip().rstrip("/")
     pets_discord_id = os.getenv("PETS_DISCORD_ID", "").strip()
-    if pets_bridge_base and pets_discord_id:
-        try:
-            _post_json(
-                f"{pets_bridge_base}/xp/award",
-                {
-                    "discord_id": pets_discord_id,
-                    "amount": 25 if commit_prefix == "fix" else 10,
-                    "reason": reason,
-                    "source": "git_hook",
-                },
-            )
-            streak = _post_json(
-                f"{pets_bridge_base}/streak/commit",
-                {
-                    "discord_id": pets_discord_id,
-                    "commit_sha": sha,
-                    "commit_message": first,
-                    "committed_at": datetime.now(timezone.utc).isoformat(),
-                },
-            )
-            if bool(streak.get("award_bonus")):
+    pets_bridge_url = os.getenv("PETS_BRIDGE_URL", "").strip().rstrip("/")
+    candidates = []
+    if pets_bridge_url:
+        candidates.append(pets_bridge_url)
+    candidates.append("http://127.0.0.1:8098")
+    seen = set()
+    pets_bridge_candidates = []
+    for c in candidates:
+        if not c or c in seen:
+            continue
+        seen.add(c)
+        pets_bridge_candidates.append(c)
+
+    if pets_discord_id and pets_bridge_candidates:
+        headers = _agent_key_headers()
+        for base in pets_bridge_candidates:
+            try:
                 _post_json(
-                    f"{pets_bridge_base}/xp/award",
+                    f"{base}/xp/award",
                     {
                         "discord_id": pets_discord_id,
-                        "amount": 200,
-                        "reason": "7-day commit streak",
-                        "source": "streak_tracker",
+                        "amount": 25 if commit_prefix == "fix" else 10,
+                        "reason": reason,
+                        "source": "git_hook",
                     },
+                    headers=headers,
                 )
-            sys.stdout.write(
-                json.dumps(
+                streak = _post_json(
+                    f"{base}/streak/commit",
                     {
-                        "ok": True,
-                        "mode": "pets-bridge",
-                        "sha": sha,
-                        "fix": commit_prefix == "fix",
-                        "streak": streak,
-                    }
+                        "discord_id": pets_discord_id,
+                        "commit_sha": sha,
+                        "commit_message": first,
+                        "committed_at": datetime.now(timezone.utc).isoformat(),
+                    },
+                    headers=headers,
                 )
-            )
-            return
-        except Exception:
-            pass
+                if bool(streak.get("award_bonus")):
+                    _post_json(
+                        f"{base}/xp/award",
+                        {
+                            "discord_id": pets_discord_id,
+                            "amount": 200,
+                            "reason": "7-day commit streak",
+                            "source": "streak_tracker",
+                        },
+                        headers=headers,
+                    )
+                sys.stdout.write(
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "mode": "pets-bridge",
+                            "sha": sha,
+                            "fix": commit_prefix == "fix",
+                            "streak": streak,
+                            "hypercode_tokens_awarded": awarded_hypercode,
+                        }
+                    )
+                )
+                return
+            except Exception:
+                continue
 
     sys.stdout.write(
         json.dumps(
@@ -185,6 +214,7 @@ def main() -> None:
                 "sha": sha,
                 "amount": 0,
                 "discord_id": discord_id or None,
+                "hypercode_tokens_awarded": awarded_hypercode,
             }
         )
     )
