@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 26, 2026** — update this every session.
+> **Updated: April 29, 2026** — update this every session.
 
 ---
 
@@ -105,6 +105,10 @@
 - **hyper-split-agent** ✅ ← **April 25** (Feature 2 DONE)
 - **sys.path import fix** ✅ ← **April 26**
 - **hypersplit import bug fixed** ✅ ← **April 26**
+- **broski-pets-bridge LIVE** ✅ ← **April 29**
+  - `pets_enabled:true`, `ollama_connected:true`, `redis_connected:true`, `mcp_connected:true`
+  - MCP gateway port fixed (8099→8820), stale `.env` entry cleaned
+  - Health endpoint: `http://localhost:8098/health`
 
 ### 🏆 Hyperfocus Features — ALL 5 DONE
 - **Feature 1: Micro-Achievement Git Hook** ✅ April 25
@@ -159,6 +163,22 @@
 
 ---
 
+## 🧹 APRIL 29 — PHASE 1 TRIAGE SESSION
+
+- Closed stale issue #83 (Phase 10D + 10H — confirmed shipped) ✅
+- Merged Dependabot PR #183 — prometheus-client ≥0.25.0 (crew-orchestrator) ✅
+- Merged Dependabot PR #184 — express-rate-limit 8.3.2→8.4.1 (hyper-mission-system) ✅
+- Merged Dependabot PR #189 — redis 5.10.0→5.12.1 (hyper-mission-system) ✅
+- Merged Dependabot PR #182 — fastapi 0.109→0.136 (crew-orchestrator) ✅
+- Merged Dependabot PR #180 — langchain-openai 1.2→1.2.1 (crew-orchestrator) ✅
+- **0 open Dependabot PRs remaining** — full queue cleared ✅
+- Enabled `BROSKIE_PETS_ENABLED=true` in `.env` ✅
+- Fixed MCP gateway port mismatch: `MCP_GATEWAY_URL` was `8099`, corrected to `8820` ✅
+- Cleaned stale duplicate `.env` entry (old 8099 line removed) ✅
+- broski-pets-bridge all 4 health checks green: `pets_enabled` + `ollama` + `redis` + `mcp` ✅
+
+---
+
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
 These need YOU to do them (can't be automated):
@@ -186,10 +206,12 @@ These need YOU to do them (can't be automated):
 
 ## 🚀 NEXT UP (in order)
 
-1. **Hyper-Vibe-Coding-Course** — move over, review current state, plan next features
-2. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
-3. **BROskiPets Phase 0** — add to docker-compose.agents.yml, verify Ollama shared connection
-4. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **Blockers B1-B3** — Supabase DB webhook + Edge Function secrets + Stripe E2E re-verify
+2. **HyperAgent-SDK Phase 2** — validator UX improvements, Python + TypeScript starter templates, npm 0.2.0
+3. **Hyper-Vibe-Coding-Course** — move over, review current state, plan next features
+4. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
+5. **BROskiPets Phase 1** — mint first pet via BROski$ (bridge is live and healthy ✅)
+6. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
 
@@ -215,6 +237,7 @@ sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe s
 /briefing:       pulls health + BROski$ + pulse + WHATS_DONE next + last git commit → Discord embed
 make focus:      stops 14 non-essential containers + 25-min bg timer
 make calm:       restores all + awards 75 BROski$ if session >10 mins
+broski-pets:     health → http://localhost:8098/health | MCP gateway → http://mcp-gateway:8820
 ```
 
 ---
@@ -233,6 +256,7 @@ agents/session-snapshot/    — Session Snapshot Agent (Feature 3)
 agents/hyperhealth/         — HyperHealth API + worker
 agents/crew-orchestrator/   — Central task orchestrator
 agents/broski-bot/          — Discord bot (Feature 4: /briefing)
+agents/broski-pets-bridge/  — BROski Pets bridge (port 8098) ← April 29
 scripts/focus-mode.sh       — Focus Mode (Feature 5)
 scripts/calm-mode.sh        — Calm Mode (Feature 5)
 secrets/                    — Docker secrets (.txt files, gitignored)
