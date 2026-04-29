@@ -14,6 +14,14 @@ except Exception as _e:
     _log.getLogger(__name__).warning("Phase 2/3/4 endpoints unavailable (old image): %s", _e)
     _HAS_PHASE234 = False
 
+try:
+    from app.api.v1.endpoints import pets
+    _HAS_PETS = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Pets endpoints unavailable (old image): %s", _e)
+    _HAS_PETS = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -32,6 +40,8 @@ if _HAS_PHASE234:
     api_router.include_router(economy.router,  prefix="/economy",  tags=["economy"])   # Phase 2: Token Sync
     api_router.include_router(access.router,   prefix="/access",   tags=["access"])    # Phase 3: Shop Bridge
     api_router.include_router(graduate.router, prefix="/graduate", tags=["graduate"])  # Phase 4: npm run graduate 🔥
+if _HAS_PETS:
+    api_router.include_router(pets.router,     prefix="/pets",     tags=["pets"])      # BROskiPets bridge
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics

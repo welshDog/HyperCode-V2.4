@@ -40,6 +40,7 @@ try:
 except Exception:
     limiter = None
     setup_rate_limiting = None
+from app.cache.multi_tier import cache_response
 try:
     from app.routes.stripe import router as stripe_router
 except Exception:
@@ -147,13 +148,6 @@ async def _lifespan(app: FastAPI):
         except Exception:
             logger.exception("Telemetry init failed (non-fatal)")
 
-        if os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true":
-            try:
-                if _Instrumentator is not None:
-                    _Instrumentator().instrument(app).expose(app)
-            except Exception:
-                logger.exception("Prometheus instrumentation failed (non-fatal)")
-
     yield
 
     logger.info("Shutdown initiated...")
@@ -180,6 +174,18 @@ app = FastAPI(
     redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=_lifespan,
 )
+
+# Prometheus /metrics should be exposed before startup to avoid "Cannot add middleware after started"
+if (
+    os.getenv("PYTEST_CURRENT_TEST") is None
+    and settings.ENVIRONMENT.lower() != "test"
+    and os.getenv("PROMETHEUS_METRICS_DISABLED", "false").strip().lower() != "true"
+):
+    try:
+        if _Instrumentator is not None:
+            _Instrumentator().instrument(app).expose(app)
+    except Exception:
+        logger.exception("Prometheus instrumentation failed (non-fatal)")
 
 @app.middleware("http")
 async def _boot_guard(request: Request, call_next):
@@ -312,18 +318,17 @@ if uplink_router is not None:
     app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
+@cache_response("health", ttl=10)
+@limiter.limit("120/minute") if limiter is not None else (lambda f: f)
 async def health_check(request: Request):
     if _boot_error is not None:
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": "degraded",
-                "service": settings.SERVICE_NAME,
-                "version": settings.VERSION,
-                "environment": settings.ENVIRONMENT,
-                "boot_error": _boot_error,
-            },
-        )
+        return {
+            "status": "degraded",
+            "service": settings.SERVICE_NAME,
+            "version": settings.VERSION,
+            "environment": settings.ENVIRONMENT,
+            "boot_error": _boot_error,
+        }
     return {
         "status": "ok",
         "service": settings.SERVICE_NAME,

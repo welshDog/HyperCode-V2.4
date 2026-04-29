@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     OLLAMA_SEED: Optional[int] = None
     PERPLEXITY_SESSION_AUTH: bool = False
 
+    PETS_BRIDGE_URL: str = "http://broski-pets-bridge:8098"
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.

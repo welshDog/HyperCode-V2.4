@@ -25,8 +25,8 @@ def test_hypersplit_requires_auth(client):
 
 
 def test_hypersplit_proxies_agent(client, monkeypatch):
-    from backend.app.api import deps
-    from backend.app.main import app
+    from app.api import deps
+    from app.main import app
 
     monkeypatch.setenv("HYPER_SPLIT_AGENT_URL", "http://hyper-split-agent:8096")
 
@@ -46,7 +46,11 @@ def test_hypersplit_proxies_agent(client, monkeypatch):
 
     mock_client = _make_mock_client(payload)
     with patch("app.api.v1.endpoints.hypersplit.httpx.AsyncClient", return_value=mock_client):
-        resp = client.post("/api/v1/hypersplit", json={"task": "Big scary task", "max_microtasks": 5})
+        resp = client.post(
+            "/api/v1/hypersplit",
+            json={"task": "Big scary task", "max_microtasks": 5},
+            headers={"X-Agent-Key": "hc_test_key"},
+        )
 
     assert resp.status_code == 200
     assert resp.json() == payload
