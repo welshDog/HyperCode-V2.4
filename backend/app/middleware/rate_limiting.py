@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 def _with_redis_db(redis_url: str, db_index: int) -> str:
-    base = (redis_url or "").strip() or "redis://redis:6379/0"
+    base = (redis_url or "").strip()
+    if not base:
+        return "memory://"
     if "/" not in base:
         return f"{base}/{db_index}"
     prefix = base.rsplit("/", 1)[0]
@@ -29,10 +31,17 @@ def _rate_limit_storage_uri() -> str:
     explicit = (os.getenv("RATE_LIMIT_STORAGE_URI") or "").strip()
     if explicit:
         return explicit
-    redis_url = (os.getenv("HYPERCODE_REDIS_URL") or os.getenv("REDIS_URL") or "").strip()
+    # Use Redis only when an explicit URL is provided via environment variable.
+    # Fall back to in-memory storage when no Redis service is configured, which
+    # prevents DNS resolution failures (e.g. "redis://redis:6379" with no Redis
+    # service) from crashing the rate limiter middleware and returning HTTP 500.
+    redis_url = (os.getenv("REDIS_URL") or os.getenv("HYPERCODE_REDIS_URL") or "").strip()
     if not redis_url:
         return "memory://"
-    if os.getenv("RAILWAY_ENVIRONMENT") and redis_url.startswith("redis://redis:"):
+    # Reject the bare internal hostname that is only valid inside a Docker
+    # Compose stack — on Railway (or any env without a Redis service) this
+    # hostname will not resolve and will cause a ConnectionError.
+    if redis_url.startswith("redis://redis:"):
         return "memory://"
     return _with_redis_db(redis_url, 2)
 
