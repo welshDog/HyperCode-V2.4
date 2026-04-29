@@ -38,6 +38,7 @@ def _make_mock_client(get_sequence: list, post_sequence: list):
 async def test_pets_provision_spends_300_and_is_idempotent(monkeypatch):
     monkeypatch.setattr(settings, "SHOP_SYNC_SECRET", "shop_secret")
     monkeypatch.setattr(settings, "PETS_BRIDGE_URL", "http://pets-bridge:8098")
+    monkeypatch.setattr(settings, "API_KEY", "core_key")
 
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
@@ -113,6 +114,8 @@ async def test_pets_provision_spends_300_and_is_idempotent(monkeypatch):
                 headers={"X-Sync-Secret": "shop_secret"},
             )
             assert r2.status_code == 409
+    assert mock_client.get.await_args.kwargs["headers"]["x-api-key"] == "core_key"
+    assert mock_client.post.await_args.kwargs["headers"]["x-api-key"] == "core_key"
 
     check = TestingSessionLocal()
     try:
@@ -127,6 +130,7 @@ async def test_pets_provision_spends_300_and_is_idempotent(monkeypatch):
 async def test_pets_feed_spends_10(monkeypatch):
     monkeypatch.setattr(settings, "SHOP_SYNC_SECRET", "shop_secret")
     monkeypatch.setattr(settings, "PETS_BRIDGE_URL", "http://pets-bridge:8098")
+    monkeypatch.setattr(settings, "API_KEY", "core_key")
 
     engine = create_engine(
         "sqlite+pysqlite:///:memory:",
@@ -184,6 +188,8 @@ async def test_pets_feed_spends_10(monkeypatch):
                 headers={"X-Sync-Secret": "shop_secret"},
             )
             assert r.status_code == 200
+    assert mock_client.get.await_args.kwargs["headers"]["x-api-key"] == "core_key"
+    assert mock_client.post.await_args.kwargs["headers"]["x-api-key"] == "core_key"
 
     check = TestingSessionLocal()
     try:

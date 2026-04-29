@@ -57,15 +57,25 @@ def _verify_shop_secret(x_sync_secret: str = Header(..., alias="X-Sync-Secret"))
 def _pets_bridge_base_url() -> str:
     return (getattr(settings, "PETS_BRIDGE_URL", None) or "http://broski-pets-bridge:8098").rstrip("/")
 
+def _pets_bridge_auth_headers() -> dict[str, str]:
+    api_key = (getattr(settings, "API_KEY", None) or "").strip()
+    if not api_key:
+        return {}
+    return {"x-api-key": api_key}
+
 
 async def _pets_bridge_get(path: str, timeout_s: float = 6.0) -> httpx.Response:
     async with httpx.AsyncClient(timeout=timeout_s) as client:
-        return await client.get(_pets_bridge_base_url() + path)
+        return await client.get(_pets_bridge_base_url() + path, headers=_pets_bridge_auth_headers())
 
 
 async def _pets_bridge_post(path: str, json_body: dict, timeout_s: float = 10.0) -> httpx.Response:
     async with httpx.AsyncClient(timeout=timeout_s) as client:
-        return await client.post(_pets_bridge_base_url() + path, json=json_body)
+        return await client.post(
+            _pets_bridge_base_url() + path,
+            json=json_body,
+            headers=_pets_bridge_auth_headers(),
+        )
 
 
 @router.post("/provision", response_model=PetProvisionResponse)
@@ -191,4 +201,3 @@ async def get_pet_leaderboard(rarity: Optional[str] = None) -> Any:
         q = f"?rarity={rarity}"
     resp = await _pets_bridge_get(f"/leaderboard{q}", timeout_s=8.0)
     return resp.json()
-
