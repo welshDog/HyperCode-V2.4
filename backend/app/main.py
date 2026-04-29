@@ -81,7 +81,25 @@ else:
     logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI Application
+async def _core_heartbeat_loop() -> None:
+    key = "agents:heartbeat:hypercode-core"
+    while True:
+        if _metrics_redis is not None:
+            try:
+                await _metrics_redis.hset(
+                    key,
+                    mapping={
+                        "name": "hypercode-core",
+                        "status": "online",
+                        "last_seen": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    },
+                )
+                await _metrics_redis.expire(key, 30)
+            except Exception:
+                pass
+        await asyncio.sleep(10)
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     global _metrics_redis
@@ -189,35 +207,12 @@ if (
 
 @app.middleware("http")
 async def _boot_guard(request: Request, call_next):
-    if _boot_error is not None and request.url.path != "/health":
+    if _boot_error is not None and request.url.path not in {"/health", "/"}:
         return JSONResponse(
             status_code=503,
             content={"detail": "Service misconfigured", "boot_error": _boot_error},
         )
     return await call_next(request)
-
-    """
-    Publishes hypercode-core heartbeat to Redis every 10s.
-    Key: agents:heartbeat:hypercode-core  (TTL 30s)
-    Read by GET /api/v1/agents/status to populate the dashboard agent count.
-    Read by GET /api/v1/agents/status to populate the dashboard agent count.
-    """
-    key = "agents:heartbeat:hypercode-core"
-    while True:
-        if _metrics_redis is not None:
-            try:
-                await _metrics_redis.hset(
-                    key,
-                    mapping={
-                        "name": "hypercode-core",
-                        "status": "online",
-                            "last_seen": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    },
-                )
-                await _metrics_redis.expire(key, 30)
-            except Exception:
-                pass
-        await asyncio.sleep(10)
 
 
 # CORS Middleware
