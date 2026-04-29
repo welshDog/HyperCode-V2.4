@@ -26,7 +26,15 @@ def _with_redis_db(redis_url: str, db_index: int) -> str:
 def _rate_limit_storage_uri() -> str:
     if os.getenv("PYTEST_CURRENT_TEST") or settings.ENVIRONMENT.lower() == "test":
         return "memory://"
-    return os.getenv("RATE_LIMIT_STORAGE_URI") or _with_redis_db(settings.HYPERCODE_REDIS_URL, 2)
+    explicit = (os.getenv("RATE_LIMIT_STORAGE_URI") or "").strip()
+    if explicit:
+        return explicit
+    redis_url = (os.getenv("HYPERCODE_REDIS_URL") or os.getenv("REDIS_URL") or "").strip()
+    if not redis_url:
+        return "memory://"
+    if os.getenv("RAILWAY_ENVIRONMENT") and redis_url.startswith("redis://redis:"):
+        return "memory://"
+    return _with_redis_db(redis_url, 2)
 
 
 limiter = Limiter(
@@ -120,11 +128,14 @@ class AsyncRateLimiter:
     """Async-safe rate limiter for background tasks."""
     
     def __init__(self, redis_url: str | None = None):
-        self.redis_url = redis_url or _with_redis_db(settings.HYPERCODE_REDIS_URL, 3)
+        env_url = (os.getenv("HYPERCODE_REDIS_URL") or os.getenv("REDIS_URL") or "").strip()
+        self.redis_url = (redis_url or env_url or "").strip() or None
         self.redis = None
     
     async def connect(self):
         """Connect to Redis."""
+        if not self.redis_url:
+            return
         import redis.asyncio as aio_redis
         self.redis = await aio_redis.from_url(self.redis_url)
     
@@ -140,7 +151,12 @@ class AsyncRateLimiter:
             True if allowed, False if rate limited
         """
         if not self.redis:
-            await self.connect()
+            try:
+                await self.connect()
+            except Exception:
+                return True
+        if not self.redis:
+            return True
         
         current_time = int(time.time())
         window_key = f"rate_limit:{key}:{current_time // window}"
