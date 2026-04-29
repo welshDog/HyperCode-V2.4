@@ -178,18 +178,24 @@ async def feed_pet(
 @router.get("/status/{discord_id}")
 async def get_pet_status(discord_id: str) -> Any:
     resp = await _pets_bridge_get(f"/pet/{discord_id}/status", timeout_s=6.0)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
     return resp.json()
 
 
 @router.post("/chat/{discord_id}")
 async def chat_with_pet(discord_id: str, body: dict[str, Any]) -> Any:
     resp = await _pets_bridge_post(f"/pet/{discord_id}/chat", body, timeout_s=30.0)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
     return resp.json()
 
 
 @router.get("/powers/{discord_id}")
 async def get_pet_powers(discord_id: str) -> Any:
     resp = await _pets_bridge_get(f"/pet/{discord_id}/powers", timeout_s=6.0)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
     return resp.json()
 
 
@@ -199,4 +205,6 @@ async def get_pet_leaderboard(rarity: Optional[str] = None) -> Any:
     if rarity:
         q = f"?rarity={rarity}"
     resp = await _pets_bridge_get(f"/leaderboard{q}", timeout_s=8.0)
+    if resp.status_code != 200:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
     return resp.json()
