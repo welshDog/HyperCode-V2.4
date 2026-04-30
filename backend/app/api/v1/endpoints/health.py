@@ -1,12 +1,12 @@
 import httpx
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from pydantic import BaseModel
 from typing import Dict, Any
 import redis as redis_lib
 
-from app.db.session import get_db, probe_db
+from app.db.session import get_db
 from app.core.config import settings
 from app.core.circuit_breaker import all_breakers
 
@@ -20,18 +20,10 @@ class HealthStatus(BaseModel):
 
 
 def _check_postgres(db: Session) -> dict:
-    """Check Postgres by running a lightweight query on the injected session.
-
-    Also updates the module-level ``_db_available`` flag in db.session so
-    that the root ``/health`` endpoint reflects the current state.
-    """
     try:
         db.execute(text("SELECT 1"))
-        # Sync the availability flag so /health picks up recovery.
-        probe_db()
         return {"status": "ok"}
     except Exception as e:
-        probe_db()
         return {"status": "error", "detail": str(e)}
 
 
@@ -44,12 +36,10 @@ def _check_redis() -> dict:
         r.ping()
         return {"status": "ok"}
     except Exception as e:
-        return {"status": "error", "detail": str(e), "fallback": "in-memory"}
+        return {"status": "error", "detail": str(e)}
 
 
 async def _check_discord() -> dict:
-    if not settings.DISCORD_BOT_TOKEN:
-        return {"status": "skipped", "detail": "DISCORD_BOT_TOKEN not configured"}
     try:
         async with httpx.AsyncClient(timeout=3) as client:
             resp = await client.get(
@@ -62,14 +52,10 @@ async def _check_discord() -> dict:
 
 
 @router.get("/health", response_model=HealthStatus, tags=["health"])
-async def health_check(response: Response, db: Session = Depends(get_db)):
+async def health_check(db: Session = Depends(get_db)):
     """GET /api/v1/health
-
-    Deep health check — Postgres, Redis, Discord, circuit breakers.
-
-    HTTP status codes:
-      200 — all core services healthy
-      503 — Postgres unavailable (app running in degraded mode)
+    Deep health check — Postgres, Redis, Discord.
+    Returns 200 healthy / 207 degraded.
     """
     checks = {
         "postgres": _check_postgres(db),
@@ -78,23 +64,9 @@ async def health_check(response: Response, db: Session = Depends(get_db)):
         "circuit_breakers": all_breakers(),
     }
 
-    # Postgres is a *core* dependency — its failure drives the HTTP status.
-    postgres_ok = checks["postgres"]["status"] == "ok"
-    # Redis and Discord are non-critical; their failure only affects `status`.
-    non_core_ok = all(
-        v["status"] in {"ok", "skipped"}
-        for k, v in checks.items()
-        if k not in {"postgres", "circuit_breakers"}
-    )
-
-    if not postgres_ok:
-        overall = "unhealthy"
-        response.status_code = 503
-    elif not non_core_ok:
-        overall = "degraded"
-        # Still 200 — app is functional, non-critical services are down.
-    else:
-        overall = "healthy"
+    infra_checks = {k: v for k, v in checks.items() if k != "circuit_breakers"}
+    all_ok = all(v["status"] == "ok" for v in infra_checks.values())
+    overall = "healthy" if all_ok else "degraded"
 
     return HealthStatus(
         status=overall,

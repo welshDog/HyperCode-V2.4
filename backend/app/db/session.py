@@ -1,21 +1,14 @@
 import asyncio
-import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
-
 # ---------------------------------------------------------------------------
 # Sync engine — kept for Celery workers, Alembic, and legacy sync code
-#
-# The engine object is always created (it only configures the pool, it does
-# not open a connection).  The actual TCP handshake happens on the first
-# query, so a missing Postgres at import time does NOT raise here.
 # ---------------------------------------------------------------------------
 engine = create_engine(
     settings.HYPERCODE_DB_URL,
@@ -27,58 +20,14 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# ---------------------------------------------------------------------------
-# Lazy DB availability probe
-#
-# _db_available is a tri-state:
-#   None  — not yet probed (first request will trigger a probe)
-#   True  — last probe succeeded
-#   False — last probe failed (re-probed on every request so recovery is
-#            detected automatically)
-# ---------------------------------------------------------------------------
-_db_available: bool | None = None
-
-
-def probe_db() -> bool:
-    """Attempt a cheap SELECT 1 against Postgres.
-
-    Updates and returns the module-level ``_db_available`` flag.  Safe to
-    call from any thread; never raises.
-    """
-    global _db_available
-    try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-        _db_available = True
-    except Exception as exc:
-        logger.warning("Database probe failed: %s", exc)
-        _db_available = False
-    return bool(_db_available)
-
-
-def is_db_available() -> bool:
-    """Return the cached DB availability flag, probing if not yet known."""
-    if _db_available is None:
-        return probe_db()
-    return bool(_db_available)
-
 
 def get_db():
-    """Sync DB dependency — use in sync routes / Celery tasks.
-
-    On every call the module-level ``_db_available`` flag is updated so that
-    a recovered Postgres is detected automatically without a restart.
-    """
-    global _db_available
+    """Sync DB dependency — use in sync routes / Celery tasks."""
     db = SessionLocal()
     try:
         yield db
-        # If we got here without an exception the connection is healthy.
-        _db_available = True
     except Exception:
         db.rollback()
-        # Re-probe so the health endpoint reflects the current state.
-        probe_db()
         raise
     finally:
         db.close()
