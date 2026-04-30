@@ -9,9 +9,11 @@ import uuid
 from contextlib import asynccontextmanager, suppress
 
 _boot_error: str | None = None
+# Set to True when Postgres was unreachable at startup (degraded mode).
+_db_degraded: bool = False
 
 import redis.asyncio as aioredis
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 try:
@@ -104,8 +106,18 @@ async def _core_heartbeat_loop() -> None:
 async def _lifespan(app: FastAPI):
     global _metrics_redis
     global _boot_error
+    global _db_degraded
 
     heartbeat_task: asyncio.Task | None = None
+
+    # ── Structured startup log helpers ────────────────────────────────────
+    _startup_lines: list[str] = []
+
+    def _svc_log(name: str, state: str, note: str = "") -> None:
+        suffix = f" ({note})" if note else ""
+        line = f"[STARTUP] {name}: {state}{suffix}"
+        _startup_lines.append(line)
+        logger.info(line)
 
     try:
         settings.validate_security()
@@ -113,6 +125,25 @@ async def _lifespan(app: FastAPI):
         _boot_error = str(exc)
         logger.error("Startup security validation failed: %s", _boot_error)
     else:
+
+        # ── Postgres probe ─────────────────────────────────────────────────
+        async def _probe_postgres_startup() -> None:
+            """Non-blocking Postgres probe that sets _db_degraded."""
+            global _db_degraded
+            try:
+                from app.db.session import probe_db as _probe_db
+                available = await asyncio.to_thread(_probe_db)
+                if available:
+                    _svc_log("Postgres", "CONNECTED")
+                    _db_degraded = False
+                else:
+                    _svc_log("Postgres", "UNAVAILABLE", "will retry on next request")
+                    _db_degraded = True
+            except Exception as exc:
+                _svc_log("Postgres", "UNAVAILABLE", f"will retry on next request — {exc}")
+                _db_degraded = True
+
+        await _probe_postgres_startup()
 
         async def _init_db_background() -> None:
             # The Dockerfile entrypoint blocks on `alembic upgrade head` before uvicorn
@@ -172,6 +203,7 @@ async def _lifespan(app: FastAPI):
 
         asyncio.create_task(_init_db_background())
 
+        # ── Redis / Metrics probe ──────────────────────────────────────────
         try:
             redis_client = aioredis.from_url(
                 settings.HYPERCODE_REDIS_URL,
@@ -180,10 +212,19 @@ async def _lifespan(app: FastAPI):
             )
             await redis_client.ping()
             _metrics_redis = redis_client
-            logger.info("Metrics Redis client connected")
+            _svc_log("Redis", "CONNECTED")
             heartbeat_task = asyncio.create_task(_core_heartbeat_loop())
         except Exception:
-            logger.warning("Metrics Redis unavailable — metrics middleware will no-op")
+            _svc_log("Redis", "UNAVAILABLE", "using in-memory fallback")
+
+        # ── Metrics (Prometheus) ───────────────────────────────────────────
+        try:
+            if _Instrumentator is not None:
+                _svc_log("Metrics", "CONNECTED")
+            else:
+                _svc_log("Metrics", "UNAVAILABLE", "prometheus_fastapi_instrumentator not installed")
+        except Exception:
+            _svc_log("Metrics", "UNAVAILABLE", "probe error")
 
         try:
             if setup_rate_limiting is not None:
@@ -197,6 +238,12 @@ async def _lifespan(app: FastAPI):
             _setup_telemetry(app)
         except Exception:
             logger.exception("Telemetry init failed (non-fatal)")
+
+        # ── Final startup summary ──────────────────────────────────────────
+        if _db_degraded:
+            logger.info("[STARTUP] Application ready (degraded mode — Postgres unavailable)")
+        else:
+            logger.info("[STARTUP] Application ready (all services healthy)")
 
     yield
 
@@ -354,10 +401,21 @@ if uplink_router is not None:
     app.include_router(uplink_router)  # 🔌 Phase 10J — WS /ws/uplink
 
 @app.get("/health")
-@cache_response("health", ttl=10)
 @limiter.limit("120/minute") if limiter is not None else (lambda f: f)
-async def health_check(request: Request):
+async def health_check(request: Request, response: Response):
+    """Root liveness / readiness check.
+
+    HTTP status codes:
+      200 — application healthy (all core services reachable)
+      503 — application running but Postgres is unavailable (degraded mode)
+
+    The deep health endpoint at ``/api/v1/health`` provides per-service
+    detail including Redis, Discord, and circuit-breaker states.
+    """
+    from app.db.session import is_db_available
+
     if _boot_error is not None:
+        response.status_code = 503
         return {
             "status": "degraded",
             "service": settings.SERVICE_NAME,
@@ -365,6 +423,19 @@ async def health_check(request: Request):
             "environment": settings.ENVIRONMENT,
             "boot_error": _boot_error,
         }
+
+    # Re-probe on every call so recovery is reflected without a restart.
+    db_ok = is_db_available()
+    if not db_ok:
+        response.status_code = 503
+        return {
+            "status": "degraded",
+            "service": settings.SERVICE_NAME,
+            "version": settings.VERSION,
+            "environment": settings.ENVIRONMENT,
+            "postgres": "unavailable",
+        }
+
     return {
         "status": "ok",
         "service": settings.SERVICE_NAME,
