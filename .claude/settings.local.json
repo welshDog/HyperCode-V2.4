@@ -204,7 +204,9 @@
       "Bash(git commit -m ' *)",
       "Bash(gh run *)",
       "Bash(gh repo *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git *)",
+      "Skill(schedule)"
     ]
   },
   "enableAllProjectMcpServers": true,
