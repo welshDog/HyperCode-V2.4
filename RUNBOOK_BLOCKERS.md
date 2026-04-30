@@ -19,7 +19,7 @@
 
 **Goal:** every `token_transactions` INSERT fires `sync-tokens-to-v24` Edge Function.
 
-1. Go to https://supabase.com/dashboard/project/yhtmuibgdnxhbgboajhc/database/hooks
+1. Go to https://supabase.com/dashboard/project/your-project-name/database/hooks
 2. Click **Create a new hook**
 3. Fill in:
    - **Name**: `sync_tokens_to_v24`
@@ -45,7 +45,7 @@ VALUES ('<your-test-user-uuid>', 10, 'B1 webhook test');
 
 **Goal:** Supabase Edge Function holds the same secret V2.4 expects in the `X-Sync-Secret` header.
 
-1. Go to https://supabase.com/dashboard/project/yhtmuibgdnxhbgboajhc/settings/functions
+1. Go to https://supabase.com/dashboard/project/your-project-name/settings/functions
 2. Under **Secrets**, click **Add new secret** (or Edit if it exists)
 3. Name: `COURSE_SYNC_SECRET`
    Value: `<use the same value as V2.4 COURSE_SYNC_SECRET>`
@@ -122,7 +122,7 @@ npx @w3lshdog/hyper-agent validate --help
 
 Same value needs to land in Vercel for production builds:
 1. https://vercel.com/lyndzwills/hyper-vibe-coding-course/settings/environment-variables
-2. Add `VITE_STRIPE_PAYMENT_LINK_URL` = `https://buy.stripe.com/test_5kQ00c3nd9tB6mCfI48EM00`
+2. Add `VITE_STRIPE_PAYMENT_LINK_URL` = `https://buy.stripe.com/test`your-project-name
 3. Scope: Production + Preview + Development (or just Production to start)
 4. Redeploy the latest deployment (⋯ → Redeploy)
 
