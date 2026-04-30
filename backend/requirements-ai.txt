@@ -9,7 +9,7 @@ langsmith==0.7.16
 nltk==3.9.1
 pillow==11.3.0
 safetensors==0.5.3
-sentence-transformers==5.2.3
+sentence-transformers==5.4.1
 streamlit==1.54.0
 tokenizers==0.21.4
 torch==2.8.0
