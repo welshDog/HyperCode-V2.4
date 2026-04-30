@@ -115,6 +115,38 @@ async def _lifespan(app: FastAPI):
     else:
 
         async def _init_db_background() -> None:
+            # The Dockerfile entrypoint blocks on `alembic upgrade head` before uvicorn
+            # starts, so by the time this lifespan runs the schema is at head. We still
+            # check `alembic_version` here as a defensive guard: in local-dev or any path
+            # that bypasses the entrypoint, seeding before migrations leaves rows in tables
+            # that don't exist yet and causes the boot loop we saw on Railway.
+            try:
+                from sqlalchemy import text
+
+                from app.db.session import SessionLocal
+
+                def _migrations_applied() -> bool:
+                    db = SessionLocal()
+                    try:
+                        row = db.execute(
+                            text("SELECT version_num FROM alembic_version")
+                        ).first()
+                        return row is not None
+                    finally:
+                        db.close()
+
+                if not await asyncio.to_thread(_migrations_applied):
+                    logger.warning(
+                        "Skipping seed_achievements: alembic_version is empty "
+                        "(migrations have not run)"
+                    )
+                    return
+            except Exception:
+                logger.warning(
+                    "Skipping seed_achievements: alembic_version table not reachable"
+                )
+                return
+
             if os.getenv("DB_AUTO_CREATE", "false").strip().lower() == "true":
                 try:
                     await asyncio.to_thread(Base.metadata.create_all, bind=engine)

@@ -90,4 +90,9 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD sh -c 'curl -f "http://localhost:${PORT:-8000}/health" || exit 1'
 
-CMD ["sh", "-c", "(alembic upgrade head || true) & exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Migrations MUST complete before uvicorn starts:
+#   - `&` (background) races the lifespan: seed_achievements fires before tables exist.
+#   - `|| true` hides migration failures and lets the app boot on a half-built schema.
+# Block on alembic with `&&` so a migration failure exits non-zero (Railway logs are clear),
+# and the FastAPI lifespan (which runs seed_achievements) only starts after `upgrade head` returns 0.
+CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
