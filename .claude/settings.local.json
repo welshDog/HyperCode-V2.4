@@ -229,7 +229,17 @@
       "Bash(railway domain *)",
       "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway domain)",
       "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway domain *)",
-      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway whoami)"
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway whoami)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway deployment --help)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway deployment list)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" railway variables -k --service \"HyperCode-V2.4\")",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway run --service \"HyperCode-V2.4\" -- printenv)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway service *)",
+      "Bash(railway scale *)",
+      "Bash(railway --version)",
+      "Bash(railway upgrade *)",
+      "Bash(cmd.exe /c \"npm update -g @railway/cli\")",
+      "PowerShell(npm update *)"
     ]
   },
   "enableAllProjectMcpServers": true,
