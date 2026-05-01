@@ -223,6 +223,7 @@ app = FastAPI(
     docs_url=f"{settings.API_V1_STR}/docs",
     redoc_url=f"{settings.API_V1_STR}/redoc",
     lifespan=_lifespan,
+    redirect_slashes=False,
 )
 
 # Prometheus /metrics should be exposed before startup to avoid "Cannot add middleware after started"
