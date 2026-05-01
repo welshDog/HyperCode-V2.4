@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
     HYPERCODE_REDIS_URL: str = "redis://redis:6379/0"
 
+    # DB connection pool — read by app.db.session for both sync and async engines
+    DB_POOL_SIZE: int = 25
+    DB_POOL_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE_TIMEOUT: int = 3600
+
     ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
     ORCHESTRATOR_API_KEY: Optional[str] = None
     DOCKER_SOCKET_PROXY_URL: str = "http://docker-socket-proxy:2375"
