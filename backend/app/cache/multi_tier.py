@@ -4,6 +4,7 @@ import hashlib
 import inspect
 import json
 import logging
+import os
 from typing import Any, Optional, Callable
 from functools import wraps
 from cachetools import TTLCache
@@ -32,17 +33,18 @@ class MultiTierCache:
         self,
         local_size: int = 1000,
         local_ttl: int = 300,
-        redis_url: str = "redis://redis:6379/1",
+        redis_url: str | None = None,
     ):
         """Initialize multi-tier cache.
         
         Args:
             local_size: Max items in local cache
             local_ttl: TTL for local cache items (seconds)
-            redis_url: Redis connection URL
+            redis_url: Redis connection URL. Defaults to HYPERCODE_REDIS_URL
+                       env var, falling back to redis://redis:6379/1.
         """
         self.local_cache = TTLCache(maxsize=local_size, ttl=local_ttl)
-        self.redis_url = redis_url
+        self.redis_url = redis_url or os.getenv("HYPERCODE_REDIS_URL", "redis://redis:6379/1")
         self.redis_client = None
         self.stats = {
             "hits": 0,
@@ -219,7 +221,7 @@ async def get_cache() -> MultiTierCache:
     global _cache_instance
     
     if _cache_instance is None:
-        _cache_instance = MultiTierCache()
+        _cache_instance = MultiTierCache()  # picks up HYPERCODE_REDIS_URL via __init__
         await _cache_instance.connect()
     
     return _cache_instance
