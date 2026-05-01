@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
     HYPERCODE_REDIS_URL: str = "redis://redis:6379/0"
 
+    # Database connection pool — Railway-safe defaults
+    DB_POOL_SIZE: int = 5
+    DB_POOL_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE_TIMEOUT: int = 3600
+
     ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
     ORCHESTRATOR_API_KEY: Optional[str] = None
     DOCKER_SOCKET_PROXY_URL: str = "http://docker-socket-proxy:2375"
@@ -64,8 +70,6 @@ class Settings(BaseSettings):
     PETS_BRIDGE_URL: str = "http://broski-pets-bridge:8098"
 
     # Brain / memory (privacy defaults)
-    # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
-    # Default is False to avoid pulling arbitrary bucket contents into prompts.
     BRAIN_ALLOW_FILE_FALLBACK: bool = False
 
     HUNTER_ALPHA_ENABLED: bool = False
@@ -96,16 +100,16 @@ class Settings(BaseSettings):
         return options
 
     # Storage (MinIO/S3)
-    MINIO_ENDPOINT: str = "http://minio:9000" # Internal Docker Hostname
+    MINIO_ENDPOINT: str = "http://minio:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
     MINIO_BUCKET_REPORTS: str = "agent-reports"
-    MINIO_SECURE: bool = False # False for local MinIO (http)
+    MINIO_SECURE: bool = False
     
     # RAG (ChromaDB)
     CHROMA_HOST: str = "chroma"
     CHROMA_PORT: int = 8000
-    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2" # Fast, local model
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
     # Telemetry (OpenTelemetry)
     OTLP_ENDPOINT: str = "http://tempo:4317"
@@ -176,7 +180,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
         env_ignore_empty=True,
-        extra="ignore"  # Allow extra fields in env
+        extra="ignore"
     )
 _settings_boot_error: str | None = None
 try:
