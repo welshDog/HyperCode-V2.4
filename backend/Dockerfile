@@ -95,4 +95,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 #   - `|| true` hides migration failures and lets the app boot on a half-built schema.
 # Block on alembic with `&&` so a migration failure exits non-zero (Railway logs are clear),
 # and the FastAPI lifespan (which runs seed_achievements) only starts after `upgrade head` returns 0.
-CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}"]
