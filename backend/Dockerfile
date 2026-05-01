@@ -42,9 +42,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
-# Lock port to 8000 — Railway injects PORT=8080 by default which breaks the healthcheck.
-# Setting it here ensures uvicorn AND the healthcheck curl always agree on 8000.
-ENV PORT=8000
 ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + explicitly install patched security libs
