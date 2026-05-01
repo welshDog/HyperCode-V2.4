@@ -2,11 +2,11 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool, QueuePool
-from backend.app.core.config import get_settings
+from app.core.config import get_settings
 
 settings = get_settings()
 
-# Use NullPool for Heroku/containers (don't persist connections across requests)
+# Use NullPool for containers (don't persist connections across requests)
 # Use QueuePool for local dev (reuse connections within a process)
 POOL_CLASS = NullPool if os.getenv("ENVIRONMENT") in ("production", "staging") else QueuePool
 
