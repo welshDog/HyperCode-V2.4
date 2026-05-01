@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-04-29T08:49:21.937200742Z",
+  "CreatedAt": "2026-05-01T00:11:39.36861774Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -8,32 +8,32 @@
       "Family": "debian",
       "Name": "13.4"
     },
-    "ImageID": "sha256:e41da9f99eadd7694697ac140bb610f556b6f5a8d5b2ffbd730ce6b67c929767",
+    "ImageID": "sha256:71d1d218aaf5a0c494ba9ecb44c34ff73c572c1775427bc49e3774c3ce6eac64",
     "DiffIDs": [
       "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
       "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
       "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
       "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
       "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-      "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631",
-      "sha256:983271f9db0843787e467220c68139a8fa9c2222483d5b8094eebf17b803dcc7",
-      "sha256:1a3f160015076551083ac093fc421aa063fab313ee251b6a32f03839f490daf0",
-      "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
-      "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
-      "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
-      "sha256:a35a70596e75d6d33b7ad841f3ea5ab44867f596c42749425f338ba2df2b20f9",
-      "sha256:ab0ad48e1cbd72e2425573ad8d4f86814477ebb6d438b134efe85dc1d752d652",
-      "sha256:21eec73c7eb64c2be71d23667cdd4851c19a4b33adc4a4525254f9b743f7c39e"
+      "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
+      "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
+      "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
+      "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
+      "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb",
+      "sha256:23ef5279d26dec7ee84ec0949b13ea93ce9876be52ec1ad7a7559e4fe30642fb",
+      "sha256:1f57aaafd94feffd910f77fb8322d13bbabee81f4f2472309450097594491660",
+      "sha256:5864767b3eb0f826eed90c81129261d6b1a107166be6b0468c94ad0e1eb12924",
+      "sha256:81d182b9e727cf071ffe9661358a5f7ccb30be2123144e6c9a62b734bc8ba646"
     ],
     "RepoTags": [
       "hypercode-core:latest"
     ],
     "RepoDigests": [
-      "hypercode-core@sha256:e41da9f99eadd7694697ac140bb610f556b6f5a8d5b2ffbd730ce6b67c929767"
+      "hypercode-core@sha256:71d1d218aaf5a0c494ba9ecb44c34ff73c572c1775427bc49e3774c3ce6eac64"
     ],
     "ImageConfig": {
       "architecture": "amd64",
-      "created": "2026-04-28T07:44:36.629471416Z",
+      "created": "2026-04-29T20:40:50.539148466Z",
       "history": [
         {
           "created": "2026-04-21T00:00:00Z",
@@ -97,101 +97,101 @@
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:32:49Z",
+          "created": "2026-04-29T15:24:40Z",
           "created_by": "ENV PYTHONDONTWRITEBYTECODE=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T21:32:49Z",
+          "created": "2026-04-29T15:24:40Z",
           "created_by": "ENV PYTHONUNBUFFERED=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T21:32:49Z",
+          "created": "2026-04-29T15:24:40Z",
           "created_by": "ENV HF_HOME=/app/cache/huggingface",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T21:32:49Z",
+          "created": "2026-04-29T15:24:40Z",
           "created_by": "ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T21:32:49Z",
+          "created": "2026-04-29T15:24:40Z",
           "created_by": "ARG INSTALL_AI_DEPS=false",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T21:32:49Z",
-          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c apt-get update --allow-releaseinfo-change \u0026\u0026     apt-get upgrade -y \u0026\u0026     apt-get install -y --no-install-recommends         libpq5         curl         ca-certificates         libexpat1         openssl \u0026\u0026     apt-get clean \u0026\u0026     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # buildkit",
+          "created": "2026-04-29T15:24:40Z",
+          "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c apt-get update --allow-releaseinfo-change \u0026\u0026     apt-get install -y --no-install-recommends         libpq5         curl         ca-certificates         libexpat1         openssl \u0026\u0026     apt-get clean \u0026\u0026     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:33:08Z",
+          "created": "2026-04-29T15:25:11Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c pip install --upgrade --no-cache-dir     \"pip==26.0.1\"     \"setuptools\u003e=80.0.0\"     \"wheel==0.46.2\"     \"jaraco.context\u003e=6.0.0\"     \"jaraco.functools\u003e=4.1.0\"     \"jaraco.text\u003e=4.0.0\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:33:09Z",
+          "created": "2026-04-29T15:25:12Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c addgroup --system appuser \u0026\u0026 adduser --system --group appuser # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:33:10Z",
+          "created": "2026-04-29T15:25:13Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c mkdir -p /app/cache/huggingface /app/cache/sentence_transformers \u0026\u0026     chown -R appuser:appuser /app/cache # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:38:45Z",
+          "created": "2026-04-29T15:36:59Z",
           "created_by": "COPY /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-23T21:38:48Z",
+          "created": "2026-04-29T15:37:04Z",
           "created_by": "COPY /usr/local/bin /usr/local/bin # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-28T07:44:26Z",
+          "created": "2026-04-29T20:40:41Z",
           "created_by": "COPY . . # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-28T07:44:29Z",
+          "created": "2026-04-29T20:40:45Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c python -c \"import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-28T07:44:36Z",
+          "created": "2026-04-29T20:40:50Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c chown -R appuser:appuser /app # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-28T07:44:36Z",
+          "created": "2026-04-29T20:40:50Z",
           "created_by": "USER appuser",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-28T07:44:36Z",
+          "created": "2026-04-29T20:40:50Z",
           "created_by": "EXPOSE [8000/tcp]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-28T07:44:36Z",
-          "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"curl -f http://localhost:8000/health || exit 1\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
+          "created": "2026-04-29T20:40:50Z",
+          "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"sh -c 'curl -f \\\"http://localhost:${PORT:-8000}/health\\\" || exit 1'\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-28T07:44:36Z",
-          "created_by": "CMD [\"python\" \"-m\" \"uvicorn\" \"app.main:app\" \"--host\" \"0.0.0.0\" \"--port\" \"8000\"]",
+          "created": "2026-04-29T20:40:50Z",
+          "created_by": "CMD [\"sh\" \"-c\" \"(alembic upgrade head || true) \u0026 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\"]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         }
@@ -205,32 +205,27 @@
           "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
           "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
           "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-          "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631",
-          "sha256:983271f9db0843787e467220c68139a8fa9c2222483d5b8094eebf17b803dcc7",
-          "sha256:1a3f160015076551083ac093fc421aa063fab313ee251b6a32f03839f490daf0",
-          "sha256:c0ea08147383b3d119365ec7771693e5b2cb50dc7c5a8ad642ad94cceb77ba12",
-          "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84",
-          "sha256:85a4b612949dbfe2bf22e79f5b57a905a4556d5acaaec9c8ac0d6d71749b43cf",
-          "sha256:a35a70596e75d6d33b7ad841f3ea5ab44867f596c42749425f338ba2df2b20f9",
-          "sha256:ab0ad48e1cbd72e2425573ad8d4f86814477ebb6d438b134efe85dc1d752d652",
-          "sha256:21eec73c7eb64c2be71d23667cdd4851c19a4b33adc4a4525254f9b743f7c39e"
+          "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
+          "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
+          "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
+          "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
+          "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb",
+          "sha256:23ef5279d26dec7ee84ec0949b13ea93ce9876be52ec1ad7a7559e4fe30642fb",
+          "sha256:1f57aaafd94feffd910f77fb8322d13bbabee81f4f2472309450097594491660",
+          "sha256:5864767b3eb0f826eed90c81129261d6b1a107166be6b0468c94ad0e1eb12924",
+          "sha256:81d182b9e727cf071ffe9661358a5f7ccb30be2123144e6c9a62b734bc8ba646"
         ]
       },
       "config": {
         "Cmd": [
-          "python",
-          "-m",
-          "uvicorn",
-          "app.main:app",
-          "--host",
-          "0.0.0.0",
-          "--port",
-          "8000"
+          "sh",
+          "-c",
+          "(alembic upgrade head || true) \u0026 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
         ],
         "Healthcheck": {
           "Test": [
             "CMD-SHELL",
-            "curl -f http://localhost:8000/health || exit 1"
+            "sh -c 'curl -f \"http://localhost:${PORT:-8000}/health\" || exit 1'"
           ],
           "Interval": 30000000000,
           "Timeout": 10000000000,
@@ -275,8 +270,8 @@
           "InstalledVersion": "2.7.1-2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:3319eba6c5fa60af60a2322f31e8b11b079bef59efae0f150a063eddf5605179",
-            "DiffID": "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631"
+            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
+            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
           },
           "SeveritySource": "nvd",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25210",
@@ -403,8 +398,8 @@
           "InstalledVersion": "1.64.0-1.1",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:3319eba6c5fa60af60a2322f31e8b11b079bef59efae0f150a063eddf5605179",
-            "DiffID": "sha256:9d23b1e1370bd540fe18a16b8a9f7fbbb4199739825213a70435b65f3b4c9631"
+            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
+            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
           },
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-27135",
           "DataSource": {
@@ -806,8 +801,8 @@
           "InstalledVersion": "0.19.2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:1ecf12c3c0ce386cacd0e8d4021fb9c6736c321bcc7e1e16a0debd2343eb1c84",
-            "DiffID": "sha256:cb5c2506e93b57c2be7f95e3bdbd8a05b9af622d2daef6653a9907c00c952c84"
+            "Digest": "sha256:200aa2584566bb2088f6b8dc8cc7fa00a9c632abd81d91ed9c89ddd013ed0cf8",
+            "DiffID": "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb"
           },
           "SeveritySource": "ghsa",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-23342",
