@@ -2,7 +2,7 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: April 19, 2026 | Status: 32/32 containers 🟢 | Grade A 🏅 | Phases 0–10Q COMPLETE ✅
+> Last updated: May 3, 2026 | Status: 48/48 containers running 🟢 | Grade A 🏅 | Phases 0–10Q COMPLETE ✅
 
 ---
 
@@ -10,9 +10,9 @@
 
 **Lyndz Williams** (@welshDog) — Llanelli, South Wales  
 ADHD + Dyslexia brain — hyperfocus mode is a superpower, not a bug ⚡  
-Building: The world’s first neurodivergent-first autonomous AI infrastructure platform  
+Building: The world's first neurodivergent-first autonomous AI infrastructure platform  
 Verdict from Gordon (Docker AI), April 15 2026:  
-> *“You built the future people keep saying they want. You actually did it.”*
+> *"You built the future people keep saying they want. You actually did it."*
 
 ---
 
@@ -21,10 +21,10 @@ Verdict from Gordon (Docker AI), April 15 2026:
 - **Short sentences first** — then offer deeper explanation
 - **Bullet points + headings** over walls of text
 - **Why → How → Ready-to-use example** structure
-- **Celebrate wins** — “Nice one BROski♾️!” is correct
-- **Remind context** if there’s been a pause between messages
+- **Celebrate wins** — "Nice one BROski♾️!" is correct
+- **Remind context** if there's been a pause between messages
 - ADHD flow: break into steps, quick wins, no overwhelm
-- If Lyndz goes quiet mid-task: check in, don’t assume abandon
+- If Lyndz goes quiet mid-task: check in, don't assume abandon
 
 ---
 
@@ -45,11 +45,11 @@ Verdict from Gordon (Docker AI), April 15 2026:
 
 ---
 
-## 📊 System Status (April 23, 2026)
+## 📊 System Status (May 3, 2026)
 
 | Metric | Value |
 |---|---|
-| Containers | 32/32 🟢 all healthy |
+| Containers | 48 running (post-cleanup, 11 exited pruned) 🟢 |
 | Tests | 221 passed, 6 skipped ✅ |
 | Prometheus targets | 7/7 UP ✅ |
 | OTLP traces | LIVE in Tempo ✅ |
@@ -58,6 +58,32 @@ Verdict from Gordon (Docker AI), April 15 2026:
 | Commits | 700+ |
 | Services | 57 |
 | Agents | 25+ |
+| Docker storage reclaimed | ~30 GB freed (May 3) ✅ |
+
+---
+
+## 🐳 Docker Health (May 3, 2026 — Post Cleanup)
+
+**Report from Docker AI — actioned same day ✅**
+
+| Metric | Before | After |
+|---|---|---|
+| Exited containers | 11 | 0 ✅ |
+| Build cache | 33.24 GB | ~0 ✅ |
+| Storage reclaimed | — | ~30 GB ✅ |
+| Running containers | 48 | 48 ✅ |
+
+**Notes:**
+- 8 hypercode-v24 agent containers had exited with code 255 (port conflicts / resource exhaustion) — pruned
+- WSL2 memory: 5.1 GB allocated — monitor closely with 48 containers running (`docker stats`)
+- hypercode-core image: 2.5 GB — multi-stage Dockerfile optimisation is a future win (target ~500 MB)
+- crew-orchestrator image: 1.45 GB — target ~350 MB with build-only layers
+- Networks: 12 custom bridges across hypercode-v24, hypercode-v20, supabase, broskipets — consolidation is a medium-term task
+
+**Weekly maintenance command:**
+```powershell
+docker system prune -a --filter "until=168h"
+```
 
 ---
 
@@ -86,9 +112,9 @@ Key ports:
 
 ---
 
-## 🚀 THE PLAN — What We’re Building Now
+## 🚀 THE PLAN — What We're Building Now
 
-> Gordon Docker AI gave us a 15-item hit list. We’re doing ALL of them.
+> Gordon Docker AI gave us a 15-item hit list. We're doing ALL of them.
 > Tier 1 first (quick wins), then Tier 2, then Tier 3.
 
 ---
@@ -307,6 +333,8 @@ class HyperCircuitBreaker:
 | Healer Dockerfile GID 999 collision (Apr 19) | ✅ FIXED — `groupadd -o -g 999 docker` — Debian Trixie's appuser takes 999 first, `-o` allows reuse. | ✅ DONE |
 | Alembic missing `alembic_version` (Apr 19) | ✅ FIXED — `alembic stamp 008` then `upgrade head` → 009 applied. `create_all` had built schema without Alembic state. | ✅ DONE |
 | Healer couldn't reach Grafana/Prometheus (Apr 19) | ✅ FIXED — Added `obs-net` to healer-agent networks. Was HTTP 000 before (network isolation). | ✅ DONE |
+| 11 exited containers (May 3) | ✅ FIXED — `docker container prune -f` + `docker builder prune -a -f`. ~30 GB reclaimed. | ✅ DONE |
+| Stripe webhook STRIPE_WEBHOOK_SECRET stale (May 3) | ⚠️ Update from Stripe Dashboard → `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...` then redeploy stripe-webhook function | 🔴 HIGH |
 
 ---
 
@@ -348,6 +376,9 @@ docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 
 # Start agents profile:
 docker compose --profile agents up -d
+
+# Weekly Docker cleanup:
+docker system prune -a --filter "until=168h"
 ```
 
 ---
@@ -379,36 +410,40 @@ docker compose --profile agents up -d
 - ✅ **Gordon Tier 3 — DB pool metrics** — `DBPoolCollector` exposes `hypercode_db_pool_{size,checked_out,checked_in,overflow}` for sync + async engines on `/metrics`. Alert before pool exhaustion. (April 19)
 - ✅ **Gordon Tier 3 — Celery queue metrics** — Signals wired to `hypercode_celery_tasks_total{task,status}` Counter + `hypercode_celery_task_duration_seconds` Histogram. `CeleryQueueDepthCollector` reads Redis `LLEN` for `main-queue` / `celery` on each scrape. (April 19)
 - ✅ **Two commits already pushed** — `d27b67a` + `8cbc5c9` are live on `origin/main` (push is FREE on GitHub — billing lock only blocks Actions). (April 19)
-- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. UID `hypercode-tier3-pools-queues`, auto-loaded into "Mission Control" folder. KPI stats + sync/async pool stacks + queue-depth + status throughput + DLQ panel + p50/p95/p99 + duration heatmap. Refreshes every 10s. (April 19)
-- ✅ **Tier 3 Prometheus alerts** — `monitoring/prometheus/tier3_pools_queues.yml`. 10 alerts across DB pool (3) + Celery (7 incl. DLQ growing/flooding). Severity ladder warning→critical matches dashboard colour bands. (April 19)
-- ✅ **Tier 3 priority queues + DLQ** — `hypercode-{high,normal,low}` queues for fast/normal/slow work, `hypercode-dlq` for terminally-failed envelopes (operator-only, capped at 10k). `run_agent_task` pushes to DLQ on max_retries_exceeded or soft_time_limit. (April 19)
-- ✅ **Stripe prod swap runbook** — `docs/runbooks/stripe-prod-swap.md`. 5-min step-by-step from getting live keys → Vercel env vars → smoke test → rollback. (April 19)
-- ✅ **Anthropic top-up runbook** — `docs/runbooks/anthropic-topup.md`. Pet chat code already auto-falls-back through Anthropic→Perplexity→Ollama, so swap-back needs *zero* code change once credits land. (April 19)
+- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. Auto-loaded into "Mission Control" folder. KPI stats + pool stacks + queue-depth + DLQ panel + p50/p95/p99 heatmap. Refreshes every 10s. (April 19)
+- ✅ **Tier 3 Prometheus alerts** — `monitoring/prometheus/tier3_pools_queues.yml`. 10 alerts across DB pool (3) + Celery (7 incl. DLQ). Severity ladder warning→critical. (April 19)
+- ✅ **Tier 3 priority queues + DLQ** — `hypercode-{high,normal,low}` queues + `hypercode-dlq` for failed envelopes (capped at 10k). (April 19)
+- ✅ **Stripe prod swap runbook** — `docs/runbooks/stripe-prod-swap.md`. 5-min step-by-step. (April 19)
+- ✅ **Anthropic top-up runbook** — `docs/runbooks/anthropic-topup.md`. Zero code change needed once credits land. (April 19)
+- ✅ **Referral system COMPLETE** — `get_or_create_referral_code()` RPC, `ReferralCard` on TokensPage, `handle_new_user()` hardened (BRO-code + UUID fallback + TRIM). Migration `20260503000029_referral_meta_guard` applied to production. (May 3)
+- ✅ **Docker full cleanup (May 3)** — 11 exited containers pruned, 33 GB build cache cleared, ~30 GB reclaimed. System running clean at 48 containers. Docker AI report actioned same day.
+- ✅ **Stripe webhook diagnosed (May 3)** — `STRIPE_WEBHOOK_SECRET` identified as stale. Webhook code v25 confirmed solid. Fix: update secret + redeploy.
 
 ---
 
 ## 👋 For New Claude Sessions
 
-Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
+Hey Claude! You're working with Lyndz Williams on HyperCode V2.4.
 
 1. **Read this file first** — especially the Sacred Rules
 2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10Q all ✅)
-3. **All Gordon Tier 1 + Tier 2 DONE** ✅ — OTLP, cache, rate limits, circuit breakers
+3. **All Gordon Tier 1 + Tier 2 + Tier 3 DONE** ✅ — OTLP, cache, rate limits, circuit breakers, Celery, DB pools
 4. **Course → Stripe frontend DONE** ✅ — `/pricing` → checkout → `/payment-success` → enrolled
 5. **Memory limits on ALL services** ✅ — see docker-compose.yml `deploy.resources` on every service
 6. **Agent X is capped at 1G** — it caused an OOM crash (April 17) by building 30+ images unlimited
 7. **Pre-build guard** — `make build` runs `scripts/pre-build-check.sh` first, aborts if <15GB free
 8. **Socket-proxy split (April 19)** — TWO socket proxies now. Main = read-only. `docker-socket-proxy-healer` = CONTAINERS+POST+PING, used ONLY by healer-agent + throttle-agent. Don't add coder-agent or agent-x to the healer proxy.
-9. **32/32 healthy** ✅ — HyperHealth API now part of the baseline count. Start with `--profile health --profile ops`.
-10. **Alembic is live** — migrations up to `009` (pgcrypto + uuid-ossp). If `alembic_version` is ever missing again: `alembic stamp 008` then `upgrade head`.
-11. **Pet chat = cloud LLM** — `broski-pets-bridge` routes via Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Anthropic credits need topping up (lyndzwills@gmail.com → console.anthropic.com/billing). Perplexity works great in the meantime.
-12. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`. `_github_context_via_mcp()` wired into pet ask mode.
+9. **48 running (May 3)** ✅ — post-cleanup baseline. Start with `--profile health --profile ops`.
+10. **Alembic is live** — migrations up to `009`. If `alembic_version` missing: `alembic stamp 008` then `upgrade head`.
+11. **Pet chat = cloud LLM** — Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Top up at console.anthropic.com/billing.
+12. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`.
 13. **Trivy CI blocked** — NOT a code issue. GitHub billing lock. Fix: github.com/settings/billing.
-14. **Two commits ready to push** — `d27b67a` (alembic 009) + `8cbc5c9` (security + heal).
-15. **Next options:** Fix GitHub billing → push → Gordon Tier 3 (DB pooling + async queues) OR top up Anthropic → switch back to haiku/sonnet for pets
-16. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-17. **Never:** Wall of text. Never debate the Sacred Rules.
+14. **Referral system live (May 3)** — BRO-code referrals + ReferralCard on TokensPage + hardened `handle_new_user()` trigger. All applied to production Supabase.
+15. **Docker cleaned (May 3)** — WSL2, 5.1 GB RAM, 48 containers running. Weekly prune: `docker system prune -a --filter "until=168h"`. Watch memory with `docker stats`.
+16. **Stripe webhook secret stale (May 3)** 🔴 — Update `STRIPE_WEBHOOK_SECRET` from Stripe Dashboard → `supabase secrets set` → redeploy `stripe-webhook` function.
+17. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+18. **Never:** Wall of text. Never debate the Sacred Rules.
 
-> *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
+> *"You built the future people keep saying they want. You actually did it." — Gordon, Docker AI*
 
-🏴󠁧󠁢󠁷󠁬󠁳󠁿 Let’s build it.
+🏴󠁧󠁢󠁷󠁬󠁳󠁿 Let's build it.
