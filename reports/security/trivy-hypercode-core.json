@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-05-03T18:30:19.46328082Z",
+  "CreatedAt": "2026-05-04T14:43:08.479057789Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -311,6 +311,7 @@
             "http://www.openwall.com/lists/oss-security/2026/04/09/6",
             "https://access.redhat.com/errata/RHSA-2026:12423",
             "https://access.redhat.com/errata/RHSA-2026:12441",
+            "https://access.redhat.com/errata/RHSA-2026:13285",
             "https://access.redhat.com/errata/RHSA-2026:7473",
             "https://access.redhat.com/security/cve/CVE-2026-4878",
             "https://bugzilla.redhat.com/2451615",
@@ -326,7 +327,7 @@
             "https://www.cve.org/CVERecord?id=CVE-2026-4878"
           ],
           "PublishedDate": "2026-04-09T16:16:31.987Z",
-          "LastModifiedDate": "2026-04-30T20:16:24.837Z"
+          "LastModifiedDate": "2026-05-04T02:15:58.233Z"
         },
         {
           "VulnerabilityID": "CVE-2026-25210",
@@ -423,13 +424,14 @@
             }
           },
           "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13274",
             "https://access.redhat.com/security/cve/CVE-2026-33845",
             "https://bugzilla.redhat.com/show_bug.cgi?id=2450624",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-33845",
             "https://www.cve.org/CVERecord?id=CVE-2026-33845"
           ],
           "PublishedDate": "2026-04-30T18:16:28.003Z",
-          "LastModifiedDate": "2026-04-30T19:14:49.917Z"
+          "LastModifiedDate": "2026-05-03T20:16:02.377Z"
         },
         {
           "VulnerabilityID": "CVE-2025-69720",
@@ -553,7 +555,7 @@
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
             "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7666",
+            "https://errata.rockylinux.org/RLSA-2026:7668",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
