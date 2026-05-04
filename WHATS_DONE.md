@@ -1,16 +1,17 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: April 29, 2026** — update this every session.
+> **Updated: May 4, 2026** — update this every session.
 
 ---
 
-## 🏗️ THE 3 REPOS
+## 🏗️ THE 4 REPOS
 
 | Repo | What it is | Where |
 |---|---|---|
 | HyperCode-V2.4 | Main platform — Docker, FastAPI, agents, infra | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
 | HyperAgent-SDK | TypeScript SDK — agent spec, CLI, templates | `H:\HyperAgent-SDK` |
-| Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop | `H:\the hyper vibe coding hub` |
+| Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop | `H:\Hyper-Vibe-Coding-Course` ← **path updated May 4** |
+| BROskiPets-LLM-dNFT | Pet NFT system — LLM + on-chain | `github.com/welshDog/BROskiPets-LLM-dNFT` |
 
 ---
 
@@ -29,6 +30,7 @@
 - **OOM recovery completed April 17** — 34.4GB freed, 24/24 containers restored ✅
 - **Socket-proxy split** — main proxy read-only (coder-agent etc.), new `docker-socket-proxy-healer` with CONTAINERS+POST+PING for healer/throttle-agent only ✅ ← **April 19**
 - **Healer on obs-net** — can now reach Grafana/Prometheus for diagnostics ✅ ← **April 19**
+- **healthcheck IPv6 fix** — `hypercode-core` healthcheck changed from `127.0.0.1` → `localhost` (Uvicorn binds `[::]` IPv6, not IPv4) ✅ ← **May 4**
 
 ### Observability
 - Prometheus 7/7 targets UP — `monitoring/prometheus/prometheus.yml` is the live config ✅
@@ -86,6 +88,8 @@
 - Referral system ✅
 - 7 courses seeded in Supabase (`price_pence`, `is_active`) ✅
 - RLS enabled — `security_invoker = on` on views ✅
+- **`/welcome` page verified LIVE** ✅ ← **May 4** (`localhost:5174/welcome` — Supabase env vars confirmed)
+- **Dev command:** `npm run dev:frontend` (NOT `npm run dev`) ✅ ← **May 4**
 
 ### WebSocket Endpoints (V2.4)
 - `/ws/uplink` — CognitiveUplink (Phase 10J) ✅
@@ -190,6 +194,18 @@
 
 ---
 
+## 📋 MAY 4 — MASTER PLAN REFRESH + /WELCOME LIVE
+
+- `HYPER_ECOSYSTEM_PLAN_MAY4.md` — new 4-repo master plan doc shipped ✅
+- `CLAUDE.md` updated — 4th repo (BROskiPets-LLM-dNFT) added to ecosystem diagram ✅
+- `BROskiPets-LLM-dNFT` confirmed as real 4th repo (live since April 1) ✅
+- `hypercode-core` healthcheck fixed: `127.0.0.1` → `localhost` (IPv6 binding fix) ✅
+- `/welcome` page verified LIVE at `localhost:5174/welcome` ✅
+- Course dev command confirmed: `npm run dev:frontend` (from `H:\Hyper-Vibe-Coding-Course`) ✅
+- Course repo path updated in docs: `H:\Hyper-Vibe-Coding-Course` (old: `H:\the hyper vibe coding hub`) ✅
+
+---
+
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
 These need YOU to do them (can't be automated):
@@ -199,29 +215,18 @@ These need YOU to do them (can't be automated):
 - [ ] Fix frontend hooks: any remaining hardcoded port 8081 → 8000 (Task 4)
 - [ ] `VITE_STRIPE_PAYMENT_LINK_URL` — set in `.env.local` + Vercel env vars when ready
 - [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens to the right account
-
----
-
-## 📋 PLANS WRITTEN / IN PROGRESS
-
-- `HYPERFOCUS_FEATURES_PLAN.md` — 5 neurodivergent features: **ALL ✅ DONE April 25–26**
-- `BROSKI_PETS_INTEGRATION_PLAN.md` — full BROskiPets × HyperCode plan:
-  - Phase 0: Shared infra (1 day)
-  - Phase 1: Mint your first pet via BROski$ (3 days)
-  - Phase 2: Dev actions → pet XP (1 week)
-  - Phase 3: Pet as dev companion, rubber duck mode (2 weeks)
-  - Phase 4: On-chain dev portfolio NFT (2 weeks)
-  - Phase 5: WelshDogEep graduation reward (3 ever mintable)
+- [ ] Fix GitHub Actions billing lock — github.com/settings/billing (Trivy CI blocked)
+- [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml` (tech debt — proper long-term secrets fix)
 
 ---
 
 ## 🚀 NEXT UP (in order)
 
-1. **Blockers B1-B3** — Supabase DB webhook + Edge Function secrets + Stripe E2E re-verify
-2. **HyperAgent-SDK Phase 2** — validator UX improvements, Python + TypeScript starter templates, npm 0.2.0
-3. **Hyper-Vibe-Coding-Course** — move over, review current state, plan next features
-4. **Fix GitHub Actions billing lock** — github.com/settings/billing (Trivy CI blocked until resolved)
-5. **BROskiPets Phase 1** — mint first pet via BROski$ (bridge is live and healthy ✅)
+1. **First student invite** — `/welcome` is green, send it 🎓
+2. **E2E checkout test** — `stripe listen --forward-to http://127.0.0.1:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
+3. **BROskiPets Phase 1** — mint first pet via BROski$ (bridge live ✅)
+4. **HyperAgent-SDK Phase 2** — validator UX, Python + TypeScript starter templates, npm 0.2.0
+5. **Fix GitHub Actions billing lock** — unblocks Trivy CI
 6. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
 
 ---
@@ -249,6 +254,9 @@ sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe s
 make focus:      stops 14 non-essential containers + 25-min bg timer
 make calm:       restores all + awards 75 BROski$ if session >10 mins
 broski-pets:     health → http://localhost:8098/health | MCP gateway → http://mcp-gateway:8820
+Course path:     H:\Hyper-Vibe-Coding-Course (NOT 'the hyper vibe coding hub' — that's the old beta)
+Course dev:      npm run dev:frontend (from H:\Hyper-Vibe-Coding-Course)
+healthcheck fix: hypercode-core uses localhost not 127.0.0.1 (IPv6 binding — May 4)
 ```
 
 ---
@@ -274,4 +282,5 @@ secrets/                    — Docker secrets (.txt files, gitignored)
 docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
 docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
 docs/PHASE2_TOKEN_SYNC.md   — token sync setup + curl test
+HYPER_ECOSYSTEM_PLAN_MAY4.md — 4-repo master plan (May 4) ← NEW
 ```
