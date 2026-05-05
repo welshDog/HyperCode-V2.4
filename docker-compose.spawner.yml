@@ -1,0 +1,51 @@
+# docker-compose.spawner.yml — On-demand agent spawning service
+# Usage: docker compose -f docker-compose.yml -f docker-compose.spawner.yml up -d
+
+services:
+  agent-spawner:
+    build:
+      context: ./services/agent-spawner
+      dockerfile: Dockerfile
+    container_name: agent-spawner
+    image: agent-spawner:latest
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      docker-socket-proxy-build:
+        condition: service_started
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DOCKER_COMPOSE_FILE=docker-compose.yml
+      - COMPOSE_PROJECT_NAME=hypercode-v24
+      - IDLE_SHUTDOWN_MINUTES=5
+      # ON_DEMAND_AGENTS: comma-separated list of agents to spawn on-demand
+      - ON_DEMAND_AGENTS=coder-agent,hyper-architect,tips-tricks-writer,test-agent,agent-x
+    healthcheck:
+      test: ["CMD", "python", "-c", "import redis.asyncio; import asyncio; asyncio.run(redis.asyncio.from_url('redis://redis:6379/0').ping())"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE

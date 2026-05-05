@@ -27,8 +27,8 @@ RUN pip install --upgrade --no-cache-dir \
     "jaraco.functools>=4.1.0" \
     "jaraco.text>=4.0.0"
 
-COPY requirements.txt .
-COPY requirements-ai.txt .
+# Install dependencies FIRST (before code) for better layer caching
+COPY requirements.txt requirements-ai.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && \
     if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install --no-cache-dir -r requirements-ai.txt; fi
 
@@ -74,10 +74,10 @@ RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
+# Copy application code LAST (most frequently changed layer)
 COPY . .
 
-# Remove setuptools vendored wheel metadata/executables flagged by scanners (wheel is installed separately)
+# Remove setuptools vendored wheel metadata/executables flagged by scanners
 RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)"
 
 # Change ownership to non-root user
@@ -90,9 +90,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD sh -c 'curl -f "http://localhost:${PORT:-8000}/health" || exit 1'
 
-# Migrations MUST complete before uvicorn starts:
-#   - `&` (background) races the lifespan: seed_achievements fires before tables exist.
-#   - `|| true` hides migration failures and lets the app boot on a half-built schema.
-# Block on alembic with `&&` so a migration failure exits non-zero (Railway logs are clear),
-# and the FastAPI lifespan (which runs seed_achievements) only starts after `upgrade head` returns 0.
-CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Migrations MUST complete before uvicorn starts (alembic blocks on `&&`)
+CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}"]

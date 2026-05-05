@@ -1,8 +1,8 @@
-# Agent base - Python/FastAPI/docker-cli shared foundation
+# Python build/cache
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
 build/
 develop-eggs/
@@ -17,11 +17,14 @@ sdist/
 var/
 wheels/
 pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 .pytest_cache/
+.coverage
+htmlcov/
 
 # Environment
 .env
@@ -43,22 +46,38 @@ ENV/
 .gitignore
 .gitattributes
 
-# Docs/tests
+# Documentation/tests (not needed at runtime)
 tests/
 docs/
 *.md
-README*
 LICENSE
+README*
 
-# Cache
+# Node (if any frontend deps)
+node_modules/
+npm-debug.log
+
+# Temp/cache
 .cache/
 tmp/
 temp/
 *.tmp
-.coverage
+
+# Large data files (mounted separately)
+*.db
+*.sqlite
+*.sqlite3
+data/
+logs/
 
 # CI/CD
 .github/
 .gitlab-ci.yml
 .travis.yml
 Jenkinsfile
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
