@@ -58,7 +58,7 @@
 - Full Stripe checkout + webhook + BROski$ awards ✅
 - B3 E2E Stripe loop PROVED ✅ April 25
 - `scripts/Test-ShopPurchase.ps1` — E2E test passing ✅ May 3
-- **⚠️ Stripe webhook secret stale** — update needed: `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...`
+- **Stripe webhook secret updated + redeployed** ✅ May 5 🔥
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance + `token_transactions` ledger ✅
@@ -130,7 +130,6 @@
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
 - [ ] Register Supabase DB Webhook: `token_transactions` → INSERT → `sync-tokens-to-v24`
-- [ ] Update stale `STRIPE_WEBHOOK_SECRET` in Supabase secrets → redeploy
 - [ ] Fix GitHub Actions billing lock — github.com/settings/billing
 - [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml`
 - [ ] Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars
@@ -141,15 +140,14 @@
 
 ## 🚀 NEXT UP (in order)
 
-1. **First student invite** — `/welcome` is green 🎓
-2. **Fix Stripe webhook secret** — update stale whsec_ in Supabase
-3. **E2E checkout test** — card `4242 4242 4242 4242`
-4. **BROskiPets Phase 1** — mint first pet via BROski$
-5. **HyperAgent-SDK Phase 2** — npm 0.2.0
-6. **Fix GitHub Actions billing lock**
-7. **Level 13** — Morning Briefing live
-8. **Level 14** — GitHub Webhooks real-time
-9. **Level 15** — HyperAgent AI Daily Briefing
+1. **E2E checkout test** — card `4242 4242 4242 4242` — verify new webhook secret works end-to-end
+2. **First student invite** — `/welcome` is green 🎓
+3. **BROskiPets Phase 1** — mint first pet via BROski$
+4. **HyperAgent-SDK Phase 2** — npm 0.2.0
+5. **Fix GitHub Actions billing lock**
+6. **Level 13** — Morning Briefing live
+7. **Level 14** — GitHub Webhooks real-time
+8. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
@@ -180,6 +178,7 @@ GitHub sync:     python scripts/github_to_obsidian.py (needs GITHUB_PAT env var)
 Obsidian Git:    auto-commits vault every 10 mins to brain repo
 IDE:             Trae IDE (Windows) + Claude Code terminal
 Trae Pro:        expired May 2026 — Claude Code is agent brain this month
+Stripe webhook:  secret updated May 5 ✅ — fresh whsec_ live in Supabase
 ```
 
 ---
