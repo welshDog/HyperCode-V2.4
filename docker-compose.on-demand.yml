@@ -1,0 +1,48 @@
+# docker-compose.on-demand.yml — Override file to mark agents as on-demand (profiles: [on-demand])
+# Usage: docker compose -f docker-compose.yml -f docker-compose.on-demand.yml up -d
+# Then start spawner: docker compose -f docker-compose.yml -f docker-compose.on-demand.yml -f docker-compose.spawner.yml up -d agent-spawner
+
+services:
+  # On-demand agents — only spawn when needed via agent-spawner service
+  coder-agent:
+    profiles: ["agents", "on-demand"]
+
+  hyper-architect:
+    profiles: ["hyper", "on-demand"]
+
+  tips-tricks-writer:
+    profiles: ["agents", "on-demand"]
+
+  test-agent:
+    profiles: ["agents", "on-demand"]
+
+  agent-x:
+    profiles: ["hyper", "on-demand"]
+
+  # Always-on core agents (never on-demand)
+  crew-orchestrator:
+    profiles: ["agents"]
+
+  healer-agent:
+    # No profile change — always on
+    restart: always
+
+  # Infrastructure — always on
+  hypercode-core:
+    # No profile — core service always on
+
+  redis:
+    # No profile — always on
+
+  postgres:
+    # No profile — always on
+
+  hypercode-ollama:
+    # No profile — always on
+
+  # Observability — always on (unless profiled)
+  prometheus:
+    restart: unless-stopped
+
+  grafana:
+    restart: unless-stopped

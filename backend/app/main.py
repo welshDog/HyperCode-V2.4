@@ -41,6 +41,16 @@ except Exception:
     limiter = None
     setup_rate_limiting = None
 from app.cache.multi_tier import cache_response
+
+# Agent spawner for on-demand agent orchestration
+try:
+    from app.spawner import AgentSpawner
+    _agent_spawner = AgentSpawner()
+    _spawner_enabled = True
+except Exception as exc:
+    _agent_spawner = None
+    _spawner_enabled = False
+
 try:
     from app.routes.stripe import router as stripe_router
 except Exception:
@@ -319,7 +329,7 @@ async def _http_metrics_middleware(request: Request, call_next):
                         "time": datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
                         "agent": "hypercode-core",
                         "level": _level,
-                        "msg": f"{request.method} {request.url.path} \u2192 {response.status_code} ({elapsed_ms}ms)",
+                        "msg": f"{request.method} {request.url.path} → {response.status_code} ({elapsed_ms}ms)",
                     })
                     pipe.rpush("hypercode:logs", _entry)
                     pipe.ltrim("hypercode:logs", -1000, -1)
@@ -377,6 +387,90 @@ async def health_check(request: Request):
 async def root():
     return JSONResponse({"message": "Welcome to HyperCode Core API"})
 
+# ==================== AGENT SPAWNER ENDPOINTS ====================
+
+@app.post("/api/v1/agents/{agent_name}/spawn")
+async def spawn_agent(agent_name: str, task_context: str = None):
+    """
+    Trigger on-demand spawning of an agent.
+    
+    Args:
+        agent_name: Name of the agent to spawn (e.g., 'coder-agent', 'hyper-architect')
+        task_context: Optional description of the task (for logging)
+        
+    Returns:
+        {"status": "spawning", "agent": agent_name}
+    """
+    if not _spawner_enabled or _agent_spawner is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Agent spawner unavailable"},
+        )
+    
+    try:
+        success = _agent_spawner.spawn_agent(agent_name, task_context=task_context)
+        if success:
+            logger.info(f"Spawn initiated for {agent_name}: {task_context}")
+            return {"status": "spawning", "agent": agent_name}
+        else:
+            return JSONResponse(
+                status_code=500,
+                content={"error": f"Failed to spawn {agent_name}"},
+            )
+    except Exception as exc:
+        logger.exception(f"Spawn error for {agent_name}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc)},
+        )
+
+
+@app.post("/api/v1/agents/{agent_name}/keep-alive")
+async def keep_alive_agent(agent_name: str):
+    """
+    Update agent's activity timestamp to prevent idle shutdown.
+    Call this during long-running tasks to keep the agent alive.
+    """
+    if not _spawner_enabled or _agent_spawner is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Agent spawner unavailable"},
+        )
+    
+    try:
+        _agent_spawner.keep_alive(agent_name)
+        return {"status": "ok", "agent": agent_name}
+    except Exception as exc:
+        logger.exception(f"Keep-alive error for {agent_name}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc)},
+        )
+
+
+@app.post("/api/v1/agents/{agent_name}/shutdown")
+async def shutdown_agent(agent_name: str):
+    """
+    Manually request shutdown of an on-demand agent.
+    """
+    if not _spawner_enabled or _agent_spawner is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "Agent spawner unavailable"},
+        )
+    
+    try:
+        _agent_spawner.shutdown_agent(agent_name)
+        return {"status": "shutdown_requested", "agent": agent_name}
+    except Exception as exc:
+        logger.exception(f"Shutdown error for {agent_name}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc)},
+        )
+
+# ===================================================================
+
 if _trace is not None:
     tracer = _trace.get_tracer(__name__)
 
@@ -431,4 +525,8 @@ if __name__ == "__main__":
 #   POST /api/stripe/checkout         — Stripe checkout session
 #   GET  /api/stripe/plans            — list Stripe plans
 #   POST /api/stripe/webhook          — Stripe webhook handler
+#
+#   POST /api/v1/agents/{agent_name}/spawn           — trigger agent spawn (on-demand)
+#   POST /api/v1/agents/{agent_name}/keep-alive      — prevent idle shutdown
+#   POST /api/v1/agents/{agent_name}/shutdown        — manual shutdown
 # =============================================================================

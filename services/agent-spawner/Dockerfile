@@ -5,7 +5,7 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Install docker CLI + redis client
+# Install docker CLI + redis + docker SDK
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -22,15 +22,14 @@ RUN apt-get update && \
 # Install Python dependencies
 RUN pip install --no-cache-dir \
     redis==5.0.1 \
-    aioredis==2.0.1
+    aioredis==2.0.1 \
+    docker==7.1.0
 
-# Non-root user
-RUN useradd -r -s /sbin/nologin spawner
+# Run as root (has docker socket access)
+# In production, use docker:dind or proper socket proxy
 COPY spawner.py .
-RUN chown -R spawner:spawner /app
-USER spawner
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import redis.asyncio; asyncio.run(redis.asyncio.from_url('${REDIS_URL:-redis://redis:6379/0}').ping())" || exit 1
+    CMD python -c "import redis.asyncio; import asyncio; asyncio.run(redis.asyncio.from_url('${REDIS_URL:-redis://redis:6379/0}').ping())" || exit 1
 
 CMD ["python", "spawner.py"]
