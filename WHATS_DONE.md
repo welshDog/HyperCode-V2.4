@@ -1,17 +1,18 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 4, 2026** — update this every session.
+> **Updated: May 5, 2026** — update this every session.
 
 ---
 
-## 🏗️ THE 4 REPOS
+## 🏗️ THE 5 REPOS
 
 | Repo | What it is | Where |
 |---|---|---|
 | HyperCode-V2.4 | Main platform — Docker, FastAPI, agents, infra | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
 | HyperAgent-SDK | TypeScript SDK — agent spec, CLI, templates | `H:\HyperAgent-SDK` |
-| Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop | `H:\Hyper-Vibe-Coding-Course` ← **path updated May 4** |
+| Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop | `H:\Hyper-Vibe-Coding-Course` |
 | BROskiPets-LLM-dNFT | Pet NFT system — LLM + on-chain | `github.com/welshDog/BROskiPets-LLM-dNFT` |
+| BROski-Obsidian-Brain | Second Brain vault — Obsidian + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` ← **NEW May 5** |
 
 ---
 
@@ -67,16 +68,13 @@
 - Idempotency: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING` ✅
 - Token grants: starter=200, builder=800, hyper=2500 ✅
 - **B3 E2E Stripe loop PROVED** ✅ ← **April 25**
-  - Stripe listener → `http://127.0.0.1:8000/api/stripe/webhook` (IPv4 — IPv6 issue avoided)
-  - `checkout.session.completed` → writes `public.payments` row + `public.token_transactions` row
-  - `broski_tokens` balance increases by +200 on `starter` plan purchase
-  - Webhook secret refreshed per listener session ✅
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance column ✅
 - `token_transactions` — append-only ledger ✅
 - `award_tokens()` + `spend_tokens()` — SECURITY DEFINER, server-side only ✅
 - `CourseSyncEvent` model + migration 004 — idempotency for cross-repo sync ✅
+- **BROski$ Obsidian Coin Tracker LIVE** ✅ ← **May 5** (Dataview widget in Dashboard, Level 11)
 
 ### Course Frontend (Hyper-Vibe)
 - `/pricing` → Stripe checkout → `/payment-success` → enrolled ✅
@@ -88,7 +86,7 @@
 - Referral system ✅
 - 7 courses seeded in Supabase (`price_pence`, `is_active`) ✅
 - RLS enabled — `security_invoker = on` on views ✅
-- **`/welcome` page verified LIVE** ✅ ← **May 4** (`localhost:5174/welcome` — Supabase env vars confirmed)
+- **`/welcome` page verified LIVE** ✅ ← **May 4**
 - **Dev command:** `npm run dev:frontend` (NOT `npm run dev`) ✅ ← **May 4**
 
 ### WebSocket Endpoints (V2.4)
@@ -106,128 +104,114 @@
 - Redis attached to both `data-net` + `agents-net` ✅ ← **April 24**
 - crew-orchestrator now forwards `X-API-Key` to agent `/execute` calls ✅ ← **April 24**
 - coder-agent ↔ Ollama is end-to-end working with safe fallbacks ✅ ← **April 24**
-- **hyper-split-agent** ✅ ← **April 25** (Feature 2 DONE)
+- **hyper-split-agent** ✅ ← **April 25**
 - **sys.path import fix** ✅ ← **April 26**
 - **hypersplit import bug fixed** ✅ ← **April 26**
 - **broski-pets-bridge LIVE** ✅ ← **April 29**
-  - `pets_enabled:true`, `ollama_connected:true`, `redis_connected:true`, `mcp_connected:true`
-  - MCP gateway port fixed (8099→8820), stale `.env` entry cleaned
-  - Health endpoint: `http://localhost:8098/health`
 
 ### 🏆 Hyperfocus Features — ALL 5 DONE
 - **Feature 1: Micro-Achievement Git Hook** ✅ April 25
-  - `scripts/git-hooks/post-commit` + `scripts/install-git-hooks.ps1`
-  - Awards tokens via `POST /api/v1/economy/award-from-course` (idempotent)
-  - Commit-type awards: `fix:` = 25, `docs:` = 5, fallback = 10
 - **Feature 2: HyperSplit Agent** ✅ April 25
-  - `agents/hyper-split-agent/` — FastAPI on port 8096
-  - `POST /api/v1/hypersplit` — proxied through hypercode-core
 - **Feature 3: Session Snapshot Agent** ✅ April 25
-  - `agents/session-snapshot/` — FastAPI on port 8097
-  - `make snapshot` writes `SESSION.md` (gitignored)
-  - `make up` / `make start` / `make agents` prints SESSION.md automatically
 - **Feature 4: Morning Briefing `/briefing`** ✅ April 26
-  - `agents/broski-bot/src/cogs/briefing.py` — Discord slash command
-  - Pulls: stack health + BROski$ balance + Pulse + Next Up + last git commit
-  - Output: single clean Discord embed
 - **Feature 5: Focus / Panic Mode** ✅ April 26
-  - `scripts/focus-mode.sh` — stops 14 non-essential containers + 25-min bg timer
-  - `scripts/calm-mode.sh` — restores all containers + awards 75 BROski$ (if >10 min)
-  - `make focus` / `make calm` in Makefile ✔️
-  - `.focus_session_start` in `.gitignore` ✔️
-  - Token award via `POST /api/v1/broski/award` (graceful fallback if core offline)
+
+### 🧠 BROski Brain (Second Brain) — NEW May 5
+- **Repo:** `github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne` ✅ ← **May 5**
+- **Vault scaffold** — full PARA structure (00-Inbox, 01-Projects, 02-Areas, 03-Resources, 04-Archive, Hub) ✅
+- **4 project notes pre-seeded** — HyperCode, HyperAgent, BROskiPets, Hyper-Vibe ✅
+- **Dashboard** — Dataview live queries: active projects, BROski$, GitHub issues, recent wins ✅
+- **Templates** — Daily, Project, Task, Morning Briefing ✅
+- **BROski$ Coin Tracker** — Dataview widget + economy table ✅ (Level 11)
+- **Focus/Calm/Hyper CSS modes** — one keypress toggle ✅ (Level 12)
+- **GitHub bridge LIVE** — `scripts/github_to_obsidian.py` syncs 4 repos → vault ✅ (Level 9)
+- **Obsidian Git** — auto-commits vault every 10 mins → GitHub ✅ (Level 10)
+- **Docker container** — `docker/Dockerfile.github-sync` + compose file ready (30th container) ✅
+- **setup.ps1** — one-run bootstrap script ✅
 
 ### Security
-- Trivy scanner (`hyper-shield-scanner`) running as container ✅
-- GitHub Actions CI — Trivy on every push/PR ✅ (currently **blocked** — GitHub account billing lock, fix on github.com/settings/billing)
+- Trivy scanner (`hyper-shield-scanner`) running ✅
+- GitHub Actions CI — Trivy on every push/PR ✅ (currently **blocked** — billing lock)
 - Phase 7–9: Dockerfile hardening, CVE elimination, secrets management ✅
-- Stripe keys rotated + scrubbed from 218 commits with `git filter-repo` ✅ ← **April 16**
+- Stripe keys rotated + scrubbed from 218 commits ✅ ← **April 16**
 - **Socket-proxy least privilege** ✅ ← **April 19**
-- **GoalKeeper dev API key hardened** ✅ ← **April 23**
-- **Trivy noise fix** ✅ ← **April 23**
 
 ### Celery
 - Celery + Redis task queue running ✅
-- `task_acks_late=True` — tasks re-queue on worker crash ✅ ← **April 16**
-- `worker_prefetch_multiplier=1` — no task starvation ✅ ← **April 16**
+- `task_acks_late=True` ✅ ← **April 16**
+- `worker_prefetch_multiplier=1` ✅ ← **April 16**
 - `run_agent_task` with exponential backoff retry ✅ ← **April 16**
 
 ### HyperAgent-SDK
-- `hyper-agent-spec.json` — JSON Schema contract, shared across all 3 repos ✅
+- `hyper-agent-spec.json` — JSON Schema contract ✅
 - CLI: `validate`, `registry`, `studio`, `status`, `agents`, `tokens`, `graduate` ✅
 - Studio at `http://localhost:4040` ✅
 - Published to npm: `@w3lshdog/hyper-agent@0.1.7` ✅
-- GitHub Actions CI — `npm test` on every push + PR ✅ ← **April 16**
+- GitHub Actions CI — `npm test` on every push + PR ✅
 
 ### Phase 2 Token Sync (Course ↔ V2.4)
 - V2.4 endpoint `POST /api/v1/economy/award-from-course` ✅
-- `X-Sync-Secret` header auth (constant-time compare) ✅
+- `X-Sync-Secret` header auth ✅
 - `CourseSyncEvent` idempotency guard ✅
 - Supabase Edge Function `sync-tokens-to-v24` written ✅ ← **April 16**
 
 ---
 
 ## 🧹 APRIL 29 — PHASE 1 TRIAGE SESSION
-
-- Closed stale issue #83 (Phase 10D + 10H — confirmed shipped) ✅
-- Merged Dependabot PR #183 — prometheus-client ≥0.25.0 (crew-orchestrator) ✅
-- Merged Dependabot PR #184 — express-rate-limit 8.3.2→8.4.1 (hyper-mission-system) ✅
-- Merged Dependabot PR #189 — redis 5.10.0→5.12.1 (hyper-mission-system) ✅
-- Merged Dependabot PR #182 — fastapi 0.109→0.136 (crew-orchestrator) ✅
-- Merged Dependabot PR #180 — langchain-openai 1.2→1.2.1 (crew-orchestrator) ✅
-- **0 open Dependabot PRs remaining** — full queue cleared ✅
-- Enabled `BROSKIE_PETS_ENABLED=true` in `.env` ✅
-- Fixed MCP gateway port mismatch: `MCP_GATEWAY_URL` was `8099`, corrected to `8820` ✅
-- Cleaned stale duplicate `.env` entry (old 8099 line removed) ✅
-- broski-pets-bridge all 4 health checks green: `pets_enabled` + `ollama` + `redis` + `mcp` ✅
+- Closed stale issue #83 ✅
+- Merged 5 Dependabot PRs — 0 open remaining ✅
+- broski-pets-bridge all 4 health checks green ✅
 
 ---
 
 ## 🐾 APRIL 29 — PHASE 3 PETS (COSMIC DRAGON)
-
-- Fixed Docker DNS for pets bridge: `PETS_BRIDGE_URL=http://broski-pets-bridge:8098` (never use `127.0.0.1` for inter-container) ✅
-- HyperCode pets proxy now forwards `x-api-key` to `broski-pets-bridge` (leaderboard no longer 401/500) ✅
-- IDOR hardened: `/api/v1/pets/status|chat|powers` requires logged-in user matches `discord_id` (or superuser) ✅
-- Git post-commit hook now also awards pet XP + streak to the bridge (auth header included) ✅
-- Cosmic Dragon minted + leaderboard live via HyperCode: `GET /api/v1/pets/leaderboard` ✅
-- XP confirmed landing: `XP 0→10`, streak day 1 ✅
+- Docker DNS fixed for pets bridge ✅
+- IDOR hardened on pets endpoints ✅
+- Cosmic Dragon minted + leaderboard live ✅
+- XP confirmed: 0→10, streak day 1 ✅
 
 ---
 
-## 📋 MAY 4 — MASTER PLAN REFRESH + /WELCOME LIVE
+## 📋 MAY 4 — MASTER PLAN REFRESH
+- `HYPER_ECOSYSTEM_PLAN_MAY4.md` shipped ✅
+- `CLAUDE.md` updated — 4th repo added ✅
+- `/welcome` page LIVE ✅
 
-- `HYPER_ECOSYSTEM_PLAN_MAY4.md` — new 4-repo master plan doc shipped ✅
-- `CLAUDE.md` updated — 4th repo (BROskiPets-LLM-dNFT) added to ecosystem diagram ✅
-- `BROskiPets-LLM-dNFT` confirmed as real 4th repo (live since April 1) ✅
-- `hypercode-core` healthcheck fixed: `127.0.0.1` → `localhost` (IPv6 binding fix) ✅
-- `/welcome` page verified LIVE at `localhost:5174/welcome` ✅
-- Course dev command confirmed: `npm run dev:frontend` (from `H:\Hyper-Vibe-Coding-Course`) ✅
-- Course repo path updated in docs: `H:\Hyper-Vibe-Coding-Course` (old: `H:\the hyper vibe coding hub`) ✅
+---
+
+## 🧠 MAY 5 — BROSKI BRAIN LAUNCH
+- BROski-Obsidian-Brain repo created + full scaffold pushed ✅
+- GitHub bridge script live — 4 repos syncing ✅
+- Obsidian Git — vault auto-backup every 10 mins ✅
+- BROski$ Coin Tracker — Dataview widget live ✅
+- Focus/Calm/Hyper CSS modes — all 3 tested ✅
+- **Levels 9, 10, 11, 12 ALL UNLOCKED** 🎮 ✅
 
 ---
 
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
-These need YOU to do them (can't be automated):
-
 - [ ] Register Supabase DB Webhook: `token_transactions` → INSERT → `sync-tokens-to-v24`
 - [ ] Set `COURSE_WEBHOOK_SECRET` in both V2.4 `.env` AND Supabase Edge Function env vars
-- [ ] Fix frontend hooks: any remaining hardcoded port 8081 → 8000 (Task 4)
-- [ ] `VITE_STRIPE_PAYMENT_LINK_URL` — set in `.env.local` + Vercel env vars when ready
-- [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens to the right account
-- [ ] Fix GitHub Actions billing lock — github.com/settings/billing (Trivy CI blocked)
-- [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml` (tech debt — proper long-term secrets fix)
+- [ ] Fix frontend hooks: any remaining hardcoded port 8081 → 8000
+- [ ] `VITE_STRIPE_PAYMENT_LINK_URL` — set in `.env.local` + Vercel env vars
+- [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens correctly
+- [ ] Fix GitHub Actions billing lock — github.com/settings/billing
+- [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml`
+- [ ] Add `GITHUB_PAT` to HyperCode-V2.4 `.env` + spin up `github-sync` Docker container (Level 9 persistent)
 
 ---
 
 ## 🚀 NEXT UP (in order)
 
-1. **First student invite** — `/welcome` is green, send it 🎓
-2. **E2E checkout test** — `stripe listen --forward-to http://127.0.0.1:8000/api/stripe/webhook` + card `4242 4242 4242 4242`
-3. **BROskiPets Phase 1** — mint first pet via BROski$ (bridge live ✅)
-4. **HyperAgent-SDK Phase 2** — validator UX, Python + TypeScript starter templates, npm 0.2.0
-5. **Fix GitHub Actions billing lock** — unblocks Trivy CI
-6. **MERGE_ROADMAP Phase 3** — Agent sandbox access shop item
+1. **First student invite** — `/welcome` is green 🎓
+2. **E2E checkout test** — card `4242 4242 4242 4242`
+3. **BROskiPets Phase 1** — mint first pet via BROski$
+4. **HyperAgent-SDK Phase 2** — npm 0.2.0
+5. **Fix GitHub Actions billing lock**
+6. **Level 13** — Morning Briefing live
+7. **Level 14** — GitHub Webhooks real-time
+8. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
@@ -235,28 +219,27 @@ These need YOU to do them (can't be automated):
 
 ```
 Start command:   docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-AI backend:      docker compose --profile ai up -d  (API at http://127.0.0.1:8002)
+AI backend:      docker compose --profile ai up -d
 Discord bot:     docker compose --profile discord up -d broski-bot
-Tests:           pytest backend/tests -q  (223 passed, 6 skipped — skips are expected)
-Agent tests:     crew-orchestrator: 15p | session-snapshot: 3p | hyperhealth: 12p
-Prometheus live: monitoring/prometheus/prometheus.yml  (NOT root prometheus.yml)
-Redis DB split:  DB 1 = cache  |  DB 2 = rate limits  — never mix
-Stripe webhook:  ALWAYS rate-limit exempt — never add limiter to /api/stripe/webhook
-HyperSplit:      POST /api/v1/hypersplit (auth) → proxies to hyper-split-agent:8096
-Alembic:         if missing alembic_version table → run 'alembic stamp 008' first, then upgrade head
+Tests:           pytest backend/tests -q  (223 passed, 6 skipped)
+Prometheus live: monitoring/prometheus/prometheus.yml
+Redis DB split:  DB 1 = cache  |  DB 2 = rate limits
+Stripe webhook:  ALWAYS rate-limit exempt
+Alembic:         if missing alembic_version → 'alembic stamp 008' then upgrade head
 Supabase table:  courses uses price_pence (int) + is_active (bool)
 Docker context:  must be 'desktop-linux' on Windows
-Memory limits:   ALL services capped in docker-compose.yml — agent-x=1G, core=1.5G, postgres=2G
-Pre-build check: make build → auto-runs scripts/pre-build-check.sh (aborts if <15GB free)
-OOM exit codes:  137=OOM killed | 128=SIGTERM under stress
-sys.path fix:    session-snapshot, hyperhealth, crew-orchestrator all use safe sibling-import bootstrap
-/briefing:       pulls health + BROski$ + pulse + WHATS_DONE next + last git commit → Discord embed
-make focus:      stops 14 non-essential containers + 25-min bg timer
-make calm:       restores all + awards 75 BROski$ if session >10 mins
-broski-pets:     health → http://localhost:8098/health | MCP gateway → http://mcp-gateway:8820
-Course path:     H:\Hyper-Vibe-Coding-Course (NOT 'the hyper vibe coding hub' — that's the old beta)
-Course dev:      npm run dev:frontend (from H:\Hyper-Vibe-Coding-Course)
-healthcheck fix: hypercode-core uses localhost not 127.0.0.1 (IPv6 binding — May 4)
+Memory limits:   ALL services capped — agent-x=1G, core=1.5G, postgres=2G
+Pre-build check: make build → auto-runs pre-build-check.sh
+make focus:      stops 14 non-essential containers + 25-min timer
+make calm:       restores all + awards 75 BROski$
+broski-pets:     health → http://localhost:8098/health
+Course path:     H:\Hyper-Vibe-Coding-Course
+Course dev:      npm run dev:frontend
+healthcheck fix: hypercode-core uses localhost not 127.0.0.1
+Brain repo:      H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
+Brain vault:     HYPERFOCUS_ZONE/ folder inside brain repo
+GitHub sync:     python scripts/github_to_obsidian.py (needs GITHUB_PAT env var)
+Obsidian Git:    auto-commits vault every 10 mins to brain repo
 ```
 
 ---
@@ -264,23 +247,14 @@ healthcheck fix: hypercode-core uses localhost not 127.0.0.1 (IPv6 binding — M
 ## 📁 WHERE THINGS LIVE
 
 ```
-docker-compose.yml          — main stack (all 65 services)
-docker-compose.secrets.yml  — secrets injection (always use alongside main)
-backend/app/main.py         — FastAPI core (routes, middleware, startup)
-backend/app/core/config.py  — all settings
-monitoring/prometheus/      — live Prometheus config
-agents/                     — all agent code
-agents/hyper-split-agent/   — HyperSplit Agent (Feature 2)
-agents/session-snapshot/    — Session Snapshot Agent (Feature 3)
-agents/hyperhealth/         — HyperHealth API + worker
-agents/crew-orchestrator/   — Central task orchestrator
-agents/broski-bot/          — Discord bot (Feature 4: /briefing)
-agents/broski-pets-bridge/  — BROski Pets bridge (port 8098) ← April 29
-scripts/focus-mode.sh       — Focus Mode (Feature 5)
-scripts/calm-mode.sh        — Calm Mode (Feature 5)
-secrets/                    — Docker secrets (.txt files, gitignored)
-docs/GORDON_TIER3.md        — Tier 3 changes + verify commands
-docs/DASHBOARD_WEBSOCKETS.md — all 4 WS endpoints + JS examples
-docs/PHASE2_TOKEN_SYNC.md   — token sync setup + curl test
-HYPER_ECOSYSTEM_PLAN_MAY4.md — 4-repo master plan (May 4) ← NEW
+docker-compose.yml                    — main stack
+docker-compose.secrets.yml            — secrets injection
+backend/app/main.py                   — FastAPI core
+backend/app/core/config.py            — all settings
+monitoring/prometheus/                — live Prometheus config
+agents/                               — all agent code
+secrets/                              — Docker secrets (.txt files, gitignored)
+HYPER_ECOSYSTEM_PLAN_MAY4.md         — 4-repo master plan
+BROski-Obsidian-Brain/scripts/        — github_to_obsidian.py + setup.ps1
+BROski-Obsidian-Brain/docker/         — Dockerfile.github-sync + compose
 ```
