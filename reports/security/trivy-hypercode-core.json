@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-05-04T14:43:08.479057789Z",
+  "CreatedAt": "2026-05-05T13:41:58.07498162Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -8,32 +8,32 @@
       "Family": "debian",
       "Name": "13.4"
     },
-    "ImageID": "sha256:5e3b4d4f7550ef0bae2314ec830ac450bab677e2c3c9ccdac509ba5a48bdb7e1",
+    "ImageID": "sha256:7cc3a34ba4382b42470c70d6b04e4edee38e347b3f794a97c1db9e4307ee7630",
     "DiffIDs": [
       "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
       "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
       "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
       "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
-      "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-      "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
-      "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
-      "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
-      "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
-      "sha256:2bb7bce8d0a4f3f7c76d5b6632ab6e61c911f4688c3975de172055482183b5b4",
-      "sha256:b864102985d54f0348bf4908e0976db4f5b64d5d2f3baf71b7600507fc0a80d1",
-      "sha256:52b2d10eaa3ebcfdd8525b04c59ba34670d6ec3fce3b9c5a7246f0862c5678c1",
-      "sha256:fbc91744ed216e3640bcdb995eb40b9c8eb8b71520adc1b05b1d6624595df45a",
-      "sha256:f544cae53dd2f844338904c2d8b398a96c835fb49d4db903d05226848cb68b88"
+      "sha256:9976492e84b333d7fa789ebb3be9b62c82d1533e8c31c8d054743142800d28a6",
+      "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc",
+      "sha256:ed87dc51ccfa470476e2d06090a941d50ccd91d60c2fb8c8c84b55bd299f6a8a",
+      "sha256:783800c113f3ae5d0cabb6c77e732eb81174e751e2c49b500cbe26b61b814575",
+      "sha256:a514df29f02c488cb092f2e4ed7ad54bd3ca954e529bf1d534ac635021e4b5bc",
+      "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69",
+      "sha256:d4afc1204b59f8cb32fa6e97a8f62197c21dfe89ff82566849ad6111e0069d6b",
+      "sha256:3bd4bac07620227dcee3dfcf40515dc8cf78db7534e2ff9887e457ab74c3416f",
+      "sha256:309a7e5188eac27f0bf80a09a094dedea3bc83818f74588d68c68f3af7bff4cf",
+      "sha256:c37a3e7cdb382c547a6bcc1a48f6fd64398a94456f52d240f570ff01b49335c3"
     ],
     "RepoTags": [
       "hypercode-core:latest"
     ],
     "RepoDigests": [
-      "hypercode-core@sha256:5e3b4d4f7550ef0bae2314ec830ac450bab677e2c3c9ccdac509ba5a48bdb7e1"
+      "hypercode-core@sha256:7cc3a34ba4382b42470c70d6b04e4edee38e347b3f794a97c1db9e4307ee7630"
     ],
     "ImageConfig": {
       "architecture": "amd64",
-      "created": "2026-05-01T11:56:14.515788929Z",
+      "created": "2026-05-05T08:33:42.727651697Z",
       "history": [
         {
           "created": "2026-04-21T00:00:00Z",
@@ -92,105 +92,105 @@
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T17:16:13Z",
+          "created": "2026-05-05T07:49:55Z",
           "created_by": "WORKDIR /app",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV PYTHONDONTWRITEBYTECODE=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV PYTHONUNBUFFERED=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV HF_HOME=/app/cache/huggingface",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ARG INSTALL_AI_DEPS=false",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c apt-get update --allow-releaseinfo-change \u0026\u0026     apt-get install -y --no-install-recommends         libpq5         curl         ca-certificates         libexpat1         openssl \u0026\u0026     apt-get clean \u0026\u0026     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:11Z",
+          "created": "2026-05-05T07:50:41Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c pip install --upgrade --no-cache-dir     \"pip==26.0.1\"     \"setuptools\u003e=80.0.0\"     \"wheel==0.46.2\"     \"jaraco.context\u003e=6.0.0\"     \"jaraco.functools\u003e=4.1.0\"     \"jaraco.text\u003e=4.0.0\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:12Z",
+          "created": "2026-05-05T07:50:43Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c addgroup --system appuser \u0026\u0026 adduser --system --group appuser # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:13Z",
+          "created": "2026-05-05T07:50:44Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c mkdir -p /app/cache/huggingface /app/cache/sentence_transformers \u0026\u0026     chown -R appuser:appuser /app/cache # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:06:32Z",
+          "created": "2026-05-05T07:59:36Z",
           "created_by": "COPY /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:06:36Z",
+          "created": "2026-05-05T07:59:39Z",
           "created_by": "COPY /usr/local/bin /usr/local/bin # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:56:01Z",
+          "created": "2026-05-05T08:33:30Z",
           "created_by": "COPY . . # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:56:05Z",
+          "created": "2026-05-05T08:33:34Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c python -c \"import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:56:14Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c chown -R appuser:appuser /app # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-05-01T11:56:14Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "USER appuser",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-05-01T11:56:14Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "EXPOSE [8000/tcp]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-05-01T11:56:14Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"sh -c 'curl -f \\\"http://localhost:${PORT:-8000}/health\\\" || exit 1'\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-05-01T11:56:14Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "CMD [\"sh\" \"-c\" \"alembic upgrade head \u0026\u0026 exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}\"]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
@@ -204,16 +204,16 @@
           "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
           "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
           "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
-          "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-          "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
-          "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
-          "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
-          "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
-          "sha256:2bb7bce8d0a4f3f7c76d5b6632ab6e61c911f4688c3975de172055482183b5b4",
-          "sha256:b864102985d54f0348bf4908e0976db4f5b64d5d2f3baf71b7600507fc0a80d1",
-          "sha256:52b2d10eaa3ebcfdd8525b04c59ba34670d6ec3fce3b9c5a7246f0862c5678c1",
-          "sha256:fbc91744ed216e3640bcdb995eb40b9c8eb8b71520adc1b05b1d6624595df45a",
-          "sha256:f544cae53dd2f844338904c2d8b398a96c835fb49d4db903d05226848cb68b88"
+          "sha256:9976492e84b333d7fa789ebb3be9b62c82d1533e8c31c8d054743142800d28a6",
+          "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc",
+          "sha256:ed87dc51ccfa470476e2d06090a941d50ccd91d60c2fb8c8c84b55bd299f6a8a",
+          "sha256:783800c113f3ae5d0cabb6c77e732eb81174e751e2c49b500cbe26b61b814575",
+          "sha256:a514df29f02c488cb092f2e4ed7ad54bd3ca954e529bf1d534ac635021e4b5bc",
+          "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69",
+          "sha256:d4afc1204b59f8cb32fa6e97a8f62197c21dfe89ff82566849ad6111e0069d6b",
+          "sha256:3bd4bac07620227dcee3dfcf40515dc8cf78db7534e2ff9887e457ab74c3416f",
+          "sha256:309a7e5188eac27f0bf80a09a094dedea3bc83818f74588d68c68f3af7bff4cf",
+          "sha256:c37a3e7cdb382c547a6bcc1a48f6fd64398a94456f52d240f570ff01b49335c3"
         ]
       },
       "config": {
@@ -340,8 +340,8 @@
           "InstalledVersion": "2.7.1-2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
-            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
           },
           "SeveritySource": "nvd",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25210",
@@ -399,9 +399,10 @@
           "InstalledVersion": "3.8.9-3+deb13u2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
-            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
           },
+          "SeveritySource": "nvd",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-33845",
           "DataSource": {
             "ID": "debian",
@@ -410,14 +411,19 @@
           },
           "Title": "gnutls: GnuTLS: Denial of Service via DTLS zero-length fragment",
           "Description": "A flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. This issue is remotely exploitable and may cause information disclosure or denial of service.",
-          "Severity": "HIGH",
+          "Severity": "CRITICAL",
           "CweIDs": [
             "CWE-191"
           ],
           "VendorSeverity": {
+            "nvd": 4,
             "redhat": 3
           },
           "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H",
+              "V3Score": 9.1
+            },
             "redhat": {
               "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
               "V3Score": 7.5
@@ -431,7 +437,52 @@
             "https://www.cve.org/CVERecord?id=CVE-2026-33845"
           ],
           "PublishedDate": "2026-04-30T18:16:28.003Z",
-          "LastModifiedDate": "2026-05-03T20:16:02.377Z"
+          "LastModifiedDate": "2026-05-05T03:03:19.247Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-33846",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-33846",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: GnuTLS: Denial of Service via heap buffer overflow in DTLS handshake fragment reassembly",
+          "Description": "A heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. The issue arises in merge_handshake_packet() where incoming handshake fragments are matched and merged based solely on handshake type, without validating that the message_length field remains consistent across all fragments of the same logical message. An attacker can exploit this by sending crafted DTLS fragments with conflicting message_length values, causing the implementation to allocate a buffer based on a smaller initial fragment and subsequently write beyond its bounds using larger, inconsistent fragments. Because the merge operation does not enforce proper bounds checking against the allocated buffer size, this results in an out-of-bounds write on the heap. The vulnerability is remotely exploitable without authentication via the DTLS handshake path and can lead to application crashes or potential memory corruption.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-130"
+          ],
+          "VendorSeverity": {
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13274",
+            "https://access.redhat.com/security/cve/CVE-2026-33846",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2450625",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-33846",
+            "https://www.cve.org/CVERecord?id=CVE-2026-33846"
+          ],
+          "PublishedDate": "2026-05-04T10:15:59.69Z",
+          "LastModifiedDate": "2026-05-04T15:22:52.85Z"
         },
         {
           "VulnerabilityID": "CVE-2025-69720",
@@ -513,8 +564,8 @@
           "InstalledVersion": "1.64.0-1.1",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
-            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
           },
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-27135",
           "DataSource": {
@@ -555,7 +606,7 @@
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
             "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7668",
+            "https://errata.rockylinux.org/RLSA-2026:7666",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
@@ -916,8 +967,8 @@
           "InstalledVersion": "0.19.2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:a1a5e09381fb2f77c694a406cafbfdef662d6984fe8a89e79341a4800fb772c1",
-            "DiffID": "sha256:2bb7bce8d0a4f3f7c76d5b6632ab6e61c911f4688c3975de172055482183b5b4"
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
           },
           "SeveritySource": "ghsa",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-23342",
