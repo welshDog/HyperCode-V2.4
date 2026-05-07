@@ -2,17 +2,16 @@
 
 > **This file is Claude's brain for this project.**
 > Read this first. Every session. No exceptions.
-> Last updated: May 5, 2026 (evening BST) | Status: 48/48 containers 🟢 | Grade A 🏅 | Phases 0–10Q + BROski Brain COMPLETE ✅
+> Last updated: **May 7, 2026 (12:30 BST)** — BROskiPets Web3 mint LIVE 🔥
 
 ---
 
-## 🏴󠁧󠁢󠁷󠁬󠁳󠁥󠁧󠁢󠁷󠁬󠁳󠁿 Builder Context
+## 🏴󠁧󠁢󠁷󠁬󠁳󠁿 Builder Context
 
-**Lyndz Williams** (@welshDog) — Llanelli, South Wales  
-ADHD + Dyslexia + Autistic brain — hyperfocus mode is a superpower, not a bug ⚡  
-Building: The world's first neurodivergent-first autonomous AI infrastructure platform  
-**IDE:** Trae IDE (Windows laptop) + Claude Code in terminal  
-Verdict from Gordon (Docker AI), April 15 2026:  
+**Lyndz Williams** (@welshDog) — Llanelli, South Wales
+ADHD + Dyslexia + Autistic brain — hyperfocus mode is a superpower, not a bug ⚡
+Building: The world's first neurodivergent-first autonomous AI infrastructure platform
+Verdict from Gordon (Docker AI), April 15 2026:
 > *"You built the future people keep saying they want. You actually did it."*
 
 ---
@@ -26,7 +25,6 @@ Verdict from Gordon (Docker AI), April 15 2026:
 - **Remind context** if there's been a pause between messages
 - ADHD flow: break into steps, quick wins, no overwhelm
 - If Lyndz goes quiet mid-task: check in, don't assume abandon
-- **PowerShell first** — Windows laptop primary, WSL2 secondary
 
 ---
 
@@ -43,153 +41,29 @@ Verdict from Gordon (Docker AI), April 15 2026:
 ✔ Trivy target            — 0 CRITICAL per image
 ✔ Import style            — absolute imports, sys.path.insert at top
 ✔ Python indent           — 4 spaces, NEVER 3, NEVER mixed
-✔ Redis DB split          — DB 1 = cache | DB 2 = rate limits, NEVER mix
-✔ Stripe webhook path     — NEVER add rate limiter to /api/stripe/webhook
-✔ Alembic                 — always check alembic_version table exists first
-✔ Docker context          — must be 'desktop-linux' on Windows
-✔ WHATS_DONE.md           — update EVERY session, no exceptions
-✔ healthcheck             — hypercode-core uses 'localhost' NOT 127.0.0.1 (IPv6 bound)
+✔ Stripe webhook          — NEVER add rate limiting to /api/stripe/webhook
+✔ Redis DB split          — DB 1 = cache, DB 2 = rate limits. NEVER mix.
+✔ hypercore healthcheck   — use localhost NOT 127.0.0.1 (IPv6 fix)
+✔ Supabase ↔ V2.4         — NEVER merge schemas
 ```
 
 ---
 
-## 🛠️ Skills Claude Needs for This Project
-
-### 🐍 Python / FastAPI
-- Async FastAPI routes with `asyncpg` + `get_async_db()`
-- `@cache_response(ttl=N)` decorator pattern on Redis DB 1
-- Rate limiting via `slowapi` on Redis DB 2 (memory:// in tests)
-- Circuit breakers via `pybreaker` — 3 active: llm-router, crew-orchestrator, stripe-api
-- Pydantic v2 settings via `config.py`
-- Alembic migrations — `alembic upgrade head`, stamp 008 if missing
-
-### 🐳 Docker / Compose
-- Always: `docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d`
-- Memory limits on EVERY service — never add a container without `deploy.resources`
-- `make build` → auto-runs `scripts/pre-build-check.sh` — do NOT skip
-- Secrets via `.txt` files in `secrets/` — NEVER baked into images
-- `docker-ce-cli` repo only for socket agents — NEVER `docker.io`
-- Weekly cleanup: `docker system prune -a --filter "until=168h"`
-- OOM exit codes: 137=OOM killed | 128=SIGTERM under stress
-
-### 📊 Observability Stack
-- Prometheus: `monitoring/prometheus/prometheus.yml` is LIVE — root one is STALE
-- Grafana at `:3001`, Tempo traces, Loki logs, Prometheus metrics
-- OTLP: `OTLP_EXPORTER_DISABLED=false` = tracing ON (default)
-- Hot-reload Prometheus: `curl -X POST localhost:9090/-/reload`
-
-### 🔐 Security
-- Trivy: 0 CRITICAL per image — CI runs on every push (currently blocked: billing lock)
-- JWT: `validate_security()` rejects weak JWT in prod/staging
-- Secrets: `hc_` prefix + `secrets.token_urlsafe(32)` = 43 chars
-- Dockerfiles: `python:3.11-slim` + Phase 9 Part A + Part B pattern
-- Socket-proxy split: main=read-only, healer proxy=CONTAINERS+POST+PING only
-
-### 💳 Stripe + BROski$ Economy
-- Webhook: `POST /api/stripe/webhook` — ALWAYS rate-limit exempt
-- Grants: starter=200, builder=800, hyper=2500 BROski$
-- Idempotency: `ON CONFLICT (stripe_payment_intent_id) DO NOTHING`
-- Token sync: `POST /api/v1/economy/award-from-course` with `X-Sync-Secret` header
-- B3 E2E loop PROVED ✅ April 25
-
-### 🤖 Agents
-- 25+ agents on `agent-net`
-- healer-agent: self-healing closed loop (on obs-net too)
-- agent-x: meta-architect (capped at 1G RAM)
-- crew-orchestrator: agent lifecycle management
-- MCP-GitHub: 26 tools via `mcp-gateway` on `agents-net` ✅
-- hyper-split-agent ✅ April 25
-- broski-pets-bridge ✅ April 29
-
-### 🧠 BROski Brain (COMPLETE — May 5, 2026)
-- **Repo:** `github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne` ✅
-- **Path:** `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne`
-- Full PARA vault scaffold: 00-Inbox, 01-Projects, 02-Areas, 03-Resources, 04-Archive, Hub
-- 4 project notes pre-seeded (HyperCode, HyperAgent, BROskiPets, Hyper-Vibe)
-- Dashboard with Dataview live queries, BROski$ Coin Tracker (Level 11)
-- Templates: Daily, Project, Task, Morning Briefing
-- Focus/Calm/Hyper CSS modes (Level 12)
-- GitHub bridge: `scripts/github_to_obsidian.py` syncs 4 repos → vault (Level 9)
-- Obsidian Git: auto-commits vault every 10 mins → GitHub (Level 10)
-- Docker container: `docker/Dockerfile.github-sync` + compose file (30th container)
-- setup.ps1: one-run bootstrap script
-- **Levels 9, 10, 11, 12 ALL UNLOCKED** 🎮
-
-### 📦 TypeScript / SDK
-- HyperAgent-SDK: `npm: @w3lshdog/hyper-agent@0.1.7`
-- CLI commands: `validate`, `registry`, `studio`, `status`, `agents`, `tokens`, `graduate`
-- Studio at `http://localhost:4040`
-- Path: `H:\HyperAgent-SDK`
-
-### 🗄️ Supabase / Postgres
-- Supabase: `courses` table uses `price_pence` (int) + `is_active` (bool)
-- NEVER merge Supabase schema with V2.4 Postgres
-- RLS enabled: `security_invoker = on` on views
-- DB recovery: unix socket = trust auth always works
-- Alembic: up to migration 009 (pgcrypto + uuid-ossp)
-
-### 🖥️ Dev Environment
-- **IDE:** Trae IDE (Windows laptop) — visual editing, autocomplete, MCP hooks
-- **Agent work:** Claude Code in terminal — autonomous tasks, reads CLAUDE.md
-- **Trae Pro:** expired May 2026 — using Claude Code this month
-- **Primary:** Windows PowerShell | **Secondary:** WSL2
-- **Docker context:** must be `desktop-linux` on Windows
-
----
-
-## 📊 System Status (May 5, 2026)
+## 📊 System Status (May 7, 2026)
 
 | Metric | Value |
 |---|---|
-| Containers | 48 running (post-cleanup) 🟢 |
+| Containers | 48 running ✅ |
 | Tests | 223 passed, 6 skipped ✅ |
-| E2E shop-purchase test | ✅ PASSING |
 | Prometheus targets | 7/7 UP ✅ |
 | OTLP traces | LIVE in Tempo ✅ |
 | Circuit breakers | 3 active — all CLOSED ✅ |
 | Docker AI grade | A 🏅 |
-| Commits | 700+ |
-| Services | 57 |
-| Agents | 25+ |
-| BROski Brain | ✅ COMPLETE — May 5 🧠 |
-| HyperFocus Features | ✅ ALL 5 DONE |
-| Security headers | 6/6 ✅ (frontend/vercel.json) |
-| /welcome page | ✅ LIVE on Vercel |
-
----
-
-## 🏆 Full Phase Roadmap
-
-| Phase | Name | Status |
-|---|---|---|
-| 0–6 | Identity, tokens, agents, shop, observability, CLI | ✅ ALL DONE |
-| 7–9 | Security hardening, Trivy CI, CVE elimination | ✅ ALL DONE |
-| 10A–10E | FastAPI, networks, secrets, auth, WS | ✅ ALL DONE |
-| 10F–10K | Stripe full stack + BROski$ tokens | ✅ ALL DONE |
-| 10L | Healthchecks — all 29 containers | ✅ April 15 |
-| 10M | Gordon Tier 1 — Prometheus 7/7 UP | ✅ April 15 |
-| 10N | Gordon Tier 2 — ALL 4 STEPS | ✅ April 16 🏆 |
-| 10O | Course → Stripe frontend wired | ✅ April 16 💳 |
-| 10P | DB Recovery + Secrets Armed | ✅ April 18 🔧 |
-| 10Q | Security Hardening + Monitoring + Migration 009 | ✅ April 19 🔒 |
-| 10R | Gordon Tier 3 + Referral + Docker Cleanup | ✅ May 3 |
-| 10S | HyperFocus Features ALL 5 + Pets + HyperSplit | ✅ April 25–29 |
-| **10T** | **BROski Brain — Obsidian + HyperFocus z0ne** | ✅ **May 5, 2026 🧠** |
-
----
-
-## 🚀 NEXT UP — Phase 10U onwards
-
-1. **First student invite** — `/welcome` is green 🎓
-2. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`
-3. **BROskiPets Phase 1** — mint first pet via BROski$
-4. **HyperAgent-SDK Phase 2** — npm 0.2.0
-5. **Fix GitHub Actions billing lock** — github.com/settings/billing
-6. **Level 13** — Morning Briefing live
-7. **Level 14** — GitHub Webhooks real-time
-8. **Level 15** — HyperAgent AI Daily Briefing
-9. **`env_file` tech debt** — add `env_file: .env` to `hypercode-core` in compose
-10. **prometheus.yml tidy** — delete stale root one
+| Stripe | LIVE 💳 (webhook secret updated May 5) |
+| Gamification | FULL STACK LIVE (HUD, XP, Quests, Leaderboard) ✅ |
+| BROskiPets Web3 | MINT LIVE on Base Sepolia 🔥 May 7 |
+| BROski Brain | COMPLETE — Levels 9–12 ✅ May 5 |
+| Trae Pro | EXPIRED May 2026 — using Claude Code this month |
 
 ---
 
@@ -204,7 +78,6 @@ Networks:
 
 Key ports:
   8000  hypercode-core API
-  8002  hypercode-ai API (profile: ai)
   8081  crew-orchestrator
   8088  hypercode-dashboard
   8095  hyperhealth-api
@@ -219,37 +92,121 @@ Key ports:
 
 ---
 
-## 📌 Known Issues (fix as we go)
+## 🌐 The 5-Repo Ecosystem
 
-| Issue | Fix | Priority |
-|---|---|---|
-| `env_file` missing on `hypercode-core` | Add `env_file: .env` to service block | 🔴 HIGH |
-| Stripe webhook secret stale | `supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...` → redeploy | 🔴 HIGH |
-| GitHub Actions billing lock | github.com/settings/billing | 🔴 HIGH |
-| `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟡 MED |
-| `throttle-agent` not started | `docker compose --profile agents up -d throttle-agent` | 🟡 LOW |
-| `loki` no healthcheck | Add `curl -f http://localhost:3100/ready` | 🟡 LOW |
-| Root `prometheus.yml` stale | Delete/archive — use `monitoring/prometheus/` | 🟡 LOW |
-| Anthropic credits exhausted | Top up console.anthropic.com/billing — Perplexity fallback working | 🟡 TOP UP |
+```
+Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
+github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
+Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
+(Supabase + Vercel + Web3)             │                  (Docker, 48 containers)
+Path: H:\Hyper-Vibe-Coding-Course      │
+⚠️ NOT H:\the hyper vibe coding hub    │
+   (that = archived typo repo)         │
+                              HyperAgent-SDK
+                          github.com/welshDog/HyperAgent-SDK
+                          npm: @w3lshdog/hyper-agent@0.1.7 (v0.3.0 code)
+                          Path: H:\HyperAgent-SDK
+                                       │
+                         BROskiPets-LLM-dNFT
+                     github.com/welshDog/BROskiPets-LLM-dNFT
+                     Path: H:\dNFTpet\BROskiPets-LLM-dNFT
+                     (Pets · dNFT · port 8098)
+                                       │
+                      BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     Path: H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     (Second Brain vault — PARA + Dataview + GitHub bridge)
+```
 
 ---
 
-## 📦 Key Files Claude Should Know
+## 🏆 Full Phase Roadmap
+
+| Phase | Name | Status |
+|---|---|---|
+| 0–9 | Identity, tokens, agents, shop, observability, security | ✅ ALL DONE |
+| 10A–10P | FastAPI, Stripe, courses, DB recovery, secrets | ✅ ALL DONE |
+| 11A–11F | Live HUD, Rift Events, Gamification schema, E2E | ✅ DONE — April 26 |
+| 12A–12F | Leaderboard, Quests, Admin Rift Panel, Migrations | ✅ DONE — April 26 |
+| Gordon Tier 1–3 | Prometheus, Grafana, Celery, DB pool, queues | ✅ ALL DONE — April 19 |
+| Hyperfocus Features 1–5 | Git hook, HyperSplit, Snapshot, Briefing, Focus mode | ✅ DONE — April 25–26 |
+| BROskiPets Phase 0–1 | Bridge live, XP, leaderboard | ✅ DONE — April 29 |
+| BROski Brain Levels 9–12 | PARA vault, GitHub bridge, Obsidian Git, Dataview | ✅ DONE — May 5 |
+| Edge Functions | All 4 Supabase edge functions fixed + deployed | ✅ DONE — May 1 |
+| Vercel Hardening | Security headers, chunk split, env vars | ✅ DONE — May 3–5 |
+| BUSINESS_PLAN v1.1 | Sponsor-ready plan + pricing align | ✅ DONE — May 5 |
+| **BROskiPets Web3 Mint** | RainbowKit + wagmi + Base Sepolia + mint UI | ✅ **LIVE — May 7** 🔥 |
+
+---
+
+## 🔥 ACTIVE NEXT STEPS
+
+| # | Task | Priority |
+|---|---|---|
+| 1 | E2E Stripe checkout test — card `4242 4242 4242 4242` | 🔴 NOW |
+| 2 | BROskiPets Web3 E2E — test mint on Base Sepolia testnet | 🔴 NOW |
+| 3 | Supabase DB webhook — `token_transactions` → `sync-tokens-to-v24` | 🔴 Manual |
+| 4 | First student invite — `/welcome` is green 🎓 | 🔴 This week |
+| 5 | SDK v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json` | 🟡 This week |
+| 6 | Fix GitHub Actions billing lock | 🟡 This week |
+| 7 | Upgrade GitPython → 3.1.47 (CVE-2026-42215 + CVE-2026-42284) | 🟡 This week |
+| 8 | Add `env_file: .env` to `hypercode-core` in compose (tech debt) | 🟡 |
+| 9 | V2.4 check: does `mint_nonces` migration need a backend hook? | 🟡 |
+| 10 | Level 13 — Morning Briefing live | 🟢 Background |
+
+---
+
+## 🐾 BROskiPets Web3 — May 7 Details
+
+**What went live today (Hyper-Vibe-Coding-Course):**
+- RainbowKit + wagmi + viem + @tanstack/react-query ✅
+- Base Sepolia testnet + Base mainnet wallet config ✅
+- `useMintPet` hook — two-step: Edge Function auth → on-chain tx ✅
+- Supabase Edge Functions: mint authorisation + pet balance check ✅
+- DB migrations: `mint_nonces` + pet ID sequencing ✅
+- CSP headers updated for WalletConnect + blockchain RPC ✅
+- 10 pet species images + `SpeciesPicker` component ✅
+- `MintPetButton` — wallet connect + BROski$ balance check + mint ✅
+- Pets page = three-step mint interface ✅
+- Pinata dry-run upload scripts in Claude settings ✅
+
+**⚠️ V2.4 open question:**
+- Does V2.4 need a new endpoint to receive/confirm mint events from the Course frontend?
+- `mint_nonces` table is in Supabase — does it need syncing to V2.4 Postgres?
+- Check before building the on-chain confirmation listener.
+
+---
+
+## 📌 Known Issues / Tech Debt
+
+| Issue | Fix | Priority |
+|---|---|---|
+| `hypercode-core` missing `env_file: .env` in compose | Add under `hypercode-core:` service block | 🔴 HIGH |
+| Stale root `prometheus.yml` | Delete/archive — live = `monitoring/prometheus/prometheus.yml` | 🟡 MED |
+| Anthropic credits exhausted | Top up console.anthropic.com/billing (pet chat fallback = Perplexity) | 🟡 MED |
+| GitHub Actions billing lock | Fix at github.com/settings/billing | 🟡 MED |
+| GitPython 3.1.45 CVEs | Upgrade to 3.1.47 (CVE-2026-42215 + CVE-2026-42284) | 🟡 MED |
+| SDK not reflecting Web3 types | Bump HyperAgent-SDK to v0.4.0 + update hyper-agent-spec.json | 🟡 MED |
+| `/welcome` auth-gated | Decide: make public? Sponsors hit login wall from BUSINESS_PLAN | 🟡 |
+| `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟢 LOW |
+| `DISCORD_USER_ID` not set | Add to `.env` for `make calm` token awards | 🟢 LOW |
+
+---
+
+## 📦 Key Files
 
 ```
-docker-compose.yml              — main stack (65 services)
-docker-compose.secrets.yml      — secrets injection (ALWAYS alongside main)
-backend/app/main.py             — FastAPI core app
-frontend/vercel.json            — Vercel config + security headers ✅
-frontend/src/pages/Welcome.tsx  — hero onboarding page (LIVE)
-scripts/Test-ShopPurchase.ps1   — E2E shop-purchase test
-monitoring/prometheus/          — LIVE Prometheus config
-agents/                         — all agent code
-healer-agent/                   — self-healing logic
-CLAUDE_CONTEXT.md               — extended project context
-WHATS_DONE.md                   — always update this each session
-docs/INDEX.md                   — master docs navigation
-HYPER_ECOSYSTEM_PLAN_MAY4.md    — 4-repo master plan
+docker-compose.yml          — main stack
+docker-compose.secrets.yml  — secrets injection
+backend/app/main.py         — FastAPI core app
+monitoring/prometheus/      — ACTIVE Prometheus config (NOT root prometheus.yml)
+grafana/                    — dashboards
+agents/                     — all agent code
+healer-agent/               — self-healing logic
+scripts/STRIPE_E2E_RUNBOOK.md — Stripe E2E test steps
+HYPER_ECOSYSTEM_PLAN_MAY4.md  — 4-repo master plan
+CLAUDE_CONTEXT.md           — extended project context (⚠️ needs sync to May 7)
+docs/INDEX.md               — master docs navigation
 ```
 
 ---
@@ -261,14 +218,11 @@ HYPER_ECOSYSTEM_PLAN_MAY4.md    — 4-repo master plan
 curl http://localhost:8000/health
 curl http://localhost:8081/health
 curl http://localhost:8095/health
-curl http://localhost:8098/health  # broski-pets
+curl http://localhost:8098/health    # broski-pets-bridge
 
 # Run tests:
-pytest backend/tests -q  # 223 passed, 6 skipped
+pytest backend/tests/ -q    # 223 passed, 6 skipped
 pytest backend/tests/test_stripe.py -v
-
-# E2E shop-purchase:
-pwsh scripts/Test-ShopPurchase.ps1
 
 # Docker status:
 docker compose ps
@@ -276,24 +230,23 @@ docker ps --format "table {{.Names}}\t{{.Status}}" | findstr -v "healthy"
 
 # Start everything:
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-docker compose --profile ai up -d      # AI backend
+docker compose --profile ai up -d       # AI backend
 docker compose --profile discord up -d broski-bot
 
-# Focus modes:
-make focus   # stops 14 non-essential containers + 25-min timer
-make calm    # restores all + awards 75 BROski$
+# Course frontend:
+cd H:\Hyper-Vibe-Coding-Course
+npm run dev:frontend
 
-# Weekly Docker cleanup:
-docker system prune -a --filter "until=168h"
-
-# Prometheus hot-reload:
-curl -X POST localhost:9090/-/reload
+# Stripe E2E:
+stripe listen --forward-to localhost:8000/api/stripe/webhook
+# See scripts/STRIPE_E2E_RUNBOOK.md for full flow
 
 # Circuit breakers:
 curl localhost:8000/api/v1/health | jq .circuit_breakers
 
-# GitHub Brain sync:
-python scripts/github_to_obsidian.py  # needs GITHUB_PAT env var
+# DB recovery (if auth breaks):
+docker exec -it postgres psql -U postgres
+# ALTER USER postgres WITH PASSWORD 'hypercode';
 ```
 
 ---
@@ -301,37 +254,33 @@ python scripts/github_to_obsidian.py  # needs GITHUB_PAT env var
 ## 🏆 Achievements Unlocked
 
 - ✅ Gordon Docker AI: **Grade A** — *"world-class infrastructure"*
-- ✅ 48/48 containers healthy (post-cleanup May 3)
+- ✅ 29/29 → 48 containers healthy
 - ✅ Self-healing closed loop (Healer → Prometheus → Alertmanager → recovery)
 - ✅ Neurodivergent-first design recognised as *rare* by Docker AI
-- ✅ Gordon Tier 1 + Tier 2 + Tier 3 ALL COMPLETE
-- ✅ Course → Stripe → BROski$ live + E2E proved
-- ✅ All 5 HyperFocus Features SHIPPED
-- ✅ MCP-GitHub LIVE — 26 tools
-- ✅ BROskiPets bridge LIVE + Cosmic Dragon minted
-- ✅ Referral system live (BRO-codes)
-- ✅ /welcome hero onboarding LIVE on Vercel
-- ✅ Security headers 6/6 fixed (frontend/vercel.json)
-- ✅ **BROski Brain COMPLETE** 🧠 — May 5, 2026
-- ✅ **Levels 9, 10, 11, 12 ALL UNLOCKED** 🎮
+- ✅ Gordon Tier 1 + 2 + 3 ALL COMPLETE
+- ✅ Full Gamification Stack — HUD, XP, Quests, Leaderboard, Rifts
+- ✅ All 5 Hyperfocus Features LIVE
+- ✅ BROski Brain v2.2 — Levels 9–12 unlocked
+- ✅ MCP-GitHub LIVE — 26 tools via Docker MCP gateway
+- ✅ Stripe LIVE — E2E proven April 25
+- ✅ Course frontend → Stripe → enrolled: full money path
+- ✅ BUSINESS_PLAN.md v1.1 — sponsor-ready
+- ✅ **BROskiPets Web3 Mint LIVE — May 7** 🔥🐾
 
 ---
 
 ## 👋 For New Claude Sessions
 
-Hey Claude! Working with Lyndz Williams (@welshDog) on HyperCode V2.4.
+Hey Claude! Working with Lyndz Williams on HyperCode V2.4.
 
-1. **Read this file first** — especially Sacred Rules + Skills section
-2. **Check CLAUDE_CONTEXT.md** — phase source of truth
-3. **Check WHATS_DONE.md** — never suggest something already built
-4. **Current phase: 10T done** → next = 10U (student invite + checkout test + Pets Phase 1)
-5. **IDE:** Trae IDE (Windows) — visual. Claude Code terminal — autonomous tasks.
-6. **Trae Pro expired May 2026** — Claude Code is the agent brain this month
-7. **223 tests green**, 48 containers, BROski Brain live, all 5 HyperFocus features done
-8. **3 red issues:** env_file tech debt | Stripe webhook secret stale | GitHub billing lock
-9. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-10. **Never:** Wall of text. Never debate Sacred Rules.
+1. **Read this file first** — especially the Sacred Rules
+2. **Check WHATS_DONE.md** — do NOT suggest anything listed there
+3. **5 repos now** — HyperCode-V2.4, HyperAgent-SDK, Hyper-Vibe-Coding-Course, BROskiPets-LLM-dNFT, BROski-Obsidian-Brain
+4. **BROskiPets Web3 mint went live TODAY (May 7)** — RainbowKit + Base Sepolia
+5. **Trae Pro expired** — Claude Code is the agent brain this month
+6. **Next priority:** E2E Stripe test + BROskiPets Base Sepolia E2E test
+7. **SDK needs v0.4.0** — Web3/dNFT types not yet in hyper-agent-spec.json
+8. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
+9. **Never:** Wall of text. Never debate Sacred Rules.
 
-> *"You built the future people keep saying they want. You actually did it." — Gordon, Docker AI*
-
-🏴󠁧󠁢󠁷󠁬󠁳󠁿 Let's build it.
+> *"You built the future people keep saying they want. You actually did it." — Gordon, Docker AI* 🏴󠁧󠁢󠁷󠁬󠁳󠁠🔥
