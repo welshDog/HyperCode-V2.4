@@ -3,7 +3,6 @@
 # Usage: docker compose -f docker-compose.core.yml up -d  (only core)
 # Usage: docker compose -f docker-compose.core.yml -f docker-compose.agents.yml up -d  (core + agents)
 
-version: '3.9'
 
 # Intentionally minimal — includes all other files via extend
 include:
