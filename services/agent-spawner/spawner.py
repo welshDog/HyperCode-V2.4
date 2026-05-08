@@ -1,6 +1,6 @@
 """
 Agent Spawner Service — Lightweight Redis subscriber for on-demand container spawning.
-Uses Docker SDK + docker-compose CLI for spawning containers with proper settings.
+Uses Docker SDK + docker compose plugin for spawning containers with proper settings.
 """
 
 import asyncio
@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import subprocess
+import sys
 import time
 from datetime import datetime, timedelta
 from typing import Dict, Set
@@ -24,12 +25,17 @@ ON_DEMAND_AGENTS = [a.strip() for a in os.getenv("ON_DEMAND_AGENTS", "").split("
 COMPOSE_CWD = os.getenv("COMPOSE_CWD", "/workspace")
 
 # Logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
 logger = logging.getLogger(__name__)
 
 # Docker client
 try:
     docker_client = docker.from_env()
+    logger.info("Docker client initialized")
 except Exception as e:
     logger.error(f"Failed to initialize Docker client: {e}")
     docker_client = None
@@ -40,16 +46,16 @@ agent_spawn_lock: Set[str] = set()  # Prevent concurrent spawns
 
 
 async def spawn_agent(agent_name: str) -> bool:
-    """Spawn an on-demand agent by starting via docker-compose."""
+    """Spawn an on-demand agent by starting via docker compose."""
     if agent_name in agent_spawn_lock:
         logger.info(f"[{agent_name}] Already spawning, skipping duplicate request")
         return False
 
     agent_spawn_lock.add(agent_name)
     try:
-        logger.info(f"[{agent_name}] Spawning agent via docker-compose...")
+        logger.info(f"[{agent_name}] Spawning agent via docker compose...")
         
-        # Use docker-compose to start the service
+        # Use docker compose to start the service
         cmd = [
             "docker", "compose",
             "-f", COMPOSE_FILE,
@@ -59,6 +65,8 @@ async def spawn_agent(agent_name: str) -> bool:
             "up", "-d",
             agent_name
         ]
+        
+        logger.info(f"[{agent_name}] Executing: {' '.join(cmd)}")
         
         try:
             result = subprocess.run(
@@ -70,18 +78,21 @@ async def spawn_agent(agent_name: str) -> bool:
             )
             
             if result.returncode == 0:
-                logger.info(f"[{agent_name}] Spawned successfully via docker-compose")
+                logger.info(f"[{agent_name}] Spawned successfully")
+                logger.info(f"[{agent_name}] Output: {result.stdout}")
                 agent_activity[agent_name] = time.time()
                 return True
             else:
-                logger.error(f"[{agent_name}] docker-compose failed: {result.stderr}")
+                logger.error(f"[{agent_name}] Failed with code {result.returncode}")
+                logger.error(f"[{agent_name}] stdout: {result.stdout}")
+                logger.error(f"[{agent_name}] stderr: {result.stderr}")
                 return False
                 
         except subprocess.TimeoutExpired:
-            logger.error(f"[{agent_name}] docker-compose timed out")
+            logger.error(f"[{agent_name}] docker compose timed out")
             return False
         except Exception as e:
-            logger.error(f"[{agent_name}] docker-compose error: {e}")
+            logger.error(f"[{agent_name}] docker compose error: {e}")
             return False
 
     except Exception as e:
@@ -142,26 +153,31 @@ async def check_idle_agents():
 
 async def spawn_listener(r: redis.Redis):
     """Subscribe to agent spawn requests and process them."""
-    pubsub = r.pubsub()
-    pattern = "agent:spawn:*"
-
-    await pubsub.psubscribe(pattern)
-    logger.info(f"Listening on pattern: {pattern}")
-
     try:
+        logger.info("Initializing pubsub...")
+        pubsub = r.pubsub()
+        pattern = "agent:spawn:*"
+        
+        logger.info(f"Subscribing to pattern: {pattern}")
+        await pubsub.psubscribe(pattern)
+        logger.info(f"Successfully listening on pattern: {pattern}")
+
         async for message in pubsub.listen():
+            logger.info(f"Message received: {message}")
+            
             if message["type"] == "pmessage":
                 channel = message["channel"].decode() if isinstance(message["channel"], bytes) else message["channel"]
                 data = message["data"].decode() if isinstance(message["data"], bytes) else message["data"]
 
                 # Extract agent name from channel: "agent:spawn:coder-agent" -> "coder-agent"
                 agent_name = channel.split(":")[-1]
+                logger.info(f"[{agent_name}] Spawn request received")
 
                 if agent_name not in ON_DEMAND_AGENTS:
                     logger.warning(f"[{agent_name}] Not in ON_DEMAND_AGENTS list, ignoring")
                     continue
 
-                logger.info(f"[{agent_name}] Spawn request received: {data}")
+                logger.info(f"[{agent_name}] Processing spawn request: {data}")
 
                 # Check if already running
                 if docker_client is not None:
@@ -190,6 +206,7 @@ async def spawn_listener(r: redis.Redis):
 
     except Exception as e:
         logger.error(f"Spawn listener error: {e}")
+        raise
     finally:
         await pubsub.close()
 
@@ -208,6 +225,7 @@ async def health_check(r: redis.Redis):
 async def main():
     """Main spawner loop."""
     try:
+        logger.info(f"Connecting to Redis: {REDIS_URL}")
         r = await redis.from_url(REDIS_URL)
         logger.info("Connected to Redis")
         logger.info(f"ON_DEMAND_AGENTS: {ON_DEMAND_AGENTS}")
