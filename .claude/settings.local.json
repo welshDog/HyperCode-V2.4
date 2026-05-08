@@ -239,7 +239,9 @@
       "Bash(railway --version)",
       "Bash(railway upgrade *)",
       "Bash(cmd.exe /c \"npm update -g @railway/cli\")",
-      "PowerShell(npm update *)"
+      "PowerShell(npm update *)",
+      "Bash(findstr -i compose)",
+      "PowerShell(docker compose *)"
     ]
   },
   "enableAllProjectMcpServers": true,
