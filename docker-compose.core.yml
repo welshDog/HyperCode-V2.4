@@ -145,7 +145,7 @@ services:
       - data-net
       - agents-net
     ports:
-      - "127.0.0.1:8000:8000"
+      - "0.0.0.0:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -176,7 +176,7 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     ports:
-      - "127.0.0.1:11434:11434"
+      - "0.0.0.0:11434:11434"
     networks:
       - agents-net
     environment:
