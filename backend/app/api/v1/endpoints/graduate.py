@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.models.graduate import GraduationEvent
 from app.models.models import User
 from app.core.config import settings
+from app.services import broski_service
 
 router = APIRouter()
 
@@ -67,7 +68,7 @@ async def _send_discord_dm(discord_id: str, badge_slug: str, tokens: int, portfo
         return msg_resp.status_code == 200
 
 
-@router.post("/graduate/trigger", response_model=GraduateResponse)
+@router.post("/trigger", response_model=GraduateResponse)
 async def trigger_graduation(
     payload: GraduateRequest,
     x_sync_secret: str = Header(..., alias="X-Sync-Secret"),
@@ -90,14 +91,20 @@ async def trigger_graduation(
 
     # Lookup user by discord_id
     user = db.query(User).filter(User.discord_id == payload.discord_id).first()
-    user_id = user.id if user else None
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No V2.4 account linked to Discord {payload.discord_id}. Ask the user to link via /link-discord.",
+        )
+    user_id = user.id
 
-    # Award BROski$ tokens via economy endpoint (internal call pattern)
-    # Tokens are awarded by inserting a course_sync_event — reuse existing economy logic
-    # (or call directly if user exists)
-    if user:
-        user.broski_tokens = (user.broski_tokens or 0) + payload.tokens_awarded
-        db.add(user)
+    broski_service.award_coins(
+        user_id=user.id,
+        amount=payload.tokens_awarded,
+        reason=f"Course graduation: {payload.badge_slug}",
+        db=db,
+        meta={"source": "graduation", "source_id": payload.source_id, "discord_id": payload.discord_id},
+    )
 
     # Send Discord DM
     dm_sent = await _send_discord_dm(
@@ -128,5 +135,5 @@ async def trigger_graduation(
         tokens_awarded=payload.tokens_awarded,
         portfolio_url=payload.portfolio_url,
         discord_role_assigned=dm_sent,
-        message="Graduation complete! DM sent. BROski$ awarded. \ud83d�",
+        message="Graduation complete. BROski$ awarded.",
     )

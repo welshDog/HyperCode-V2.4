@@ -91,4 +91,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD sh -c 'curl -f "http://localhost:${PORT:-8000}/health" || exit 1'
 
 # Migrations MUST complete before uvicorn starts (alembic blocks on `&&`)
-CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}"]
+CMD ["sh", "-c", "alembic upgrade head && exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
