@@ -2,6 +2,11 @@
 bfg.jar
 *.jar
 
+# Local runtime data (never commit)
+DockerData/
+HyperCodeData/
+discord-blueprint/
+
 # CI artefacts — generated on-demand, never commit
 coverage.xml
 *.coverage
