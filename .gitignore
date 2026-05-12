@@ -54,6 +54,7 @@ client_secret.json
 .vscode/
 *.swp
 *.swo
+git-error-*
 .DS_Store
 Thumbs.db
 
