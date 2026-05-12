@@ -391,11 +391,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    depends_on:
-      redis:
-        condition: service_healthy
-      celery-worker:
-        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
