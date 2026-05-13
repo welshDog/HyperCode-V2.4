@@ -1,0 +1,105 @@
+# docker-compose.brain.yml — Obsidian-Brain Integration
+# Add to root: include: docker-compose.brain.yml
+# Usage: docker compose --profile brain up -d
+
+services:
+  hyper-brain:
+    profiles: ["brain"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
+      dockerfile: Dockerfile
+    container_name: hyper-brain
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      - OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}
+      - REDIS_URL=redis://redis:6379/4
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
+      - MCP_PORT=8820
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - GITHUB_PAT=${GITHUB_PAT}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH}:/vault
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=hyper-brain"
+      - "com.hyperfocuszone.tier=brain"
+      - "com.hyperfocuszone.version=3.0.0"
+
+  github-sync:
+    profiles: ["brain"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker
+      dockerfile: Dockerfile.github-sync
+    container_name: github-sync
+    environment:
+      - GITHUB_PAT=${GITHUB_PAT}
+      - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH}:/vault
+    networks:
+      - agents-net
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "pgrep", "cron"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=github-sync"
+      - "com.hyperfocuszone.tier=brain"
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents_net
+  data-net:
+    external: true
+    name: hypercode_data_net
