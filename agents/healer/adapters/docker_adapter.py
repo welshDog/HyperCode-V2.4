@@ -14,7 +14,11 @@ RESTART_LOOP_THRESHOLD = int(os.environ.get("RESTART_LOOP_THRESHOLD", "5"))
 
 
 class DockerAdapter:
-    def __init__(self, redis_url: str = "redis://redis:6379"):
+    def __init__(
+        self,
+        redis_url: str = "redis://redis:6379",
+        redis_client: Optional[redis.Redis] = None,
+    ):
         """
         Initialize Docker Adapter with Redis connection for state tracking.
         """
@@ -25,7 +29,7 @@ class DockerAdapter:
             self.client = None
 
         self.redis_url = redis_url
-        self.redis = None
+        self.redis = redis_client
         self.notifier = DiscordNotifier()
 
     async def get_redis(self):
