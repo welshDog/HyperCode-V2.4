@@ -12,6 +12,7 @@ import secrets
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
 import sys
+import uvicorn
 
 # Allow imports from shared modules
 sys.path.insert(0, "/app")
@@ -194,6 +195,9 @@ class BaseAgent:
             await self.redis.close()
         if self.logger:
             self.logger.info("agent_shutdown")
+
+    def run(self) -> None:
+        uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
 
     def setup_routes(self):
         async def _handle_task(request: TaskRequest) -> TaskResponse:
