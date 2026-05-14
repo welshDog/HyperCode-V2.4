@@ -15,6 +15,8 @@ COPY . .
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ARG NEXT_PUBLIC_HYPER_BRAIN_URL
+ENV NEXT_PUBLIC_HYPER_BRAIN_URL=$NEXT_PUBLIC_HYPER_BRAIN_URL
 
 # Build Next.js app
 RUN npm run build

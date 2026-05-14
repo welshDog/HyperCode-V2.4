@@ -33,6 +33,15 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/pricing', label: '💳 Pricing' },
 ]
 
+function getHyperBrainUrl(): string {
+  if (process.env.NEXT_PUBLIC_HYPER_BRAIN_URL) return process.env.NEXT_PUBLIC_HYPER_BRAIN_URL
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host === 'localhost' || host === '127.0.0.1') return `http://${host}:8100/ui`
+  }
+  return 'http://localhost:8100/ui'
+}
+
 const INITIAL_LAST_SEEN_TIMESTAMP = Date.now()
 
 export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
@@ -102,6 +111,7 @@ function AppShellInner({
   const btnRef = useRef<HTMLButtonElement | null>(null)
   const panelRef = useRef<HTMLDivElement | null>(null)
   const closeRef = useRef<HTMLButtonElement | null>(null)
+  const hyperBrainUrl = useMemo(() => getHyperBrainUrl(), [])
 
   const isMission = pathname === '/mission'
   
@@ -149,6 +159,9 @@ function AppShellInner({
           </span>
         </div>
         <div className="hc-topbar-right">
+          <a className="btn" href={hyperBrainUrl} target="_blank" rel="noreferrer">
+            🧠 Hyper Brain
+          </a>
           <div className="hc-notify">
             <button
               ref={btnRef}
