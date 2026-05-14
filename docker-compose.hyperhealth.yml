@@ -62,8 +62,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
     labels:
       - "hypercode.service=hyperhealth-api"
       - "hypercode.role=health-orchestrator"
@@ -127,15 +125,13 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
     labels:
       - "hypercode.service=hyperhealth-worker"
       - "hypercode.role=check-executor"
 
 networks:
   backend-net:
-    name: hypercode_public_net
+    name: hypercode_backend_net
     external: true
   data-net:
     name: hypercode_data_net
