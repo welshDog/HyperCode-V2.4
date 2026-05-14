@@ -21,14 +21,20 @@ try:
     from shared.logging_config import setup_logging
     from shared.approval_system import ApprovalSystem
 except ImportError:
-    print("⚠️ Shared modules not found, running in limited mode")
+    print("\u26a0\ufe0f Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
     def setup_logging(agent_name: str):
         return None
     ApprovalSystem = None
 
-# AI Client — try anthropic first, fallback to openai
+# HyperAlert - safe import guard (no crash if module not yet mounted)
+try:
+    from shared.discord_alerts import HyperAlert
+except ImportError:
+    HyperAlert = None
+
+# AI Client \u2014 try anthropic first, fallback to openai
 try:
     from anthropic import AsyncAnthropic as AIClient
     ai_backend = "anthropic"
@@ -39,7 +45,7 @@ except ImportError:
     except ImportError:
         AIClient = None
         ai_backend = None
-        print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
+        print("\u26a0\ufe0f No AI client found (anthropic or openai). Running in limited mode.")
 
 def _resolve_secret(var: str) -> Optional[str]:
     """Return env ``var``, or the content of ``<var>_FILE`` if set (Docker secrets)."""
@@ -161,6 +167,14 @@ class BaseAgent:
             
         await self.initialize()
 
+        # \U0001f4e2 Fleet heartbeat: fire agent_started Discord alert on every boot
+        if HyperAlert:
+            try:
+                await HyperAlert.agent_started(self.config.name)
+            except Exception as _alert_err:
+                if self.logger:
+                    self.logger.warning(f"HyperAlert.agent_started failed (non-fatal): {_alert_err}")
+
     async def initialize(self):
         """Hook for subclasses to add custom initialization logic"""
         pass
@@ -196,101 +210,32 @@ class BaseAgent:
                 if self.redis:
                     await self.redis.ping()
                 return {"status": "healthy"}
-            except Exception as e:
-                raise HTTPException(status_code=503, detail=str(e))
-
-        @self.app.post("/execute")
-        async def execute(request: TaskRequest):
-            task_desc = (request.description or request.task or "").strip()
-            if not task_desc:
-                raise HTTPException(status_code=422, detail="Missing task")
-            task_id = request.id or request.task_id or "unknown"
-            context = request.context if isinstance(request.context, dict) else {}
-            
-            if self.logger:
-                self.logger.info("task_received", task_id=task_id)
-            
+            except Exception:
+                raise HTTPException(status_code=503, detail="Redis unavailable")
+        
+        @self.app.post("/task")
+        async def execute_task(request: TaskRequest) -> TaskResponse:
+            task_id = request.task_id or request.id or secrets.token_hex(8)
             try:
-                result = await self.process_task(task_desc, context, request.requires_approval)
-                return {"status": "success", "result": result}
+                task_text = request.task or request.description or ""
+                result = await self.process_task(task_text, request.context or {})
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="completed",
+                    result=result
+                )
             except Exception as e:
                 if self.logger:
-                    self.logger.error("task_failed", error=str(e))
-                raise HTTPException(status_code=500, detail=str(e))
+                    self.logger.error("task_failed", task_id=task_id, error=str(e))
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="error",
+                    result=None,
+                    error=str(e)
+                )
 
-    async def process_task(self, task: str, context: Optional[Dict[str, Any]], requires_approval: bool):
-        """Override this method in specialized agents"""
-        context = context or {}
-        rag_context = ""
-        if self.agent_memory:
-            rag_context = self.agent_memory.query_relevant_context(task)
-            
-        project_context = {}
-        if self.project_memory:
-            project_context = self.project_memory.get_project_context()
-
-        plan = await self.generate_plan(task, rag_context, project_context)
-        
-        if requires_approval and self.approval_system:
-            approval = await self.approval_system.request_approval(
-                self.config.name,
-                "execute_task",
-                {"task": task, "plan": plan}
-            )
-            if approval['status'] != "approved":
-                raise Exception(f"Task rejected: {approval.get('reason')}")
-        
-        return f"Executed task: {task} based on plan: {plan}"
-
-    async def generate_plan(self, task, rag_context, project_context):
-        if not self.client:
-            return "No AI client configured — running in limited mode"
-
-        prompt = f"""
-        You are {self.config.name} ({self.config.role}).
-
-        CONTEXT FROM BIBLE:
-        {rag_context}
-
-        PROJECT STATUS:
-        {project_context}
-
-        TASK:
-        {task}
-
-        Create a brief execution plan.
-        """
-
-        for attempt in range(4):
-            try:
-                if ai_backend == "anthropic":
-                    response = await self.client.messages.create(
-                        model=self.config.model,
-                        max_tokens=1000,
-                        timeout=30.0,
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    return response.content[0].text
-                elif ai_backend == "openai":
-                    response = await self.client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": prompt}],
-                        timeout=30.0,
-                    )
-                    return response.choices[0].message.content
-                return "No AI backend available"
-            except Exception as e:
-                err_str = str(e).lower()
-                if attempt < 3 and ("rate" in err_str or "connection" in err_str or "timeout" in err_str):
-                    wait = 2 ** (attempt + 1)
-                    if self.logger:
-                        self.logger.warning(f"AI call failed (attempt {attempt + 1}): {e}. Retry in {wait}s")
-                    await asyncio.sleep(wait)
-                else:
-                    if self.logger:
-                        self.logger.error(f"AI API error: {e}")
-                    return f"Plan generation failed: {e}"
-
-    def run(self):
-        import uvicorn
-        uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
+    async def process_task(self, task: str, context: Dict[str, Any]) -> Any:
+        """Override in subclasses to implement agent-specific logic"""
+        return {"message": f"Task received by {self.config.name}: {task}"}
