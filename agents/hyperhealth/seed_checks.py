@@ -1,6 +1,6 @@
 """
 HyperHealth — Seed Foundational Checks
-Registers or updates the 5 core checks in HyperHealth API.
+Registers or updates the 7 core checks in HyperHealth API.
 
 Usage:
     python agents/hyperhealth/seed_checks.py           # create missing only
@@ -108,6 +108,38 @@ CHECKS = [
         "tags": ["database", "postgres", "critical"],
         "enabled": True,
     },
+    # ── Disk checks ─────────────────────────────────────────────────────────────
+    # Fires HyperAlert.disk_warning() via hyperhealth-worker → maybe_alert_discord()
+    {
+        "name": "disk-root",
+        "type": "disk",
+        "target": "/",
+        "environment": "production",
+        "interval_seconds": 300,   # every 5 min — disk doesn't change per-second
+        "thresholds": {
+            "pct_used": {
+                "warn": 80,   # 🟡 warn at 80% — gives time to react
+                "crit": 90,   # 🔴 crit at 90% — needs action NOW
+            }
+        },
+        "tags": ["disk", "storage", "ops"],
+        "enabled": True,
+    },
+    {
+        "name": "disk-docker-volumes",
+        "type": "disk",
+        "target": "/var/lib/docker",
+        "environment": "production",
+        "interval_seconds": 300,   # every 5 min
+        "thresholds": {
+            "pct_used": {
+                "warn": 75,   # 🟡 tighter warn — Docker image/volume bloat is the real OOM risk
+                "crit": 85,   # 🔴 crit at 85% — Docker can OOM the whole box above this
+            }
+        },
+        "tags": ["disk", "docker", "storage", "critical"],
+        "enabled": True,
+    },
 ]
 
 
@@ -167,10 +199,11 @@ def seed():
     print(f"\n\U0001f4ca Results: {created} created | {updated} updated | {skipped} skipped | {failed} failed")
 
     if created + updated > 0:
-        print("\n\U0001f525 Workers will execute checks within 30s!")
+        print("\n\U0001f525 Workers will execute checks within 5min!")
         print("\U0001f4c8 Grafana  : http://localhost:3001")
         print("\U0001f9ea Report   : curl -H \"X-API-Key: $API_KEY\" \"http://localhost:8095/health/report?env=production\"")
         print("\U0001f4ca Metrics  : curl http://localhost:8095/metrics")
+        print("\U0001f4be Disk tag : curl -H \"X-API-Key: $API_KEY\" \"http://localhost:8095/checks?tag=disk\"")
 
     if failed > 0:
         sys.exit(1)
