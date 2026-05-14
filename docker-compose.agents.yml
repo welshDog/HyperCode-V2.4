@@ -278,6 +278,90 @@ services:
       - no-new-privileges:true
 
   # ====================================================================
+  # MISSION (profile: mission)
+  # ====================================================================
+
+  hyper-mission-api:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/server
+      dockerfile: Dockerfile
+    container_name: hyper-mission-api
+    restart: unless-stopped
+    environment:
+      PORT: "5000"
+      CORE_API_URL: http://hypercode-core:8000
+      AUTH_PASSTHROUGH: "true"
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      JWT_SECRET: ${HYPERCODE_JWT_SECRET:-dev-jwt-secret}
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5000/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  hyper-mission-ui:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/client
+      dockerfile: Dockerfile
+    container_name: hyper-mission-ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8099:80"
+    networks:
+      - frontend-net
+      - agents-net
+    depends_on:
+      hyper-mission-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ====================================================================
   # GPU OLLAMA — replaces hypercode-ollama (core.yml) when --profile gpu
   # ====================================================================
 
