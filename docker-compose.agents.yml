@@ -574,6 +574,7 @@ services:
         condition: service_healthy
       docker-socket-proxy:
         condition: service_started
+    restart: unless-stopped
     deploy:
       resources:
         limits:
@@ -1460,6 +1461,12 @@ services:
     networks:
       - frontend-net
       - agents-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:80/ >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     deploy:
       resources:
@@ -1753,6 +1760,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    cap_drop:
+      - ALL
 
   # ====================================================================
   # HYPERHEALTH — `--profile health`
