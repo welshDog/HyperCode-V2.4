@@ -1,18 +1,30 @@
-version: '3.8'
-
 services:
   broski-bot:
     build: .
     container_name: broski-bot-v3
     restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
     volumes:
       - ./database:/app/database
       - ./logs:/app/logs
       - ./backups:/app/backups
     env_file:
       - .env
+    expose:
+      - "8000"
     networks:
       - broski-net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   redis:
     image: redis:7-alpine
@@ -20,6 +32,21 @@ services:
     restart: unless-stopped
     networks:
       - broski-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
 networks:
   broski-net:
