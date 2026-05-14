@@ -17,7 +17,7 @@ services:
     profiles: ["agents", "on-demand"]
 
   agent-x:
-    profiles: ["hyper", "on-demand"]
+    profiles: ["hyper"]
 
   # Always-on core agents (never on-demand)
   crew-orchestrator:
