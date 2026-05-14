@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-14",
+  "root": "H:/HYPERFOCUSZONE/HperCore",
+  "license": "AGPL-3.0-or-later",
+  "notes": {
+    "canonicalHyperCodeCompose": "HyperCode-V2.4/docker-compose.yml",
+    "hyperCodeComposeIncludes": [
+      "HyperCode-V2.4/docker-compose.core.yml",
+      "HyperCode-V2.4/docker-compose.observability.yml",
+      "HyperCode-V2.4/docker-compose.agents.yml",
+      "HyperCode-V2.4/docker-compose.bropets.yml",
+      "HyperCode-V2.4/docker-compose.brain.yml"
+    ],
+    "warning": "Some compose files are standalone or archived and are not included by the canonical stack."
+  },
+  "composeFiles": [
+    { "path": "HyperCode-V2.4/docker-compose.yml", "project": "HyperCode-V2.4", "kind": "root" },
+    { "path": "HyperCode-V2.4/docker-compose.core.yml", "project": "HyperCode-V2.4", "kind": "layer" },
+    { "path": "HyperCode-V2.4/docker-compose.observability.yml", "project": "HyperCode-V2.4", "kind": "layer" },
+    { "path": "HyperCode-V2.4/docker-compose.agents.yml", "project": "HyperCode-V2.4", "kind": "layer" },
+    { "path": "HyperCode-V2.4/docker-compose.bropets.yml", "project": "HyperCode-V2.4", "kind": "layer" },
+    { "path": "HyperCode-V2.4/docker-compose.brain.yml", "project": "HyperCode-V2.4", "kind": "layer" },
+
+    { "path": "HyperCode-V2.4/docker-compose.hyperhealth.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.hyper-agents.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.on-demand.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.spawner.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.dev.yml", "project": "HyperCode-V2.4", "kind": "dev" },
+    { "path": "HyperCode-V2.4/docker-compose.windows.yml", "project": "HyperCode-V2.4", "kind": "platform" },
+    { "path": "HyperCode-V2.4/docker-compose.lean.yml", "project": "HyperCode-V2.4", "kind": "profile" },
+    { "path": "HyperCode-V2.4/docker-compose.demo.yml", "project": "HyperCode-V2.4", "kind": "profile" },
+    { "path": "HyperCode-V2.4/docker-compose.nano.yml", "project": "HyperCode-V2.4", "kind": "profile" },
+    { "path": "HyperCode-V2.4/docker-compose.nim.yml", "project": "HyperCode-V2.4", "kind": "profile" },
+    { "path": "HyperCode-V2.4/docker-compose.agents-lite.yml", "project": "HyperCode-V2.4", "kind": "profile" },
+
+    { "path": "HyperCode-V2.4/docker-compose.monitoring.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.grafana-cloud.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.mcp-gateway.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.external-net.yml", "project": "HyperCode-V2.4", "kind": "override" },
+    { "path": "HyperCode-V2.4/docker-compose.secrets.yml", "project": "HyperCode-V2.4", "kind": "override" },
+
+    { "path": "HyperCode-V2.4/tests/docker-compose.test.yml", "project": "HyperCode-V2.4", "kind": "test" },
+    { "path": "HyperCode-V2.4/agents/broski-bot/docker-compose.yml", "project": "HyperCode-V2.4", "kind": "standalone" },
+    { "path": "HyperCode-V2.4/hyper-mission-system/docker-compose.yml", "project": "HyperCode-V2.4", "kind": "standalone" },
+    { "path": "HyperCode-V2.4/hyperstudio-platform/docker-compose.yml", "project": "HyperCode-V2.4", "kind": "standalone" },
+    { "path": "HyperCode-V2.4/.claude/broski-discord-bot-skill/docker-compose.yml", "project": "HyperCode-V2.4", "kind": "standalone" },
+
+    { "path": "HyperCode-V2.4/docs/archive/docker/docker-compose.mcp-full.yml", "project": "HyperCode-V2.4", "kind": "archive" },
+    { "path": "HyperCode-V2.4/docs/archive/docker/docker-compose.agents-test.yml", "project": "HyperCode-V2.4", "kind": "archive" },
+
+    { "path": "Hyper-Vibe-Coding-Course/docker-compose.yml", "project": "Hyper-Vibe-Coding-Course", "kind": "root" },
+    { "path": "BROskiPets-LLM-dNFT/docker-compose.yml", "project": "BROskiPets-LLM-dNFT", "kind": "root" },
+
+    {
+      "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker-compose.hyper-brain.yml",
+      "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne",
+      "kind": "root"
+    },
+    {
+      "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker/docker-compose.hyper-brain.yml",
+      "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne",
+      "kind": "override"
+    },
+    {
+      "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker/docker-compose.github-sync.yml",
+      "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne",
+      "kind": "override"
+    }
+  ],
+  "otherComposeLikeFiles": [
+    { "path": "HyperCode-V2.4/compose-config.yaml", "project": "HyperCode-V2.4", "kind": "compose-config" }
+  ],
+  "dockerfiles": [
+    { "path": "HyperCode-V2.4/backend/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/Dockerfile.builder", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/Dockerfile.production", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/Dockerfile.agents-test", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/Dockerfile.base", "project": "HyperCode-V2.4" },
+
+    { "path": "HyperCode-V2.4/agents/base-agent/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/crew-orchestrator/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/healer/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/dashboard/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/coder/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/agent-x/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/broski-bot/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/broski-pets-bridge/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/hyperhealth/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/throttle-agent/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/test-agent/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/goal_keeper/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/session-snapshot/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/hyper-split-agent/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/super-hyper-broski-agent/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/coderabbit-webhook/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/hyper-auto-assistant/Dockerfile", "project": "HyperCode-V2.4" },
+
+    { "path": "HyperCode-V2.4/agents/01-frontend-specialist/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/02-backend-specialist/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/03-database-architect/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/04-qa-engineer/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/05-devops-engineer/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/06-security-engineer/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/07-system-architect/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/08-project-strategist/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/09-tips-tricks-writer/Dockerfile", "project": "HyperCode-V2.4" },
+
+    { "path": "HyperCode-V2.4/agents/hyper-agents/architect/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/hyper-agents/observer/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/agents/hyper-agents/worker/Dockerfile", "project": "HyperCode-V2.4" },
+
+    { "path": "HyperCode-V2.4/services/hypercode-mcp-server/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/services/agent-spawner/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/services/hyperhealth/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/services/mcp-rest-adapter/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/services/model-gateway/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/tools/roundtrip-worker/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/monitoring/alert-webhook/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/hyperstudio-platform/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/quantum-compiler/Dockerfile", "project": "HyperCode-V2.4" },
+
+    { "path": "HyperCode-V2.4/hyper-mission-system/client/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/hyper-mission-system/server/Dockerfile", "project": "HyperCode-V2.4" },
+
+    { "path": "Hyper-Vibe-Coding-Course/apps/api/Dockerfile", "project": "Hyper-Vibe-Coding-Course" },
+
+    { "path": "BROskiPets-LLM-dNFT/Dockerfile", "project": "BROskiPets-LLM-dNFT" },
+
+    { "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/Dockerfile.hyper-brain", "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne" },
+    { "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker/Dockerfile.hyper-brain", "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne" },
+    { "path": "BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker/Dockerfile.github-sync", "project": "BROski-Obsidian-Brain-for-HyperFocus-z0ne" },
+
+    { "path": "HyperCode-V2.4/.claude/broski-discord-bot-skill/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/templates/agent-python/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/templates/mcp-plugin-python/Dockerfile", "project": "HyperCode-V2.4" },
+    { "path": "HyperCode-V2.4/docs/notes/Dockerfile", "project": "HyperCode-V2.4" }
+  ]
+}
