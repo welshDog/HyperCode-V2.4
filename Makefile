@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus healer-rebuild oom-test alert-test oom-webhook-test
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus healer-rebuild oom-test alert-test oom-webhook-test seed-checks
 
 # Default target
 help:
@@ -18,6 +18,7 @@ help:
 	@echo "  make focus        - 🎯 Focus Mode: stop non-essential containers + 25min timer"
 	@echo "  make calm         - 🌊 Calm Mode: restore everything + award BROski$"
 	@echo "  make network-init - Ensure hypercode_public_net exists"
+	@echo "  make seed-checks  - Seed HyperHealth checks (idempotent)"
 	@echo ""
 	@echo "Scanning & Quality Gates:"
 	@echo "  make scan              - Full local scan suite"
@@ -89,6 +90,9 @@ alert-test:
 
 oom-webhook-test:
 	docker exec healer-agent python -c "import asyncio; from agents.healer.adapters.discord_notifier import DiscordNotifier; n=DiscordNotifier(); asyncio.run(n.send_custom_alert('🧪 OOM Webhook Test', 'If you see this, DISCORD_OOM_WEBHOOK_URL is wired correctly.', color=0xFFAA00))"
+
+seed-checks:
+	python agents/hyperhealth/seed_checks.py
 
 # Stop full stack
 down:
