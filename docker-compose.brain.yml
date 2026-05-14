@@ -4,15 +4,14 @@
 
 services:
   hyper-brain:
-    profiles: ["brain"]
     build:
       context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.hyper-brain
     container_name: hyper-brain
     ports:
       - "127.0.0.1:8100:8100"
     environment:
-      - OBSIDIAN_VAULT_PATH=${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}
+      - OBSIDIAN_VAULT_PATH=/vault
       - REDIS_URL=redis://redis:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - MCP_PORT=8820
@@ -20,7 +19,7 @@ services:
       - GITHUB_PAT=${GITHUB_PAT}
       - ENVIRONMENT=${ENVIRONMENT:-development}
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-.}/vault:/vault
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     networks:
       - agents-net
       - data-net
@@ -59,14 +58,14 @@ services:
   github-sync:
     profiles: ["brain"]
     build:
-      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/docker
-      dockerfile: Dockerfile.github-sync
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
+      dockerfile: docker/Dockerfile.github-sync
     container_name: github-sync
     environment:
       - GITHUB_PAT=${GITHUB_PAT}
       - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-.}/vault:/vault
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     networks:
       - agents-net
     restart: unless-stopped
