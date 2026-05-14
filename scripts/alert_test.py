@@ -14,6 +14,7 @@ Requires:
 import asyncio
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add project root to path so shared modules resolve
@@ -36,12 +37,20 @@ async def run_test():
     print("\U0001f4e2 Firing test WARN alert to Discord...")
     await HyperAlert.warn(
         title="\U0001f7e1 HyperAlert Routing Test",
-        message="If you see this in Discord, alert routing is \u2705 working!",
-        fields={
-            "source": "make alert-test",
-            "env": os.environ.get("ENVIRONMENT", "development"),
-            "timestamp": __import__("datetime").datetime.utcnow().isoformat(),
-        },
+        description="If you see this in Discord, alert routing is \u2705 working!",
+        fields=[
+            {"name": "source", "value": "make alert-test", "inline": True},
+            {
+                "name": "env",
+                "value": os.environ.get("ENVIRONMENT", "development"),
+                "inline": True,
+            },
+            {
+                "name": "timestamp",
+                "value": datetime.now(timezone.utc).isoformat(),
+                "inline": False,
+            },
+        ],
     )
     print("\u2705 Alert fired. Check your Discord #alerts channel.")
 

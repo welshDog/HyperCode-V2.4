@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus healer-rebuild oom-test alert-test oom-webhook-test
 
 # Default target
 help:
@@ -85,7 +85,7 @@ oom-test:
 	@echo "Wait ~30s for the next healer scan cycle. Check Discord!"
 
 alert-test:
-	docker exec healer-agent python -c "import asyncio; from agents.shared.hyper_alert import HyperAlert; asyncio.run(HyperAlert.warn('Alert Test', '🟡 If you see this, DISCORD_ALERTS_WEBHOOK_URL is wired correctly.', agent_name='healer-agent'))"
+	python scripts/alert_test.py
 
 oom-webhook-test:
 	docker exec healer-agent python -c "import asyncio; from agents.healer.adapters.discord_notifier import DiscordNotifier; n=DiscordNotifier(); asyncio.run(n.send_custom_alert('🧪 OOM Webhook Test', 'If you see this, DISCORD_OOM_WEBHOOK_URL is wired correctly.', color=0xFFAA00))"
