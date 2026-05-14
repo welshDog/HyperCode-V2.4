@@ -20,7 +20,7 @@ services:
       - GITHUB_PAT=${GITHUB_PAT}
       - ENVIRONMENT=${ENVIRONMENT:-development}
     volumes:
-      - ${OBSIDIAN_VAULT_PATH}:/vault
+      - ${OBSIDIAN_VAULT_PATH:-.}/vault:/vault
     networks:
       - agents-net
       - data-net
@@ -66,7 +66,7 @@ services:
       - GITHUB_PAT=${GITHUB_PAT}
       - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
     volumes:
-      - ${OBSIDIAN_VAULT_PATH}:/vault
+      - ${OBSIDIAN_VAULT_PATH:-.}/vault:/vault
     networks:
       - agents-net
     restart: unless-stopped
