@@ -257,6 +257,7 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  trivy-cache:
   ollama-data:
     driver: local
     driver_opts:

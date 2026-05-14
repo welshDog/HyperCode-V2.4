@@ -361,6 +361,309 @@ services:
     cap_drop:
       - ALL
 
+  hyperhealth-api:
+    profiles: ["health"]
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-api
+    container_name: hyperhealth-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8095:8090"
+    environment:
+      - PORT=8090
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+      - CREW_URL=http://crew-orchestrator:8080
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "hypercode.service=hyperhealth-api"
+      - "hypercode.role=health-orchestrator"
+
+  hyperhealth-worker:
+    profiles: ["health"]
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-worker
+    container_name: hyperhealth-worker
+    restart: unless-stopped
+    command: ["python", "-m", "worker"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - WORKER_CONCURRENCY=50
+      - CHECK_BATCH_SIZE=100
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    depends_on:
+      hyperhealth-api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - |
+          import redis, sys
+          r = redis.from_url('redis://redis:6379/0', socket_timeout=5)
+          val = r.get('hyperhealth:worker:heartbeat')
+          sys.exit(0 if val else 1)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "hypercode.service=hyperhealth-worker"
+      - "hypercode.role=check-executor"
+
+  hyper-architect:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/architect/Dockerfile
+    container_name: hyper-architect
+    hostname: hyper-architect
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      AGENT_NAME: lead-architect-01
+      AGENT_PORT: "8091"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "architect"
+      hypercode.version: "2.0"
+
+  hyper-observer:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/observer/Dockerfile
+    container_name: hyper-observer
+    hostname: hyper-observer
+    ports:
+      - "127.0.0.1:8092:8092"
+    environment:
+      AGENT_NAME: sys-observer-01
+      AGENT_PORT: "8092"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      OBSERVER_WINDOW_SIZE: "200"
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "observer"
+      hypercode.version: "2.0"
+
+  hyper-worker:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/worker/Dockerfile
+    container_name: hyper-worker
+    hostname: hyper-worker
+    ports:
+      - "127.0.0.1:8093:8093"
+    environment:
+      AGENT_NAME: task-worker-01
+      AGENT_PORT: "8093"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERFOCUS_MODE: "false"
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "worker"
+      hypercode.version: "2.0"
+
+  agent-x:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/agent-x/Dockerfile
+    container_name: agent-x
+    hostname: agent-x
+    ports:
+      - "127.0.0.1:8084:8080"
+    environment:
+      AGENT_NAME: agent-x-01
+      AGENT_PORT: "8080"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      OLLAMA_HOST: http://hypercode-ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}
+      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+      WORKSPACE_PATH: /workspace
+      HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
+      AGENTS_COMPOSE: /workspace/docker-compose.agents.yml
+      OBSERVER_URL: http://hyper-observer:8092
+      WORKER_URL: http://hyper-worker:8093
+      ARCHITECT_URL: http://hyper-architect:8091
+      AGENT_HEALTH_THRESHOLD: "60"
+      LLM_TIMEOUT_SECONDS: "120"
+    volumes:
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      hyper-architect:
+        condition: service_healthy
+      hyper-observer:
+        condition: service_healthy
+      hyper-worker:
+        condition: service_healthy
+      docker-socket-proxy-build:
+        condition: service_started
+
   # ====================================================================
   # GPU OLLAMA — replaces hypercode-ollama (core.yml) when --profile gpu
   # ====================================================================
