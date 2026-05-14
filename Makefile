@@ -63,20 +63,20 @@ build: pre-build-check network-init
 
 # Start full stack with secrets
 up:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+	docker compose -f docker-compose.yml up -d
 	@bash scripts/show-session.sh || true
 
 # Start agents profile
 agents:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents up -d
+	docker compose -f docker-compose.yml --profile agents up -d
 
 # Start hyper profile
 hyper:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile hyper up -d
+	docker compose -f docker-compose.yml --profile hyper up -d
 
 # Rebuild and restart healer-agent
 healer-rebuild:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile agents up -d --build healer-agent
+	docker compose -f docker-compose.yml --profile agents up -d --build healer-agent
 
 # Test OOM Discord alert (simulate via Redis)
 oom-test:
@@ -87,17 +87,20 @@ oom-test:
 alert-test:
 	docker exec healer-agent python -c "import asyncio; from agents.shared.hyper_alert import HyperAlert; asyncio.run(HyperAlert.warn('Alert Test', '🟡 If you see this, DISCORD_ALERTS_WEBHOOK_URL is wired correctly.', agent_name='healer-agent'))"
 
+oom-webhook-test:
+	docker exec healer-agent python -c "import asyncio; from agents.healer.adapters.discord_notifier import DiscordNotifier; n=DiscordNotifier(); asyncio.run(n.send_custom_alert('🧪 OOM Webhook Test', 'If you see this, DISCORD_OOM_WEBHOOK_URL is wired correctly.', color=0xFFAA00))"
+
 # Stop full stack
 down:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml down
+	docker compose -f docker-compose.yml down
 
 # Restart full stack
 restart:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml restart
+	docker compose -f docker-compose.yml restart
 
 # View logs (all services)
 logs:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml logs -f
+	docker compose -f docker-compose.yml logs -f
 
 # View specific agent logs
 logs-orchestrator:
