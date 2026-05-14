@@ -196,6 +196,32 @@ class BaseAgent:
             self.logger.info("agent_shutdown")
 
     def setup_routes(self):
+        async def _handle_task(request: TaskRequest) -> TaskResponse:
+            task_id = request.task_id or request.id or secrets.token_hex(8)
+            try:
+                task_text = request.task or request.description or ""
+                result = await self.process_task(
+                    task_text,
+                    request.context or {},
+                    request.requires_approval,
+                )
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="completed",
+                    result=result,
+                )
+            except Exception as e:
+                if self.logger:
+                    self.logger.error("task_failed", task_id=task_id, error=str(e))
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="error",
+                    result=None,
+                    error=str(e),
+                )
+
         @self.app.get("/")
         async def root():
             return {
@@ -215,27 +241,17 @@ class BaseAgent:
         
         @self.app.post("/task")
         async def execute_task(request: TaskRequest) -> TaskResponse:
-            task_id = request.task_id or request.id or secrets.token_hex(8)
-            try:
-                task_text = request.task or request.description or ""
-                result = await self.process_task(task_text, request.context or {})
-                return TaskResponse(
-                    task_id=task_id,
-                    agent=self.config.name,
-                    status="completed",
-                    result=result
-                )
-            except Exception as e:
-                if self.logger:
-                    self.logger.error("task_failed", task_id=task_id, error=str(e))
-                return TaskResponse(
-                    task_id=task_id,
-                    agent=self.config.name,
-                    status="error",
-                    result=None,
-                    error=str(e)
-                )
+            return await _handle_task(request)
 
-    async def process_task(self, task: str, context: Dict[str, Any]) -> Any:
+        @self.app.post("/execute")
+        async def execute(request: TaskRequest) -> TaskResponse:
+            return await _handle_task(request)
+
+    async def process_task(
+        self,
+        task: str,
+        context: Dict[str, Any],
+        requires_approval: bool = True,
+    ) -> Any:
         """Override in subclasses to implement agent-specific logic"""
         return {"message": f"Task received by {self.config.name}: {task}"}

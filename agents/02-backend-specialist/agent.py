@@ -7,6 +7,7 @@ import os
 # Allow imports from shared modules
 sys.path.append('/app')
 from base_agent import BaseAgent, AgentConfig
+import uvicorn
 
 class BackendSpecialist(BaseAgent):
     async def process_task(self, task: str, context: dict, requires_approval: bool):
@@ -136,4 +137,4 @@ async def get_user(user_id: str):
 if __name__ == "__main__":
     config = AgentConfig()
     agent = BackendSpecialist(config)
-    agent.run()
+    uvicorn.run(agent.app, host="0.0.0.0", port=config.port)
