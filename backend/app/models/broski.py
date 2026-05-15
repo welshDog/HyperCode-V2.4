@@ -115,3 +115,15 @@ class CourseSyncEvent(Base):
     tokens_awarded: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiscordIdempotencyKey(Base):
+    __tablename__ = "discord_idempotency_keys"
+    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_discord_idempotency_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    response_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
