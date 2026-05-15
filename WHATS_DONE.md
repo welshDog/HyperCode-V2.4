@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 15, 2026** — update this every session.
+> **Updated: May 16, 2026** — update this every session.
 
 ---
 
@@ -17,6 +17,25 @@
 ---
 
 ## ✅ BUILT AND WORKING
+
+### 🧠 May 15–16, 2026 — NemoClaw "Alive" + Server Guardian
+**NemoClaw autonomous code-health agent** (`agents/nemoclaw-agent/`, port 8099):
+- L1 Heartbeat ✅ — ruff + detect-secrets + AST scan, grade S/A/B/C/D, `/scan` `/history` `/health`, secret-leak guard (no values surfaced)
+- L2 Memory ✅ — scans persisted to `code_health_scans` (migration 012), `/health-history` delta embed
+- L3 Voice ✅ — 24h pulse, auto-posts to `CODE_HEALTH_CHANNEL_ID` only on grade/score move (`codehealth.pulse` One Door action)
+- L3.5 Focus loop ✅ PROVEN — `/focus start` baseline → `/focus stop` delta → BROski$ reward (migration 013 `focus_sessions`, reward formula locked, ADHD-kind no-penalty)
+- Mission tie-in ✅ — `/missions` + `/missions-claim` verify a qualifying focus session (migration 014 `daily_mission_claims`)
+- TODO: L4 auto-PR · L5 healer↔code correlation · L6 LLM triage
+
+**Server Guardian** (autonomous Discord manager — bot=UI, Core=brain, no Supabase):
+- P1 Reactive ✅ LIVE — auto-role on join + `/hyperfocus_setup` (idempotent layout build)
+- P2 Digest ✅ LIVE — weekly DM to Lyndz, Core aggregates last-7d from Postgres (`digest.weekly`)
+- P3a Auto-mod ✅ BUILT (smoke pending) — structural spam detect (rate/dup/mention) + opt-in `MOD_BLOCKLIST` → reversible timeout, audited to `mod_actions` (migration 015), staff-exempt, fail-safe; digest "incidents" now reads real counts
+- P3b TODO — raid auto-lockdown
+- P3c TODO — **veto-gated ban/kick: NEEDS Lyndz sign-off on triggers + veto delay BEFORE build. NEVER fully autonomous.**
+
+**Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**.
+**Active bot cogs** (`cogs/bot.py`): welcome, economy, leaderboard, ai, focus, missions, health_check, health_history, codehealth_voice, server_builder, digest, moderation. `main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`. ~20 more cogs unwired in `src/cogs/`.
 
 ### 🔥 May 15, 2026 — Discord “One Brain” Lock-In
 - **Option A enforced:** `broski-bot` calls Core only — no Supabase in bot ✅
@@ -189,7 +208,7 @@
 Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
-Tests:            pytest backend/tests -q  (241 passed, 6 skipped)
+Tests:            pytest backend/tests -q  (241 last-verified; RE-RUN pending after NemoClaw+Guardian)
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt
@@ -202,6 +221,9 @@ Pre-build check:  make build → auto-runs pre-build-check.sh
 make focus:       stops 14 non-essential containers + 25-min timer
 make calm:        restores all + awards 75 BROski$
 broski-pets:      health → http://localhost:8098/health
+nemoclaw-agent:   health → http://localhost:8099/health  (profile: nemoclaw)
+launch bot:       .\scripts\launch-bot.ps1  (preflight → up)
+Guardian P3c:     ban/kick NEVER autonomous — veto-gated, needs Lyndz sign-off
 Course path:      H:\Hyper-Vibe-Coding-Course
 Course dev:       npm run dev:frontend
 Brain repo:       H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
