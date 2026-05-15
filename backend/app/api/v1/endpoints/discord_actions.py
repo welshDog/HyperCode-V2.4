@@ -44,6 +44,7 @@ class DiscordActionRequest(BaseModel):
         "focus.stats",
         "missions.today",
         "missions.claim",
+        "codehealth.pulse",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -200,6 +201,101 @@ def _nemoclaw_scan(*, targets: list[str] | None = None) -> dict[str, Any] | None
         return None
 
 
+def _nemoclaw_history(*, limit: int = 2) -> list[dict[str, Any]]:
+    api_key = (settings.API_KEY or "").strip()
+    if not api_key:
+        return []
+    url = str(settings.NEMOCLAW_URL).rstrip("/")
+    timeout = float(settings.NEMOCLAW_TIMEOUT_SECONDS)
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.get(
+                f"{url}/history",
+                params={"limit": limit},
+                headers={"X-API-Key": api_key},
+            )
+        if resp.status_code != 200:
+            return []
+        data = resp.json()
+        scans = data.get("scans")
+        return scans if isinstance(scans, list) else []
+    except Exception:
+        return []
+
+
+def _pulse_decision(
+    *,
+    current: dict[str, Any],
+    prior: dict[str, Any] | None,
+    threshold: int,
+) -> tuple[bool, str]:
+    """Decide whether a code-health pulse is worth announcing."""
+    if prior is None:
+        return True, "baseline"
+    cur_grade = str(current.get("grade") or "").upper()
+    pri_grade = str(prior.get("grade") or "").upper()
+    cur_score = _safe_int(current.get("score"))
+    pri_score = _safe_int(prior.get("score"))
+
+    if cur_grade != pri_grade:
+        return True, "grade_up" if _grade_rank(cur_grade) > _grade_rank(pri_grade) else "grade_down"
+    if abs(cur_score - pri_score) >= threshold:
+        return True, "score_up" if cur_score > pri_score else "score_down"
+    return False, "no_change"
+
+
+def _render_pulse_embed(
+    *,
+    current: dict[str, Any],
+    prior: dict[str, Any] | None,
+    reason: str,
+) -> dict[str, Any]:
+    grade = str(current.get("grade") or "?").upper()
+    score = _safe_int(current.get("score"))
+    counts = current.get("counts") or {}
+    files = _safe_int(current.get("total_files"))
+
+    titles = {
+        "baseline": ("🧠 NemoClaw baseline established", "#5865F2"),
+        "grade_up": (f"📈 Code health climbing — Grade {grade}!", "#2ECC71"),
+        "grade_down": (f"📉 Code health slipped — Grade {grade}", "#E67E22"),
+        "score_up": (f"📈 Score up — Grade {grade} ({score}/100)", "#2ECC71"),
+        "score_down": (f"📉 Score dipped — Grade {grade} ({score}/100)", "#E67E22"),
+        "no_change": (f"🟰 Code health holding — Grade {grade}", "#5865F2"),
+    }
+    title, color = titles.get(reason, (f"🧠 Code health — Grade {grade}", "#5865F2"))
+
+    if prior is not None:
+        ps = _safe_int(prior.get("score"))
+        pg = str(prior.get("grade") or "?").upper()
+        delta = score - ps
+        sign = f"+{delta}" if delta > 0 else str(delta)
+        movement = f"{pg} {ps} → **{grade} {score}** ({sign})"
+    else:
+        movement = f"**{grade} {score}/100**"
+
+    return {
+        "type": "embed",
+        "title": title,
+        "description": movement,
+        "color": color,
+        "fields": [
+            {
+                "name": "Issue counts",
+                "value": (
+                    f"🆘 {counts.get('critical', 0)}  ·  "
+                    f"⚠️ {counts.get('high', 0)}  ·  "
+                    f"📌 {counts.get('medium', 0)}  ·  "
+                    f"💡 {counts.get('low', 0)}"
+                ),
+                "inline": False,
+            },
+            {"name": "Files scanned", "value": str(files), "inline": True},
+        ],
+        "footer": "NemoClaw • autonomous pulse • chase the S 🏆",
+    }
+
+
 def _baseline_scan_task(*, session_id: int) -> None:
     scan = _nemoclaw_scan()
     if not scan:
@@ -322,6 +418,52 @@ def discord_actions(
         return JSONResponse(status_code=409, content=cached)
 
     discord_id = req.discord.user_id
+
+    # ── codehealth.pulse (system action — no user lookup) ────────────────────
+    if req.action == "codehealth.pulse":
+        scan = _nemoclaw_scan()
+        if not scan:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"should_post": False, "reason": "scan_unavailable"},
+                "render": _render_info_embed(
+                    title="⚠️ NemoClaw scan unavailable",
+                    description="Pulse skipped — agent offline or busy.",
+                    color="#FEE75C",
+                ),
+            }
+        else:
+            history = _nemoclaw_history(limit=2)
+            # history[0] is the scan we just ran; history[1] is the prior one
+            prior = history[1] if len(history) >= 2 else None
+            threshold = int(settings.CODE_HEALTH_PULSE_THRESHOLD)
+            should_post, reason = _pulse_decision(
+                current=scan, prior=prior, threshold=threshold
+            )
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "should_post": should_post,
+                    "reason": reason,
+                    "scan_id": scan.get("scan_id"),
+                    "grade": scan.get("grade"),
+                    "score": scan.get("score"),
+                },
+                "render": _render_pulse_embed(
+                    current=scan, prior=prior, reason=reason
+                ),
+            }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
 
     # ── member.join ──────────────────────────────────────────────────────────
     if req.action == "member.join":

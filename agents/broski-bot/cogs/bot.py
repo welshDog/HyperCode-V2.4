@@ -48,6 +48,7 @@ COGS = [
     "cogs.missions",
     "cogs.health_check",
     "cogs.health_history",
+    "cogs.codehealth_voice",
 ]
 
 

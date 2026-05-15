@@ -78,6 +78,10 @@ class Settings(BaseSettings):
 
     FOCUS_MIN_MINUTES: int = 5
 
+    # Layer 3 Voice — auto-post a code-health pulse only when the grade changes
+    # or the score moves by at least this many points.
+    CODE_HEALTH_PULSE_THRESHOLD: int = 5
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.

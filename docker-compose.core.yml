@@ -274,6 +274,8 @@ services:
     environment:
       HYPERCODE_API_URL: http://hypercode-core:8000
       NEMOCLAW_URL: http://nemoclaw-agent:8099
+      NEMOCLAW_PULSE_HOURS: ${NEMOCLAW_PULSE_HOURS:-24}
+      CODE_HEALTH_CHANNEL_ID: ${CODE_HEALTH_CHANNEL_ID:-}
     env_file:
       - ./agents/broski-bot/.env
     depends_on:
