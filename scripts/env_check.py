@@ -212,9 +212,32 @@ def main(argv: list[str]) -> int:
         else:
             bot_keys = parse_env_keys(bot_env)
             example_keys = parse_env_keys(bot_env_example)
+
+            docker_mode = secrets_enabled(compose_paths)
             missing = sorted(example_keys - bot_keys)
-            if secrets_enabled(compose_paths):
-                missing = [k for k in missing if k != "DISCORD_TOKEN"]
+
+            if docker_mode:
+                skip = {
+                    "DISCORD_TOKEN",
+                    "DB_PASSWORD",
+                    "DB_HOST",
+                    "DB_PORT",
+                    "DB_NAME",
+                    "DB_USER",
+                    "REDIS_URL",
+                    "HYPERCODE_CORE_URL",
+                    "WORKSPACE_PATH",
+                    "DISCORD_COMMAND_PREFIX",
+                    "DISCORD_GUILD_ID",
+                }
+                missing = [k for k in missing if k not in skip]
+
+                if "DISCORD_GUILD_ID" not in bot_keys:
+                    warnings.append("missing_broski_bot_env_key:DISCORD_GUILD_ID")
+            else:
+                if "DISCORD_TOKEN" not in bot_keys:
+                    errors.append("missing_broski_bot_env_key:DISCORD_TOKEN")
+
             for k in missing:
                 errors.append(f"missing_broski_bot_env_key:{k}")
 
@@ -249,4 +272,3 @@ def main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
-

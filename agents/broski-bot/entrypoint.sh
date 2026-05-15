@@ -27,8 +27,14 @@ load_secret DISCORD_TOKEN     discord_token     true
 load_secret PERPLEXITY_API_KEY perplexity_api_key false
 load_secret OPENAI_API_KEY    openai_api_key    false
 
-# Mirror POSTGRES_PASSWORD into DB_PASSWORD + rebuild DATABASE_URL
+# Mirror POSTGRES_PASSWORD into DB_PASSWORD
 export DB_PASSWORD="${POSTGRES_PASSWORD}"
-export DATABASE_URL="postgresql+asyncpg://postgres:${POSTGRES_PASSWORD}@postgres:5432/broski"
+
+export DB_HOST="${DB_HOST:-postgres}"
+export DB_PORT="${DB_PORT:-5432}"
+export DB_NAME="${DB_NAME:-broski}"
+export DB_USER="${DB_USER:-postgres}"
+
+export REDIS_URL="${REDIS_URL:-redis://redis:6379/0}"
 
 exec python /app/src/main.py run
