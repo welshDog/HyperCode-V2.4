@@ -18,4 +18,5 @@ RUN mkdir -p /opt/hypercode/data/broski-bot/db \
 
 USER broski
 
+# Run the cog bot (Option A — Core-only, no Supabase)
 CMD ["python", "-u", "-m", "cogs.bot"]

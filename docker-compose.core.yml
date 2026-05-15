@@ -275,6 +275,9 @@ services:
       HYPERCODE_API_URL: http://hypercode-core:8000
     env_file:
       - ./agents/broski-bot/.env
+    environment:
+      # Core URL injected here so bot always reaches Core inside Docker network
+      HYPERCODE_API_URL: http://hypercode-core:8000
     depends_on:
       redis:
         condition: service_healthy
@@ -290,7 +293,7 @@ services:
       - broski-bot-logs:/opt/hypercode/data/broski-bot/logs
       - broski-bot-backups:/opt/hypercode/data/broski-bot/backups
     healthcheck:
-      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/main.py') else 1)"]
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cogs/bot.py') else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
