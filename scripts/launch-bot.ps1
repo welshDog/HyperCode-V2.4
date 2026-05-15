@@ -1,6 +1,6 @@
 <#
   launch-bot.ps1 — broski-bot one-shot launch
-  preflight (env_check) -> migrate -> up -d
+  preflight (env_check) -> up -d
   Fail-fast on any non-zero exit. No secrets printed.
 
   Usage:
@@ -46,16 +46,10 @@ if (-not $NoPreflight) {
   Write-Host "⚠️  Skipping preflight (NoPreflight set)" -ForegroundColor Yellow
 }
 
-# 2. Migrate
+# 2. Up
 if (-not $SkipMigrate) {
-  Step '🧱' 'Migrate — broski-bot Alembic upgrade head'
-  docker compose @ComposeArgs run --rm broski-bot migrate
-  if ($LASTEXITCODE -ne 0) { Fail 'migrate failed — check broski-bot logs' $LASTEXITCODE }
-} else {
-  Write-Host "⚠️  Skipping migrate (SkipMigrate set)" -ForegroundColor Yellow
+  Write-Host "⚠️  SkipMigrate is ignored (broski-bot has no migrate command)" -ForegroundColor Yellow
 }
-
-# 3. Up
 Step '🚀' 'Launch — docker compose up -d (discord profile)'
 docker compose @ComposeArgs up -d
 if ($LASTEXITCODE -ne 0) { Fail 'compose up failed — check docker logs' $LASTEXITCODE }

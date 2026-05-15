@@ -225,7 +225,7 @@ def main(argv: list[str]) -> int:
                     "DB_NAME",
                     "DB_USER",
                     "REDIS_URL",
-                    "HYPERCODE_CORE_URL",
+                    "HYPERCODE_API_URL",
                     "WORKSPACE_PATH",
                     "DISCORD_COMMAND_PREFIX",
                     "DISCORD_GUILD_ID",
