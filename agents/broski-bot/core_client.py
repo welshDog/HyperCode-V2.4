@@ -13,7 +13,6 @@ import discord
 from typing import Any
 
 CORE_URL     = os.getenv("HYPERCODE_API_URL", "http://localhost:8000")
-BOT_API_KEY  = os.getenv("BOT_API_KEY", "")          # set in .env / secrets
 TIMEOUT      = 8.0                                     # seconds
 
 
@@ -25,6 +24,21 @@ class CoreError(Exception):
         self.retryable = retryable
         super().__init__(message)
 
+def _read_secret_file(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+def _bot_api_key() -> str:
+    return (
+        os.getenv("BOT_API_KEY")
+        or _read_secret_file(os.getenv("BOT_API_KEY_FILE", "/run/secrets/api_key"))
+        or _read_secret_file(os.getenv("API_KEY_FILE", ""))
+    )
+
 
 class CoreClient:
     """
@@ -33,11 +47,12 @@ class CoreClient:
     """
 
     def __init__(self):
+        api_key = _bot_api_key()
         self._client = httpx.AsyncClient(
             base_url=CORE_URL,
             timeout=TIMEOUT,
             headers={
-                "Authorization": f"Bearer {BOT_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type":  "application/json",
             },
         )

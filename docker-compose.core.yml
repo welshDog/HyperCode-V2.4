@@ -275,9 +275,6 @@ services:
       HYPERCODE_API_URL: http://hypercode-core:8000
     env_file:
       - ./agents/broski-bot/.env
-    environment:
-      # Core URL injected here so bot always reaches Core inside Docker network
-      HYPERCODE_API_URL: http://hypercode-core:8000
     depends_on:
       redis:
         condition: service_healthy
