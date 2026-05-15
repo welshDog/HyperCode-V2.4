@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     # or the score moves by at least this many points.
     CODE_HEALTH_PULSE_THRESHOLD: int = 5
 
+    # Server Guardian Phase 3a — reversible auto-mod only (never ban/kick here).
+    MOD_DEFAULT_TIMEOUT_SECONDS: int = 600
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.

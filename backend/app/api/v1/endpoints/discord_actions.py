@@ -22,6 +22,7 @@ from app.models.broski import (
     DailyMissionClaim,
     DiscordIdempotencyKey,
     FocusSession,
+    ModAction,
     TransactionType,
 )
 from app.services import broski_service
@@ -54,6 +55,7 @@ class DiscordActionRequest(BaseModel):
         "missions.claim",
         "codehealth.pulse",
         "digest.weekly",
+        "mod.assess",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -373,6 +375,22 @@ def _build_weekly_digest(*, db: Session, guild_member_count: int | None) -> dict
     )
     total_linked = db.query(BROskiWallet).count()
 
+    # ── Moderation incidents (7d) ──
+    mod_rows = (
+        db.query(ModAction)
+        .filter(ModAction.created_at >= week_ago)
+        .all()
+    )
+    incidents_total = len(mod_rows)
+    if incidents_total:
+        by_type: dict[str, int] = {}
+        for m in mod_rows:
+            by_type[m.action_type] = by_type.get(m.action_type, 0) + 1
+        breakdown = " · ".join(f"{k}: **{v}**" for k, v in sorted(by_type.items()))
+        incidents_value = f"**{incidents_total}** handled — {breakdown}"
+    else:
+        incidents_value = "**0** — all calm 🟢"
+
     # ── Code health trend (NemoClaw) ──
     history = _nemoclaw_history(limit=7)
     if history:
@@ -427,7 +445,7 @@ def _build_weekly_digest(*, db: Session, guild_member_count: int | None) -> dict
         },
         {
             "name": "🛡️ Incidents (7d)",
-            "value": "**0** — all calm. _(moderation lands in Phase 3)_",
+            "value": incidents_value,
             "inline": False,
         },
     ]
@@ -626,6 +644,92 @@ def discord_actions(
             "data": {"generated_at": datetime.now(timezone.utc).isoformat()},
             "render": render,
         }
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    # ── mod.assess (system action — Phase 3a, reversible only) ───────────────
+    if req.action == "mod.assess":
+        kind = str(req.payload.get("kind") or "").strip()
+        target_id = str(req.payload.get("target_discord_id") or "").strip()
+        target_name = str(req.payload.get("target_username") or "")[:128] or None
+        evidence = req.payload.get("evidence")
+        if not isinstance(evidence, dict):
+            evidence = {}
+
+        if kind not in {"spam", "blocklist"}:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"directive": "none", "reason": "unknown_kind"},
+                "render": _render_info_embed(
+                    title="🛡️ No action",
+                    description="Unrecognised moderation kind.",
+                    color="#FEE75C",
+                ),
+            }
+        elif not target_id:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"directive": "none", "reason": "no_target"},
+                "render": _render_info_embed(
+                    title="🛡️ No action",
+                    description="No target supplied.",
+                    color="#FEE75C",
+                ),
+            }
+        else:
+            # Phase 3a caps at a reversible timeout + message delete.
+            # Ban/kick (severe) is deliberately NOT producible here — Phase 3c.
+            severity = "medium"
+            timeout_seconds = int(settings.MOD_DEFAULT_TIMEOUT_SECONDS)
+            reason = (
+                "Spam burst auto-handled"
+                if kind == "spam"
+                else "Blocklisted content auto-handled"
+            )
+
+            row = ModAction(
+                action_type="timeout",
+                target_discord_id=target_id,
+                target_username=target_name,
+                severity=severity,
+                reason=reason,
+                evidence={"kind": kind, **evidence},
+                status="auto_done",
+                resolved_at=datetime.now(timezone.utc),
+            )
+            db.add(row)
+            db.commit()
+            db.refresh(row)
+
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "directive": "timeout",
+                    "timeout_seconds": timeout_seconds,
+                    "delete_message": True,
+                    "severity": severity,
+                    "reason": reason,
+                    "mod_action_id": row.id,
+                },
+                "render": _render_info_embed(
+                    title="🛡️ Auto-mod applied",
+                    description=(
+                        f"<@{target_id}> · {reason}\n"
+                        f"Timeout: {timeout_seconds // 60} min · message removed"
+                    ),
+                    color="#E67E22",
+                ),
+            }
+
         _idempotency_store(
             idempotency_key=idempotency_key,
             request_hash=request_hash,

@@ -168,6 +168,27 @@ class FocusSession(Base):
     coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
+class ModAction(Base):
+    """Server Guardian moderation audit log. Feeds the weekly digest.
+
+    Phase 3a writes status='auto_done' (reversible actions only).
+    Phase 3c will use status='pending_veto' → 'executed'/'vetoed' for ban/kick.
+    """
+    __tablename__ = "mod_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    action_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    target_discord_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    target_username: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    severity: Mapped[str] = mapped_column(String(8), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    evidence: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="auto_done", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    executes_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class DailyMissionClaim(Base):
     __tablename__ = "daily_mission_claims"
     __table_args__ = (

@@ -51,6 +51,7 @@ COGS = [
     "cogs.codehealth_voice",
     "cogs.server_builder",
     "cogs.digest",
+    "cogs.moderation",
 ]
 
 
