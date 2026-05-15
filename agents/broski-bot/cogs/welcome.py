@@ -1,67 +1,47 @@
 """
-BROski Bot — Welcome Cog
-Fires on member join → upserts broski_members → sends embed
+BROski Bot — Welcome Cog (Section 5 — One Door)
+on_member_join → CoreClient → POST /api/v1/discord/actions {action:"member.join"}
+Core registers the member. Bot renders the welcome embed.
 """
 import discord
 from discord.ext import commands
-from datetime import datetime, timezone
+from core_client import CoreClient, render_to_embed, fallback_embed, CoreError
 import os
-from supabase import create_client, Client
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 WELCOME_CHANNEL_NAME = os.getenv("WELCOME_CHANNEL_NAME", "welcome")
-
-def get_supabase() -> Client:
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 class Welcome(commands.Cog):
-    """Handles member join events and welcome messages."""
+    """Member join handler — wired to One Door."""
 
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot, core: CoreClient):
+        self.bot  = bot
+        self.core = core
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Upsert member into broski_members and send welcome embed."""
-        sb = get_supabase()
-        sb.table("broski_members").upsert({
-            "discord_id": str(member.id),
-            "username": member.name,
-            "joined_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }, on_conflict="discord_id").execute()
+        ctx = {
+            "user_id":        str(member.id),
+            "username":       member.name,
+            "guild_id":       str(member.guild.id),
+            "channel_id":     None,
+            "interaction_id": f"join_{member.id}_{member.guild.id}",
+        }
+        try:
+            resp  = await self.core.action("member.join", ctx)
+            embed = render_to_embed(resp["render"])
+        except CoreError as e:
+            # Fallback: still welcome them even if Core is down
+            embed = discord.Embed(
+                title=f"⚡ Welcome, {member.display_name}!",
+                description="You're in the HyperFocus Zone! Use `/daily` to get started. 🔥",
+                colour=discord.Colour.purple(),
+            )
 
         channel = discord.utils.get(member.guild.text_channels, name=WELCOME_CHANNEL_NAME)
-        if not channel:
-            return
-
-        embed = discord.Embed(
-            title=f"⚡ Welcome to the HyperFocus Zone, {member.display_name}!",
-            description=(
-                "You're now part of the most **neurodivergent-powered** community on Discord.\n\n"
-                "🧠 **What's here for you:**\n"
-                "• `/daily` — claim your daily BROski$ tokens\n"
-                "• `/quests` — pick up missions and earn XP\n"
-                "• `/balance` — check your BROski$ wallet\n"
-                "• `/mypet` — meet your BROskiPet companion\n\n"
-                "You belong here. Let's build something legendary. 🔥"
-            ),
-            colour=discord.Colour.purple(),
-            timestamp=datetime.now(timezone.utc),
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text="BROski Bot • HyperFocus Zone")
-        embed.add_field(name="💰 Starting Balance", value="0 BROski$", inline=True)
-        embed.add_field(name="🎯 First Move", value="Try `/daily` right now!", inline=True)
-
-        await channel.send(embed=embed)
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print(f"[Welcome Cog] ✅ Ready — listening for member joins")
+        if channel:
+            await channel.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Welcome(bot))
+    await bot.add_cog(Welcome(bot, bot.core_client))
