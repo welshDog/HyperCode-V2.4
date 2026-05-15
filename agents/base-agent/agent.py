@@ -204,6 +204,11 @@ class BaseAgent:
             task_id = request.task_id or request.id or secrets.token_hex(8)
             try:
                 task_text = request.task or request.description or ""
+                if not task_text.strip():
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Field required: task (or description)",
+                    )
                 result = await self.process_task(
                     task_text,
                     request.context or {},
@@ -215,6 +220,8 @@ class BaseAgent:
                     status="completed",
                     result=result,
                 )
+            except HTTPException:
+                raise
             except Exception as e:
                 if self.logger:
                     self.logger.error("task_failed", task_id=task_id, error=str(e))

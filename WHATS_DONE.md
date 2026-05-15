@@ -189,7 +189,7 @@
 Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
-Tests:            pytest backend/tests -q  (239 passed, 2 failed, 6 skipped)
+Tests:            pytest backend/tests -q  (241 passed, 6 skipped)
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt

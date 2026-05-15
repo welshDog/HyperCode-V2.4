@@ -219,7 +219,7 @@ def main(argv: list[str]) -> int:
             if docker_mode:
                 skip = {
                     "DISCORD_TOKEN",
-                    "DB_PASSWORD",
+                    "POSTGRES_PASSWORD",
                     "DB_HOST",
                     "DB_PORT",
                     "DB_NAME",

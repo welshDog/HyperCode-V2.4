@@ -114,13 +114,15 @@ services:
         responses={
             ("docker", "ps", "--format", "{{.Names}}"): CommandResult(returncode=0, stdout="", stderr=""),
             ("docker", "ps", "-a", "--format", "{{.Names}}"): CommandResult(returncode=0, stdout="", stderr=""),
-            ("docker", "compose", "--profile", "agents", "up", "-d", "coder-agent"): CommandResult(returncode=0, stdout="", stderr=""),
+            ("docker", "compose", "-f", str(compose), "--profile", "agents", "up", "-d", "coder-agent"): CommandResult(
+                returncode=0, stdout="", stderr=""
+            ),
         },
         calls=[],
     )
     spawner = AgentSpawner(repo_root=tmp_path, compose_file=compose, runner=runner)
     assert spawner.ensure_running("coder-agent") == "spawned"
-    assert ("docker", "compose", "--profile", "agents", "up", "-d", "coder-agent") in runner.calls
+    assert ("docker", "compose", "-f", str(compose), "--profile", "agents", "up", "-d", "coder-agent") in runner.calls
 
 
 @pytest.mark.e2e
@@ -137,4 +139,3 @@ def test_spawn_agent_script_lists_agents() -> None:
     )
     assert completed.returncode == 0, completed.stderr
     assert "coder-agent" in completed.stdout.splitlines()
-
