@@ -254,6 +254,22 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  discord-bot:
+    profiles: ["discord"]
+    build:
+      context: ./discord-bot
+      dockerfile: Dockerfile
+    env_file:
+      - ./discord-bot/.env
+    restart: unless-stopped
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agents-net
+
 volumes:
   redis-data:
   postgres-data:
