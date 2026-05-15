@@ -9,12 +9,13 @@ import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db
 from app.models import models
-from app.models.broski import BROskiWallet, DiscordIdempotencyKey, FocusSession
+from app.models.broski import BROskiWallet, DailyMissionClaim, DiscordIdempotencyKey, FocusSession
 from app.services import broski_service
 
 router = APIRouter()
@@ -41,6 +42,8 @@ class DiscordActionRequest(BaseModel):
         "focus.start",
         "focus.stop",
         "focus.stats",
+        "missions.today",
+        "missions.claim",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -760,6 +763,257 @@ def discord_actions(
                     color="#9B59B6",
                 ),
             }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "missions.today":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="🔗 Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            mission_date = datetime.now(timezone.utc).date()
+            day_start = datetime(
+                mission_date.year,
+                mission_date.month,
+                mission_date.day,
+                tzinfo=timezone.utc,
+            )
+            day_end = day_start + timedelta(days=1)
+            min_minutes = int(settings.FOCUS_MIN_MINUTES)
+
+            qualifying = (
+                db.query(FocusSession)
+                .filter(
+                    FocusSession.user_id == user.id,
+                    FocusSession.ended_at.isnot(None),
+                    FocusSession.ended_at >= day_start,
+                    FocusSession.ended_at < day_end,
+                    FocusSession.minutes >= min_minutes,
+                )
+                .order_by(FocusSession.ended_at.desc())
+                .first()
+            )
+
+            claim = (
+                db.query(DailyMissionClaim)
+                .filter(
+                    DailyMissionClaim.user_id == user.id,
+                    DailyMissionClaim.mission_date == mission_date,
+                    DailyMissionClaim.mission_slug == "focus_block",
+                )
+                .first()
+            )
+
+            claimed = bool(claim and claim.awarded)
+            claimable = bool(qualifying and not claimed)
+            reward = 50
+            status = "✅ Claimable" if claimable else ("🏁 Claimed" if claimed else "⏳ Not yet")
+
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "date": str(mission_date),
+                    "focus_block": {
+                        "slug": "focus_block",
+                        "reward_coins": reward,
+                        "qualifying": bool(qualifying),
+                        "claimable": claimable,
+                        "claimed": claimed,
+                    },
+                },
+                "render": {
+                    "type": "embed",
+                    "title": "📋 Missions — Today",
+                    "description": f"Focus Block: {status}",
+                    "color": "#F39C12",
+                    "fields": [
+                        {
+                            "name": "🎯 Focus Block",
+                            "value": f"Do ≥ {min_minutes} min focus today.\nReward: **{reward}** BROski$",
+                            "inline": False,
+                        }
+                    ],
+                    "footer": "BROski Bot • HyperCode Core",
+                },
+            }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "missions.claim":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        slug = str(req.payload.get("slug") or "").strip()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="🔗 Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
+                ),
+            }
+        elif slug != "focus_block":
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"awarded": False, "reason": "invalid_slug"},
+                "render": _render_info_embed(
+                    title="❌ Unknown mission",
+                    description="Only 'focus_block' is supported right now.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            mission_date = datetime.now(timezone.utc).date()
+            day_start = datetime(
+                mission_date.year,
+                mission_date.month,
+                mission_date.day,
+                tzinfo=timezone.utc,
+            )
+            day_end = day_start + timedelta(days=1)
+            min_minutes = int(settings.FOCUS_MIN_MINUTES)
+            reward = 50
+
+            qualifying = (
+                db.query(FocusSession)
+                .filter(
+                    FocusSession.user_id == user.id,
+                    FocusSession.ended_at.isnot(None),
+                    FocusSession.ended_at >= day_start,
+                    FocusSession.ended_at < day_end,
+                    FocusSession.minutes >= min_minutes,
+                )
+                .order_by(FocusSession.ended_at.desc())
+                .first()
+            )
+
+            existing = (
+                db.query(DailyMissionClaim)
+                .filter(
+                    DailyMissionClaim.user_id == user.id,
+                    DailyMissionClaim.mission_date == mission_date,
+                    DailyMissionClaim.mission_slug == "focus_block",
+                )
+                .with_for_update()
+                .first()
+            )
+
+            if existing and existing.awarded:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"awarded": False, "already_claimed": True},
+                    "render": _render_info_embed(
+                        title="🏁 Already claimed",
+                        description="You already claimed Focus Block today.",
+                        color="#57F287",
+                    ),
+                }
+            elif not qualifying:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"awarded": False, "eligible": False},
+                    "render": _render_info_embed(
+                        title="⏳ Not eligible yet",
+                        description=f"Complete a focus session of ≥ {min_minutes} minutes today first.",
+                        color="#FEE75C",
+                    ),
+                }
+            else:
+                if not existing:
+                    existing = DailyMissionClaim(
+                        user_id=user.id,
+                        mission_date=mission_date,
+                        mission_slug="focus_block",
+                        awarded=False,
+                        coins_awarded=0,
+                        focus_session_id=qualifying.id,
+                    )
+                    db.add(existing)
+                    try:
+                        db.commit()
+                        db.refresh(existing)
+                    except IntegrityError:
+                        db.rollback()
+                        existing = (
+                            db.query(DailyMissionClaim)
+                            .filter(
+                                DailyMissionClaim.user_id == user.id,
+                                DailyMissionClaim.mission_date == mission_date,
+                                DailyMissionClaim.mission_slug == "focus_block",
+                            )
+                            .first()
+                        )
+
+                awarded = False
+                coins_awarded = 0
+                if existing and not existing.awarded:
+                    _ = broski_service.award_coins(
+                        user_id=user.id,
+                        amount=reward,
+                        reason="Daily mission: Focus Block",
+                        db=db,
+                        meta={
+                            "source": "mission",
+                            "slug": "focus_block",
+                            "date": str(mission_date),
+                            "focus_session_id": qualifying.id,
+                        },
+                    )
+                    existing.awarded = True
+                    existing.coins_awarded = reward
+                    existing.focus_session_id = qualifying.id
+                    db.commit()
+                    awarded = True
+                    coins_awarded = reward
+
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {
+                        "awarded": awarded,
+                        "coins_awarded": coins_awarded,
+                        "mission_slug": "focus_block",
+                    },
+                    "render": _render_info_embed(
+                        title="🏆 Mission complete!",
+                        description=f"+{coins_awarded} BROski$",
+                        color="#57F287",
+                    )
+                    if awarded
+                    else _render_info_embed(
+                        title="🏁 Already claimed",
+                        description="You already claimed Focus Block today.",
+                        color="#57F287",
+                    ),
+                }
 
         _idempotency_store(
             idempotency_key=idempotency_key,

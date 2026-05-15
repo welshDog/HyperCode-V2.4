@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -165,3 +166,24 @@ class FocusSession(Base):
     delta_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     delta_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class DailyMissionClaim(Base):
+    __tablename__ = "daily_mission_claims"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "mission_date",
+            "mission_slug",
+            name="uq_daily_mission_claim_user_date_slug",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    mission_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    mission_slug: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    awarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    focus_session_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

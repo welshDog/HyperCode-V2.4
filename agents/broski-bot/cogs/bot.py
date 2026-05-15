@@ -45,6 +45,7 @@ COGS = [
     "cogs.leaderboard",
     "cogs.ai",
     "cogs.focus",
+    "cogs.missions",
     "cogs.health_check",
     "cogs.health_history",
 ]

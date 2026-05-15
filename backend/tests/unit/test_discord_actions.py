@@ -507,3 +507,167 @@ def test_focus_stop_idempotent_by_idempotency_key(client, db, monkeypatch):
     second = client.post("/api/v1/discord/actions", headers=headers, json=stop)
     assert second.status_code == 409
     assert second.json() == first.json()
+
+
+def test_missions_today_not_claimable_without_qualifying_focus(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="m1@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    body = {"action": "missions.today", "discord": _discord_ctx(), "payload": {}}
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:mt1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["focus_block"]["claimable"] is False
+
+
+def test_missions_today_claimable_with_qualifying_focus(client, db, monkeypatch):
+    from datetime import datetime, timezone
+
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="m2@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    from app.models.broski import FocusSession
+
+    s = FocusSession(
+        user_id=user.id,
+        discord_id="u1",
+        started_at=datetime.now(timezone.utc),
+        ended_at=datetime.now(timezone.utc),
+        minutes=int(settings.FOCUS_MIN_MINUTES),
+        baseline_ready=False,
+        delta_available=False,
+        coins_awarded=0,
+    )
+    db.add(s)
+    db.commit()
+
+    body = {"action": "missions.today", "discord": _discord_ctx(), "payload": {}}
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:mt2",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["focus_block"]["claimable"] is True
+
+
+def test_missions_claim_awards_once(client, db, monkeypatch):
+    from datetime import datetime, timezone
+
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="m3@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    from app.models.broski import FocusSession
+
+    s = FocusSession(
+        user_id=user.id,
+        discord_id="u1",
+        started_at=datetime.now(timezone.utc),
+        ended_at=datetime.now(timezone.utc),
+        minutes=int(settings.FOCUS_MIN_MINUTES),
+        baseline_ready=False,
+        delta_available=False,
+        coins_awarded=0,
+    )
+    db.add(s)
+    db.commit()
+
+    claim = {"action": "missions.claim", "discord": _discord_ctx(), "payload": {"slug": "focus_block"}}
+    headers = {
+        **_auth_headers(),
+        "Idempotency-Key": "discord:mc1",
+        "X-Request-Hash": _req_hash(claim),
+    }
+    first = client.post("/api/v1/discord/actions", headers=headers, json=claim)
+    assert first.status_code == 200
+    assert first.json()["data"]["awarded"] is True
+
+    second = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:mc2",
+            "X-Request-Hash": _req_hash(claim),
+        },
+        json=claim,
+    )
+    assert second.status_code == 200
+    assert second.json()["data"]["awarded"] is False
+
+
+def test_missions_claim_idempotent_by_idempotency_key(client, db, monkeypatch):
+    from datetime import datetime, timezone
+
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="m4@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    from app.models.broski import FocusSession
+
+    s = FocusSession(
+        user_id=user.id,
+        discord_id="u1",
+        started_at=datetime.now(timezone.utc),
+        ended_at=datetime.now(timezone.utc),
+        minutes=int(settings.FOCUS_MIN_MINUTES),
+        baseline_ready=False,
+        delta_available=False,
+        coins_awarded=0,
+    )
+    db.add(s)
+    db.commit()
+
+    claim = {"action": "missions.claim", "discord": _discord_ctx(interaction_id="mci1"), "payload": {"slug": "focus_block"}}
+    headers = {
+        **_auth_headers(),
+        "Idempotency-Key": "discord:mci1",
+        "X-Request-Hash": _req_hash(claim),
+    }
+    first = client.post("/api/v1/discord/actions", headers=headers, json=claim)
+    assert first.status_code == 200
+
+    second = client.post("/api/v1/discord/actions", headers=headers, json=claim)
+    assert second.status_code == 409
+    assert second.json() == first.json()
