@@ -15,7 +15,15 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import SessionLocal, get_db
 from app.models import models
-from app.models.broski import BROskiWallet, DailyMissionClaim, DiscordIdempotencyKey, FocusSession
+from app.models.broski import (
+    BROskiTransaction,
+    BROskiUserAchievement,
+    BROskiWallet,
+    DailyMissionClaim,
+    DiscordIdempotencyKey,
+    FocusSession,
+    TransactionType,
+)
 from app.services import broski_service
 
 router = APIRouter()
@@ -45,6 +53,7 @@ class DiscordActionRequest(BaseModel):
         "missions.today",
         "missions.claim",
         "codehealth.pulse",
+        "digest.weekly",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -296,6 +305,143 @@ def _render_pulse_embed(
     }
 
 
+def _build_weekly_digest(*, db: Session, guild_member_count: int | None) -> dict[str, Any]:
+    """Aggregate the last 7 days from existing tables. No new schema."""
+    now = datetime.now(timezone.utc)
+    week_ago = now - timedelta(days=7)
+
+    # ── Economy (BROskiTransaction has created_at) ──
+    txns = (
+        db.query(BROskiTransaction)
+        .filter(BROskiTransaction.created_at >= week_ago)
+        .all()
+    )
+    earned = sum(
+        t.amount for t in txns
+        if t.type in (TransactionType.earn, TransactionType.bonus)
+    )
+    spent = sum(abs(t.amount) for t in txns if t.type == TransactionType.spend)
+
+    per_wallet_earn: dict[int, int] = {}
+    for t in txns:
+        if t.type in (TransactionType.earn, TransactionType.bonus):
+            per_wallet_earn[t.wallet_id] = per_wallet_earn.get(t.wallet_id, 0) + t.amount
+    top_earners = sorted(per_wallet_earn.items(), key=lambda kv: kv[1], reverse=True)[:3]
+
+    top_lines: list[str] = []
+    for i, (wallet_id, amt) in enumerate(top_earners, start=1):
+        wallet = db.query(BROskiWallet).filter(BROskiWallet.id == wallet_id).first()
+        mention = f"User {wallet_id}"
+        if wallet:
+            u = db.query(models.User).filter(models.User.id == wallet.user_id).first()
+            if u and u.discord_id:
+                mention = f"<@{u.discord_id}>"
+        top_lines.append(f"{_rank_prefix(i)} {mention} — **+{amt:,}**")
+
+    # ── Focus (FocusSession.ended_at) ──
+    sessions = (
+        db.query(FocusSession)
+        .filter(FocusSession.ended_at.isnot(None), FocusSession.ended_at >= week_ago)
+        .all()
+    )
+    focus_minutes = sum(_safe_int(s.minutes) for s in sessions)
+    focus_coins = sum(_safe_int(s.coins_awarded) for s in sessions)
+    focus_users = len({s.user_id for s in sessions})
+    best_jump = 0
+    for s in sessions:
+        if s.baseline_grade and s.end_grade:
+            best_jump = max(best_jump, _grade_rank(s.end_grade) - _grade_rank(s.baseline_grade))
+
+    # ── Missions + achievements + new members ──
+    missions_done = (
+        db.query(DailyMissionClaim)
+        .filter(
+            DailyMissionClaim.awarded.is_(True),
+            DailyMissionClaim.claimed_at >= week_ago,
+        )
+        .count()
+    )
+    achievements = (
+        db.query(BROskiUserAchievement)
+        .filter(BROskiUserAchievement.earned_at >= week_ago)
+        .count()
+    )
+    new_members = (
+        db.query(BROskiWallet)
+        .filter(BROskiWallet.created_at >= week_ago)
+        .count()
+    )
+    total_linked = db.query(BROskiWallet).count()
+
+    # ── Code health trend (NemoClaw) ──
+    history = _nemoclaw_history(limit=7)
+    if history:
+        cur = history[0]
+        ch_line = f"Grade **{cur.get('grade', '?')}** · Score **{_safe_int(cur.get('score'))}/100**"
+        if len(history) > 1:
+            oldest = history[-1]
+            ds = _safe_int(cur.get("score")) - _safe_int(oldest.get("score"))
+            sign = f"+{ds}" if ds > 0 else str(ds)
+            ch_line += f" · 7-scan trend {sign}"
+    else:
+        ch_line = "No scans on record"
+
+    fields = [
+        {
+            "name": "👥 Community",
+            "value": (
+                f"Linked members: **{total_linked}**"
+                + (f" · Server: **{guild_member_count}**" if guild_member_count else "")
+                + f"\nNew this week: **{new_members}**"
+            ),
+            "inline": False,
+        },
+        {
+            "name": "💰 Economy (7d)",
+            "value": f"Earned: **+{earned:,}** · Spent: **−{spent:,}**",
+            "inline": False,
+        },
+        {
+            "name": "🏆 Top earners (7d)",
+            "value": "\n".join(top_lines) if top_lines else "_No activity_",
+            "inline": False,
+        },
+        {
+            "name": "🎯 Focus (7d)",
+            "value": (
+                f"{len(sessions)} sessions · {focus_minutes} min · "
+                f"{focus_users} BROskis · +{focus_coins:,} coins"
+                + (f"\nBest grade jump: **+{best_jump}** ranks" if best_jump else "")
+            ),
+            "inline": False,
+        },
+        {
+            "name": "📋 Engagement (7d)",
+            "value": f"Missions claimed: **{missions_done}** · Achievements: **{achievements}**",
+            "inline": False,
+        },
+        {
+            "name": "🧠 Code health",
+            "value": ch_line,
+            "inline": False,
+        },
+        {
+            "name": "🛡️ Incidents (7d)",
+            "value": "**0** — all calm. _(moderation lands in Phase 3)_",
+            "inline": False,
+        },
+    ]
+
+    return {
+        "type": "embed",
+        "title": "📊 BROski Weekly Digest",
+        "description": f"Last 7 days · {week_ago.date()} → {now.date()}\nYou didn't log in. BROski ran it. 🐶♾️",
+        "color": "#9B59B6",
+        "fields": fields,
+        "footer": "BROski Server Guardian • weekly digest",
+    }
+
+
 def _baseline_scan_task(*, session_id: int) -> None:
     scan = _nemoclaw_scan()
     if not scan:
@@ -456,6 +602,30 @@ def discord_actions(
                 ),
             }
 
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    # ── digest.weekly (system action — no user lookup) ───────────────────────
+    if req.action == "digest.weekly":
+        try:
+            gmc = req.payload.get("guild_member_count")
+            gmc_int = int(gmc) if gmc is not None else None
+        except (TypeError, ValueError):
+            gmc_int = None
+
+        render = _build_weekly_digest(db=db, guild_member_count=gmc_int)
+        response = {
+            "status": "ok",
+            "action": req.action,
+            "data": {"generated_at": datetime.now(timezone.utc).isoformat()},
+            "render": render,
+        }
         _idempotency_store(
             idempotency_key=idempotency_key,
             request_hash=request_hash,

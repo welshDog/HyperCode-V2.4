@@ -50,6 +50,7 @@ COGS = [
     "cogs.health_history",
     "cogs.codehealth_voice",
     "cogs.server_builder",
+    "cogs.digest",
 ]
 
 

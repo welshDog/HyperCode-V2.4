@@ -277,6 +277,8 @@ services:
       NEMOCLAW_PULSE_HOURS: ${NEMOCLAW_PULSE_HOURS:-24}
       CODE_HEALTH_CHANNEL_ID: ${CODE_HEALTH_CHANNEL_ID:-}
       AUTO_ROLE_NAME: ${AUTO_ROLE_NAME:-BROski}
+      DIGEST_DM_USER_ID: ${DIGEST_DM_USER_ID:-}
+      DIGEST_WEEKDAY: ${DIGEST_WEEKDAY:-0}
     env_file:
       - ./agents/broski-bot/.env
     depends_on:
