@@ -49,6 +49,7 @@ COGS = [
     "cogs.health_check",
     "cogs.health_history",
     "cogs.codehealth_voice",
+    "cogs.server_builder",
 ]
 
 

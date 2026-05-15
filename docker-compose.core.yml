@@ -276,6 +276,7 @@ services:
       NEMOCLAW_URL: http://nemoclaw-agent:8099
       NEMOCLAW_PULSE_HOURS: ${NEMOCLAW_PULSE_HOURS:-24}
       CODE_HEALTH_CHANNEL_ID: ${CODE_HEALTH_CHANNEL_ID:-}
+      AUTO_ROLE_NAME: ${AUTO_ROLE_NAME:-BROski}
     env_file:
       - ./agents/broski-bot/.env
     depends_on:
