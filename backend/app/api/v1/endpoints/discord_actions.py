@@ -35,7 +35,7 @@ class DiscordActionRequest(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
-def _require_bot_auth(authorization: str = Header(...)) -> None:
+def _require_bot_auth(authorization: Optional[str] = Header(default=None)) -> None:
     value = (authorization or "").strip()
     if not value.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Authorization: Bearer required")
