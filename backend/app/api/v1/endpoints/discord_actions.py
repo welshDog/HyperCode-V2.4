@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hmac
+import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
@@ -135,14 +136,32 @@ def _idempotency_store(
     db.commit()
 
 
+def _compute_request_hash(req: DiscordActionRequest) -> str:
+    body = req.model_dump()
+    raw = json.dumps(body, sort_keys=True).encode()
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
 @router.post("/actions")
 def discord_actions(
     req: DiscordActionRequest,
     db: Session = Depends(get_db),
     _: None = Depends(_require_bot_auth),
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
-    request_hash: str = Header(..., alias="X-Request-Hash"),
+    request_hash_header: str = Header(..., alias="X-Request-Hash"),
 ) -> Any:
+    request_hash = _compute_request_hash(req)
+    if request_hash_header != request_hash:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "status": "error",
+                "code": "request_hash_mismatch",
+                "message": "X-Request-Hash does not match request body",
+                "retryable": False,
+            },
+        )
+
     cached, mismatch = _idempotency_lookup(
         idempotency_key=idempotency_key,
         request_hash=request_hash,

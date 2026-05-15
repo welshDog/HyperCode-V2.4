@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 import pytest
 
 from app.core.config import settings
@@ -17,8 +20,21 @@ def _discord_ctx(*, interaction_id: str = "i1") -> dict:
     }
 
 
+def _req_hash(body: dict) -> str:
+    raw = json.dumps(body, sort_keys=True).encode()
+    return hashlib.sha256(raw).hexdigest()[:16]
+
+
 def test_discord_actions_requires_auth(client):
-    resp = client.post("/api/v1/discord/actions", json={})
+    body = {"action": "economy.balance", "discord": _discord_ctx(), "payload": {}}
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
     assert resp.status_code in (401, 403)
 
 
@@ -40,7 +56,7 @@ def test_discord_actions_daily_claim_happy_path(client, db, monkeypatch):
         headers={
             **_auth_headers(),
             "Idempotency-Key": "discord:i1",
-            "X-Request-Hash": "abcd1234abcd1234",
+            "X-Request-Hash": _req_hash(body),
         },
         json=body,
     )
@@ -68,7 +84,7 @@ def test_discord_actions_balance_happy_path(client, db, monkeypatch):
         headers={
             **_auth_headers(),
             "Idempotency-Key": "discord:i1",
-            "X-Request-Hash": "abcd1234abcd1234",
+            "X-Request-Hash": _req_hash(body),
         },
         json=body,
     )
@@ -94,7 +110,7 @@ def test_discord_actions_idempotency_returns_409(client, db, monkeypatch):
     headers = {
         **_auth_headers(),
         "Idempotency-Key": "discord:i1",
-        "X-Request-Hash": "abcd1234abcd1234",
+        "X-Request-Hash": _req_hash(body),
     }
 
     first = client.post("/api/v1/discord/actions", headers=headers, json=body)
@@ -118,18 +134,27 @@ def test_discord_actions_rejects_hash_mismatch(client, db, monkeypatch):
     db.commit()
 
     body1 = {"action": "economy.balance", "discord": _discord_ctx(), "payload": {}}
-    body2 = {"action": "economy.balance", "discord": _discord_ctx(), "payload": {"x": 1}}
-
-    headers = {
-        **_auth_headers(),
-        "Idempotency-Key": "discord:i1",
-        "X-Request-Hash": "abcd1234abcd1234",
-    }
-
-    ok = client.post("/api/v1/discord/actions", headers=headers, json=body1)
+    ok = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body1),
+        },
+        json=body1,
+    )
     assert ok.status_code == 200
 
-    bad = client.post("/api/v1/discord/actions", headers=headers, json=body2)
+    body2 = {"action": "economy.balance", "discord": _discord_ctx(), "payload": {"x": 1}}
+    bad = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body2),
+        },
+        json=body2,
+    )
     assert bad.status_code == 409
     assert bad.json()["code"] == "idempotency_mismatch"
 
