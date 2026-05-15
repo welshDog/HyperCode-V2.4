@@ -273,6 +273,7 @@ services:
     container_name: broski-bot
     environment:
       HYPERCODE_API_URL: http://hypercode-core:8000
+      NEMOCLAW_URL: http://nemoclaw-agent:8099
     env_file:
       - ./agents/broski-bot/.env
     depends_on:

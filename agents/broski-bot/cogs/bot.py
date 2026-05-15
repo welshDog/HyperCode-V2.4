@@ -43,6 +43,8 @@ COGS = [
     "cogs.welcome",
     "cogs.economy",
     "cogs.leaderboard",
+    "cogs.ai",
+    "cogs.health_check",
 ]
 
 

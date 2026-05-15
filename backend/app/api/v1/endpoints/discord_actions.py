@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
+import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,6 +36,8 @@ class DiscordActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     action: Literal[
+        "ai.ask",
+        "ai.chat",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -112,6 +115,28 @@ def _render_info_embed(*, title: str, description: str, color: str = "#5865F2") 
         "fields": [],
         "footer": "BROski Bot • HyperCode Core",
     }
+
+
+def _truncate(text: str, limit: int = 3500) -> str:
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 1)] + "…"
+
+
+def _extract_orchestrator_text(payload: dict[str, Any]) -> str:
+    result = payload.get("result")
+    if isinstance(result, str) and result.strip():
+        return result.strip()
+    if isinstance(result, dict):
+        for k in ("message", "analysis", "answer", "reply"):
+            v = result.get(k)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return json.dumps(result, ensure_ascii=False)[:3500]
+    msg = payload.get("message")
+    if isinstance(msg, str) and msg.strip():
+        return msg.strip()
+    return json.dumps(payload, ensure_ascii=False)[:3500]
 
 
 def _rank_prefix(i: int) -> str:
@@ -202,6 +227,103 @@ def discord_actions(
                 ),
             ),
         }
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    # ── ai.ask / ai.chat ─────────────────────────────────────────────────────
+    if req.action in {"ai.ask", "ai.chat"}:
+        key = "question" if req.action == "ai.ask" else "message"
+        prompt = str(req.payload.get(key) or "").strip()
+
+        if not prompt:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False},
+                "render": _render_info_embed(
+                    title="❌ Missing text",
+                    description=f"Send `{key}` in payload.",
+                    color="#ED4245",
+                ),
+            }
+        elif not settings.ORCHESTRATOR_URL:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False},
+                "render": _render_info_embed(
+                    title="🛑 Orchestrator offline",
+                    description="ORCHESTRATOR_URL is not configured in Core.",
+                    color="#ED4245",
+                ),
+            }
+        elif not settings.ORCHESTRATOR_API_KEY:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False},
+                "render": _render_info_embed(
+                    title="🛑 Orchestrator auth missing",
+                    description="ORCHESTRATOR_API_KEY is not configured in Core.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            orch_url = str(settings.ORCHESTRATOR_URL).rstrip("/")
+            body = {
+                "id": f"discord-{req.discord.interaction_id}",
+                "task": prompt,
+                "type": "discord_ai",
+                "agent": "coder-agent",
+                "requires_approval": False,
+                "context": {
+                    "discord_id": discord_id,
+                    "username": req.discord.username,
+                    "mode": req.action,
+                },
+            }
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    resp = client.post(
+                        f"{orch_url}/task",
+                        json=body,
+                        headers={"X-API-Key": settings.ORCHESTRATOR_API_KEY},
+                    )
+                if resp.status_code != 200:
+                    raise RuntimeError(
+                        f"orchestrator_http_{resp.status_code}"
+                    )
+                orch_payload = resp.json()
+                text = _truncate(_extract_orchestrator_text(orch_payload))
+                title = "🧠 BROski" if req.action == "ai.chat" else "❓ Answer"
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"ok": True},
+                    "render": _render_info_embed(
+                        title=title,
+                        description=text,
+                        color="#3498DB",
+                    ),
+                }
+            except Exception:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"ok": False},
+                    "render": _render_info_embed(
+                        title="⚠️ AI unavailable",
+                        description="Crew is offline or still booting. Try again.",
+                        color="#FEE75C",
+                    ),
+                }
+
         _idempotency_store(
             idempotency_key=idempotency_key,
             request_hash=request_hash,

@@ -226,3 +226,69 @@ def test_discord_actions_rejects_hash_mismatch(client, db, monkeypatch):
 def test_broski_pulse_exists(client):
     resp = client.get("/api/v1/broski/pulse")
     assert resp.status_code in (200, 404)
+
+
+def test_discord_actions_ai_ask_returns_embed(client, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+    monkeypatch.setattr(settings, "ORCHESTRATOR_URL", "http://orch", raising=True)
+    monkeypatch.setattr(settings, "ORCHESTRATOR_API_KEY", "ok", raising=True)
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return {"status": "completed", "result": {"message": "hi"}}
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json=None, headers=None):
+            return _Resp()
+
+    import app.api.v1.endpoints.discord_actions as mod
+
+    monkeypatch.setattr(mod.httpx, "Client", _Client)
+
+    body = {"action": "ai.ask", "discord": _discord_ctx(), "payload": {"question": "yo"}}
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["render"]["type"] == "embed"
+
+
+def test_discord_actions_ai_chat_missing_text_is_ok(client, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+    monkeypatch.setattr(settings, "ORCHESTRATOR_URL", "http://orch", raising=True)
+    monkeypatch.setattr(settings, "ORCHESTRATOR_API_KEY", "ok", raising=True)
+
+    body = {"action": "ai.chat", "discord": _discord_ctx(), "payload": {}}
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["render"]["type"] == "embed"

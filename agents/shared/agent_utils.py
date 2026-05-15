@@ -80,7 +80,7 @@ def cached(ttl_seconds: int = 3600):
             import json
             try:
                 cache.set(cache_key, json.dumps(result), ttl_seconds)
-            except:
+            except Exception:
                 cache.set(cache_key, str(result), ttl_seconds)
             
             return result
@@ -99,7 +99,7 @@ def cached(ttl_seconds: int = 3600):
             import json
             try:
                 cache.set(cache_key, json.dumps(result), ttl_seconds)
-            except:
+            except Exception:
                 cache.set(cache_key, str(result), ttl_seconds)
             
             return result
