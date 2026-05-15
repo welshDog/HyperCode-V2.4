@@ -62,9 +62,6 @@ alter table broski_members             enable row level security;
 alter table broski_transactions        enable row level security;
 alter table broski_mission_completions enable row level security;
 
--- Policy model:
--- - RLS enabled means: no policy => no access for anon/authenticated users.
--- - Bot uses Supabase service role, which must be the ONLY role with access.
 drop policy if exists service_full_access_members on broski_members;
 drop policy if exists service_full_access_txn on broski_transactions;
 drop policy if exists service_full_access_missions on broski_mission_completions;

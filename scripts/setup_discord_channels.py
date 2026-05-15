@@ -1,16 +1,32 @@
 # scripts/setup_discord_channels.py
 # One-shot script to scaffold the full HyperFocus Zone Discord channel structure
 # Usage: python scripts/setup_discord_channels.py
-# Needs: DISCORD_TOKEN + DISCORD_GUILD_ID in .env
+# Needs: DISCORD_GUILD_ID in .env + DISCORD_TOKEN via env or secrets file
 
 import discord
 import asyncio
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+def _read_token() -> str | None:
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        return token.strip()
+    secrets_path = (
+        Path(__file__).resolve().parents[1]
+        / "secrets"
+        / "discord_token.txt"
+    )
+    if secrets_path.exists():
+        value = secrets_path.read_text(encoding="utf-8", errors="ignore").strip()
+        return value or None
+    return None
+
+
+TOKEN = _read_token()
 GUILD_ID = int(os.getenv("DISCORD_GUILD_ID", "0"))
 
 STRUCTURE = [
@@ -85,7 +101,7 @@ class SetupBot(discord.Client):
 
 if __name__ == "__main__":
     if not TOKEN:
-        print("❌ DISCORD_TOKEN not found in .env")
+        print("❌ DISCORD_TOKEN not found in env or secrets/discord_token.txt")
         exit(1)
     if GUILD_ID == 0:
         print("❌ DISCORD_GUILD_ID not set in .env")
