@@ -15,7 +15,21 @@ from core_client import CoreClient
 
 load_dotenv()
 
-TOKEN    = os.getenv("DISCORD_BOT_TOKEN") or open("secrets/discordtoken.txt").read().strip()
+def _read_secret_file(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except Exception:
+        return ""
+
+
+TOKEN = (
+    os.getenv("DISCORD_TOKEN")
+    or os.getenv("DISCORD_BOT_TOKEN")
+    or _read_secret_file(os.getenv("DISCORD_TOKEN_FILE", "/run/secrets/discord_token"))
+    or _read_secret_file(os.getenv("DISCORD_BOT_TOKEN_FILE", ""))
+    or _read_secret_file("secrets/discord_token.txt")
+)
 GUILD_ID = int(os.getenv("DISCORD_GUILD_ID", "0"))
 
 intents                 = discord.Intents.default()

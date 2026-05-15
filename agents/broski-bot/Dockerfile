@@ -18,4 +18,4 @@ RUN mkdir -p /opt/hypercode/data/broski-bot/db \
 
 USER broski
 
-CMD ["python", "main.py"]
+CMD ["python", "-u", "-m", "cogs.bot"]
