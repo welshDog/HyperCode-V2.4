@@ -18,6 +18,8 @@ from app.services import broski_service
 
 router = APIRouter()
 
+_RANK_MEDALS = ["🥇", "🥈", "🥉"]
+
 
 class DiscordContext(BaseModel):
     model_config = ConfigDict(extra="allow")
@@ -93,22 +95,30 @@ def _render_wallet_embed(*, title: str, snapshot: dict[str, Any]) -> dict[str, A
         "description": "",
         "color": "#5865F2",
         "fields": [
-            {"name": "Coins", "value": str(snapshot["coins"]), "inline": True},
-            {"name": "XP", "value": str(snapshot["xp"]), "inline": True},
-            {"name": "Level", "value": str(snapshot["level"]), "inline": True},
+            {"name": "💰 Coins", "value": f"{snapshot['coins']:,}", "inline": True},
+            {"name": "⚡ XP", "value": f"{snapshot['xp']:,}", "inline": True},
+            {"name": "🎮 Level", "value": f"{snapshot['level']} — {snapshot['level_name']}", "inline": True},
         ],
         "footer": "BROski Bot • HyperCode Core",
     }
 
-def _render_info_embed(*, title: str, description: str) -> dict[str, Any]:
+
+def _render_info_embed(*, title: str, description: str, color: str = "#5865F2") -> dict[str, Any]:
     return {
         "type": "embed",
         "title": title,
         "description": description,
-        "color": "#5865F2",
+        "color": color,
         "fields": [],
         "footer": "BROski Bot • HyperCode Core",
     }
+
+
+def _rank_prefix(i: int) -> str:
+    """Return medal emoji for top 3, number for the rest."""
+    if i <= len(_RANK_MEDALS):
+        return _RANK_MEDALS[i - 1]
+    return f"#{i}"
 
 
 def _idempotency_lookup(
@@ -177,14 +187,19 @@ def discord_actions(
 
     discord_id = req.discord.user_id
 
+    # ── member.join ──────────────────────────────────────────────────────────
     if req.action == "member.join":
         response: dict[str, Any] = {
             "status": "ok",
             "action": req.action,
             "data": {"discord_id": discord_id},
             "render": _render_info_embed(
-                title="Welcome to HyperFocus Zone",
-                description="Use `/daily` to get started. If rewards don't work, link your HyperCode account.",
+                title="⚡ Welcome to HyperFocus Zone!",
+                description=(
+                    "Use `/daily` to grab your daily BROski$ coins.\n"
+                    "Use `/balance` to check your wallet.\n"
+                    "Link your HyperCode account to unlock full rewards."
+                ),
             ),
         }
         _idempotency_store(
@@ -196,6 +211,7 @@ def discord_actions(
         )
         return response
 
+    # ── daily.claim ──────────────────────────────────────────────────────────
     if req.action == "daily.claim":
         user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
         if not user:
@@ -204,14 +220,15 @@ def discord_actions(
                 "action": req.action,
                 "data": {"linked": False, "discord_id": discord_id},
                 "render": _render_info_embed(
-                    title="Link required",
+                    title="🔗 Link required",
                     description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
                 ),
             }
         else:
             _, awarded = broski_service.handle_daily_login(user.id, db)
             snapshot = _wallet_snapshot(discord_id, db)
-            title = "Daily claimed" if awarded else "Daily already claimed"
+            title = "✅ Daily claimed!" if awarded else "⏳ Daily already claimed"
             response = {
                 "status": "ok",
                 "action": req.action,
@@ -227,6 +244,7 @@ def discord_actions(
         )
         return response
 
+    # ── economy.balance ───────────────────────────────────────────────────────
     if req.action == "economy.balance":
         user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
         if not user:
@@ -235,8 +253,9 @@ def discord_actions(
                 "action": req.action,
                 "data": {"linked": False, "discord_id": discord_id},
                 "render": _render_info_embed(
-                    title="Link required",
+                    title="🔗 Link required",
                     description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
                 ),
             }
         else:
@@ -245,7 +264,7 @@ def discord_actions(
                 "status": "ok",
                 "action": req.action,
                 "data": snapshot,
-                "render": _render_wallet_embed(title="Balance", snapshot=snapshot),
+                "render": _render_wallet_embed(title="💰 Your BROski$ Wallet", snapshot=snapshot),
             }
         _idempotency_store(
             idempotency_key=idempotency_key,
@@ -256,8 +275,10 @@ def discord_actions(
         )
         return response
 
+    # ── economy.give ──────────────────────────────────────────────────────────
     if req.action == "economy.give":
         to_discord_id = str(req.payload.get("to_discord_id") or "").strip()
+        to_username = str(req.payload.get("to_username") or "").strip()
         try:
             amount = int(req.payload.get("amount"))
         except Exception:
@@ -269,21 +290,39 @@ def discord_actions(
                 "action": req.action,
                 "data": {"ok": False},
                 "render": _render_info_embed(
-                    title="Invalid request",
-                    description="Amount must be a positive integer.",
+                    title="❌ Invalid request",
+                    description="Amount must be a positive integer and a recipient must be provided.",
+                    color="#ED4245",
+                ),
+            }
+        elif to_discord_id == discord_id:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False},
+                "render": _render_info_embed(
+                    title="🤔 Nice try!",
+                    description="You can't give coins to yourself, BRO.",
+                    color="#FEE75C",
                 ),
             }
         else:
             sender = db.query(models.User).filter(models.User.discord_id == discord_id).first()
             recipient = db.query(models.User).filter(models.User.discord_id == to_discord_id).first()
             if not sender or not recipient:
+                missing = []
+                if not sender:
+                    missing.append(f"<@{discord_id}> (sender)")
+                if not recipient:
+                    missing.append(f"<@{to_discord_id}> (recipient)")
                 response = {
                     "status": "ok",
                     "action": req.action,
                     "data": {"ok": False},
                     "render": _render_info_embed(
-                        title="Link required",
-                        description="Both members must have linked HyperCode accounts.",
+                        title="🔗 Link required",
+                        description=f"These members need to link their HyperCode accounts: {', '.join(missing)}",
+                        color="#ED4245",
                     ),
                 }
             else:
@@ -303,14 +342,35 @@ def discord_actions(
                         meta={"from": discord_id, "to": to_discord_id},
                     )
                     sender_snapshot = _wallet_snapshot(discord_id, db)
+                    recipient_label = f"<@{to_discord_id}>" if not to_username else f"{to_username} (<@{to_discord_id}>)"
                     response = {
                         "status": "ok",
                         "action": req.action,
                         "data": {"ok": True, "from": sender_snapshot},
-                        "render": _render_info_embed(
-                            title="Gift sent",
-                            description=f"Sent {amount} BROski$ to <@{to_discord_id}>.",
-                        ),
+                        "render": {
+                            "type": "embed",
+                            "title": f"🎁 Sent {amount:,} BROski$ to {recipient_label}!",
+                            "description": "Generosity is the BROski way. 🐶♾️",
+                            "color": "#57F287",
+                            "fields": [
+                                {
+                                    "name": "💰 Your remaining balance",
+                                    "value": f"{sender_snapshot['coins']:,} coins",
+                                    "inline": True,
+                                },
+                                {
+                                    "name": "⚡ Your XP",
+                                    "value": f"{sender_snapshot['xp']:,}",
+                                    "inline": True,
+                                },
+                                {
+                                    "name": "🎮 Level",
+                                    "value": f"{sender_snapshot['level']} — {sender_snapshot['level_name']}",
+                                    "inline": True,
+                                },
+                            ],
+                            "footer": "BROski Bot • HyperCode Core",
+                        },
                     }
                 except ValueError as exc:
                     response = {
@@ -318,8 +378,9 @@ def discord_actions(
                         "action": req.action,
                         "data": {"ok": False},
                         "render": _render_info_embed(
-                            title="Not enough coins",
+                            title="💸 Not enough coins!",
                             description=str(exc),
+                            color="#ED4245",
                         ),
                     }
 
@@ -332,6 +393,7 @@ def discord_actions(
         )
         return response
 
+    # ── economy.leaderboard ───────────────────────────────────────────────────
     if req.action == "economy.leaderboard":
         try:
             limit = int(req.payload.get("limit", 10))
@@ -344,19 +406,27 @@ def discord_actions(
         for i, w in enumerate(rows, start=1):
             u = db.query(models.User).filter(models.User.id == w.user_id).first()
             mention = f"<@{u.discord_id}>" if u and u.discord_id else f"User {w.user_id}"
+            level_tag = f"Lvl {w.level} — {w.level_name}" if hasattr(w, "level") and w.level else ""
+            value_parts = [f"**{w.coins:,}** coins"]
+            if level_tag:
+                value_parts.append(level_tag)
             fields.append(
-                {"name": f"#{i} {mention}", "value": f"{w.coins} coins", "inline": False}
+                {
+                    "name": f"{_rank_prefix(i)} {mention}",
+                    "value": " · ".join(value_parts),
+                    "inline": False,
+                }
             )
 
         response = {
             "status": "ok",
             "action": req.action,
-            "data": {"limit": limit},
+            "data": {"limit": limit, "count": len(fields)},
             "render": {
                 "type": "embed",
-                "title": "Top BROski$ holders",
-                "description": "",
-                "color": "#5865F2",
+                "title": "💰 BROski$ Rich List",
+                "description": f"Top {len(fields)} coin holders in the HyperFocus Zone",
+                "color": "#F1C40F",
                 "fields": fields,
                 "footer": "BROski Bot • HyperCode Core",
             },
@@ -370,6 +440,7 @@ def discord_actions(
         )
         return response
 
+    # ── leaderboard.xp ────────────────────────────────────────────────────────
     if req.action == "leaderboard.xp":
         try:
             limit = int(req.payload.get("limit", 10))
@@ -387,19 +458,27 @@ def discord_actions(
         for i, w in enumerate(wallets, start=1):
             u = db.query(models.User).filter(models.User.id == w.user_id).first()
             mention = f"<@{u.discord_id}>" if u and u.discord_id else f"User {w.user_id}"
+            level_tag = f"Lvl {w.level} — {w.level_name}" if hasattr(w, "level") and w.level else ""
+            value_parts = [f"**{w.xp:,}** XP"]
+            if level_tag:
+                value_parts.append(level_tag)
             fields.append(
-                {"name": f"#{i} {mention}", "value": f"{w.xp} XP", "inline": False}
+                {
+                    "name": f"{_rank_prefix(i)} {mention}",
+                    "value": " · ".join(value_parts),
+                    "inline": False,
+                }
             )
 
         response = {
             "status": "ok",
             "action": req.action,
-            "data": {"limit": limit},
+            "data": {"limit": limit, "count": len(fields)},
             "render": {
                 "type": "embed",
-                "title": "XP leaderboard",
-                "description": "",
-                "color": "#5865F2",
+                "title": "⚡ XP Leaderboard",
+                "description": f"Top {len(fields)} grinders in the HyperFocus Zone",
+                "color": "#9B59B6",
                 "fields": fields,
                 "footer": "BROski Bot • HyperCode Core",
             },
