@@ -94,6 +94,70 @@ def test_discord_actions_balance_happy_path(client, db, monkeypatch):
     assert data["render"]["type"] == "embed"
 
 
+def test_discord_actions_member_join_not_linked_returns_200(client, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    body = {
+        "action": "member.join",
+        "discord": _discord_ctx(interaction_id="join_1"),
+        "payload": {},
+    }
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:join_1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["render"]["type"] == "embed"
+
+
+def test_discord_actions_give_happy_path(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    sender = models.User(
+        email="s@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    recipient = models.User(
+        email="r@example.com",
+        hashed_password="x",
+        discord_id="u2",
+        is_active=True,
+    )
+    db.add(sender)
+    db.add(recipient)
+    db.commit()
+
+    from app.services import broski_service
+
+    broski_service.award_coins(sender.id, 25, "seed", db)
+
+    body = {
+        "action": "economy.give",
+        "discord": _discord_ctx(),
+        "payload": {"to_discord_id": "u2", "amount": 10},
+    }
+    resp = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:i1",
+            "X-Request-Hash": _req_hash(body),
+        },
+        json=body,
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["render"]["type"] == "embed"
+
+
 def test_discord_actions_idempotency_returns_409(client, db, monkeypatch):
     monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
 

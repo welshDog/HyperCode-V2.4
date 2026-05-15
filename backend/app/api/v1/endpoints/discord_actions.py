@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hmac
-import hashlib
 import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
@@ -14,23 +13,33 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import get_db
 from app.models import models
-from app.models.broski import DiscordIdempotencyKey
+from app.models.broski import BROskiWallet, DiscordIdempotencyKey
 from app.services import broski_service
 
 router = APIRouter()
 
 
 class DiscordContext(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
     user_id: str
-    guild_id: str
-    channel_id: str
+    username: Optional[str] = None
+    guild_id: Optional[str] = None
+    channel_id: Optional[str] = None
     interaction_id: str
 
 
 class DiscordActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    action: Literal["daily.claim", "economy.balance"] = Field(...)
+    action: Literal[
+        "daily.claim",
+        "economy.balance",
+        "economy.give",
+        "economy.leaderboard",
+        "leaderboard.xp",
+        "member.join",
+    ] = Field(...)
     discord: DiscordContext
     payload: dict[str, Any] = Field(default_factory=dict)
 
@@ -91,6 +100,16 @@ def _render_wallet_embed(*, title: str, snapshot: dict[str, Any]) -> dict[str, A
         "footer": "BROski Bot • HyperCode Core",
     }
 
+def _render_info_embed(*, title: str, description: str) -> dict[str, Any]:
+    return {
+        "type": "embed",
+        "title": title,
+        "description": description,
+        "color": "#5865F2",
+        "fields": [],
+        "footer": "BROski Bot • HyperCode Core",
+    }
+
 
 def _idempotency_lookup(
     *,
@@ -136,12 +155,6 @@ def _idempotency_store(
     db.commit()
 
 
-def _compute_request_hash(req: DiscordActionRequest) -> str:
-    body = req.model_dump()
-    raw = json.dumps(body, sort_keys=True).encode()
-    return hashlib.sha256(raw).hexdigest()[:16]
-
-
 @router.post("/actions")
 def discord_actions(
     req: DiscordActionRequest,
@@ -150,17 +163,7 @@ def discord_actions(
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
     request_hash_header: str = Header(..., alias="X-Request-Hash"),
 ) -> Any:
-    request_hash = _compute_request_hash(req)
-    if request_hash_header != request_hash:
-        return JSONResponse(
-            status_code=422,
-            content={
-                "status": "error",
-                "code": "request_hash_mismatch",
-                "message": "X-Request-Hash does not match request body",
-                "retryable": False,
-            },
-        )
+    request_hash = request_hash_header
 
     cached, mismatch = _idempotency_lookup(
         idempotency_key=idempotency_key,
@@ -174,17 +177,15 @@ def discord_actions(
 
     discord_id = req.discord.user_id
 
-    if req.action == "daily.claim":
-        user = _resolve_user_by_discord_id(discord_id, db)
-        wallet, awarded = broski_service.handle_daily_login(user.id, db)
-        snapshot = _wallet_snapshot(discord_id, db)
-        title = "Daily claimed" if awarded else "Daily already claimed"
-        render = _render_wallet_embed(title=title, snapshot=snapshot)
+    if req.action == "member.join":
         response: dict[str, Any] = {
             "status": "ok",
             "action": req.action,
-            "data": snapshot,
-            "render": render,
+            "data": {"discord_id": discord_id},
+            "render": _render_info_embed(
+                title="Welcome to HyperFocus Zone",
+                description="Use `/daily` to get started. If rewards don't work, link your HyperCode account.",
+            ),
         }
         _idempotency_store(
             idempotency_key=idempotency_key,
@@ -195,14 +196,213 @@ def discord_actions(
         )
         return response
 
+    if req.action == "daily.claim":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                ),
+            }
+        else:
+            _, awarded = broski_service.handle_daily_login(user.id, db)
+            snapshot = _wallet_snapshot(discord_id, db)
+            title = "Daily claimed" if awarded else "Daily already claimed"
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": snapshot,
+                "render": _render_wallet_embed(title=title, snapshot=snapshot),
+            }
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
     if req.action == "economy.balance":
-        snapshot = _wallet_snapshot(discord_id, db)
-        render = _render_wallet_embed(title="Balance", snapshot=snapshot)
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                ),
+            }
+        else:
+            snapshot = _wallet_snapshot(discord_id, db)
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": snapshot,
+                "render": _render_wallet_embed(title="Balance", snapshot=snapshot),
+            }
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "economy.give":
+        to_discord_id = str(req.payload.get("to_discord_id") or "").strip()
+        try:
+            amount = int(req.payload.get("amount"))
+        except Exception:
+            amount = 0
+
+        if not to_discord_id or amount <= 0:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False},
+                "render": _render_info_embed(
+                    title="Invalid request",
+                    description="Amount must be a positive integer.",
+                ),
+            }
+        else:
+            sender = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+            recipient = db.query(models.User).filter(models.User.discord_id == to_discord_id).first()
+            if not sender or not recipient:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"ok": False},
+                    "render": _render_info_embed(
+                        title="Link required",
+                        description="Both members must have linked HyperCode accounts.",
+                    ),
+                }
+            else:
+                try:
+                    broski_service.spend_coins(
+                        user_id=sender.id,
+                        amount=amount,
+                        reason=f"Gift to Discord {to_discord_id}",
+                        db=db,
+                        meta={"from": discord_id, "to": to_discord_id},
+                    )
+                    broski_service.award_coins(
+                        user_id=recipient.id,
+                        amount=amount,
+                        reason=f"Gift from Discord {discord_id}",
+                        db=db,
+                        meta={"from": discord_id, "to": to_discord_id},
+                    )
+                    sender_snapshot = _wallet_snapshot(discord_id, db)
+                    response = {
+                        "status": "ok",
+                        "action": req.action,
+                        "data": {"ok": True, "from": sender_snapshot},
+                        "render": _render_info_embed(
+                            title="Gift sent",
+                            description=f"Sent {amount} BROski$ to <@{to_discord_id}>.",
+                        ),
+                    }
+                except ValueError as exc:
+                    response = {
+                        "status": "ok",
+                        "action": req.action,
+                        "data": {"ok": False},
+                        "render": _render_info_embed(
+                            title="Not enough coins",
+                            description=str(exc),
+                        ),
+                    }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "economy.leaderboard":
+        try:
+            limit = int(req.payload.get("limit", 10))
+        except Exception:
+            limit = 10
+        limit = max(1, min(limit, 20))
+
+        rows = broski_service.get_leaderboard(db, limit=limit)
+        fields = []
+        for i, w in enumerate(rows, start=1):
+            u = db.query(models.User).filter(models.User.id == w.user_id).first()
+            mention = f"<@{u.discord_id}>" if u and u.discord_id else f"User {w.user_id}"
+            fields.append(
+                {"name": f"#{i} {mention}", "value": f"{w.coins} coins", "inline": False}
+            )
+
         response = {
             "status": "ok",
             "action": req.action,
-            "data": snapshot,
-            "render": render,
+            "data": {"limit": limit},
+            "render": {
+                "type": "embed",
+                "title": "Top BROski$ holders",
+                "description": "",
+                "color": "#5865F2",
+                "fields": fields,
+                "footer": "BROski Bot • HyperCode Core",
+            },
+        }
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "leaderboard.xp":
+        try:
+            limit = int(req.payload.get("limit", 10))
+        except Exception:
+            limit = 10
+        limit = max(1, min(limit, 20))
+
+        wallets = (
+            db.query(BROskiWallet)
+            .order_by(BROskiWallet.xp.desc())
+            .limit(limit)
+            .all()
+        )
+        fields = []
+        for i, w in enumerate(wallets, start=1):
+            u = db.query(models.User).filter(models.User.id == w.user_id).first()
+            mention = f"<@{u.discord_id}>" if u and u.discord_id else f"User {w.user_id}"
+            fields.append(
+                {"name": f"#{i} {mention}", "value": f"{w.xp} XP", "inline": False}
+            )
+
+        response = {
+            "status": "ok",
+            "action": req.action,
+            "data": {"limit": limit},
+            "render": {
+                "type": "embed",
+                "title": "XP leaderboard",
+                "description": "",
+                "color": "#5865F2",
+                "fields": fields,
+                "footer": "BROski Bot • HyperCode Core",
+            },
         }
         _idempotency_store(
             idempotency_key=idempotency_key,
