@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 7, 2026 (12:30 BST)** — update this every session.
+> **Updated: May 15, 2026** — update this every session.
 
 ---
 
@@ -17,6 +17,14 @@
 ---
 
 ## ✅ BUILT AND WORKING
+
+### 🔥 May 15, 2026 — Discord “One Brain” Lock-In
+- **Option A enforced:** `broski-bot` calls Core only — no Supabase in bot ✅
+- **Discord bot library locked:** `discord.py==2.4.0` ✅
+- **Bot entrypoint locked:** `python -u -m cogs.bot` ✅
+- **Core “One Door” endpoint:** `POST /api/v1/discord/actions` + idempotency ✅
+- Premium Discord embeds: medals + colors + mentions + comma formatting ✅
+- `scripts/env_check.py` keys-only preflight for `.env` + secrets + profiles ✅
 
 ### Infrastructure
 - 48 Docker containers running ✅ (post-cleanup May 3)
@@ -181,7 +189,7 @@
 Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
-Tests:            pytest backend/tests -q  (223 passed, 6 skipped)
+Tests:            pytest backend/tests -q  (239 passed, 2 failed, 6 skipped)
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt
@@ -200,7 +208,7 @@ Brain repo:       H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
 Brain vault:      HYPERFOCUS_ZONE/ folder inside brain repo
 GitHub sync:      python scripts/github_to_obsidian.py (needs GITHUB_PAT env var)
 Obsidian Git:     auto-commits vault every 10 mins to brain repo
-IDE:              Trae IDE (Windows) + Claude Code terminal
+IDE:              Claude Code terminal + Perplexity AI (Windows)
 Trae Pro:         expired May 2026 — Claude Code is agent brain this month
 Stripe webhook:   secret updated May 5 ✅ — fresh whsec_ live in Supabase
 BROskiPets Web3:  RainbowKit + wagmi + Base Sepolia — mint live May 7 🔥
