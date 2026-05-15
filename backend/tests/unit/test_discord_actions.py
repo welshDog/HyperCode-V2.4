@@ -292,3 +292,218 @@ def test_discord_actions_ai_chat_missing_text_is_ok(client, monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.json()["render"]["type"] == "embed"
+
+
+def test_focus_start_is_idempotent_returns_existing_session(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="focus@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    body1 = {"action": "focus.start", "discord": _discord_ctx(), "payload": {}}
+    r1 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs1",
+            "X-Request-Hash": _req_hash(body1),
+        },
+        json=body1,
+    )
+    assert r1.status_code == 200
+    s1 = r1.json()["data"]["session_id"]
+
+    body2 = {"action": "focus.start", "discord": _discord_ctx(interaction_id="fs2"), "payload": {}}
+    r2 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs2",
+            "X-Request-Hash": _req_hash(body2),
+        },
+        json=body2,
+    )
+    assert r2.status_code == 200
+    assert r2.json()["data"]["session_id"] == s1
+
+
+def test_focus_stop_baseline_not_ready_returns_no_delta(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="focus2@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    start = {"action": "focus.start", "discord": _discord_ctx(), "payload": {}}
+    r1 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs3",
+            "X-Request-Hash": _req_hash(start),
+        },
+        json=start,
+    )
+    assert r1.status_code == 200
+
+    from app.models.broski import FocusSession
+
+    sess = (
+        db.query(FocusSession)
+        .filter(FocusSession.discord_id == "u1", FocusSession.ended_at.is_(None))
+        .first()
+    )
+    assert sess is not None
+    sess.started_at = sess.started_at.replace(year=sess.started_at.year - 1)
+    db.commit()
+
+    stop = {"action": "focus.stop", "discord": _discord_ctx(interaction_id="fs4"), "payload": {}}
+    r2 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs4",
+            "X-Request-Hash": _req_hash(stop),
+        },
+        json=stop,
+    )
+    assert r2.status_code == 200
+    data = r2.json()["data"]
+    assert data["delta_available"] is False
+    assert data["coins_awarded"] == 0
+
+
+def test_focus_reward_calc_delta_counts_to_coins(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+    monkeypatch.setattr(settings, "FOCUS_MIN_MINUTES", 5, raising=False)
+
+    user = models.User(
+        email="focus3@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    start = {"action": "focus.start", "discord": _discord_ctx(), "payload": {}}
+    r1 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs5",
+            "X-Request-Hash": _req_hash(start),
+        },
+        json=start,
+    )
+    assert r1.status_code == 200
+
+    from app.models.broski import FocusSession
+
+    sess = (
+        db.query(FocusSession)
+        .filter(FocusSession.discord_id == "u1", FocusSession.ended_at.is_(None))
+        .first()
+    )
+    assert sess is not None
+    sess.started_at = sess.started_at.replace(year=sess.started_at.year - 1)
+    sess.baseline_ready = True
+    sess.baseline_score = 90
+    sess.baseline_grade = "A"
+    sess.baseline_counts = {"critical": 1, "high": 2, "medium": 3, "low": 0}
+    db.commit()
+
+    class _Resp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "scan_id": "x",
+                "persisted": True,
+                "score": 95,
+                "grade": "A",
+                "counts": {"critical": 0, "high": 0, "medium": 0, "low": 0},
+                "total_files": 10,
+                "top_issues": [],
+                "scanned_at": "2026-05-15T00:00:00Z",
+                "scan_targets": ["backend"],
+            }
+
+    class _Client:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def post(self, url, json=None, headers=None, params=None):
+            return _Resp()
+
+    import app.api.v1.endpoints.discord_actions as mod
+
+    monkeypatch.setattr(mod.httpx, "Client", _Client)
+
+    stop = {"action": "focus.stop", "discord": _discord_ctx(interaction_id="fs6"), "payload": {}}
+    r2 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs6",
+            "X-Request-Hash": _req_hash(stop),
+        },
+        json=stop,
+    )
+    assert r2.status_code == 200
+    assert r2.json()["data"]["coins_awarded"] == 190
+
+
+def test_focus_stop_idempotent_by_idempotency_key(client, db, monkeypatch):
+    monkeypatch.setattr(settings, "API_KEY", "test-bot-key", raising=True)
+
+    user = models.User(
+        email="focus4@example.com",
+        hashed_password="x",
+        discord_id="u1",
+        is_active=True,
+    )
+    db.add(user)
+    db.commit()
+
+    start = {"action": "focus.start", "discord": _discord_ctx(), "payload": {}}
+    r1 = client.post(
+        "/api/v1/discord/actions",
+        headers={
+            **_auth_headers(),
+            "Idempotency-Key": "discord:fs7",
+            "X-Request-Hash": _req_hash(start),
+        },
+        json=start,
+    )
+    assert r1.status_code == 200
+
+    stop = {"action": "focus.stop", "discord": _discord_ctx(interaction_id="fs8"), "payload": {}}
+    headers = {
+        **_auth_headers(),
+        "Idempotency-Key": "discord:fs8",
+        "X-Request-Hash": _req_hash(stop),
+    }
+    first = client.post("/api/v1/discord/actions", headers=headers, json=stop)
+    assert first.status_code == 200
+
+    second = client.post("/api/v1/discord/actions", headers=headers, json=stop)
+    assert second.status_code == 409
+    assert second.json() == first.json()

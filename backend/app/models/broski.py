@@ -5,7 +5,17 @@ import enum
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, JSON, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    JSON,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -127,3 +137,31 @@ class DiscordIdempotencyKey(Base):
     action: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     response_json: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class FocusSession(Base):
+    __tablename__ = "focus_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    discord_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    baseline_ready: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    baseline_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    baseline_grade: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+    baseline_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    baseline_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    end_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_grade: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+    end_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    end_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    delta_available: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    delta_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    delta_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

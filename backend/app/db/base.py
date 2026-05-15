@@ -1,6 +1,12 @@
 from app.db.base_class import Base
 from app.models.models import User, Project, Task
-from app.models.broski import BROskiWallet, BROskiTransaction, BROskiAchievement, BROskiUserAchievement
+from app.models.broski import (
+    BROskiWallet,
+    BROskiTransaction,
+    BROskiAchievement,
+    BROskiUserAchievement,
+    FocusSession,
+)
 from app.models.agent_api_key import AgentApiKey  # Phase 10D
 from app.models.pets import PetProvisionEvent
 
@@ -13,6 +19,7 @@ __all__ = [
     "BROskiTransaction",
     "BROskiAchievement",
     "BROskiUserAchievement",
+    "FocusSession",
     "AgentApiKey",
     "PetProvisionEvent",
 ]

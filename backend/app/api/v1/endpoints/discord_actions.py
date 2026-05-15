@@ -6,15 +6,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.db.session import get_db
+from app.db.session import SessionLocal, get_db
 from app.models import models
-from app.models.broski import BROskiWallet, DiscordIdempotencyKey
+from app.models.broski import BROskiWallet, DiscordIdempotencyKey, FocusSession
 from app.services import broski_service
 
 router = APIRouter()
@@ -38,6 +38,9 @@ class DiscordActionRequest(BaseModel):
     action: Literal[
         "ai.ask",
         "ai.chat",
+        "focus.start",
+        "focus.stop",
+        "focus.stats",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -146,6 +149,110 @@ def _rank_prefix(i: int) -> str:
     return f"#{i}"
 
 
+_FOCUS_WEIGHTS: dict[str, int] = {
+    "critical": 100,
+    "high": 30,
+    "medium": 10,
+    "low": 2,
+}
+
+_GRADE_RANK: dict[str, int] = {"S": 5, "A": 4, "B": 3, "C": 2, "D": 1}
+
+
+def _grade_rank(grade: str | None) -> int:
+    if not grade:
+        return 0
+    return _GRADE_RANK.get(str(grade).upper(), 0)
+
+
+def _safe_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def _nemoclaw_scan(*, targets: list[str] | None = None) -> dict[str, Any] | None:
+    api_key = (settings.API_KEY or "").strip()
+    if not api_key:
+        return None
+
+    url = str(settings.NEMOCLAW_URL).rstrip("/")
+    timeout = float(settings.NEMOCLAW_TIMEOUT_SECONDS)
+    body: dict[str, Any] = {}
+    if targets:
+        body["targets"] = targets
+
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.post(
+                f"{url}/scan",
+                json=body,
+                headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+            )
+        if resp.status_code != 200:
+            return None
+        return resp.json()
+    except Exception:
+        return None
+
+
+def _baseline_scan_task(*, session_id: int) -> None:
+    scan = _nemoclaw_scan()
+    if not scan:
+        return
+
+    db = SessionLocal()
+    try:
+        sess = db.query(FocusSession).filter(FocusSession.id == session_id).first()
+        if not sess or sess.baseline_ready:
+            return
+
+        sess.baseline_ready = True
+        sess.baseline_score = _safe_int(scan.get("score"))
+        sess.baseline_grade = str(scan.get("grade") or "").upper() or None
+        sess.baseline_counts = scan.get("counts") or {}
+        sess.baseline_scanned_at = datetime.now(timezone.utc)
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
+def _compute_focus_reward(
+    *,
+    baseline: dict[str, int],
+    end: dict[str, int],
+    baseline_grade: str | None,
+    end_grade: str | None,
+    baseline_score: int,
+    end_score: int,
+) -> tuple[int, dict[str, int], dict[str, int]]:
+    delta: dict[str, int] = {}
+    fixed: dict[str, int] = {}
+    for k in ("critical", "high", "medium", "low"):
+        b = _safe_int(baseline.get(k))
+        e = _safe_int(end.get(k))
+        delta[k] = e - b
+        fixed[k] = max(0, b - e)
+
+    if end_score < baseline_score:
+        return 0, delta, fixed
+
+    coins = 0
+    for k, w in _FOCUS_WEIGHTS.items():
+        coins += fixed.get(k, 0) * w
+
+    if _grade_rank(end_grade) > _grade_rank(baseline_grade):
+        coins += 50
+
+    if str(baseline_grade or "").upper() == "S" and str(end_grade or "").upper() == "S":
+        coins += 25
+
+    return coins, delta, fixed
+
+
 def _idempotency_lookup(
     *,
     idempotency_key: str,
@@ -193,6 +300,7 @@ def _idempotency_store(
 @router.post("/actions")
 def discord_actions(
     req: DiscordActionRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     _: None = Depends(_require_bot_auth),
     idempotency_key: str = Header(..., alias="Idempotency-Key"),
@@ -323,6 +431,335 @@ def discord_actions(
                         color="#FEE75C",
                     ),
                 }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "focus.start":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="🔗 Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            active = (
+                db.query(FocusSession)
+                .filter(FocusSession.discord_id == discord_id, FocusSession.ended_at.is_(None))
+                .order_by(FocusSession.started_at.desc())
+                .first()
+            )
+            if active:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {
+                        "session_id": active.id,
+                        "baseline_status": "ready" if active.baseline_ready else "pending",
+                    },
+                    "render": _render_info_embed(
+                        title="🎯 Focus already running",
+                        description="Session is already active. Use `/focus stop` when done.",
+                        color="#FEE75C",
+                    ),
+                }
+            else:
+                sess = FocusSession(
+                    user_id=user.id,
+                    discord_id=discord_id,
+                    started_at=datetime.now(timezone.utc),
+                    baseline_ready=False,
+                    coins_awarded=0,
+                    delta_available=False,
+                )
+                db.add(sess)
+                db.commit()
+                db.refresh(sess)
+                background_tasks.add_task(_baseline_scan_task, session_id=sess.id)
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"session_id": sess.id, "baseline_status": "pending"},
+                    "render": _render_info_embed(
+                        title="🎯 Session locked in",
+                        description="Baselining in background. Crush the session.",
+                        color="#E67E22",
+                    ),
+                }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "focus.stop":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="🔗 Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            sess = (
+                db.query(FocusSession)
+                .filter(FocusSession.discord_id == discord_id, FocusSession.ended_at.is_(None))
+                .order_by(FocusSession.started_at.desc())
+                .first()
+            )
+            if not sess:
+                response = {
+                    "status": "ok",
+                    "action": req.action,
+                    "data": {"ok": False},
+                    "render": _render_info_embed(
+                        title="❌ No active focus session",
+                        description="Start one with `/focus start`.",
+                        color="#ED4245",
+                    ),
+                }
+            else:
+                now = datetime.now(timezone.utc)
+                started = sess.started_at
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                minutes = max(1, int((now - started).total_seconds() / 60))
+                sess.ended_at = now
+                sess.minutes = minutes
+
+                min_minutes = int(settings.FOCUS_MIN_MINUTES)
+                if minutes < min_minutes:
+                    sess.delta_available = False
+                    sess.coins_awarded = 0
+                    db.commit()
+                    response = {
+                        "status": "ok",
+                        "action": req.action,
+                        "data": {
+                            "session_id": sess.id,
+                            "minutes": minutes,
+                            "delta_available": False,
+                            "coins_awarded": 0,
+                        },
+                        "render": _render_info_embed(
+                            title="💪 Short session logged",
+                            description="Focus longer for code rewards.",
+                            color="#FEE75C",
+                        ),
+                    }
+                elif not sess.baseline_ready or not sess.baseline_counts:
+                    sess.delta_available = False
+                    sess.coins_awarded = 0
+                    db.commit()
+                    response = {
+                        "status": "ok",
+                        "action": req.action,
+                        "data": {
+                            "session_id": sess.id,
+                            "minutes": minutes,
+                            "delta_available": False,
+                            "coins_awarded": 0,
+                        },
+                        "render": _render_info_embed(
+                            title="✅ Session logged",
+                            description="Baseline still running. No delta this round.",
+                            color="#5865F2",
+                        ),
+                    }
+                else:
+                    scan = _nemoclaw_scan()
+                    if not scan:
+                        sess.delta_available = False
+                        sess.coins_awarded = 0
+                        db.commit()
+                        response = {
+                            "status": "ok",
+                            "action": req.action,
+                            "data": {
+                                "session_id": sess.id,
+                                "minutes": minutes,
+                                "delta_available": False,
+                                "coins_awarded": 0,
+                            },
+                            "render": _render_info_embed(
+                                title="⚠️ Scan unavailable",
+                                description="Focus logged. Try again later for delta.",
+                                color="#FEE75C",
+                            ),
+                        }
+                    else:
+                        end_counts = scan.get("counts") or {}
+                        end_score = _safe_int(scan.get("score"))
+                        end_grade = str(scan.get("grade") or "").upper() or None
+                        base_counts = sess.baseline_counts or {}
+                        base_score = _safe_int(sess.baseline_score)
+                        base_grade = sess.baseline_grade
+
+                        coins, delta_counts, _fixed = _compute_focus_reward(
+                            baseline=base_counts,
+                            end=end_counts,
+                            baseline_grade=base_grade,
+                            end_grade=end_grade,
+                            baseline_score=base_score,
+                            end_score=end_score,
+                        )
+
+                        sess.end_score = end_score
+                        sess.end_grade = end_grade
+                        sess.end_counts = end_counts
+                        sess.end_scanned_at = datetime.now(timezone.utc)
+                        sess.delta_available = True
+                        sess.delta_score = end_score - base_score
+                        sess.delta_counts = delta_counts
+
+                        awarded = 0
+                        if coins > 0:
+                            wallet = broski_service.award_coins(
+                                user_id=user.id,
+                                amount=coins,
+                                reason="Focus code delta",
+                                db=db,
+                                meta={
+                                    "source": "focus",
+                                    "session_id": sess.id,
+                                    "discord_id": discord_id,
+                                },
+                            )
+                            awarded = coins
+                            _ = wallet
+
+                        sess.coins_awarded = awarded
+                        db.commit()
+                        response = {
+                            "status": "ok",
+                            "action": req.action,
+                            "data": {
+                                "session_id": sess.id,
+                                "minutes": minutes,
+                                "delta_available": True,
+                                "coins_awarded": awarded,
+                            },
+                            "render": _render_info_embed(
+                                title="🏆 Focus complete",
+                                description=f"Minutes: {minutes}  ·  Coins: +{awarded}",
+                                color="#2ECC71",
+                            ),
+                        }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    if req.action == "focus.stats":
+        user = db.query(models.User).filter(models.User.discord_id == discord_id).first()
+        if not user:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"linked": False, "discord_id": discord_id},
+                "render": _render_info_embed(
+                    title="🔗 Link required",
+                    description="No HyperCode account is linked to this Discord ID yet.",
+                    color="#ED4245",
+                ),
+            }
+        else:
+            ended = (
+                db.query(FocusSession)
+                .filter(FocusSession.user_id == user.id, FocusSession.ended_at.isnot(None))
+                .order_by(FocusSession.ended_at.desc())
+                .all()
+            )
+
+            min_minutes = int(settings.FOCUS_MIN_MINUTES)
+            now = datetime.now(timezone.utc).date()
+            days: set = set()
+            total_minutes = 0
+            total_minutes_7d = 0
+            coins_total = 0
+            best_grade_rank = 0
+            best_grade_at: str | None = None
+            best_jump = 0
+            streak = 0
+
+            for s in ended:
+                m = _safe_int(s.minutes)
+                coins_total += _safe_int(s.coins_awarded)
+                if s.end_grade:
+                    r = _grade_rank(s.end_grade)
+                    if r > best_grade_rank and s.ended_at is not None:
+                        best_grade_rank = r
+                        best_grade_at = s.ended_at.isoformat()
+
+                if s.baseline_grade and s.end_grade:
+                    jump = _grade_rank(s.end_grade) - _grade_rank(s.baseline_grade)
+                    best_jump = max(best_jump, jump)
+
+                if m <= 0:
+                    continue
+                total_minutes += m
+                if s.ended_at is not None:
+                    d = s.ended_at.date()
+                    if (now - d).days <= 6:
+                        total_minutes_7d += m
+                    if m >= min_minutes:
+                        days.add(d)
+
+            cur = now
+            while cur in days:
+                streak += 1
+                cur = cur - timedelta(days=1)
+
+            best_grade = None
+            for g, r in _GRADE_RANK.items():
+                if r == best_grade_rank:
+                    best_grade = g
+                    break
+
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "minutes_7d": total_minutes_7d,
+                    "minutes_all_time": total_minutes,
+                    "coins_from_focus": coins_total,
+                    "best_grade_jump": best_jump,
+                    "streak_days": streak,
+                    "best_grade": best_grade,
+                    "best_grade_at": best_grade_at,
+                },
+                "render": _render_info_embed(
+                    title="📊 Focus stats",
+                    description=f"7d: {total_minutes_7d}m  ·  all: {total_minutes}m",
+                    color="#9B59B6",
+                ),
+            }
 
         _idempotency_store(
             idempotency_key=idempotency_key,

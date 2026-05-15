@@ -73,6 +73,11 @@ class Settings(BaseSettings):
 
     PETS_BRIDGE_URL: str = "http://broski-pets-bridge:8098"
 
+    NEMOCLAW_URL: str = "http://nemoclaw-agent:8099"
+    NEMOCLAW_TIMEOUT_SECONDS: float = 90.0
+
+    FOCUS_MIN_MINUTES: int = 5
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.

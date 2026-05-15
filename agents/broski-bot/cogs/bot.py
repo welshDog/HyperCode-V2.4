@@ -44,7 +44,9 @@ COGS = [
     "cogs.economy",
     "cogs.leaderboard",
     "cogs.ai",
+    "cogs.focus",
     "cogs.health_check",
+    "cogs.health_history",
 ]
 
 
