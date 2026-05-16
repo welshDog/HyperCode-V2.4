@@ -39,6 +39,10 @@ MENTION_LIMIT = _int_env("MOD_MENTION_LIMIT", 6)
 DUP_LIMIT = _int_env("MOD_DUPLICATE_LIMIT", 4)
 MOD_LOG_CHANNEL_ID = _int_env("MOD_LOG_CHANNEL_ID", 0)
 
+# Cap how many actioned message-ids we remember (re-entry guard).
+# Bounded so a 24/7 bot doesn't leak memory forever.
+_HANDLED_CAP = 2000
+
 
 class Moderation(commands.Cog):
     """Reversible auto-mod. Detection bot-side, decision + audit Core-side."""
@@ -51,7 +55,17 @@ class Moderation(commands.Cog):
         self._recent: dict[tuple[int, int], deque] = defaultdict(
             lambda: deque(maxlen=max(SPAM_MSGS, DUP_LIMIT) + 2)
         )
-        self._handled: set[int] = set()  # message ids already actioned
+        # Bounded re-entry guard: set for O(1) membership, deque for FIFO evict.
+        self._handled: set[int] = set()
+        self._handled_order: deque[int] = deque()
+
+    def _mark_handled(self, message_id: int) -> None:
+        if message_id in self._handled:
+            return
+        self._handled.add(message_id)
+        self._handled_order.append(message_id)
+        while len(self._handled_order) > _HANDLED_CAP:
+            self._handled.discard(self._handled_order.popleft())
 
     def _detect(self, message: discord.Message) -> tuple[str, dict] | None:
         """Return (kind, evidence) if message trips a rule, else None."""
@@ -90,6 +104,33 @@ class Moderation(commands.Cog):
 
         return None
 
+    async def _purge_recent_burst(self, message: discord.Message) -> None:
+        """Delete the offender's recent burst in this channel, not just the
+        triggering message. Bounded by count + a short time window so we never
+        nuke old or unrelated messages. Falls back to single-message delete."""
+        channel = message.channel
+        author_id = message.author.id
+        cap = max(SPAM_MSGS, DUP_LIMIT) * 3
+        after = discord.utils.utcnow() - timedelta(seconds=max(SPAM_WINDOW * 3, 60))
+
+        purge = getattr(channel, "purge", None)
+        if purge is not None:
+            try:
+                await purge(
+                    limit=cap,
+                    check=lambda m: m.author.id == author_id,
+                    after=after,
+                    reason="BROski auto-mod: spam burst cleanup",
+                )
+                return
+            except (discord.Forbidden, discord.HTTPException, TypeError):
+                pass  # fall through to single delete
+
+        try:
+            await message.delete()
+        except (discord.Forbidden, discord.NotFound, discord.HTTPException):
+            pass
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not message.guild:
@@ -108,7 +149,7 @@ class Moderation(commands.Cog):
             return
 
         kind, evidence = hit
-        self._handled.add(message.id)
+        self._mark_handled(message.id)
         evidence = {**evidence, "channel_id": str(message.channel.id)}
 
         ctx = {
@@ -138,10 +179,7 @@ class Moderation(commands.Cog):
 
         # Apply reversible actions with safe fallbacks.
         if data.get("delete_message"):
-            try:
-                await message.delete()
-            except (discord.Forbidden, discord.NotFound, discord.HTTPException):
-                pass
+            await self._purge_recent_burst(message)
 
         if isinstance(member, discord.Member):
             secs = int(data.get("timeout_seconds", 600))
