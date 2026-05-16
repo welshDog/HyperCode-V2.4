@@ -34,7 +34,7 @@
 - P3b TODO — raid auto-lockdown
 - P3c TODO — **veto-gated ban/kick: NEEDS Lyndz sign-off on triggers + veto delay BEFORE build. NEVER fully autonomous.**
 
-**Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**.
+**Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**. Tests: **251 passed, 6 skipped** ✅ (verified May 16, post NemoClaw+Guardian).
 **Active bot cogs** (`cogs/bot.py`): welcome, economy, leaderboard, ai, focus, missions, health_check, health_history, codehealth_voice, server_builder, digest, moderation. `main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`. ~20 more cogs unwired in `src/cogs/`.
 
 ### 🔥 May 15, 2026 — Discord “One Brain” Lock-In
@@ -208,7 +208,7 @@
 Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
-Tests:            pytest backend/tests -q  (241 last-verified; RE-RUN pending after NemoClaw+Guardian)
+Tests:            pytest backend/tests -q  (251 passed, 6 skipped — verified May 16)
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt
