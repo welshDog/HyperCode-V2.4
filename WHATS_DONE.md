@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 16, 2026** — update this every session.
+> **Updated: May 16, 2026 21:09 BST** — update this every session.
 
 ---
 
@@ -13,6 +13,52 @@
 | Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop + Web3 pets | `H:\Hyper-Vibe-Coding-Course` |
 | BROskiPets-LLM-dNFT | Pet NFT system — LLM + on-chain | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
 | BROski-Obsidian-Brain | Second Brain vault — Obsidian + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` ✅ May 5 |
+
+---
+
+## 📋 SESSION REPORT — May 16, 2026
+
+### 🔌 Live System Status (checked tonight)
+| Platform | Status |
+|---|---|
+| Supabase `Hyper Vibe Coding Course` | ✅ ACTIVE_HEALTHY |
+| Vercel `hyper-vibe-coding-course` | ✅ Live — BROskis team |
+| Stripe `vibe-hook` | ✅ Active — 3 deliveries, 0 failures, avg 615ms |
+| Edge Functions (10 total) | ✅ All ACTIVE |
+| Supabase DB Webhook | ✅ Firing since April 27 |
+
+### 🔒 Security Fixes Applied Tonight (migration: fix_security_invoker_functions)
+| Function | Before | After |
+|---|---|---|
+| `complete_module` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
+| `complete_quest` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
+| `get_or_create_referral_code` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
+- **6 security warnings → 1 remaining** (leaked password protection — manual toggle needed)
+- 1 remaining: enable leaked password protection at Supabase Auth settings
+
+### ✅ Stripe Webhook Code Audit — PASSED
+- `stripe-webhook` v32 — signature verified, 5-step handlePurchase flow, idempotency built in ✅
+- Events: `checkout.session.completed` + `customer.subscription.created` + `invoice.payment_succeeded` ✅
+- `invoice.payment_failed` removed (stripped — keeping handler minimal) ✅
+- All 5 price IDs mapped: starter/builder/hyper_legend tiers ✅
+
+### ⚡ Performance Findings (INFO only — not urgent)
+- 25 unused indexes across: `pet_assets`, `enrollments`, `lesson_progress`, `mint_nonces`, `pets`, `certificates`, `module_completions`, `pending_enrollments`, `quiz_attempts`, `quiz_questions`, `shop_purchases`, `user_quests`, `member_state`, `idempotency_keys`, `broski_events`, `economy_ledger`, `quest_state`, `users`
+- `shop_items` — duplicate permissive RLS policies for SELECT (shop_items_read_available + shop_items_service_role_all) — merge into one eventually
+
+### 📦 Edge Functions Live (all 10 ACTIVE)
+| Function | Version | JWT |
+|---|---|---|
+| `stripe-webhook` | v32 | ❌ Public (correct) |
+| `sync-tokens-to-v24` | v23 | ❌ Public |
+| `shop-purchase` | v28 | ✅ Auth required |
+| `course-profile` | v26 | ✅ Auth required |
+| `token-sync-to-v24` | v20 | ✅ Auth required |
+| `mint-pet-auth` | v9 | ✅ Auth required |
+| `get-pet-balance` | v5 | ✅ Auth required |
+| `mint-pet-confirm` | v6 | ✅ Auth required |
+| `truth-report` | v4 | ❌ Public |
+| `pet-evolve-check` | v1 | ✅ Auth required |
 
 ---
 
@@ -37,11 +83,11 @@
 **Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**. Tests: **251 passed, 6 skipped** ✅ (verified May 16, post NemoClaw+Guardian).
 **Active bot cogs** (`cogs/bot.py`): welcome, economy, leaderboard, ai, focus, missions, health_check, health_history, codehealth_voice, server_builder, digest, moderation. `main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`. ~20 more cogs unwired in `src/cogs/`.
 
-### 🔥 May 15, 2026 — Discord “One Brain” Lock-In
+### 🔥 May 15, 2026 — Discord "One Brain" Lock-In
 - **Option A enforced:** `broski-bot` calls Core only — no Supabase in bot ✅
 - **Discord bot library locked:** `discord.py==2.4.0` ✅
 - **Bot entrypoint locked:** `python -u -m cogs.bot` ✅
-- **Core “One Door” endpoint:** `POST /api/v1/discord/actions` + idempotency ✅
+- **Core "One Door" endpoint:** `POST /api/v1/discord/actions` + idempotency ✅
 - Premium Discord embeds: medals + colors + mentions + comma formatting ✅
 - `scripts/env_check.py` keys-only preflight for `.env` + secrets + profiles ✅
 
@@ -77,9 +123,8 @@
 - AI backend profile — `docker compose --profile ai up -d` ✅ April 23
 
 ### Database
-- PostgreSQL running, Alembic migrations up to `009` ✅ April 19
+- PostgreSQL running, Alembic migrations up to `015` ✅ May 16
 - Async engine + connection pooling (`asyncpg`, pool_size=10) ✅
-- Migration 009 — `pgcrypto` + `uuid-ossp` extensions ✅
 - DB pool metrics — `DBPoolCollector` on `/metrics` ✅ April 19
 
 ### Stripe + Payments
@@ -87,10 +132,11 @@
 - B3 E2E Stripe loop PROVED ✅ April 25
 - `scripts/Test-ShopPurchase.ps1` — E2E test passing ✅ May 3
 - Stripe webhook secret updated + redeployed ✅ May 5 🔥
+- Webhook code audited May 16 — PERFECT ✅
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance + `token_transactions` ledger ✅
-- `award_tokens()` + `spend_tokens()` SECURITY DEFINER ✅
+- `award_tokens()` + `spend_tokens()` SECURITY INVOKER ✅ (fixed May 16)
 - Token grants: starter=200, builder=800, hyper=2500 ✅
 - BROski$ Obsidian Coin Tracker LIVE ✅ May 5 (Dataview widget, Level 11)
 
@@ -114,14 +160,12 @@
 - **RainbowKit + wagmi + viem Web3 wallet integration** ✅ May 7
 - **Base Sepolia testnet + Base mainnet configured** ✅ May 7
 - **`useMintPet` hook — two-step mint flow (Edge Function auth + on-chain tx)** ✅ May 7
-- **Supabase Edge Functions: mint auth + pet balance check** ✅ May 7
+- **Supabase Edge Functions: mint-pet-auth v9, mint-pet-confirm v6, get-pet-balance v5, pet-evolve-check v1** ✅
 - **Supabase migrations: mint_nonces + pet ID sequencing** ✅ May 7
 - **CSP headers updated** for WalletConnect + blockchain RPC endpoints ✅ May 7
 - **10 pet species images + species catalogue with metadata** ✅ May 7
-- **SpeciesPicker component** — visual species selection ✅ May 7
-- **MintPetButton** — wallet connection + balance check + full mint flow ✅ May 7
+- **SpeciesPicker + MintPetButton components** ✅ May 7
 - **Pets page rebuilt** — three-step mint interface ✅ May 7
-- **Pinata dry-run upload** scripts added to Claude settings ✅ May 7
 
 ### Agents (25+)
 - healer-agent, agent-x, crew-orchestrator, hyper-architect, hyper-observer ✅
@@ -140,22 +184,20 @@
 
 ### 🧠 BROski Brain — COMPLETE May 5 ✅
 - Repo: `github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne`
-- Full PARA vault scaffold ✅
-- 4 project notes pre-seeded (HyperCode, HyperAgent, BROskiPets, Hyper-Vibe) ✅
+- Full PARA vault scaffold + 4 project notes pre-seeded ✅
 - Dashboard + Dataview live queries ✅
 - Templates: Daily, Project, Task, Morning Briefing ✅
 - BROski$ Coin Tracker — Dataview widget ✅ (Level 11)
 - Focus/Calm/Hyper CSS modes ✅ (Level 12)
 - GitHub bridge: `scripts/github_to_obsidian.py` — syncs 4 repos → vault ✅ (Level 9)
 - Obsidian Git: auto-commits vault every 10 mins → GitHub ✅ (Level 10)
-- Docker container: `docker/Dockerfile.github-sync` + compose ready ✅
 - `setup.ps1` one-run bootstrap ✅
-- Levels 9, 10, 11, 12 ALL UNLOCKED 🎮
 
 ### Security
 - Trivy scanner running ✅ (CI blocked — GitHub billing lock)
 - Socket-proxy least privilege ✅ April 19
 - Stripe keys rotated + scrubbed from 218 commits ✅
+- 3 DB functions fixed SECURITY DEFINER → INVOKER ✅ May 16
 - Trivy CVE-2026-42215 + CVE-2026-42284 in GitPython 3.1.45 flagged → fix: upgrade to 3.1.47 ⚠️ May 7
 
 ### Celery
@@ -163,7 +205,6 @@
 - `run_agent_task` with exponential backoff ✅
 - Gordon Tier 3: soft/hard time limits, DLQ on max retries ✅ April 19
 - Priority queues: high/normal/low + dlq (capped 10k) ✅ April 19
-- Celery queue metrics — Counter + Histogram + Redis LLEN depth ✅ April 19
 
 ### HyperAgent-SDK
 - `@w3lshdog/hyper-agent@0.1.7` published ✅
@@ -177,28 +218,30 @@
 
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
-- [ ] Register Supabase DB Webhook: `token_transactions` → INSERT → `sync-tokens-to-v24`
-- [ ] Fix GitHub Actions billing lock — github.com/settings/billing
+- [ ] **Enable leaked password protection** — Supabase Auth settings → Password Security → ON
+- [ ] **Fix GitHub Actions billing lock** — github.com/settings/billing
 - [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml` (tech debt)
 - [ ] Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars
 - [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens correctly
 - [ ] Add `GITHUB_PAT` to HyperCode-V2.4 `.env` + spin up `github-sync` Docker container
 - [ ] Upgrade GitPython to 3.1.47 — fixes CVE-2026-42215 + CVE-2026-42284
-- [ ] V2.4 check: does `mint_nonces` Supabase migration need a matching endpoint/hook in V2.4?
 - [ ] SDK bump to v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json`
+- [ ] Clean up `shop_items` duplicate RLS policies (shop_items_read_available + shop_items_service_role_all)
+- [ ] Tidy 25 unused DB indexes (low priority — after launch)
 
 ---
 
 ## 🚀 NEXT UP (in order)
 
-1. **E2E checkout test** — card `4242 4242 4242 4242` — verify new webhook secret end-to-end
-2. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
-3. **First student invite** — `/welcome` is green 🎓
-4. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
-5. **Fix GitHub Actions billing lock**
-6. **Level 13** — Morning Briefing live
-7. **Level 14** — GitHub Webhooks real-time
-8. **Level 15** — HyperAgent AI Daily Briefing
+1. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
+2. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242` — verify full money chain
+3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
+4. **First student invite** — `/welcome` is green 🎓
+5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+6. **Fix GitHub Actions billing lock**
+7. **Level 13** — Morning Briefing live
+8. **Level 14** — GitHub Webhooks real-time
+9. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
@@ -212,7 +255,7 @@ Tests:            pytest backend/tests -q  (251 passed, 6 skipped — verified M
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt
-Alembic:          if missing → 'alembic stamp 008' then upgrade head (up to 009)
+Alembic:          up to 015 — if missing → 'alembic stamp 014' then upgrade head
 Supabase table:   courses uses price_pence (int) + is_active (bool)
 Docker context:   must be 'desktop-linux' on Windows
 Memory limits:    ALL services capped — agent-x=1G, core=1.5G, postgres=2G
@@ -227,17 +270,18 @@ Guardian P3c:     ban/kick NEVER autonomous — veto-gated, needs Lyndz sign-off
 Course path:      H:\Hyper-Vibe-Coding-Course
 Course dev:       npm run dev:frontend
 Brain repo:       H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
-Brain vault:      HYPERFOCUS_ZONE/ folder inside brain repo
 GitHub sync:      python scripts/github_to_obsidian.py (needs GITHUB_PAT env var)
 Obsidian Git:     auto-commits vault every 10 mins to brain repo
 IDE:              Claude Code terminal + Perplexity AI (Windows)
 Trae Pro:         expired May 2026 — Claude Code is agent brain this month
 Stripe webhook:   secret updated May 5 ✅ — fresh whsec_ live in Supabase
 BROskiPets Web3:  RainbowKit + wagmi + Base Sepolia — mint live May 7 🔥
-Pets page:        three-step mint interface — SpeciesPicker → MintPetButton
 Mint flow:        Edge Function auth → on-chain Base Sepolia tx
 CSP headers:      updated for WalletConnect + blockchain RPC ✅ May 7
 GitPython:        upgrade to 3.1.47 — CVE-2026-42215 + CVE-2026-42284 ⚠️
+Security funcs:   complete_module, complete_quest, get_or_create_referral_code → SECURITY INVOKER ✅ May 16
+Supabase project: yhtmuibgdnxhbgboajhc (eu-west-2)
+Vercel team:      BROskis (team_Uy6hGYD4AZqclHqUeEsmZuDP)
 ```
 
 ---
