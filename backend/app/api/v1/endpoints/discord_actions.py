@@ -56,6 +56,8 @@ class DiscordActionRequest(BaseModel):
         "codehealth.pulse",
         "digest.weekly",
         "mod.assess",
+        "mod.raid_lockdown",
+        "mod.raid_sweep",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -628,6 +630,139 @@ def discord_actions(
             db=db,
         )
         return response
+
+    # ── mod.raid_lockdown (system action — Phase 3b, reversible) ─────────────
+    if req.action == "mod.raid_lockdown":
+        phase = str(req.payload.get("phase") or "").strip()
+
+        if phase == "open":
+            mins = int(settings.RAID_LOCKDOWN_MINUTES)
+            join_count = int(req.payload.get("join_count") or 0)
+            window_s = int(req.payload.get("window_s") or 0)
+            guild_id = str(req.payload.get("guild_id") or "")
+            now = datetime.now(timezone.utc)
+            row = ModAction(
+                action_type="lockdown",
+                target_discord_id=guild_id or "guild",
+                target_username=None,
+                severity="high",
+                reason=f"Raid auto-lockdown — {join_count} joins in {window_s}s",
+                evidence={
+                    "guild_id": guild_id,
+                    "join_count": join_count,
+                    "window_s": window_s,
+                },
+                status="active",
+                executes_at=now + timedelta(minutes=mins),
+            )
+            db.add(row)
+            db.commit()
+            db.refresh(row)
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "locked": True,
+                    "unlock_minutes": mins,
+                    "mod_action_id": row.id,
+                },
+                "render": _render_info_embed(
+                    title="🚨 RAID LOCKDOWN ENGAGED",
+                    description=(
+                        f"{join_count} joins in {window_s}s — channels locked.\n"
+                        f"Auto-unlock in {mins} min · `/raid-unlock` to lift early."
+                    ),
+                    color="#FF0000",
+                ),
+            }
+        elif phase == "locked":
+            mod_id = req.payload.get("mod_action_id")
+            ids = req.payload.get("locked_channel_ids") or []
+            row = db.query(ModAction).filter(ModAction.id == mod_id).first()
+            if row:
+                row.evidence = {**(row.evidence or {}), "locked_channel_ids": list(ids)}
+                db.commit()
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": bool(row), "locked_count": len(ids)},
+                "render": _render_info_embed(
+                    title="🔒 Lockdown recorded",
+                    description=f"{len(ids)} channels locked.",
+                    color="#E67E22",
+                ),
+            }
+        elif phase == "resolve":
+            mod_id = req.payload.get("mod_action_id")
+            row = db.query(ModAction).filter(ModAction.id == mod_id).first()
+            if row and row.status == "active":
+                row.status = "resolved"
+                row.resolved_at = datetime.now(timezone.utc)
+                db.commit()
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": bool(row), "resolved": bool(row and row.status == "resolved")},
+                "render": _render_info_embed(
+                    title="🔓 Lockdown lifted",
+                    description="Channels restored.",
+                    color="#2ECC71",
+                ),
+            }
+        else:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False, "reason": "unknown_phase"},
+                "render": _render_info_embed(
+                    title="🛡️ No action",
+                    description="Unknown raid phase.",
+                    color="#FEE75C",
+                ),
+            }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
+    # ── mod.raid_sweep (system action — reconciler read) ─────────────────────
+    if req.action == "mod.raid_sweep":
+        now = datetime.now(timezone.utc)
+        active = (
+            db.query(ModAction)
+            .filter(ModAction.action_type == "lockdown", ModAction.status == "active")
+            .all()
+        )
+        out = []
+        for r in active:
+            ex = r.executes_at
+            if ex is not None and ex.tzinfo is None:
+                ex = ex.replace(tzinfo=timezone.utc)
+            ev = r.evidence or {}
+            out.append({
+                "mod_action_id": r.id,
+                "guild_id": ev.get("guild_id"),
+                "locked_channel_ids": ev.get("locked_channel_ids") or [],
+                "executes_at": ex.isoformat() if ex else None,
+                "due": bool(ex and now >= ex),
+            })
+        # Pure read, runs every ~60s forever — do NOT persist an idempotency
+        # row (would balloon discord_idempotency_keys). Return directly.
+        return {
+            "status": "ok",
+            "action": req.action,
+            "data": {"active": out, "count": len(out)},
+            "render": _render_info_embed(
+                title="🛡️ Raid sweep",
+                description=f"{len(out)} active lockdown(s).",
+                color="#5865F2",
+            ),
+        }
 
     # ── digest.weekly (system action — no user lookup) ───────────────────────
     if req.action == "digest.weekly":

@@ -52,6 +52,7 @@ COGS = [
     "cogs.server_builder",
     "cogs.digest",
     "cogs.moderation",
+    "cogs.raid_guard",
 ]
 
 

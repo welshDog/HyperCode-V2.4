@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     # Server Guardian Phase 3a — reversible auto-mod only (never ban/kick here).
     MOD_DEFAULT_TIMEOUT_SECONDS: int = 600
 
+    # Server Guardian Phase 3b — raid auto-lockdown (reversible).
+    RAID_LOCKDOWN_MINUTES: int = 10
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.
