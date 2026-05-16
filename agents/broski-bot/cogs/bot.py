@@ -53,6 +53,7 @@ COGS = [
     "cogs.digest",
     "cogs.moderation",
     "cogs.raid_guard",
+    "cogs.ban_veto",
 ]
 
 

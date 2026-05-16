@@ -88,6 +88,14 @@ class Settings(BaseSettings):
     # Server Guardian Phase 3b — raid auto-lockdown (reversible).
     RAID_LOCKDOWN_MINUTES: int = 10
 
+    # Server Guardian Phase 3c — veto-gated ban (SPEC LOCKED, binding).
+    # SAFETY INVARIANT: a ban NEVER happens except on explicit APPROVE click.
+    # Silence / window-expiry = downgrade to a long timeout, never a ban.
+    GUARDIAN_ESCALATION_STRIKES: int = 3
+    GUARDIAN_ESCALATION_WINDOW_DAYS: int = 7
+    GUARDIAN_VETO_WINDOW_MINUTES: int = 60
+    GUARDIAN_DOWNGRADE_TIMEOUT_SECONDS: int = 604800  # 7 days, reversible
+
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.
     # Default is False to avoid pulling arbitrary bucket contents into prompts.

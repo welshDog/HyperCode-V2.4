@@ -58,6 +58,8 @@ class DiscordActionRequest(BaseModel):
         "mod.assess",
         "mod.raid_lockdown",
         "mod.raid_sweep",
+        "mod.veto_sweep",
+        "mod.veto_resolve",
         "daily.claim",
         "economy.balance",
         "economy.give",
@@ -462,6 +464,67 @@ def _build_weekly_digest(*, db: Session, guild_member_count: int | None) -> dict
     }
 
 
+def _maybe_escalate_to_ban(
+    *,
+    db: Session,
+    target_discord_id: str,
+    target_username: str | None,
+    guild_id: str | None,
+) -> int | None:
+    """Phase 3c escalation: 3 auto-mod timeouts in the window → create a
+    pending-veto ban. NEVER bans here — only proposes. The bot's reconciler
+    delivers the veto UI; silence downgrades, explicit APPROVE bans."""
+    win_days = int(settings.GUARDIAN_ESCALATION_WINDOW_DAYS)
+    strikes = int(settings.GUARDIAN_ESCALATION_STRIKES)
+    since = datetime.now(timezone.utc) - timedelta(days=win_days)
+
+    timeout_count = (
+        db.query(ModAction)
+        .filter(
+            ModAction.target_discord_id == target_discord_id,
+            ModAction.action_type == "timeout",
+            ModAction.status == "auto_done",
+            ModAction.created_at >= since,
+        )
+        .count()
+    )
+    if timeout_count < strikes:
+        return None
+
+    existing = (
+        db.query(ModAction)
+        .filter(
+            ModAction.target_discord_id == target_discord_id,
+            ModAction.action_type == "ban",
+            ModAction.status == "pending_veto",
+        )
+        .first()
+    )
+    if existing:
+        return None  # one open proposal at a time
+
+    mins = int(settings.GUARDIAN_VETO_WINDOW_MINUTES)
+    ban_row = ModAction(
+        action_type="ban",
+        target_discord_id=target_discord_id,
+        target_username=target_username,
+        severity="severe",
+        reason=f"Escalation: {timeout_count} auto-mod timeouts in {win_days}d",
+        evidence={
+            "origin": "escalation",
+            "guild_id": guild_id,
+            "strike_count": timeout_count,
+            "veto_delivered": False,
+        },
+        status="pending_veto",
+        executes_at=datetime.now(timezone.utc) + timedelta(minutes=mins),
+    )
+    db.add(ban_row)
+    db.commit()
+    db.refresh(ban_row)
+    return ban_row.id
+
+
 def _baseline_scan_task(*, session_id: int) -> None:
     scan = _nemoclaw_scan()
     if not scan:
@@ -764,6 +827,141 @@ def discord_actions(
             ),
         }
 
+    # ── mod.veto_sweep (system action — Phase 3c reconciler read) ────────────
+    if req.action == "mod.veto_sweep":
+        now = datetime.now(timezone.utc)
+        pending = (
+            db.query(ModAction)
+            .filter(
+                ModAction.action_type == "ban",
+                ModAction.status == "pending_veto",
+            )
+            .all()
+        )
+        out = []
+        for r in pending:
+            ex = r.executes_at
+            if ex is not None and ex.tzinfo is None:
+                ex = ex.replace(tzinfo=timezone.utc)
+            ev = r.evidence or {}
+            out.append({
+                "mod_action_id": r.id,
+                "target_discord_id": r.target_discord_id,
+                "target_username": r.target_username,
+                "reason": r.reason,
+                "guild_id": ev.get("guild_id"),
+                "strike_count": ev.get("strike_count"),
+                "delivered": bool(ev.get("veto_delivered")),
+                "executes_at": ex.isoformat() if ex else None,
+                "due": bool(ex and now >= ex),
+            })
+        # Pure read, runs every ~60s — no idempotency persistence.
+        return {
+            "status": "ok",
+            "action": req.action,
+            "data": {"pending": out, "count": len(out)},
+            "render": _render_info_embed(
+                title="🛡️ Veto sweep",
+                description=f"{len(out)} pending ban proposal(s).",
+                color="#5865F2",
+            ),
+        }
+
+    # ── mod.veto_resolve (system action — Phase 3c decision) ─────────────────
+    if req.action == "mod.veto_resolve":
+        mod_id = req.payload.get("mod_action_id")
+        decision = str(req.payload.get("decision") or "").strip()
+        actor = str(req.payload.get("actor") or "system")[:128]
+        row = db.query(ModAction).filter(ModAction.id == mod_id).first()
+
+        if not row or row.action_type != "ban":
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False, "reason": "not_found"},
+                "render": _render_info_embed(
+                    title="⚠️ Not found",
+                    description="No such ban proposal.",
+                    color="#FEE75C",
+                ),
+            }
+        elif decision == "delivered":
+            # Mark the veto UI as delivered so the reconciler stops re-posting.
+            row.evidence = {**(row.evidence or {}), "veto_delivered": True}
+            db.commit()
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": True, "final_status": row.status},
+                "render": _render_info_embed(
+                    title="📨 Veto UI delivered", description="", color="#5865F2"
+                ),
+            }
+        elif row.status != "pending_veto":
+            # AUTHORITATIVE idempotency: already resolved. Never re-act.
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {
+                    "ok": True,
+                    "already_resolved": True,
+                    "final_status": row.status,
+                },
+                "render": _render_info_embed(
+                    title="ℹ️ Already resolved",
+                    description=f"This proposal is already **{row.status}**.",
+                    color="#5865F2",
+                ),
+            }
+        elif decision in {"approve", "veto", "downgrade"}:
+            new_status = {
+                "approve": "executed",
+                "veto": "vetoed",
+                "downgrade": "downgraded",
+            }[decision]
+            row.status = new_status
+            row.resolved_at = datetime.now(timezone.utc)
+            row.evidence = {**(row.evidence or {}), "resolved_by": actor}
+            db.commit()
+            data = {
+                "ok": True,
+                "final_status": new_status,
+                "target_discord_id": row.target_discord_id,
+                "guild_id": (row.evidence or {}).get("guild_id"),
+            }
+            if decision == "downgrade":
+                data["downgrade_seconds"] = int(
+                    settings.GUARDIAN_DOWNGRADE_TIMEOUT_SECONDS
+                )
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": data,
+                "render": _render_info_embed(
+                    title=f"🛡️ Ban proposal {new_status}",
+                    description=f"By {actor}.",
+                    color="#2ECC71" if decision == "veto" else "#ED4245",
+                ),
+            }
+        else:
+            response = {
+                "status": "ok",
+                "action": req.action,
+                "data": {"ok": False, "reason": "unknown_decision"},
+                "render": _render_info_embed(
+                    title="⚠️ Unknown decision", description="", color="#FEE75C"
+                ),
+            }
+
+        _idempotency_store(
+            idempotency_key=idempotency_key,
+            request_hash=request_hash,
+            action=req.action,
+            response=response,
+            db=db,
+        )
+        return response
+
     # ── digest.weekly (system action — no user lookup) ───────────────────────
     if req.action == "digest.weekly":
         try:
@@ -844,6 +1042,15 @@ def discord_actions(
             db.commit()
             db.refresh(row)
 
+            # Phase 3c: escalate to a pending-veto ban if this is the Nth
+            # strike. This only PROPOSES — never bans. Reconciler delivers UI.
+            escalated_ban_id = _maybe_escalate_to_ban(
+                db=db,
+                target_discord_id=target_id,
+                target_username=target_name,
+                guild_id=req.discord.guild_id,
+            )
+
             response = {
                 "status": "ok",
                 "action": req.action,
@@ -854,6 +1061,7 @@ def discord_actions(
                     "severity": severity,
                     "reason": reason,
                     "mod_action_id": row.id,
+                    "escalated_ban_id": escalated_ban_id,
                 },
                 "render": _render_info_embed(
                     title="🛡️ Auto-mod applied",

@@ -30,9 +30,9 @@
 **Server Guardian** (autonomous Discord manager — bot=UI, Core=brain, no Supabase):
 - P1 Reactive ✅ LIVE — auto-role on join + `/hyperfocus_setup` (idempotent layout build)
 - P2 Digest ✅ LIVE — weekly DM to Lyndz, Core aggregates last-7d from Postgres (`digest.weekly`)
-- P3a Auto-mod ✅ BUILT (smoke pending) — structural spam detect (rate/dup/mention) + opt-in `MOD_BLOCKLIST` → reversible timeout, audited to `mod_actions` (migration 015), staff-exempt, fail-safe; digest "incidents" now reads real counts
-- P3b TODO — raid auto-lockdown
-- P3c TODO — **veto-gated ban/kick: NEEDS Lyndz sign-off on triggers + veto delay BEFORE build. NEVER fully autonomous.**
+- P3a Auto-mod ✅ LIVE — structural spam detect (rate/dup/mention) + opt-in `MOD_BLOCKLIST` → reversible timeout, audited to `mod_actions` (migration 015), staff-exempt, fail-safe; digest "incidents" reads real counts
+- P3b Raid lockdown ✅ LIVE — join-flood detect → reversible channel lock, 60s reconciler reads Core `due` (no timers, Postgres-backed, restart-safe), `/raid-unlock` `/raid-status`
+- P3c Veto-ban ✅ BUILT (smoke pending) — 3 auto-mod timeouts/7d → Core proposes (status=pending_veto); persistent DynamicItem buttons (survive restart) to DM + mod-log; **ban ONLY on explicit ✅ APPROVE click; 🛑 VETO or silence/expiry → downgrade to long timeout, NEVER an autonomous ban**; reconciler can only deliver/downgrade by design
 
 **Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**. Tests: **251 passed, 6 skipped** ✅ (verified May 16, post NemoClaw+Guardian).
 **Active bot cogs** (`cogs/bot.py`): welcome, economy, leaderboard, ai, focus, missions, health_check, health_history, codehealth_voice, server_builder, digest, moderation. `main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`. ~20 more cogs unwired in `src/cogs/`.
@@ -223,7 +223,7 @@ make calm:        restores all + awards 75 BROski$
 broski-pets:      health → http://localhost:8098/health
 nemoclaw-agent:   health → http://localhost:8099/health  (profile: nemoclaw)
 launch bot:       .\scripts\launch-bot.ps1  (preflight → up)
-Guardian P3c:     ban/kick NEVER autonomous — veto-gated, needs Lyndz sign-off
+Guardian P3c:     ban ONLY on explicit APPROVE click — silence=downgrade, NEVER autonomous ban
 Course path:      H:\Hyper-Vibe-Coding-Course
 Course dev:       npm run dev:frontend
 Brain repo:       H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
