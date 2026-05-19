@@ -242,7 +242,7 @@ docker compose --profile discord up -d broski-bot # bot only
 | DB queries / safe prod testing | Supabase MCP `execute_sql` — wrap in `BEGIN / ROLLBACK` |
 | V2.4 DB changes | `docker compose exec hypercode-core alembic upgrade head` |
 | Auth + browser testing | **Playwright** — installed (`npm run test:e2e`), badges have `data-auth-status` |
-| Deploy verification | Watch for bundle-hash flip on prod URL |
+| Deploy verification (course) | **Vercel MCP `get_deployment`/`list_deployments`** (team `team_Uy6hGYD4AZqclHqUeEsmZuDP`). ⚠️ NEVER curl-poll prod — trips Vercel Attack Challenge Mode (403 `X-Vercel-Mitigated`); looks down, isn't |
 | Perf claims | `npm run build` chunk sizes = real evidence. Never assert CWV without Vercel dashboard |
 | Before claiming done (course) | `npx tsc --noEmit` + `npx eslint` + `npm run build` — all three green |
 | Before `docker compose up` | `python scripts/env_check.py --core --secrets --profile discord` |
@@ -258,6 +258,7 @@ docker compose --profile discord up -d broski-bot # bot only
 
 - **NEVER suggest anything in `WHATS_DONE.md`** — check it before every suggestion
 - Surface contradictions — correct the doc, don't silently proceed
+- **Lyndz runs a PARALLEL git workflow** — tooling auto-commits/pushes out-of-band. ALWAYS `git fetch` + check `origin/main` before pushing; NEVER force-push; align a duplicate commit with `git reset --hard origin/main`
 - Quick wins first — momentum > perfection
 - Nothing is done until committed and pushed
 - Update SESSION_SNAPSHOT at end of every session
