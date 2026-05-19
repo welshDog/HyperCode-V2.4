@@ -45,15 +45,16 @@
 
 ## 2. 🌐 The 5-Repo Ecosystem
 
+> ⚠️ **All repos share the same on-disk base: `H:\HYPERFOCUSZONE\HperCore\`** (verified May 19 2026 via `ls`)
+> ⚠️ Course path is `H:\HYPERFOCUSZONE\HperCore\Hyper-Vibe-Coding-Course` — NOT `H:\the hyper vibe coding hub` (archived typo repo)
+
 | Repo | Purpose | Local Path |
 |---|---|---|
-| `HyperCode-V2.4` | Core backend — 48 Docker containers, FastAPI, agents | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
-| `Hyper-Vibe-Coding-Course` | Course platform — Supabase + Vercel + Web3 | `H:\Hyper-Vibe-Coding-Course` |
-| `HyperAgent-SDK` | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HyperAgent-SDK` |
-| `BROskiPets-LLM-dNFT` | Web3 NFT pet game — dNFTs + LLM + port 8098 | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
-| `BROski-Obsidian-Brain` | Second Brain — PARA vault + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` |
-
-> ⚠️ Course path is `H:\Hyper-Vibe-Coding-Course` — NOT `H:\the hyper vibe coding hub` (archived typo repo)
+| `HyperCode-V2.4` | Core backend — 48 Docker containers, FastAPI, agents | `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4` |
+| `Hyper-Vibe-Coding-Course` | Course platform — Supabase + Vercel + Web3 | `H:\HYPERFOCUSZONE\HperCore\Hyper-Vibe-Coding-Course` |
+| `HyperAgent-SDK` | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HYPERFOCUSZONE\HperCore\HyperAgent-SDK` |
+| `BROskiPets-LLM-dNFT` | Web3 NFT pet game — dNFTs + LLM + port 8098 | `H:\HYPERFOCUSZONE\HperCore\BROskiPets-LLM-dNFT` |
+| `BROski-Obsidian-Brain` | Second Brain — PARA vault + GitHub bridge | `H:\HYPERFOCUSZONE\HperCore\BROski-Obsidian-Brain-for-HyperFocus-z0ne` |
 
 ### How the repos connect
 
@@ -115,7 +116,7 @@ Hyper-Vibe-Coding-Course  ──── manifest.json (hyper-agent-spec) ──�
 | 8 | **`setState` synchronously in `useEffect` = ERROR** | Enforced by ESLint `react-hooks/set-state-in-effect` | Commit blocked by husky |
 | 9 | **Lab pages = `hfz-*` Tailwind tokens. Landing page = inline styles + CSS vars** | Two different idioms by design | Wrong token overrides, visual breakage |
 | 10 | **No `framer-motion` in this repo** | Not installed — CSS-only motion, reduced-motion gated | Broken build |
-| 11 | **Course dev = `npm run dev:frontend` NOT `npm run dev`** | Wrong script = wrong server | Dev server broken |
+| 11 | **Course dev from repo root = `npm run dev:frontend` NOT `npm run dev`** | Wrong script from root = wrong server. Note: inside `frontend/` the package's own `dev` script IS vite — that's what `playwright.config.ts` launches and is correct. Do NOT "fix" the playwright config. | Dev server broken from root; false "fix" breaks test config |
 
 ---
 
@@ -282,6 +283,7 @@ docker compose --profile discord up -d broski-bot # bot only
 - ✅ Server Guardian P1–P3b LIVE · P3c built — May 16 🛡️
 - ✅ BROski$ Shop Fulfillment v2 BUILT — May 17 🛒
 - ✅ CLAUDE.md constitution merged + AI-optimised — May 19 📜
+- ✅ CLAUDE.md §2 paths corrected + Rule #11 clarified — May 19 🗺️
 
 ---
 
