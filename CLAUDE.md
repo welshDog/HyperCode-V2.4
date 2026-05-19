@@ -1,77 +1,142 @@
-# 🧠 HyperCode V2.4 — CLAUDE.md
-
-> **This file is Claude's brain for this project.**
-> Read this first. Every session. No exceptions.
-> Last updated: **May 15, 2026 (08:13 BST)** — Env Preflight Checker LIVE ✅ + broski-bot Option A DONE 🤖🔥
-
----
-
-## 🏴󠁧󠁢󠁷󠁬󠁳󠁥 Builder Context
-
-**Lyndz Williams** (@welshDog) — Llanelli, South Wales
-ADHD + Dyslexia + Autistic brain — hyperfocus mode is a superpower, not a bug ⚡
-Building: The world's first neurodivergent-first autonomous AI infrastructure platform
-Verdict from Gordon (Docker AI), April 15 2026:
-> *"You built the future people keep saying they want. You actually did it."*
+# 🧠 HYPERFOCUS z0ne — MASTER CLAUDE.md
+> **For ANY AI — Claude, Perplexity, GPT, Gemini, Cursor. Read this first. Every session.**
+> Last updated: May 19, 2026 · Built by @welshDog + AI
+> **This is the constitution. SESSION_SNAPSHOT is the living state.**
 
 ---
 
-## ⚡ Communication Style (ALWAYS follow this)
+## 0. Read Order — Every Session, No Exceptions
 
-- **Short sentences first** — then offer deeper explanation
-- **Bullet points + headings** over walls of text
-- **Why → How → Ready-to-use example** structure
-- **Celebrate wins** — "Nice one BROski♾️!" is correct
-- **Remind context** if there's been a pause between messages
-- ADHD flow: break into steps, quick wins, no overwhelm
-- If Lyndz goes quiet mid-task: check in, don't assume abandon
+1. **This file** — identity, rules, ecosystem map, philosophy
+2. **Repo `CLAUDE.md`** — repo-specific sacred rules + key files
+3. **`SESSION_SNAPSHOT_[latest date].md`** — current sprint state, what's live, what's next
+4. **If touching DB** → check migrations first (`supabase/migrations/` or `alembic upgrade head`)
+5. **Then build.** Not before.
 
----
-
-## 🔒 Sacred Rules (NEVER debate, NEVER change)
-
-```
-✔ docker-ce-cli          — NEVER docker.io for socket agents
-✔ from app.X import Y    — NEVER from backend.app.X
-✔ FastAPI public routes   — BEFORE auth-gated routes
-✔ Stripe webhook          — rate-limit EXEMPT, always
-✔ data-net + obs-net      — internal: true, never external
-✔ .env files              — NEVER committed to git
-✔ Commits                 — feat: fix: docs: chore: only
-✔ Trivy target            — 0 CRITICAL per image
-✔ Import style            — absolute imports, sys.path.insert at top
-✔ Python indent           — 4 spaces, NEVER 3, NEVER mixed
-✔ Stripe webhook          — NEVER add rate limiting to /api/stripe/webhook
-✔ Redis DB split          — DB 1 = cache, DB 2 = rate limits. NEVER mix.
-✔ hypercore healthcheck   — use localhost NOT 127.0.0.1 (IPv6 fix)
-✔ Supabase ↔ V2.4         — NEVER merge schemas
-```
+> If this file and a SESSION_SNAPSHOT contradict — surface it. Correct the doc. Don't silently pick one.
 
 ---
 
-## 📊 System Status (May 15, 2026 — 08:13 BST)
+## 1. Who You're Working With
 
-| Metric | Value |
+- **Name:** Lyndz Williams — call them **"Bro"** or **"BROski"**
+- **GitHub:** @welshDog · **npm:** @w3lshdog
+- **Location:** Llanelli, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁧
+- **Brain:** ADHD + Dyslexia + Autistic — hyperfocus is a SUPERPOWER ⚡
+- **IDE:** Claude Code (terminal) + Perplexity AI — Trae Pro expired May 2026
+- **OS:** Windows primary (PowerShell) · WSL2 · Raspberry Pi · Docker
+- **Building:** The world's first neurodivergent-first autonomous AI infrastructure platform
+
+> *"You built the future people keep saying they want. You actually did it."* — Gordon (Docker AI, April 15 2026)
+
+### Communication Rules — Non-Negotiable
+
+| ✅ DO | ❌ NEVER |
 |---|---|
-| Containers | 48 running ✅ |
-| Tests | 224 passed, 6 skipped ✅ (env_check tests added) |
-| Prometheus targets | 7/7 UP ✅ |
-| OTLP traces | LIVE in Tempo ✅ |
-| Circuit breakers | 3 active — all CLOSED ✅ |
-| Docker AI grade | A 🏅 |
-| Stripe | LIVE 💳 (webhook secret updated May 5) |
-| Gamification | FULL STACK LIVE (HUD, XP, Quests, Leaderboard) ✅ |
-| BROskiPets Web3 | MINT LIVE on Base Sepolia 🔥 May 7 |
-| BROski Brain | Levels 9–12 ✅ May 5 + Brain agents pushed May 15 ✅ |
-| broski-bot | OPTION A LIVE 🤖 May 15 — `agents/broski-bot/` + profile:discord |
-| discord-bot (legacy) | Reprofiled → `discord-lite` (won't auto-start) |
-| Env Preflight Checker | LIVE ✅ May 15 — `scripts/env_check.py` + `scripts/env-check.sh` |
-| HyperAgent-SDK | graduate build + trigger commands designed ✅ May 15 |
-| Trae Pro | EXPIRED May 2026 — using Perplexity AI + Claude Code |
+| Short sentences first → detail after if asked | Walls of text unprompted |
+| Bullet points + bold for key info | Waffle or filler |
+| Why → How → Ready-to-use example | Assume tasks are done without a commit |
+| Celebrate every milestone ("Nice one BROski♾️!") | Debate sacred rules |
+| Check in gently if Lyndz goes quiet | Say "human must test" when Playwright applies |
+| Surface contradictions — correct the doc visibly | Quietly pick one side of a contradiction |
+| Chunk it, quick wins first, no overwhelm | Suggest anything listed in WHATS_DONE.md |
 
 ---
 
-## 🏗️ Architecture Quick Ref
+## 2. 🌐 The 5-Repo Ecosystem
+
+| Repo | Purpose | Local Path |
+|---|---|---|
+| `HyperCode-V2.4` | Core backend — 48 Docker containers, FastAPI, agents | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
+| `Hyper-Vibe-Coding-Course` | Course platform — Supabase + Vercel + Web3 | `H:\Hyper-Vibe-Coding-Course` |
+| `HyperAgent-SDK` | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HyperAgent-SDK` |
+| `BROskiPets-LLM-dNFT` | Web3 NFT pet game — dNFTs + LLM + port 8098 | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
+| `BROski-Obsidian-Brain` | Second Brain — PARA vault + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` |
+
+> ⚠️ Course path is `H:\Hyper-Vibe-Coding-Course` — NOT `H:\the hyper vibe coding hub` (archived typo repo)
+
+### How the repos connect
+
+```
+Hyper-Vibe-Coding-Course  ──── manifest.json (hyper-agent-spec) ────▶  HyperCode-V2.4
+        │                                                                      │
+        └─────────────────── HyperAgent-SDK ──────────────────────────────────┘
+                              @w3lshdog/hyper-agent · graduate build DESIGNED May 15
+                                       │
+                          BROskiPets-LLM-dNFT (port 8098)
+                                       │
+                      BROski-Obsidian-Brain (cluster.json + 4 agent manifests)
+```
+
+---
+
+## 3. 🔴 Sacred Rules — HyperCode V2.4
+
+> Break these = OOM crashes, security holes, or infra cascade failures.
+
+| # | Rule | Why | Consequence if broken |
+|---|---|---|---|
+| 1 | **`docker-ce-cli` NEVER `docker.io`** for socket agents | Socket agent auth depends on it | Agent connectivity breaks |
+| 2 | **`from app.X import Y` NEVER `from backend.app.X`** | Absolute import path is `app.*` | Import errors across all agents |
+| 3 | **FastAPI public routes BEFORE auth-gated routes** | Route ordering matters in FastAPI | Auth-gated routes shadow public ones |
+| 4 | **Stripe webhook ALWAYS rate-limit exempt** | Stripe retries have strict timing | Webhook drops, payments fail |
+| 5 | **`data-net` + `obs-net` = `internal: true` always** | Security boundary — never expose to internet | Data layer exposed publicly |
+| 6 | **`.env` files NEVER committed to git** | Secrets via Docker `.txt` files only | Credential leak |
+| 7 | **Commits: `feat:` `fix:` `docs:` `chore:` only** | Conventional commits, enforced by hooks | CI breaks, changelog corrupted |
+| 8 | **Trivy target: 0 CRITICAL per image** | Security gate | Vulnerable images ship to prod |
+| 9 | **Python indent: 4 spaces, NEVER 3, NEVER mixed** | Enforced by linter | Silent IndentationError crashes |
+| 10 | **Redis: DB 1 = cache, DB 2 = rate limits — NEVER mix** | Rate limiter reads wrong DB | Rate limits silently disabled |
+| 11 | **`hypercore` healthcheck uses `localhost` NOT `127.0.0.1`** | IPv6 resolution bug in container | Health check fails, container restarts loop |
+| 12 | **Supabase ↔ V2.4 schemas NEVER merged** | Two separate DB concerns | Schema drift, migration conflicts |
+| 13 | **Guardian moderation: ban/kick NEVER fully autonomous** | Phase 3c = veto-gated only — Lyndz must approve | Innocent user banned without review |
+| 14 | **NemoClaw/Guardian: bot detects, Core decides + persists, bot renders (One Door)** | Single source of truth for all actions | Duplicate actions, split state |
+| 15 | **`monitoring/prometheus/prometheus.yml` = ACTIVE. Repo root = STALE** | Two files exist — only one is live | Prometheus scrapes wrong targets |
+| 16 | **`minio` on BOTH `data-net` AND `obs-net` — intentional, never "fix" it** | Minio serves both data and observability layers | Breaks minio connectivity to obs stack |
+| 17 | **Alembic: if `alembic_version` missing → `stamp <prev>` then `upgrade head`** | `create_all` built schema without Alembic state | Migration state corrupts, double-apply |
+| 18 | **Two socket proxies — NEVER merge** | Main = read-only · `healer` = CONTAINERS/POST/PING only | LLM code gains write access to containers |
+| 19 | **Memory limits on ALL services** | Agent X caused OOM crash Apr 17 building 30 images uncapped | OOM cascade kills entire stack |
+| 20 | **`make build` runs `pre-build-check.sh` first** | Aborts if <15GB free disk | OOM during build |
+
+---
+
+## 4. 🔴 Sacred Rules — Hyper-Vibe-Coding-Course
+
+> Break these = deploys revert, money-path logic corrupts, or perf wins get lost.
+
+| # | Rule | Why | Consequence if broken |
+|---|---|---|---|
+| 1 | **NEVER `supabase db push`** | Local migration filenames desynced from remote `schema_migrations` | Replays shop/pet migrations DB already has |
+| 2 | **NEVER import `wagmi`/`rainbowkit` outside `/pets`** | Re-bloats cold funnel load by ~900 kB | Reverts Sprint 2 perf win (61 kB → 1,270 kB) |
+| 3 | **NEVER `--no-verify` on commits** | Husky + lint-staged catches real ESLint errors | Broken code enters `main` |
+| 4 | **NO orange anywhere in UI** | Sacred HFZ brand rule | Off-brand, gets reverted |
+| 5 | **Three chrome systems — no global shell** | Funnel `TopNav` · course `Navbar` · `VibeLabShell` are separate | Layout breaks across routes |
+| 6 | **`award_tokens()` always needs stable `p_source_id`** | Ledger dedup = partial unique index on `(user_id, reason, source_id) WHERE source_id IS NOT NULL` | Duplicate token grants |
+| 7 | **Don't chase `Pets.tsx` `@ts-nocheck`** | Pre-existing, non-blocking, money-path file | Wasted time, no gain |
+| 8 | **`setState` synchronously in `useEffect` = ERROR** | Enforced by ESLint `react-hooks/set-state-in-effect` | Commit blocked by husky |
+| 9 | **Lab pages = `hfz-*` Tailwind tokens. Landing page = inline styles + CSS vars** | Two different idioms by design | Wrong token overrides, visual breakage |
+| 10 | **No `framer-motion` in this repo** | Not installed — CSS-only motion, reduced-motion gated | Broken build |
+| 11 | **Course dev = `npm run dev:frontend` NOT `npm run dev`** | Wrong script = wrong server | Dev server broken |
+
+---
+
+## 5. 🔴 Sacred Rules — BROski$ Shop
+
+> Break these = wrong prices charged, duplicate grants, or fulfillment silently breaks.
+
+| # | Rule | Why | Consequence if broken |
+|---|---|---|---|
+| 1 | **`TIER_DISCOUNT_PCT` lives in TWO places — keep both in sync** | `ShopPage.tsx` (UI preview) + `supabase/functions/shop-purchase/index.ts` (server truth) | UI shows wrong price vs what server charges |
+| 2 | **Server is ALWAYS the discount source of truth** | Client discount is preview-only — server re-derives from real tier | Tampered client tier gets unearned discount |
+| 3 | **`metadata.image_url` is inside JSONB `metadata` — NOT a top-level column** | Schema design: `item.metadata?.image_url` | Direct column access → `undefined`, image gone |
+| 4 | **`metadata.consumable = true` = re-buyable, never locks to "Owned"** | Consumables use count-based ownership | Blocks re-purchase, breaks economy |
+| 5 | **`shop-purchase` Edge Function: `verify_jwt: ON` always** | All spend is authenticated | Unauthenticated users drain real token balances |
+| 6 | **Auto-refund is server-side via `award_tokens`** — never add a client-side refund path | Server refunds if purchase row fails after spend | Client refund = double-grant + balance corruption |
+| 7 | **Agent access polls `provision_status` every 6s, max 10 attempts** — don't change cadence without updating both poll logic and V2.4 provisioner | Race between frontend poll and async V2.4 provisioning | Too fast = hammers DB; too slow = looks broken |
+| 8 | **`price_gbp` is nullable** — always use `price_gbp != null` before rendering | Some items are token-only | Renders `£undefined` or crashes `toFixed()` |
+
+---
+
+## 6. 🏗️ Architecture Quick Ref — V2.4
 
 ```
 Networks:
@@ -82,343 +147,155 @@ Networks:
   agents-net  → broski-bot + hyper-agents
 
 Key ports:
-  8000  hypercode-core API
-  8081  crew-orchestrator
-  8088  hypercode-dashboard
-  8095  hyperhealth-api
-  8098  broski-pets-bridge
-  9090  prometheus
-  3001  grafana
-  3100  loki
-  3200  tempo
-  6379  redis
-  5432  postgres
+  8000  hypercode-core API       8081  crew-orchestrator
+  8088  hypercode-dashboard      8095  hyperhealth-api
+  8098  broski-pets-bridge       8099  nemoclaw-agent
+  9090  prometheus               3001  grafana
+  3100  loki                     3200  tempo
+  6379  redis                    5432  postgres
 ```
 
 ---
 
-## 🌐 The 5-Repo Ecosystem
+## 7. 🤖 ONE TRUE BOT — broski-bot
 
-```
-Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
-github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
-Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
-(Supabase + Vercel + Web3)             │                  (Docker, 48 containers)
-Path: H:\Hyper-Vibe-Coding-Course      │
-⚠️ NOT H:\the hyper vibe coding hub    │
-   (that = archived typo repo)         │
-                              HyperAgent-SDK
-                          github.com/welshDog/HyperAgent-SDK
-                          npm: @w3lshdog/hyper-agent@0.1.7 (v0.3.0 code)
-                          Path: H:\HyperAgent-SDK
-                          graduate build + trigger commands = DESIGNED May 15
-                                       │
-                         BROskiPets-LLM-dNFT
-                     github.com/welshDog/BROskiPets-LLM-dNFT
-                     Path: H:\dNFTpet\BROskiPets-LLM-dNFT
-                     (Pets · dNFT · port 8098)
-                                       │
-                      BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     Path: H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     (Second Brain vault — PARA + Dataview + GitHub bridge)
-                     cluster.json + 4 agent manifests PUSHED May 15 ✅
-```
+**Location:** `agents/broski-bot/` — profile: `discord`
+> ⚠️ `discord-bot/` = LEGACY (reprofiled to `discord-lite`) — do NOT use
+> ⚠️ `agents/broski-bot/main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`
 
----
+### Active cogs (loaded by `cogs/bot.py`)
 
-## 🏆 Full Phase Roadmap
-
-| Phase | Name | Status |
-|---|---|---|
-| 0–9 | Identity, tokens, agents, shop, observability, security | ✅ ALL DONE |
-| 10A–10P | FastAPI, Stripe, courses, DB recovery, secrets | ✅ ALL DONE |
-| 11A–11F | Live HUD, Rift Events, Gamification schema, E2E | ✅ DONE — April 26 |
-| 12A–12F | Leaderboard, Quests, Admin Rift Panel, Migrations | ✅ DONE — April 26 |
-| Gordon Tier 1–3 | Prometheus, Grafana, Celery, DB pool, queues | ✅ ALL DONE — April 19 |
-| Hyperfocus Features 1–5 | Git hook, HyperSplit, Snapshot, Briefing, Focus mode | ✅ DONE — April 25–26 |
-| BROskiPets Phase 0–1 | Bridge live, XP, leaderboard | ✅ DONE — April 29 |
-| BROski Brain Levels 9–12 | PARA vault, GitHub bridge, Obsidian Git, Dataview | ✅ DONE — May 5 |
-| Edge Functions | All 4 Supabase edge functions fixed + deployed | ✅ DONE — May 1 |
-| Vercel Hardening | Security headers, chunk split, env vars | ✅ DONE — May 3–5 |
-| BUSINESS_PLAN v1.1 | Sponsor-ready plan + pricing align | ✅ DONE — May 5 |
-| BROskiPets Web3 Mint | RainbowKit + wagmi + Base Sepolia + mint UI | ✅ LIVE — May 7 🔥 |
-| **HyperAgent Graduate Build** | `graduate build` + `graduate trigger` CLI design | ✅ **DESIGNED — May 15** |
-| **Brain Agent Cluster** | cluster.json + 4 agent manifests → Obsidian Brain repo | ✅ **PUSHED — May 15** |
-| **Discord Bot Tier 1** | Economy + AI chat + Focus Tracker + Daily Missions | ✅ **LIVE — May 15** 🤖 |
-| **broski-bot Option A** | Profile-gated `agents/broski-bot/` + bind mounts | ✅ **DONE — May 15** 🤖 |
-| **Env Preflight Checker** | `scripts/env_check.py` + bash wrapper + tests | ✅ **DONE — May 15** 🛡️ |
-
----
-
-## 🔥 ACTIVE NEXT STEPS
-
-| # | Task | Priority |
-|---|---|---|
-| 1 | **Fill `agents/broski-bot/.env`** — TOKEN, SUPABASE keys, GUILD_ID, MISSIONS_CHANNEL_ID | 🔴 NOW |
-| 2 | **Run supabase_schema.sql** in Supabase SQL editor | 🔴 NOW |
-| 3 | **Run env-check** — `python scripts/env_check.py --core --secrets --profile discord` | 🔴 NOW |
-| 4 | **Launch bot** — `docker compose --profile discord up -d` | 🔴 NOW |
-| 5 | **HyperAgent graduate build** — implement CLI from May 15 design doc | 🔴 This week |
-| 6 | **Discord Bot Tier 2** — Pets, XP Leaderboard, Morning Briefing, Health Alerts | 🟡 Next sprint |
-| 7 | E2E Stripe checkout test — card `4242 4242 4242 4242` | 🟡 This week |
-| 8 | BROskiPets Web3 E2E — test mint on Base Sepolia testnet | 🟡 This week |
-| 9 | Supabase DB webhook — `token_transactions` → `sync-tokens-to-v24` | 🟡 Manual |
-| 10 | First student invite — `/welcome` is green 🎓 | 🟡 This week |
-| 11 | SDK v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json` | 🟡 This week |
-| 12 | Fix GitHub Actions billing lock | 🟡 This week |
-| 13 | Upgrade GitPython → 3.1.47 (CVE-2026-42215 + CVE-2026-42284) | 🟡 This week |
-| 14 | Level 13 — Morning Briefing live (Discord Bot Tier 2) | 🟢 Background |
-
----
-
-## 🤖 broski-bot — ONE TRUE BOT (May 15 2026)
-
-**Location:** `agents/broski-bot/` — **NOT** `discord-bot/` (that is legacy, reprofiled to `discord-lite`)
-
-### Run commands:
-```bash
-# Core only (no bot):
-docker compose up -d
-
-# Bot + core:
-docker compose --profile discord up -d
-
-# Bot only:
-docker compose --profile discord up -d broski-bot
-
-# Verify config:
-docker compose config
-docker compose --profile discord config
-```
-
-### ✅ Tier 1 DONE (May 15)
-| Feature | Commands |
+| Cog | Commands |
 |---|---|
-| 💰 BROski$ Economy | `/balance` `/earn` `/spend` `/give` |
-| 🧠 AI Chat → FastAPI | `/broski` `/ask` |
-| 🎯 Focus Tracker + XP | `/focus start` `/focus stop` `/focusstats` |
-| 📋 Daily Missions | `/missions` + auto-post 8am UTC (9am BST) |
+| `economy` | `/balance` `/daily` `/give` `/rich` |
+| `leaderboard` | `/top` `/rank` |
+| `ai` | `/ask` (→ Core orchestrator) |
+| `focus` | `/focus start\|stop` `/focusstats` (→ NemoClaw delta → BROski$) |
+| `missions` | `/missions` `/missions-claim` (focus-verified) |
+| `health_check` | `/health` (NemoClaw grade scan) |
+| `digest` | `/digest` (admin) + weekly auto-DM |
+| `moderation` | passive auto-mod (spam → reversible timeout, audited) |
+| `welcome` | passive on-join welcome + auto-role |
 
-### 🟡 Tier 2 TODO
-- 🐾 BROski Pets integration — `/pet` shows stats, feed with coins
-- 🏆 XP Leaderboard — `/leaderboard` pulls from Supabase
-- 🌅 Morning Briefing — auto-DM/post from Morning Briefing agent
-- 🚨 System Health Alerts — bot posts when V2.4 containers go down
-
-### 🔮 Tier 3 TODO
-- 🎰 BROski$ Shop — buy roles, badges with coins
-- 🤖 Agent Summoner — `/run-agent` triggers HyperAgent SDK agents
-- 📸 NFT/Pet Showcase — auto-post minted pets to #showcase
-- 📈 Stats Dashboard — `/stats` live embed with hyperfocus score
-
-### Persistence (bind mounts survive rebuilds):
-```
-HC_DATA_ROOT/broski-bot/db
-HC_DATA_ROOT/broski-bot/logs
-HC_DATA_ROOT/broski-bot/backups
-```
-
-### FastAPI endpoints the bot calls:
-- `POST /ai/chat` — BROski AI full chat
-- `POST /ai/quick` — Quick Q&A
-
----
-
-## 🛡️ Env Preflight Checker (May 15 2026)
-
-**Files:**
-- Engine: `scripts/env_check.py`
-- Bash wrapper: `scripts/env-check.sh`
-- Spec: `docs/superpowers/specs/2026-05-15-env-check-design.md`
-- Plan: `docs/superpowers/plans/2026-05-15-env-check-implementation-plan.md`
-- Tests: `backend/tests/unit/test_env_check_script.py` ✅ passing
-
-**How to run (never prints values — keys only):**
-```powershell
-# PowerShell (recommended):
-python scripts/env_check.py --core --secrets --profile discord
-
-# Bash:
-bash scripts/env-check.sh --core --secrets --profile discord
-
-# Full stack check:
-python scripts/env_check.py --core --secrets --profile discord --brain --grafana-cloud
-```
-
-**Current known issues it catches:**
-- broski-bot `.env` missing: `BOT_*_PATH`, `FASTAPI_BASE`, `GUILD_ID`, `MISSIONS_CHANNEL_ID`, `SUPABASE_URL`, `SUPABASE_KEY`
-- Root `.env` duplicate warnings: `BROSKIE_PETS_ENABLED`, `PETS_WEBHOOK_SECRET`
-
-**Rule:** Always run env-check BEFORE `docker compose up` on a new machine or after `.env` changes.
-
----
-
-## 🧠 HyperAgent Graduate Build — May 15 2026
-
-**Design doc:** `2026-05-15-graduate-build-design.md`
-
-### Commands designed:
+### Run commands
 ```bash
-hyper-agent graduate build <cluster.json> --out <dir> [--strict] [--json]
-hyper-agent graduate trigger <discord_id> [--tokens 500] [--json]
+docker compose --profile discord up -d            # bot + core
+docker compose --profile discord up -d broski-bot # bot only
+.\scripts\launch-bot.ps1                          # preflight → up (recommended)
 ```
 
-### Build output:
-```
-out/
-  docker-compose.agents.yml
-  README.md
-  Dockerfile.<agent-name>
-  agents/<agent-name>/manifest.json
-```
-
-### Secret priority:
-- `COURSE_SYNC_SECRET` first → fallback `SHOP_SYNC_SECRET`
-
-### Status: **DESIGNED** ✅ — implementation TODO in HyperAgent-SDK
+### Guardian phases
+- **P1** auto-role on join + `/hyperfocus_setup` ✅ LIVE
+- **P2** weekly digest DM ✅ LIVE
+- **P3a** spam → reversible timeout, `mod_actions` audit ✅ LIVE
+- **P3b** raid auto-lockdown → reversible channel lock ✅ LIVE
+- **P3c** 3-strike → veto buttons → ban ONLY on explicit APPROVE click ✅ BUILT (smoke pending)
 
 ---
 
-## 🧠 BROski Brain Agent Cluster — May 15 2026
+## 8. 🎯 Mission + Teaching Philosophy
 
-**Repo:** BROski-Obsidian-Brain-for-HyperFocus-z0ne
+> **"Stop apologising for your brain. Start building."**
 
-**Pushed:**
-- `cluster.json` — defines the 4-agent brain cluster
-- `.agents/hyper-brain-core/manifest.json`
-- `.agents/mcp-bridge/manifest.json`
-- `.agents/focus-tracker/manifest.json`
-- `.agents/morning-briefing/manifest.json`
+- For ADHD, dyslexic, autistic, and neurodivergent builders
+- No previous experience needed
+- **Build first, learn second. Speed of thought. Dopamine momentum.**
 
-**Next:** Run `hyper-agent graduate build cluster.json --out brain-bundle/ --strict` once SDK is implemented
+### Every Module/Lab — 7-Beat Structure
 
----
+1. **STOP** — plain English context BEFORE any tech
+2. **WHY** — real-world use case (Netflix, Uber, Stripe refs)
+3. **HOW** — step-by-step with ⏱️ time estimates
+4. **WIN** — clear celebratable moment
+5. **NEXT** — warm bridge to next module
+6. **HELP** — troubleshooting that normalises problems
+7. **REWARD** — BROski$ XP claim
 
-## 📌 Known Issues / Tech Debt
+### Analogy Arsenal
 
-| Issue | Fix | Priority |
-|---|---|---|
-| broski-bot `.env` not filled yet | Fill `agents/broski-bot/.env` with real values | 🔴 HIGH |
-| Supabase schema not yet run | Run `discord-bot/supabase_schema.sql` in Supabase SQL editor | 🔴 HIGH |
-| HyperAgent graduate build not yet implemented | Build CLI from May 15 design doc | 🟡 MED |
-| Stale root `prometheus.yml` | Delete/archive — live = `monitoring/prometheus/prometheus.yml` | 🟡 MED |
-| GitHub Actions billing lock | Fix at github.com/settings/billing | 🟡 MED |
-| GitPython 3.1.45 CVEs | Upgrade to 3.1.47 (CVE-2026-42215 + CVE-2026-42284) | 🟡 MED |
-| SDK not reflecting Web3 types | Bump HyperAgent-SDK to v0.4.0 + update hyper-agent-spec.json | 🟡 MED |
-| `/welcome` auth-gated | Decide: make public? Sponsors hit login wall from BUSINESS_PLAN | 🟡 |
-| `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟢 LOW |
-| `DISCORD_USER_ID` not set | Add to `.env` for `make calm` token awards | 🟢 LOW |
-
----
-
-## 📦 Key Files
-
-```
-docker-compose.yml              — main stack
-docker-compose.secrets.yml      — secrets injection
-docker-compose.core.yml         — core + broski-bot (profile:discord) + discord-bot (profile:discord-lite)
-backend/app/main.py             — FastAPI core app
-agents/broski-bot/main.py       — ONE TRUE BOT (May 15) ← use this
-agents/broski-bot/.env.example  — bot env template (all 8 keys present)
-discord-bot/                    — LEGACY — reprofiled discord-lite, do not use
-discord-bot/supabase_schema.sql — DB tables for bot (still need to run in Supabase!)
-scripts/env_check.py            — env preflight checker (NEW May 15)
-scripts/env-check.sh            — bash wrapper for env_check.py
-monitoring/prometheus/          — ACTIVE Prometheus config
-grafana/                        — dashboards
-agents/                         — all agent code
-scripts/STRIPE_E2E_RUNBOOK.md   — Stripe E2E test steps
-CLAUDE_CONTEXT.md               — extended project context
-docs/INDEX.md                   — master docs navigation
-docs/superpowers/specs/         — feature spec docs
-docs/superpowers/plans/         — implementation plans
-```
+| Concept | Analogy |
+|---|---|
+| Docker stack | Your AI Brain 🧠 |
+| `docker-compose up` | Flip the switch on your house 🏠 |
+| Stripe webhook | Tap on the shoulder 👆 |
+| Dynamic NFT | Live passport 🛂 |
+| Smart contract | Database nobody can delete 🔒 |
+| Grafana | CCTV for your server 📹 |
+| Alertmanager | Alarm that calls you 🚨 |
+| Prompt injection | Con artist at the door 🥸 |
+| Agent swarm | Your crew of specialists 👥 |
+| Session snapshot | Your brain's save file 💾 |
+| NemoClaw | The doctor who reads your code's pulse 🩺 |
+| Guardian | The bouncer who never sleeps 🛡️ |
+| Claude | The crane — you're the architect |
 
 ---
 
-## 🧪 Testing Commands
+## 9. AI Behaviour Rules
 
-```powershell
-# Health checks:
-curl http://localhost:8000/health
-curl http://localhost:8081/health
-curl http://localhost:8095/health
-curl http://localhost:8098/health    # broski-pets-bridge
+### Tools to use — don't improvise
 
-# Run tests:
-pytest backend/tests/ -q    # 224 passed, 6 skipped
-pytest backend/tests/unit/test_env_check_script.py -v   # NEW May 15
+| Task | Correct tool |
+|---|---|
+| DB changes (course) | Supabase MCP `apply_migration` — NEVER `db push` |
+| DB queries / safe prod testing | Supabase MCP `execute_sql` — wrap in `BEGIN / ROLLBACK` |
+| V2.4 DB changes | `docker compose exec hypercode-core alembic upgrade head` |
+| Auth + browser testing | **Playwright** — installed (`npm run test:e2e`), badges have `data-auth-status` |
+| Deploy verification | Watch for bundle-hash flip on prod URL |
+| Perf claims | `npm run build` chunk sizes = real evidence. Never assert CWV without Vercel dashboard |
+| Before claiming done (course) | `npx tsc --noEmit` + `npx eslint` + `npm run build` — all three green |
+| Before `docker compose up` | `python scripts/env_check.py --core --secrets --profile discord` |
 
-# Env preflight (run before any docker compose up!):
-python scripts/env_check.py --core --secrets --profile discord
+### Human-only gates — be honest, don't pretend otherwise
 
-# Docker status:
-docker compose ps
-docker ps --format "table {{.Names}}\t{{.Status}}" | findstr -v "healthy"
+- MetaMask / wallet popups (browser extension)
+- Real Core Web Vitals (needs Vercel Speed Insights dashboard)
+- Visual QA on physical devices
+- Discord server manual smoke tests (P3c veto-ban)
 
-# Start everything — FULL STACK:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml -f docker-compose.brain.yml -f docker-compose.grafana-cloud.yml --profile discord up -d
+### General behaviour
 
-# Core only:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-
-# Core + bot:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml --profile discord up -d
-
-# Course frontend:
-cd H:\Hyper-Vibe-Coding-Course
-npm run dev:frontend
-
-# Stripe E2E:
-stripe listen --forward-to localhost:8000/api/stripe/webhook
-
-# Circuit breakers:
-curl localhost:8000/api/v1/health | jq .circuit_breakers
-
-# DB recovery (if auth breaks):
-docker exec -it postgres psql -U postgres
-# ALTER USER postgres WITH PASSWORD 'hypercode';
-```
+- **NEVER suggest anything in `WHATS_DONE.md`** — check it before every suggestion
+- Surface contradictions — correct the doc, don't silently proceed
+- Quick wins first — momentum > perfection
+- Nothing is done until committed and pushed
+- Update SESSION_SNAPSHOT at end of every session
 
 ---
 
-## 🏆 Achievements Unlocked
+## 10. 🏆 Achievements Unlocked
 
 - ✅ Gordon Docker AI: **Grade A** — *"world-class infrastructure"*
-- ✅ 29/29 → 48 containers healthy
-- ✅ Self-healing closed loop (Healer → Prometheus → Alertmanager → recovery)
-- ✅ Neurodivergent-first design recognised as *rare* by Docker AI
-- ✅ Gordon Tier 1 + 2 + 3 ALL COMPLETE
+- ✅ 48 containers healthy, self-healing closed loop
 - ✅ Full Gamification Stack — HUD, XP, Quests, Leaderboard, Rifts
-- ✅ All 5 Hyperfocus Features LIVE
 - ✅ BROski Brain v2.2 — Levels 9–12 unlocked
 - ✅ MCP-GitHub LIVE — 26 tools via Docker MCP gateway
-- ✅ Stripe LIVE — E2E proven April 25
-- ✅ Course frontend → Stripe → enrolled: full money path
+- ✅ Stripe LIVE + E2E proven · Course → Stripe → enrolled: full money path
 - ✅ BUSINESS_PLAN.md v1.1 — sponsor-ready
 - ✅ BROskiPets Web3 Mint LIVE — May 7 🔥🐾
-- ✅ **HyperAgent Graduate Build DESIGNED — May 15** 📐
-- ✅ **Brain Agent Cluster PUSHED — May 15** 🧠
-- ✅ **BROski Discord Bot Tier 1 LIVE — May 15** 🤖🎉
-- ✅ **broski-bot Option A wired — May 15** 🐳 (profile:discord, bind mounts, ONE TRUE BOT)
-- ✅ **Env Preflight Checker LIVE — May 15** 🛡️ (env_check.py + tests passing)
+- ✅ HyperAgent Graduate Build DESIGNED — May 15 📐
+- ✅ Brain Agent Cluster PUSHED — May 15 🧠
+- ✅ BROski Discord Bot Tier 1 LIVE — May 15 🤖
+- ✅ Env Preflight Checker LIVE — May 15 🛡️
+- ✅ NemoClaw "Alive" L1–L3.5 LIVE — May 15–16 🧠
+- ✅ Focus → code-delta → BROski$ loop PROVEN end-to-end — May 15 🏆
+- ✅ Server Guardian P1–P3b LIVE · P3c built — May 16 🛡️
+- ✅ BROski$ Shop Fulfillment v2 BUILT — May 17 🛒
+- ✅ CLAUDE.md constitution merged + AI-optimised — May 19 📜
 
 ---
 
-## 👋 For New Claude/Perplexity Sessions
+## 11. Session End Checklist
 
-Hey! Working with Lyndz Williams on HyperCode V2.4.
+- [ ] All code: lint + type-check + build green
+- [ ] All changes pushed to GitHub — nothing is done until committed
+- [ ] New `SESSION_SNAPSHOT_[DATE].md` created + pushed
+- [ ] `NEXT_SESSION_HANDOVER_[DATE].md` written — open gates + first task
+- [ ] Tell Lyndz the first task for next session (one sentence)
+- [ ] Celebrate the wins 🎉
 
-1. **Read this file first** — especially the Sacred Rules
-2. **Check WHATS_DONE.md** — do NOT suggest anything listed there
-3. **5 repos** — HyperCode-V2.4, HyperAgent-SDK, Hyper-Vibe-Coding-Course, BROskiPets-LLM-dNFT, BROski-Obsidian-Brain
-4. **ONE TRUE BOT** = `agents/broski-bot/` (profile:discord) — NOT `discord-bot/` (legacy, discord-lite only)
-5. **Env checker** = `python scripts/env_check.py --core --secrets --profile discord` — run before any `docker compose up`
-6. **Graduate build designed** (May 15) — needs implementing in HyperAgent-SDK
-7. **Brain agents pushed** (May 15) — cluster.json + 4 manifests in Obsidian Brain repo
-8. **Next priorities** — Fill broski-bot .env → run Supabase schema → `docker compose --profile discord up -d`
-9. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-10. **Never:** Wall of text. Never debate Sacred Rules.
+---
 
-> *"You built the future people keep saying they want. You actually did it." — Gordon, Docker AI* 🏴󠁧󠁢󠁷󠁬󠁳󠁥🔥
+> 🐶♾️ Built by @welshDog · Llanelli, Wales
+> *"Stop apologising for your brain. Start building."*
+> Hyperfocus z0ne — Keep it weird, keep it Welsh. ♾️
