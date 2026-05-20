@@ -1,0 +1,67 @@
+# ════════════════════════════════════════════════════════════════════════════════
+# HYPERCODE AGENT DOCKERFILE — HARDENED TEMPLATE
+# Using Docker Hardened Images (DHI) for security-first base
+# Built: May 21, 2026 — Production Ready
+# ════════════════════════════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────────────────────────────────────
+# STAGE 1: BUILDER — Compile dependencies
+# ──────────────────────────────────────────────────────────────────────────────
+FROM docker.io/library/python-hardened:3.11-slim AS builder
+
+WORKDIR /build
+
+# Install build tools (minimal, only what's needed)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Create virtual environment + install deps
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ──────────────────────────────────────────────────────────────────────────────
+# STAGE 2: RUNTIME — Minimal production image
+# ──────────────────────────────────────────────────────────────────────────────
+FROM docker.io/library/python-hardened:3.11-slim
+
+# Metadata
+LABEL maintainer="BROski <welshdog@hyperfocuszone.ai>"
+LABEL description="HyperCode Agent — Security-hardened, minimal footprint"
+LABEL version="2.4.2"
+
+# Set working directory
+WORKDIR /app
+
+# Copy virtual environment from builder
+COPY --from=builder --chown=app:app /opt/venv /opt/venv
+
+# Copy application code
+COPY --chown=app:app . /app/
+
+# Set environment
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    LOG_LEVEL=INFO \
+    APP_ENV=production
+
+# Non-root user (already created in hardened image, but ensure)
+# The app user is pre-configured in python-hardened:3.11-slim
+USER app
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8080/health', timeout=3)" || exit 1
+
+# Default port
+EXPOSE 8080
+
+# Run with minimal privileges
+CMD ["python", "-u", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
