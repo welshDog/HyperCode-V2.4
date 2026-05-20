@@ -50,7 +50,7 @@
 
 | Repo | Purpose | Local Path |
 |---|---|---|
-| `HyperCode-V2.4` | Core backend — 48 Docker containers, FastAPI, agents | `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4` |
+| `HyperCode-V2.4` | Core backend — ~30 Docker containers running (profile-dependent; 20 compose files), FastAPI, agents | `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4` |
 | `Hyper-Vibe-Coding-Course` | Course platform — Supabase + Vercel + Web3 | `H:\HYPERFOCUSZONE\HperCore\Hyper-Vibe-Coding-Course` |
 | `HyperAgent-SDK` | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HYPERFOCUSZONE\HperCore\HyperAgent-SDK` |
 | `BROskiPets-LLM-dNFT` | Web3 NFT pet game — dNFTs + LLM + port 8098 | `H:\HYPERFOCUSZONE\HperCore\BROskiPets-LLM-dNFT` |
@@ -268,7 +268,7 @@ docker compose --profile discord up -d broski-bot # bot only
 ## 10. 🏆 Achievements Unlocked
 
 - ✅ Gordon Docker AI: **Grade A** — *"world-class infrastructure"*
-- ✅ 48 containers healthy, self-healing closed loop
+- ✅ ~30 containers running, self-healing closed loop (profile-dependent across 20 compose files)
 - ✅ Full Gamification Stack — HUD, XP, Quests, Leaderboard, Rifts
 - ✅ BROski Brain v2.2 — Levels 9–12 unlocked
 - ✅ MCP-GitHub LIVE — 26 tools via Docker MCP gateway
