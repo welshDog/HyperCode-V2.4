@@ -1,7 +1,7 @@
 # 🧠 HYPERFOCUS z0ne — MASTER CLAUDE.md
 > **For ANY AI — Claude, Perplexity, GPT, Gemini, Cursor. Read this first. Every session.**
 > Last updated: May 21, 2026 · Built by @welshDog + AI
-> **This is the constitution. SESSION_SNAPSHOT is the living state.**
+> **This is the constitution. The latest session report is the living state.**
 
 ---
 
@@ -9,11 +9,12 @@
 
 1. **This file** — identity, rules, ecosystem map, philosophy
 2. **Repo `CLAUDE.md`** — repo-specific sacred rules + key files
-3. **`SESSION_SNAPSHOT_[latest date].md`** — current sprint state, what's live, what's next
+3. **`docs/SESSION_REPORT_[latest date].md`** — current sprint state, what's live, what's next
 4. **If touching DB** → check migrations first (`supabase/migrations/` or `alembic upgrade head`)
 5. **Then build.** Not before.
 
-> If this file and a SESSION_SNAPSHOT contradict — surface it. Correct the doc. Don't silently pick one.
+> If this file and the latest session report contradict — surface it. Correct the doc. Don't silently pick one.
+> ℹ️ Session report path: V2.4 uses `docs/SESSION_REPORT_*`; the Course repo uses `rewrites/SESSION_SNAPSHOT_*`.
 
 ---
 
@@ -263,7 +264,7 @@ docker compose --profile discord up -d broski-bot # bot only
 - **Lyndz runs a PARALLEL git workflow** — tooling auto-commits/pushes out-of-band. ALWAYS `git fetch` + check `origin/main` before pushing; NEVER force-push; align a duplicate commit with `git reset --hard origin/main`
 - Quick wins first — momentum > perfection
 - Nothing is done until committed and pushed
-- Update SESSION_SNAPSHOT at end of every session
+- Update the session report (`docs/SESSION_REPORT_*`) at end of every session
 
 ---
 
@@ -296,7 +297,7 @@ docker compose --profile discord up -d broski-bot # bot only
 
 - [ ] All code: lint + type-check + build green
 - [ ] All changes pushed to GitHub — nothing is done until committed
-- [ ] New `SESSION_SNAPSHOT_[DATE].md` created + pushed
+- [ ] New `docs/SESSION_REPORT_[DATE].md` created + pushed
 - [ ] `NEXT_SESSION_HANDOVER_[DATE].md` written — open gates + first task
 - [ ] Tell Lyndz the first task for next session (one sentence)
 - [ ] Celebrate the wins 🎉
