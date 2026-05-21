@@ -43,7 +43,11 @@ USER nextjs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+# 90s start-period + 10s timeout: gives the Next.js server room to boot and
+# compile the first /api/health request on a cold start before checks count.
+# Matches the docker-compose.agents.yml override so direct `docker run` behaves
+# the same as the composed service.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
   CMD node -e "require('http').get('http://localhost:'+(process.env.PORT||3000)+'/api/health', (r) => { if (r.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1))"
 
 CMD ["node", "server.js"]
