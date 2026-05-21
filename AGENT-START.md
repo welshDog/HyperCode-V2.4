@@ -21,11 +21,12 @@ You are an AI agent working with **Lyndz Williams (@welshDog)** — a neurodiver
 ```
 1. CLAUDE.md                          → identity, sacred rules, ecosystem map
 2. WHATS_DONE.md                      → what's already built — NEVER suggest these again
-3. rewrites/SESSION_SNAPSHOT_[latest] → current sprint state + what's next
+3. docs/SESSION_REPORT_[latest].md    → current sprint state + what's next
 4. This file                          → skills loader + task launcher
 ```
 
-> ⚠️ If CLAUDE.md and SESSION_SNAPSHOT contradict → surface it, correct the doc, don't silently pick one.
+> ⚠️ If CLAUDE.md and the session report contradict → surface it, correct the doc, don't silently pick one.
+> ℹ️ Path note: this repo (HyperCode-V2.4) uses `docs/SESSION_REPORT_*`. The Course repo uses `rewrites/SESSION_SNAPSHOT_*`. Check your repo's `AGENT-START-[REPO].md` for the exact path.
 
 ---
 
@@ -113,7 +114,7 @@ curl http://localhost:8823/sse
 ## 🏁 SESSION END CHECKLIST
 
 - [ ] All changes pushed to GitHub
-- [ ] `SESSION_SNAPSHOT_[DATE].md` created + pushed
+- [ ] Session report created + pushed (V2.4: `docs/SESSION_REPORT_[DATE].md`)
 - [ ] `WHATS_DONE.md` updated if new things were built
 - [ ] Tell Lyndz the first task for next session (one sentence)
 - [ ] Celebrate the wins 🎉
