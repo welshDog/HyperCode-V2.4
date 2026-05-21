@@ -212,7 +212,7 @@
 
 ## 🚀 NEXT UP (in order)
 
-1. **Browser-verify the 5 dashboard tabs** at `http://127.0.0.1:8088` — do NOT run `deploy-dashboard-upgrade.bat` (dead staging prototype)
+1. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` prototype** — live dashboard already does it all; do NOT run `deploy-dashboard-upgrade.bat`
 2. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
 3. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
 4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet

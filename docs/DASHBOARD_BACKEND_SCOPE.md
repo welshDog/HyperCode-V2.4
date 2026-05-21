@@ -72,23 +72,23 @@ never an "8 endpoints to build" task here.
 
 ---
 
-## ⚠️ Tech debt left behind
+## ✅ RESOLVED 2026-05-21 — `mcp-rest-adapter` is now compose-managed
 
-`mcp-rest-adapter` is currently a **`docker run` container, not compose-managed**.
-It has `--restart unless-stopped` so it survives reboots, but a
-`docker compose … up -d` will not know about it.
+Was a standalone `docker run` container. Now a first-class service:
 
-`docker-compose.mcp-gateway.yml` cannot cleanly merge into the main stack —
-`mcp-gateway` is defined both there and via `docker-compose.agents.yml`, so
-`-f docker-compose.yml -f docker-compose.mcp-gateway.yml` doubles list fields
-(Sacred Rule #21). Proper fix, a follow-up:
+- **`docker-compose.agents.yml`** — added the `mcp-rest-adapter` service
+  (`profile: agents`, on `agents-net`, talks to `mcp-gateway:8820` over Docker
+  DNS, 256 MB cap, healthcheck, `cap_drop: ALL`). The root `docker-compose.yml`
+  already `include:`s `agents.yml`, so it is part of the main stack.
+- **`docker-compose.mcp-gateway.yml`** — the stale duplicate `mcp-rest-adapter`
+  block removed (replaced with a pointer comment) so the two cannot drift.
+- No secret needed: the live `mcp-gateway` runs `--servers=github` with **no
+  auth**, so the adapter sends no token — `MCP_GATEWAY_API_KEY` / `.env.mcp` are
+  no longer in the picture.
 
-- Add a lean `mcp-rest-adapter`-only service to a compose file that the root
-  `docker-compose.yml` already `include:`s (e.g. `docker-compose.agents.yml`), OR
-- De-dupe the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can
-  be safely included.
-
-Env keys note: `MCP_GATEWAY_API_KEY` lives in **`.env.mcp`**, not `.env`.
+Start: `docker compose -f docker-compose.yml --profile agents up -d`
+Verified: container labelled `project: hypercode-v24, service: mcp-rest-adapter`,
+healthcheck `healthy`, `/api/mcp/health` + `/tools/discover` + file-read all 200.
 
 ---
 
@@ -141,7 +141,7 @@ from the read-only `/workspace` bind mount. Added `_local_read_file` (mirrors
 3. **Mission tab** shows nothing without a login token (`useTasks` reads
    `localStorage.token`; Core `/api/v1/tasks` is auth-gated). Decide: dashboard
    login flow, or a public read endpoint like `/agents/status`.
-4. **Compose-manage `mcp-rest-adapter`** (tech debt above).
+4. ✅ **Compose-manage `mcp-rest-adapter`** — DONE (now in `agents.yml`).
 5. `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — the live
    dashboard already does everything it sketched. Consider deleting it to stop
    future audits tripping over it.

@@ -221,6 +221,28 @@ All 5 dashboard tabs now fully functional. Details in `docs/DASHBOARD_BACKEND_SC
 
 ---
 
+# 📦 BLOCK 6 — mcp-rest-adapter compose-managed (evening)
+
+**Status:** ✅ COMPLETE — adapter is no longer a stray `docker run` container.
+
+- **`docker-compose.agents.yml`** — added `mcp-rest-adapter` as a first-class
+  service (`profile: agents`, `agents-net`, talks to `mcp-gateway:8820` over
+  Docker DNS, 256 MB cap, healthcheck, `cap_drop: ALL`). Root `docker-compose.yml`
+  already `include:`s `agents.yml`, so it is now part of the main stack.
+- **`docker-compose.mcp-gateway.yml`** — stale duplicate `mcp-rest-adapter` block
+  removed (pointer comment left) so the two definitions cannot drift.
+- No secret needed — the live `mcp-gateway` runs `--servers=github` with no auth,
+  so the adapter sends no token (`.env.mcp` / `MCP_GATEWAY_API_KEY` out of the picture).
+
+**Verified:** `docker compose -f docker-compose.yml config` parses with no
+Sacred-Rule-#21 doubling error; container labelled `project: hypercode-v24,
+service: mcp-rest-adapter`, healthcheck `healthy`; `/api/mcp/health`,
+`/tools/discover`, and file-read all → HTTP 200.
+
+Start command unchanged: `docker compose -f docker-compose.yml --profile agents up -d`.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
@@ -229,7 +251,7 @@ All 5 dashboard tabs now fully functional. Details in `docs/DASHBOARD_BACKEND_SC
 | Dashboard — MCP tab + IDE file-tree | ✅ DONE | `mcp-rest-adapter` started + verified (Block 4) |
 | Dashboard — all 5 tabs browser-verified | ✅ DONE | 4/5 fully working, IDE mostly (file-tree ok, file-open blocked) — then file-open fixed (Block 5) |
 | `mcp-rest-adapter` → Streamable HTTP rewrite | ✅ DONE | Block 5 — IDE fully unlocked |
-| `mcp-rest-adapter` compose-managed | ❌ Tech debt | Currently `docker run`; fold into a root-included compose file |
+| `mcp-rest-adapter` compose-managed | ✅ DONE | Block 6 — now a service in `docker-compose.agents.yml` |
 
 ---
 
@@ -246,17 +268,13 @@ All 5 dashboard tabs now fully functional. Details in `docs/DASHBOARD_BACKEND_SC
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Compose-manage `mcp-rest-adapter`** — currently `docker run` (survives reboots
-   via `--restart unless-stopped`, but not compose-tracked). Fold into a
-   root-included compose file, or de-dupe the `mcp-gateway` double-definition so
-   `docker-compose.mcp-gateway.yml` can be included cleanly.
-2. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype** — the
+1. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype** — the
    live dashboard already does everything it sketched; it only causes audit confusion.
-3. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
-4. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
-5. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
-6. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
-7. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
+2. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
+3. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
+4. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+5. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
+6. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
 
 ---
 

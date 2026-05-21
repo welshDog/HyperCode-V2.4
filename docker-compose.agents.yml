@@ -1032,6 +1032,59 @@ services:
     cap_drop:
       - ALL
 
+  # ── MCP REST adapter ─────────────────────────────────────────────────
+  # Thin REST shim the dashboard's /api/mcp/* routes proxy to. Speaks the
+  # MCP Streamable HTTP transport to mcp-gateway; serves /workspace file
+  # ops locally from the read-only bind mount. Canonical definition —
+  # the copy in docker-compose.mcp-gateway.yml was removed to stop drift.
+  mcp-rest-adapter:
+    profiles: ["agents"]
+    build:
+      context: ./services/mcp-rest-adapter
+      dockerfile: Dockerfile
+    container_name: mcp-rest-adapter
+    environment:
+      - MCP_GATEWAY_BASE_URL=http://mcp-gateway:8820
+      - MCP_GATEWAY_MCP_URL=http://mcp-gateway:8820/mcp
+      - MCP_WORKSPACE_TARGET_PATH=/workspace
+      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4
+      - MCP_LOCAL_WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./:/workspace:ro
+    expose:
+      - "8821"
+    ports:
+      - "127.0.0.1:8821:8821"
+    networks:
+      - agents-net
+    depends_on:
+      mcp-gateway:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8821/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   broski-pets-bridge:
     profiles: ["agents"]
     build:
