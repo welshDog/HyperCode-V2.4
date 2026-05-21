@@ -41,6 +41,34 @@ real remaining work. Do NOT run `deploy-dashboard-upgrade.bat` expecting working
 
 ---
 
+### 🔧 Dashboard v2.0 — Follow-up Audit + Real Fixes + REBUILD (later 2026-05-21)
+
+The morning "Dashboard v2.0 BUILT" claims were audited against disk + live infra.
+
+**Audit findings:**
+- 5 staging components are real (~1,023 LOC) but **0/8 backend endpoints exist** → frontend shell
+- Staging `AgentMonitor.tsx` is a downgrade of the dashboard's existing `AgentSwarmView` +
+  `useAgentStatus` (WebSocket + backoff) — correctly NOT integrated (would have broken the build)
+
+**Real fixes shipped + pushed to GitHub:**
+
+| What | Commit |
+|---|---|
+| Pushed 5 stranded dashboard commits | `b35bf4e` |
+| Corrected SESSION_REPORT + 3 dashboard docs (honest banners) | `77ce9ea` |
+| **Option B** — `useAgentStatus` polls REST `/api/v1/agents/status` every 5s (WS `/api/v1/ws/agents` 404s) | `1bd0a9a` |
+| `AGENT-START.md` boot-file path fix (`rewrites/` → `docs/`) | `4d3a18e` |
+| Dashboard Dockerfile healthcheck `5s/15s` → `10s/90s` | `31f9f7c` |
+
+**Dashboard REBUILT + DEPLOYED — healthy:**
+- `docker compose -f docker-compose.yml build dashboard` → image `88f2c40` (current tree — includes Option B)
+- Removed stray `test-dashboard` container (was holding port 8088, dev-mode, unhealthy)
+- `hypercode-dashboard` up — **healthy in ~11s** · `/agents` → HTTP 200 · `/api/health` → HTTP 200
+- Verified: `tsc --noEmit` exit 0 · `next build` exit 0 · container healthy
+- ⚠️ Remaining human gate: open `http://localhost:8088/agents`, DevTools Network → confirm `agents/status` polls every 5s
+
+---
+
 ### 🔍 Full Ports Audit — 39 Containers
 - ✅ **37/39 Healthy (95%)**
 - ⚠️ `github-sync` — unhealthy (needs `GITHUB_PAT` in `.env`)
@@ -58,8 +86,9 @@ real remaining work. Do NOT run `deploy-dashboard-upgrade.bat` expecting working
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Dashboard v2.0 — backend endpoints | ❌ Not started | 8 endpoints required, 0 exist. This is the real work. |
-| Dashboard v2.0 — frontend integration | ⏳ Components staged | In `DASHBOARD_UPGRADE_COMPONENTS/`, not yet wired into `agents/dashboard/` |
+| Dashboard — Agent Monitor tab | ✅ DONE | Option B polling live + deployed (commit `1bd0a9a`, image `88f2c40`, container healthy) |
+| Dashboard — backend endpoints | ❌ Not started | 8 endpoints required, 0 exist. The real remaining work. |
+| Dashboard — IDE/Mission/Docker/MCP tabs | ❌ Backend-blocked | Need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints built |
 
 ---
 
@@ -76,11 +105,10 @@ real remaining work. Do NOT run `deploy-dashboard-upgrade.bat` expecting working
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Dashboard reality check** — it is frontend-only. Do NOT run `deploy-dashboard-upgrade.bat`; 0/8 backend endpoints exist, every tab would 404.
-2. **Make ONE tab real** — Agent Monitor is closest: `/orchestrator/agents` already exists. Wire that one end-to-end first. One working tab beats five fake ones.
-3. **Scope the backend build** — `/docker/*` + `/mcp/*` routers + `/agents/stream` SSE are net-new. Budget a focused day, not "2 hours".
-4. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
-5. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
+1. **Confirm Agent Monitor polling** — 30-sec browser check at `http://localhost:8088/agents`: DevTools Network → `agents/status` should fire every 5s.
+2. **Scope the dashboard backend build** — IDE/Mission/Docker/MCP tabs need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints. Budget a focused day. Do NOT run `deploy-dashboard-upgrade.bat` — staging components are unintegrated + backend-blocked.
+3. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
+4. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
 
 ---
 
@@ -104,11 +132,10 @@ CVEs open:      2 (GitPython — upgrade pending)
 ## 🔑 KEY COMMANDS FOR NEXT SESSION
 
 ```bash
-# Check build finished
-docker images | grep v2-upgrade
-
-# Deploy dashboard
-.\DASHBOARD_UPGRADE_COMPONENTS\deploy-dashboard-upgrade.bat
+# Rebuild + redeploy the dashboard (root compose already includes agents.yml —
+# do NOT also pass -f docker-compose.agents.yml or lists double + validation fails)
+docker compose -f docker-compose.yml build dashboard
+docker compose -f docker-compose.yml up -d dashboard
 
 # Fix project-strategist
 docker exec project-strategist pip install perplexity-api

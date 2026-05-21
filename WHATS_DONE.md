@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 21, 2026 10:32 BST** — update this every session.
+> **Updated: May 21, 2026 (dashboard rebuild + audit)** — update this every session.
 
 ---
 
@@ -18,15 +18,12 @@
 
 ## 📋 SESSION REPORT — May 21, 2026
 
-### 🚀 Dashboard v2.0 — BUILT & DEPLOYED-READY
-5 production components (1,800+ lines, 100% TypeScript, WCAG 2.1 AA, mobile-responsive, zero new deps):
-- ✅ **Live Agent Monitor** — Real-time 25-agent dashboard (WebSocket streaming)
-- ✅ **Code IDE** — Execute HyperCode from browser UI (real-time output)
-- ✅ **Mission Timeline** — Task visualization (Gantt-style)
-- ✅ **Docker Zone** — Container management (no CLI needed)
-- ✅ **MCP Tool Browser** — Test MCP tools visually
-
-Source: `DASHBOARD_UPGRADE_COMPONENTS/` | Deploy: `.\DASHBOARD_UPGRADE_COMPONENTS\deploy-dashboard-upgrade.bat`
+### 🖥️ Dashboard — Agent Monitor LIVE + rebuilt (corrected 2026-05-21 audit)
+- ✅ **Agent Monitor tab WORKS** — `useAgentStatus` now polls REST `/api/v1/agents/status` every 5s (the WS `/api/v1/ws/agents` returns 404). Commit `1bd0a9a`.
+- ✅ **Dashboard rebuilt + deployed** — image `88f2c40`, `hypercode-dashboard` healthy, `/agents` + `/api/health` → 200.
+- ✅ Dockerfile healthcheck hardened `5s/15s → 10s/90s` — commit `31f9f7c`
+- ✅ `AGENT-START.md` boot-file path fixed (`rewrites/` → `docs/`) — commit `4d3a18e`
+- ⚠️ **`DASHBOARD_UPGRADE_COMPONENTS/` = frontend prototype, NOT deployable.** Earlier "5 components / 1,800 LOC / production-ready / WCAG AA" was overstated — actual ~1,023 LOC, **0/8 backend endpoints exist**. Do NOT run `deploy-dashboard-upgrade.bat`. IDE / Mission / Docker / MCP tabs are backend-blocked until those endpoints are built.
 
 ### 🔍 Full Ports Audit (39 containers)
 - ✅ 37/39 Healthy (95%)
