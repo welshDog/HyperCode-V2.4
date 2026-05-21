@@ -93,7 +93,7 @@ Thumbs.db
 *.tmp
 *.temp
 
-# HyperCode BIG folders
+# HyperCode BIG folders (but KEEP DASHBOARD_UPGRADE_COMPONENTS!)
 agents/
 backend/
 frontend/node_modules/
@@ -111,8 +111,6 @@ examples/
 tools/
 .husky/
 .trae/
-DASHBOARD_UPGRADE_COMPONENTS/hooks/
-DASHBOARD_UPGRADE_COMPONENTS/lib/
 
 # Obsidian
 *.obsidian/

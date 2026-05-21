@@ -1,37 +1,34 @@
 # Multi-stage Dockerfile for Dashboard v2.0 Upgrade
-# Build context = DASHBOARD_UPGRADE_COMPONENTS/ folder
-# Run: docker build -f DASHBOARD_UPGRADE_COMPONENTS/Dockerfile.dashboard-v2 DASHBOARD_UPGRADE_COMPONENTS/ -t hypercode-dashboard-v2
+# Build from root, use targeted COPY (respects .dockerignore)
 
 FROM node:20.20.2-alpine AS builder
 
 WORKDIR /build
 
-# Install deps first (cached layer - only reruns if package.json changes)
+# Copy package files
 COPY package*.json ./
-RUN npm ci
-
-# Copy only what Next.js needs to build
-COPY next.config.* ./
 COPY tsconfig*.json ./
-COPY public/ ./public/
+COPY next.config.* ./
+
+# Copy existing dashboard source (app/ and public/ from root)
 COPY app/ ./app/
-COPY src/ ./src/
+COPY public/ ./public/
 
-# Copy new dashboard components into correct locations
-# Note: paths are relative to DASHBOARD_UPGRADE_COMPONENTS/ context
-COPY AgentMonitor.tsx ./app/components/dashboard/
-COPY HyperCodeIDE.tsx ./app/components/dashboard/
-COPY MissionTimeline.tsx ./app/components/dashboard/
-COPY DockerZone.tsx ./app/components/dashboard/
-COPY MCPToolBrowser.tsx ./app/components/dashboard/
-COPY hooks/useAgentStream.ts ./app/hooks/
-COPY lib/api-client.ts ./app/lib/
-COPY app_dashboard_page.tsx ./app/app/dashboard/page.tsx
+# Copy new dashboard components (from DASHBOARD_UPGRADE_COMPONENTS)
+COPY DASHBOARD_UPGRADE_COMPONENTS/AgentMonitor.tsx ./app/components/dashboard/
+COPY DASHBOARD_UPGRADE_COMPONENTS/HyperCodeIDE.tsx ./app/components/dashboard/
+COPY DASHBOARD_UPGRADE_COMPONENTS/MissionTimeline.tsx ./app/components/dashboard/
+COPY DASHBOARD_UPGRADE_COMPONENTS/DockerZone.tsx ./app/components/dashboard/
+COPY DASHBOARD_UPGRADE_COMPONENTS/MCPToolBrowser.tsx ./app/components/dashboard/
+COPY DASHBOARD_UPGRADE_COMPONENTS/hooks/useAgentStream.ts ./app/hooks/
+COPY DASHBOARD_UPGRADE_COMPONENTS/lib/api-client.ts ./app/lib/
+COPY DASHBOARD_UPGRADE_COMPONENTS/app_dashboard_page.tsx ./app/app/dashboard/page.tsx
 
-# Build production bundle
-RUN npm run build
+# Install dependencies
+RUN npm ci --only=production && \
+    npm run build
 
-# --- Runtime stage (lean image) ---
+# Runtime stage
 FROM node:20.20.2-alpine
 
 RUN addgroup -g 101 -S nextjs && \
