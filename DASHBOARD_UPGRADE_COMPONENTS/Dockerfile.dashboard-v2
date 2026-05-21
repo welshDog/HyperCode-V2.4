@@ -1,11 +1,12 @@
 # Multi-stage Dockerfile for Dashboard v2.0 Upgrade
-# Fixed: scoped COPY commands — no more 9.9GB build context
+# Build context = DASHBOARD_UPGRADE_COMPONENTS/ folder
+# Run: docker build -f DASHBOARD_UPGRADE_COMPONENTS/Dockerfile.dashboard-v2 DASHBOARD_UPGRADE_COMPONENTS/ -t hypercode-dashboard-v2
 
 FROM node:20.20.2-alpine AS builder
 
 WORKDIR /build
 
-# Install deps first (cached layer — only re-runs if package.json changes)
+# Install deps first (cached layer - only reruns if package.json changes)
 COPY package*.json ./
 RUN npm ci
 
@@ -17,6 +18,7 @@ COPY app/ ./app/
 COPY src/ ./src/
 
 # Copy new dashboard components into correct locations
+# Note: paths are relative to DASHBOARD_UPGRADE_COMPONENTS/ context
 COPY AgentMonitor.tsx ./app/components/dashboard/
 COPY HyperCodeIDE.tsx ./app/components/dashboard/
 COPY MissionTimeline.tsx ./app/components/dashboard/
