@@ -23,7 +23,7 @@
 - ✅ **Dashboard rebuilt + deployed** — image `88f2c40`, `hypercode-dashboard` healthy, `/agents` + `/api/health` → 200.
 - ✅ Dockerfile healthcheck hardened `5s/15s → 10s/90s` — commit `31f9f7c`
 - ✅ `AGENT-START.md` boot-file path fixed (`rewrites/` → `docs/`) — commit `4d3a18e`
-- ✅ **MCP tab + IDE file-tree FIXED** — `mcp-rest-adapter` was never running. Built + started on `hypercode_agents_net`; dashboard `/api/mcp/health` → 200. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
+- ✅ **MCP tab + IDE FULLY WORKING** — `mcp-rest-adapter` was never running (started it), then rewrote `app.py` from the dead MCP SSE transport to **Streamable HTTP** (what `docker/mcp-gateway:latest` actually speaks). Verified: `/tools/discover` → 28 real gateway tools; IDE file-open returns real content; path-escape → 403. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
 - ⚠️ **`DASHBOARD_UPGRADE_COMPONENTS/` = DEAD staging prototype.** It is NOT the deployed dashboard — the live `hypercode-dashboard` builds from `agents/dashboard/`, a mature fully-wired Next.js app. The earlier "0/8 backend endpoints / IDE/Mission/Docker/MCP backend-blocked" claim was about this dead prototype, NOT the live dashboard. Do NOT run `deploy-dashboard-upgrade.bat`. Consider deleting the folder.
 
 ### 🔍 Full Ports Audit (39 containers)

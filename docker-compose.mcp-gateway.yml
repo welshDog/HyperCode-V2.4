@@ -89,7 +89,7 @@ services:
     container_name: mcp-rest-adapter
     environment:
       - MCP_GATEWAY_BASE_URL=http://host.docker.internal:8820
-      - MCP_GATEWAY_SSE_URL=http://host.docker.internal:8820/sse
+      - MCP_GATEWAY_MCP_URL=http://host.docker.internal:8820/mcp
       - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:?MCP_GATEWAY_API_KEY must be set}
       - MCP_WORKSPACE_TARGET_PATH=/workspace
       - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4

@@ -107,33 +107,37 @@ All 5 tab pages + their data endpoints probed at `http://127.0.0.1:8088`.
 **4/5 fully working; IDE mostly.** Every tab renders and its primary built-in
 function works.
 
-## ⚠️ Real follow-up found — adapter ↔ gateway transport mismatch
+## ✅ RESOLVED 2026-05-21 — adapter ↔ gateway transport rewrite
 
-`mcp-rest-adapter`'s `app.py` speaks the **old MCP SSE transport** (`GET /sse` →
-`event: endpoint` → POST to a session URL, `protocolVersion 2024-11-05`).
+Was: `mcp-rest-adapter`'s `app.py` spoke the **old MCP SSE transport** while
+`docker/mcp-gateway:latest` speaks **Streamable HTTP** (`:8820/sse` → 307 →
+`/mcp`; `/mcp` needs an `Mcp-Session-Id` header).
 
-The running `docker/mcp-gateway:latest` speaks the **newer Streamable HTTP
-transport**: `:8820/sse` 307-redirects to `/mcp`, and `/mcp` rejects plain GETs
-with `400 Bad Request: GET requires an Mcp-Session-Id header`.
+**Fix shipped** — `services/mcp-rest-adapter/app.py` rewritten:
+- `_jsonrpc` now does the Streamable HTTP handshake: POST `initialize` →
+  capture `Mcp-Session-Id` header → POST `notifications/initialized` → POST the
+  real method → best-effort `DELETE` to terminate the session
+- `_extract_jsonrpc_message` parses both `application/json` and
+  `text/event-stream` POST responses
+- endpoint resolution: new `MCP_GATEWAY_MCP_URL` env (compose updated); legacy
+  `/sse` URLs auto-rewritten to `/mcp`
+- the old SSE handshake (`_await_jsonrpc_response`, `event: endpoint`) is gone
 
-Result — what works vs not:
-- ✅ `filesystem:list_directory` under `/workspace` — adapter serves this
-  **locally** (`_local_list_directory`), no gateway needed → IDE file-tree works
-- ✅ `/api/mcp/health` — trivial, no gateway → MCP tab works
-- ❌ `/tools/discover` — needs gateway → **HTTP 500** (httpx `HTTPStatusError`
-  on the unfollowed 307)
-- ❌ `filesystem:read_file` → IDE file *opening* — needs gateway → broken
-- ❌ any real MCP tool call beyond local filesystem listing
+**Filesystem note:** the gateway serves only GitHub tools (28) — no `filesystem`
+server is running. So directory listing AND file reads are served **locally**
+from the read-only `/workspace` bind mount. Added `_local_read_file` (mirrors
+`_local_list_directory`) — 1 MB cap, UTF-8 only, path-sandboxed to the workspace.
 
-**Fix (follow-up):** rewrite `services/mcp-rest-adapter/app.py`'s `_jsonrpc` to
-speak Streamable HTTP — POST `initialize` → capture `Mcp-Session-Id` → reuse it
-on subsequent POSTs. Not a config tweak; the SSE handshake code goes away.
+**Verified** via the dashboard proxy:
+- `/api/mcp/tools/discover` → 200 (28 real gateway tools through the handshake)
+- `tools/call filesystem:list_directory` → 200 (real `/workspace` entries)
+- `tools/call filesystem:read_file` → 200 (real file content) — **IDE file-open works**
+- path-escape `../../../etc/passwd` → **403 Forbidden** (sandbox holds)
 
 ## Genuine remaining dashboard work
 
-1. ✅ **Browser-verify all 5 tabs** — DONE (table above).
-2. **Adapter ↔ gateway transport rewrite** — Streamable HTTP (above). Unblocks
-   IDE file-open + real MCP tool calls.
+1. ✅ **Browser-verify all 5 tabs** — DONE.
+2. ✅ **Adapter Streamable HTTP rewrite** — DONE (above). IDE fully unlocked.
 3. **Mission tab** shows nothing without a login token (`useTasks` reads
    `localStorage.token`; Core `/api/v1/tasks` is auth-gated). Decide: dashboard
    login flow, or a public read endpoint like `/agents/status`.
@@ -141,3 +145,5 @@ on subsequent POSTs. Not a config tweak; the SSE handshake code goes away.
 5. `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — the live
    dashboard already does everything it sketched. Consider deleting it to stop
    future audits tripping over it.
+6. *(optional)* Bring up the `filesystem` / `postgres` MCP servers if the IDE
+   ever needs gateway-backed file ops beyond the local `/workspace` mount.

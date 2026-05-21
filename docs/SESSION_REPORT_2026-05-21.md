@@ -190,14 +190,45 @@ the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can be included
 
 ---
 
+# 🔧 BLOCK 5 — mcp-rest-adapter Streamable HTTP rewrite (evening)
+
+**Status:** ✅ COMPLETE — IDE fully unlocked.
+
+`services/mcp-rest-adapter/app.py` rewritten from the dead MCP SSE transport to
+**Streamable HTTP** (the transport `docker/mcp-gateway:latest` actually speaks):
+
+- `_jsonrpc` now does the handshake: POST `initialize` → capture `Mcp-Session-Id`
+  header → POST `notifications/initialized` → POST the real method → best-effort
+  `DELETE` to terminate the session
+- `_extract_jsonrpc_message` parses both `application/json` and `text/event-stream`
+  POST responses; old SSE handshake code (`_await_jsonrpc_response`,
+  `event: endpoint`) deleted
+- endpoint resolution via new `MCP_GATEWAY_MCP_URL` env (compose updated); legacy
+  `/sse` URLs auto-rewritten to `/mcp`
+
+**Filesystem finding:** the gateway serves only **GitHub tools (28)** — no
+`filesystem` server is running. So file *reads* are now served **locally** too,
+same as directory listing: added `_local_read_file` (1 MB cap, UTF-8 only,
+path-sandboxed to the read-only `/workspace` mount).
+
+**Verified** via the dashboard proxy (`127.0.0.1:8088`):
+- `/api/mcp/tools/discover` → 200 — 28 real gateway tools through the full handshake
+- `tools/call filesystem:list_directory` → 200 — real `/workspace` entries
+- `tools/call filesystem:read_file` → 200 — real file content (**IDE file-open works**)
+- path-escape `../../../etc/passwd` → **403 Forbidden** — sandbox holds
+
+All 5 dashboard tabs now fully functional. Details in `docs/DASHBOARD_BACKEND_SCOPE.md`.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
 |------|--------|-------|
 | Dashboard — Agent Monitor tab | ✅ DONE | Option B polling live + deployed (`1bd0a9a`, image `88f2c40`, healthy) |
 | Dashboard — MCP tab + IDE file-tree | ✅ DONE | `mcp-rest-adapter` started + verified (Block 4) |
-| Dashboard — all 5 tabs browser-verified | ✅ DONE | 4/5 fully working, IDE mostly (file-tree ok, file-open blocked) |
-| `mcp-rest-adapter` → Streamable HTTP rewrite | ❌ Follow-up | Adapter speaks old SSE; gateway speaks Streamable HTTP. Unblocks IDE file-open + real MCP tool calls |
+| Dashboard — all 5 tabs browser-verified | ✅ DONE | 4/5 fully working, IDE mostly (file-tree ok, file-open blocked) — then file-open fixed (Block 5) |
+| `mcp-rest-adapter` → Streamable HTTP rewrite | ✅ DONE | Block 5 — IDE fully unlocked |
 | `mcp-rest-adapter` compose-managed | ❌ Tech debt | Currently `docker run`; fold into a root-included compose file |
 
 ---
@@ -215,13 +246,12 @@ the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can be included
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Rewrite `mcp-rest-adapter` to Streamable HTTP** — `services/mcp-rest-adapter/app.py`
-   `_jsonrpc` speaks old SSE; `docker/mcp-gateway:latest` needs Streamable HTTP
-   (POST `initialize` → `Mcp-Session-Id` → reuse). Unblocks IDE file-open + real
-   MCP tool calls. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
-2. **Compose-manage `mcp-rest-adapter`** — currently `docker run`. Fold into a
-   root-included compose file, or de-dupe the `mcp-gateway` double-definition.
-   `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — consider deleting it.
+1. **Compose-manage `mcp-rest-adapter`** — currently `docker run` (survives reboots
+   via `--restart unless-stopped`, but not compose-tracked). Fold into a
+   root-included compose file, or de-dupe the `mcp-gateway` double-definition so
+   `docker-compose.mcp-gateway.yml` can be included cleanly.
+2. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype** — the
+   live dashboard already does everything it sketched; it only causes audit confusion.
 3. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
 4. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
 5. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
