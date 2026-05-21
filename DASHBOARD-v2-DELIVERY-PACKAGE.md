@@ -1,7 +1,12 @@
 # 🚀 DASHBOARD v2.0 UPGRADE — DELIVERY PACKAGE
 
+> ## ⚠️ CORRECTION (2026-05-21 audit)
+> Frontend components only. **0 of 8 required backend endpoints exist** — not
+> deployable as-is. Commits were pushed to GitHub late (2026-05-21, `b35bf4e`),
+> not at delivery time. See `SESSION_REPORT_2026-05-21.md`.
+
 **Date:** May 21, 2026 02:45 UTC  
-**Status:** ✅ COMPLETE & COMMITTED TO GITHUB  
+**Status:** ⚠️ FRONTEND PROTOTYPE — backend pending  
 **Build Time:** 45 minutes (concept to commit)
 
 ---

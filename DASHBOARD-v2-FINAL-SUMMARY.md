@@ -1,7 +1,13 @@
 # 🎉 DASHBOARD v2.0 UPGRADE — FINAL SUMMARY
 
+> ## ⚠️ CORRECTION (2026-05-21 audit): this summary overstates status
+> - "✅ COMPLETE, TESTED" → **frontend components only; never built or tested.**
+> - "1,800+ LOC" → actual **~1,023 LOC**.
+> - "All APIs verified" → **0 of 8 required backend endpoints exist.**
+> - Not deployable as-is. See `SESSION_REPORT_2026-05-21.md` for the real picture.
+
 **Date:** May 21, 2026 02:50 UTC  
-**Status:** ✅ COMPLETE, TESTED & COMMITTED  
+**Status:** ⚠️ FRONTEND PROTOTYPE — backend pending (was mislabelled "✅ COMPLETE, TESTED")  
 **Build Duration:** 45 minutes (from concept to production-ready)
 
 ---

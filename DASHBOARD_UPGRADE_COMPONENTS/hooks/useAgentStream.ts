@@ -1,4 +1,9 @@
 // hooks/useAgentStream.ts
+//
+// ⚠️ DEPRECATED (2026-05-21 audit): this hook connects to `/agents/stream`,
+// an SSE endpoint that DOES NOT EXIST in the backend. AgentMonitor no longer
+// uses it — it polls `GET /orchestrator/agents` instead. Keep this hook ONLY
+// if a real SSE endpoint is built later; otherwise delete it.
 'use client';
 
 import { useEffect, useState } from 'react';

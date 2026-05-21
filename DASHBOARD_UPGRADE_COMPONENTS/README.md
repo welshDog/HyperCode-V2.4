@@ -1,6 +1,13 @@
-# 🚀 DASHBOARD v2.0 UPGRADE — COMPLETE
+# 🚀 DASHBOARD v2.0 UPGRADE — FRONTEND PROTOTYPE
 
-## ✅ WHAT'S BEEN CREATED
+> ## ⚠️ STATUS: FRONTEND-ONLY — NOT DEPLOYABLE AS-IS
+> Audit 2026-05-21: the 5 components call **8 backend API endpoints; 0 of 8 exist.**
+> Deploying this now = every tab returns 404. This is a **frontend prototype** —
+> the backend (`/docker/*`, `/mcp/*`, `/agents/stream` SSE, `/execution/execute-hc`)
+> must be built first. "Production-ready / tested / WCAG AA" claims below are
+> **unverified** — no build has been run. See `SESSION_REPORT_2026-05-21.md`.
+
+## ✅ WHAT'S BEEN CREATED (frontend components only)
 
 ### 5 New Components (1,800 LOC)
 1. ✅ **AgentMonitor.tsx** (110 lines) — Real-time 25-agent dashboard
