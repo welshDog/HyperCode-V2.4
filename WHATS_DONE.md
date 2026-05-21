@@ -25,6 +25,7 @@
 - ✅ `AGENT-START.md` boot-file path fixed (`rewrites/` → `docs/`) — commit `4d3a18e`
 - ✅ **MCP tab + IDE FULLY WORKING** — `mcp-rest-adapter` was never running (started it), then rewrote `app.py` from the dead MCP SSE transport to **Streamable HTTP** (what `docker/mcp-gateway:latest` actually speaks). Verified: `/tools/discover` → 28 real gateway tools; IDE file-open returns real content; path-escape → 403. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
 - ✅ **`mcp-rest-adapter` compose-managed** — first-class service in `docker-compose.agents.yml` (profile: agents). Commit `dfc4c31`.
+- ✅ **Claude Code ↔ MCP chat tested** — `.mcp.json` → `:8823` → Core proven live. Fixed `hypercode_list_agents` (was 401 on auth-gated `/orchestrator/agents` → now public `/agents/status`).
 - ✅ **`DASHBOARD_UPGRADE_COMPONENTS/` DELETED 2026-05-21** — dead staging prototype, never the live dashboard (`agents/dashboard/` is). Its bogus "0/8 backend endpoints" claim caused a whole misdirected audit. Gone now.
 
 ### 🔍 Full Ports Audit (39 containers)

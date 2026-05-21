@@ -255,6 +255,32 @@ comment, which was cleaned up. Nothing builds from it, nothing breaks.
 
 ---
 
+# 🔌 BLOCK 8 — Claude Code ↔ MCP chat test + list_agents fix
+
+**Status:** ✅ COMPLETE — connection proven, one bug found and fixed.
+
+Tested the `.mcp.json` link (Claude Code → MCP server `:8823` → Core):
+
+- ✅ `hypercode_system_health` → returned `{status: ok, hypercode-core, v2.4.2}`
+  — **the Claude Code ↔ MCP ↔ Core chain is live**
+- ❌ `hypercode_list_agents` → **401 Unauthorized** — the tool called Core's
+  auth-gated `/api/v1/orchestrator/agents`
+
+**Fix:** `services/hypercode-mcp-server/server.py` — `hypercode_list_agents` now
+hits the **public** `/api/v1/agents/status` (the same Option-B endpoint the
+dashboard's Agent Monitor uses), not the auth-gated `/orchestrator/agents`.
+
+Rebuilt + redeployed `hypercode-mcp-server`. **Verified** (server-side, since the
+restart staled this chat session's SSE connection): new code is in the running
+container; `GET /api/v1/agents/status` from inside the MCP server → HTTP 200,
+3 agents (healer-agent, hypercode-core, celery-worker — all online).
+
+⚠️ **Note:** restarting an MCP server drops the live `.mcp.json` SSE connection.
+To use the tools from Claude Code chat again, reconnect (restart Claude Code or
+re-init MCP). Expected behaviour, not a fault.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
@@ -280,11 +306,10 @@ comment, which was cleaned up. Nothing builds from it, nothing breaks.
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
-2. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
-3. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
-4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
-5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
+1. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
+2. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
+4. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
 
 ---
 
