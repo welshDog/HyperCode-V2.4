@@ -1,34 +1,23 @@
-# 🧠 SESSION REPORT — May 21, 2026 (1:00–1:37 AM BST)
-> **Author:** Lyndz + Perplexity AI
-> **Status:** ✅ COMPLETE — MCP IDE ↔ Agent connection LIVE
+# 📋 SESSION REPORT — HyperCode V2.4 — May 21, 2026
+
+> **Consolidated report** — merged 2026-05-21 from two same-named files
+> (`docs/SESSION_REPORT_2026-05-21.md` + repo-root `SESSION_REPORT_2026-05-21.md`).
+> This `docs/` copy is the **canonical** one — the `AGENT-START*.md` boot files point here.
+> Covers three working blocks on May 21: MCP IDE connection · Dashboard v2.0 build · Audit + rebuild.
 
 ---
 
-## 🎯 WHAT WE DID THIS SESSION
+# 🔌 BLOCK 1 — MCP IDE ↔ Agent Connection (01:00–01:37 BST)
 
-### 1. Reviewed Docker_Skill.md + Master Documentation Suite
-- Confirmed `Docker_Skill.md` (34,967 bytes / 10,000+ words) is the complete Docker + HyperCode training manual for AI agents
-- 10 sections: Foundational Concepts → Quick Reference
-- Full security coverage: DHI, mTLS, CVE scanning, SBOM, Cosign, OWASP/PCI-DSS/SOC2
-- 30-scenario troubleshooting flowchart
-- Confirmed docs suite: MASTER-INDEX.md, COMPLETE-ECOSYSTEM-SUMMARY.md, AGENT_DEPLOYMENT_REPORT.md, AGENT_SQUAD_BUILD_PLAN.md, AGENT_QUICK_REFERENCE.md
-- **Verdict:** Documentation is enterprise-grade. One flag: 100+ files in `docs/` = potential nav sprawl. MASTER-INDEX.md is the fix.
+**Author:** Lyndz + Perplexity AI · **Status:** ✅ COMPLETE — MCP IDE ↔ Agent connection LIVE
 
----
-
-### 2. MCP IDE ↔ Agent Connection — FULLY ACTIVATED 🔥
-
-**Goal:** Connect Claude Code (IDE) to all 25+ HyperCode agents so they talk back, answer questions, and take tasks.
-
-#### What we confirmed:
-- ✅ `hypercode-mcp-server` is **ALWAYS-ON** (no profile flag needed) — wired in `docker-compose.agents.yml`
-- ✅ Port `8823` exposed: `127.0.0.1:8823:8823`
-- ✅ Healthcheck: polls `/sse` every 30s
+### What was confirmed
+- ✅ `hypercode-mcp-server` is **always-on** (no profile flag) — wired in `docker-compose.agents.yml`
+- ✅ Port `8823` exposed: `127.0.0.1:8823:8823` · healthcheck polls `/sse` every 30s
 - ✅ Talks to `hypercode-core:8000` + `crew-orchestrator:8080`
-- ✅ Memory capped at 256M, security hardened (`no-new-privileges:true`)
-- ✅ `.mcp.json` exists at repo root — Claude Code auto-detects it
+- ✅ Memory capped 256M, hardened (`no-new-privileges:true`)
+- ✅ `.mcp.json` at repo root — Claude Code auto-detects it
 
-#### `.mcp.json` contents (confirmed live):
 ```json
 {
   "mcpServers": {
@@ -41,53 +30,14 @@
 }
 ```
 
----
+### MCP server verified live
+`curl http://localhost:8823/sse` → `event: endpoint` + session id + `: ping` stream. SSE live. 🎉
 
-### 3. Stack Launched Successfully 🐳
-
-**Command used:**
-```bash
-docker compose --profile agents up -d
-```
-
-**Output confirmed:**
-- ✅ 28/45+ containers up and healthy
-- ✅ redis — Healthy
-- ✅ hypercode-ollama — Healthy
-- ✅ prometheus — Healthy
-- ✅ mcp-gateway — Healthy (26 GitHub tools)
-- ✅ healer-agent — Running
-- ✅ docker-socket-proxy — Running
-- ✅ All agent images building (crew-orchestrator, coder-agent, frontend/backend specialists, database-architect, qa-engineer, devops-engineer, nemoclaw-agent, goal-keeper, project-strategist, broski-pets-bridge, hyper-brain, dashboard)
-
----
-
-### 4. MCP Server — VERIFIED LIVE ✅
-
-**Test command:**
-```bash
-curl http://localhost:8823/sse
-```
-
-**Output:**
-```
-event: endpoint
-data: /messages/?session_id=3441db2fd166424c958c0a6fc9a35bcb
-
-: ping - 2026-05-21 00:29:39.283933+00:00
-: ping - 2026-05-21 00:29:54.355399+00:00
-: ping - 2026-05-21 00:30:09.358059+00:00
-```
-
-**Translation:** SSE stream is live, session established, server is healthy and ready for IDE connection. 🎉
-
----
-
-## 🤖 MCP Tools Available (via Claude Code)
+### MCP tools available (via Claude Code)
 
 | Tool | What it does |
 |------|-------------|
-| `hypercode_system_health` | Full stack health — first thing to call |
+| `hypercode_system_health` | Full stack health — call this first |
 | `hypercode_list_agents` | All agents, status, XP, level, BROski$ |
 | `hypercode_agent_system_health` | CPU/memory/Redis metrics from orchestrator |
 | `hypercode_list_tasks` | List tasks by status |
@@ -98,56 +48,155 @@ data: /messages/?session_id=3441db2fd166424c958c0a6fc9a35bcb
 | `hypercode_broski_leaderboard` | Top agents by coins + level |
 | `hypercode_execute_agent` | Send command directly to crew orchestrator |
 
----
-
-## 🔑 KEY FACTS FOR NEXT SESSION
-
+### Key facts
 ```
-MCP Server URL:       http://localhost:8823/sse
-MCP Config file:      .mcp.json (repo root — auto-detected by Claude Code)
-Start command:        docker compose --profile agents up -d
-MCP Server:           Always-on (no --profile needed)
-crew-orchestrator:    Needs --profile agents
-Verified live:        2026-05-21 00:29 BST ✅
-IDE:                  Claude Code (open project → auto-connects)
-Test command:         curl http://localhost:8823/sse
+MCP Server URL:    http://localhost:8823/sse
+MCP Config file:   .mcp.json (repo root — auto-detected by Claude Code)
+Start command:     docker compose --profile agents up -d
+MCP Server:        Always-on (no --profile needed)
+crew-orchestrator: Needs --profile agents
 ```
 
----
-
-## ⚠️ IMPORTANT NOTES
-
-- `hypercode-mcp-server` **depends on** `hypercode-core` being healthy — if core isn't up, MCP won't start
-- `crew-orchestrator` is **profile-gated** — always use `--profile agents` for full agent squad
-- Agent profiles available: `agents`, `hyper`, `health`, `discord`, `mission`, `nemoclaw`, `brain`, `pets`, `gpu`, `ai`
-- To start EVERYTHING: `docker compose --profile agents --profile hyper --profile health up -d`
+### Notes
+- `hypercode-mcp-server` **depends on** `hypercode-core` being healthy
+- `crew-orchestrator` is **profile-gated** — use `--profile agents`
+- Profiles: `agents`, `hyper`, `health`, `discord`, `mission`, `nemoclaw`, `brain`, `pets`, `gpu`, `ai`
+- Start everything: `docker compose --profile agents --profile hyper --profile health up -d`
 
 ---
 
-## 🚀 NEXT SESSION — What's Up Next
+# 🖥️ BLOCK 2 — Dashboard v2.0 Build (morning)
 
-From `WHATS_DONE.md` priority list:
-1. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat
-2. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
-3. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`
-4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet
-5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+**AI Partners:** Gordon (Docker/Claude) + Perplexity · **Session Type:** System Audit + Dashboard v2.0 Build
+
+### Dashboard v2.0 — FRONTEND COMPONENTS BUILT (backend pending)
+5 frontend components written + committed to `DASHBOARD_UPGRADE_COMPONENTS/`:
+
+| Component | File | Purpose |
+|---|---|---|
+| Live Agent Monitor | AgentMonitor.tsx | Real-time agent status |
+| HyperCode IDE | HyperCodeIDE.tsx | Execute code from browser UI |
+| Mission Timeline | MissionTimeline.tsx | Gantt-style task visualization |
+| Docker Zone | DockerZone.tsx | Container management |
+| MCP Tool Browser | MCPToolBrowser.tsx | Test MCP tools visually |
+
+Supporting: `hooks/useAgentStream.ts`, `lib/api-client.ts`, `app_dashboard_page.tsx`, deploy scripts,
+`Dockerfile.dashboard-v2`, `README.md` + `INTEGRATION_GUIDE.md`.
+
+**Stats (corrected by follow-up audit):**
+- **~1,023 lines** of TypeScript — earlier "1,800+" was inflated ~1.8× (verified via `find + wc`)
+- "WCAG 2.1 AA / mobile-responsive / tested" — **UNVERIFIED** (no build, no test report at build time)
+
+### 🔍 Full Ports Audit — 39 Containers
+- ✅ **37/39 Healthy (95%)**
+- ⚠️ `github-sync` — unhealthy (needs `GITHUB_PAT` in `.env`)
+- ❌ `project-strategist` — exited (needs `pip install perplexity-api`)
+
+### 🧹 System Cleanup
+- 3 old hyper-vibe artifact containers removed · ~600MB freed
 
 ---
 
-## 📊 SESSION STATS
+# 🔧 BLOCK 3 — Dashboard Audit + Real Fixes + Rebuild (afternoon)
+
+The morning "Dashboard v2.0 BUILT" claims were audited against disk + live infra.
+
+### Audit findings
+- 5 staging components are real (~1,023 LOC) but **0/8 backend API endpoints exist** → it is a frontend shell
+- Staging `AgentMonitor.tsx` is a *downgrade* of the dashboard's existing `AgentSwarmView` +
+  `useAgentStatus` (WebSocket + backoff) — correctly **NOT integrated** (would have broken the build)
+
+### Real fixes shipped + pushed to GitHub
+
+| What | Commit |
+|---|---|
+| Pushed 5 stranded dashboard commits | `b35bf4e` |
+| Corrected SESSION_REPORT + 3 dashboard docs (honest banners, no "production-ready") | `77ce9ea` |
+| **Option B** — `useAgentStatus` polls REST `/api/v1/agents/status` every 5s (WS `/api/v1/ws/agents` 404s) | `1bd0a9a` |
+| `AGENT-START.md` boot-file path fix (`rewrites/` → `docs/`) | `4d3a18e` |
+| Dashboard Dockerfile healthcheck `5s/15s` → `10s/90s` | `31f9f7c` |
+| Logged rebuild in WHATS_DONE + SESSION_REPORT | `fd04497` |
+
+### Dashboard REBUILT + DEPLOYED — healthy ✅
+- `docker compose -f docker-compose.yml build dashboard` → image `88f2c40` (current tree — includes Option B)
+- Removed stray `test-dashboard` container (held port 8088, dev-mode, unhealthy)
+- `hypercode-dashboard` up — **healthy in ~11s** · `/agents` → HTTP 200 · `/api/health` → HTTP 200
+- Verified: `tsc --noEmit` exit 0 · `next build` exit 0 · container healthy
+
+---
+
+## 🟡 IN PROGRESS
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Dashboard — Agent Monitor tab | ✅ DONE | Option B polling live + deployed (`1bd0a9a`, image `88f2c40`, healthy) |
+| Dashboard — backend endpoints | ❌ Not started | 8 endpoints required, 0 exist. The real remaining work. |
+| Dashboard — IDE/Mission/Docker/MCP tabs | ❌ Backend-blocked | Need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints |
+
+---
+
+## ⚠️ KNOWN ISSUES (Non-Blocking)
+
+| Issue | Fix | Priority |
+|-------|-----|----------|
+| 2 CVEs in GitPython 3.1.45 | Upgrade to 3.1.47 | Medium |
+| `github-sync` unhealthy | Add `GITHUB_PAT` to `.env` | Low |
+| `project-strategist` exited | `docker exec project-strategist pip install perplexity-api` | Low |
+| Leaked password protection OFF | Supabase Auth Settings → toggle ON | Medium |
+
+---
+
+## 🚀 NEXT SESSION — FIRST TASKS
+
+1. **Confirm Agent Monitor polling** — 30-sec browser check at `http://localhost:8088/agents`: DevTools Network → `agents/status` should fire every 5s.
+2. **Scope the dashboard backend build** — IDE/Mission/Docker/MCP tabs need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints. Budget a focused day. Do NOT run `deploy-dashboard-upgrade.bat` — staging components are unintegrated + backend-blocked.
+3. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
+4. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
+5. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+6. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
+7. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
+
+---
+
+## 📊 SYSTEM HEALTH SNAPSHOT (May 21, 2026)
 
 ```
-Session length:    ~37 minutes
-Files checked:     docker-compose.yml, docker-compose.agents.yml,
-                   .mcp.json, MCP_IDE_INTEGRATION.md, WHATS_DONE.md
-Containers up:     28/45+ (still building remaining images)
-MCP status:        ✅ LIVE
-Agent connection:  ✅ READY
-Vibe level:        🔥🔥🔥
+Containers:     37/39 healthy (95%) + hypercode-dashboard rebuilt & healthy
+Tests:          251 passed, 6 skipped
+Alembic:        up to migration 015
+MCP server:     LIVE — http://localhost:8823/sse
+Stripe webhook: LIVE (stripe-webhook v32)
+Edge Functions: 10/10 ACTIVE
+Supabase:       ACTIVE_HEALTHY (eu-west-2)
+Vercel:         LIVE — hyper-vibe-coding-course.vercel.app
+BROskiPets:     Web3 mint LIVE on Base Sepolia 🔥
+Observability:  Prometheus 7/7 targets UP, Grafana :3001 ✅
+CVEs open:      2 (GitPython — upgrade pending)
 ```
 
 ---
 
-*Built by @welshDog + Perplexity AI — May 21, 2026*
-*"Stop apologising for your brain. Start building." 🐳♾️*
+## 🔑 KEY COMMANDS FOR NEXT SESSION
+
+```bash
+# Start stack + agents + MCP server
+docker compose --profile agents up -d
+
+# Verify MCP live
+curl http://localhost:8823/sse
+
+# Rebuild + redeploy the dashboard
+# (root docker-compose.yml already includes agents.yml — do NOT also pass
+#  -f docker-compose.agents.yml or merged lists double + validation fails)
+docker compose -f docker-compose.yml build dashboard
+docker compose -f docker-compose.yml up -d dashboard
+
+# Fix project-strategist
+docker exec project-strategist pip install perplexity-api
+```
+
+---
+
+*Consolidated 2026-05-21 from two same-named session reports into this canonical `docs/` copy.*
+*Honesty pass applied: inflated dashboard claims (1,800 LOC, "production-ready") corrected to disk reality.*
+*🐶♾️ Built by @welshDog — Stop apologising for your brain. Start building.*
