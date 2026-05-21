@@ -23,7 +23,8 @@
 - ✅ **Dashboard rebuilt + deployed** — image `88f2c40`, `hypercode-dashboard` healthy, `/agents` + `/api/health` → 200.
 - ✅ Dockerfile healthcheck hardened `5s/15s → 10s/90s` — commit `31f9f7c`
 - ✅ `AGENT-START.md` boot-file path fixed (`rewrites/` → `docs/`) — commit `4d3a18e`
-- ⚠️ **`DASHBOARD_UPGRADE_COMPONENTS/` = frontend prototype, NOT deployable.** Earlier "5 components / 1,800 LOC / production-ready / WCAG AA" was overstated — actual ~1,023 LOC, **0/8 backend endpoints exist**. Do NOT run `deploy-dashboard-upgrade.bat`. IDE / Mission / Docker / MCP tabs are backend-blocked until those endpoints are built.
+- ✅ **MCP tab + IDE file-tree FIXED** — `mcp-rest-adapter` was never running. Built + started on `hypercode_agents_net`; dashboard `/api/mcp/health` → 200. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
+- ⚠️ **`DASHBOARD_UPGRADE_COMPONENTS/` = DEAD staging prototype.** It is NOT the deployed dashboard — the live `hypercode-dashboard` builds from `agents/dashboard/`, a mature fully-wired Next.js app. The earlier "0/8 backend endpoints / IDE/Mission/Docker/MCP backend-blocked" claim was about this dead prototype, NOT the live dashboard. Do NOT run `deploy-dashboard-upgrade.bat`. Consider deleting the folder.
 
 ### 🔍 Full Ports Audit (39 containers)
 - ✅ 37/39 Healthy (95%)
@@ -211,7 +212,7 @@
 
 ## 🚀 NEXT UP (in order)
 
-1. **Deploy Dashboard v2.0** — `deploy-dashboard-upgrade.bat` (30 seconds)
+1. **Browser-verify the 5 dashboard tabs** at `http://127.0.0.1:8088` — do NOT run `deploy-dashboard-upgrade.bat` (dead staging prototype)
 2. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
 3. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
 4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet

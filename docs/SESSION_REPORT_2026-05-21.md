@@ -125,13 +125,60 @@ The morning "Dashboard v2.0 BUILT" claims were audited against disk + live infra
 
 ---
 
+# 🔍 BLOCK 4 — Dashboard audit correction + MCP adapter fix (evening)
+
+**Status:** ✅ COMPLETE — corrected a wrong premise + fixed the one real break.
+
+### The correction — Block 3 / NEXT-SESSION #2 were wrong
+
+Block 3 and "NEXT SESSION #2" said the IDE/Mission/Docker/MCP tabs are
+*"backend-blocked — 0/8 endpoints exist — budget a focused day."*
+
+**That described the abandoned `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype
+— NOT the deployed dashboard.** The live `hypercode-dashboard` image builds from
+`agents/dashboard/` (`docker-compose.agents.yml:236`), a mature, fully-wired
+Next.js app: all 5 tab pages exist, with real view components and a Next.js API
+proxy-route layer (`app/api/*/route.ts`) into Core + the agent services.
+There was never an "8 endpoints to build" task. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
+
+| Tab | Real state |
+|---|---|
+| Agent Monitor | ✅ Live (Option B) |
+| Mission | ✅ Wired (`useTasks` → `/api/tasks` → Core `/api/v1/tasks`) — needs login token for rows |
+| IDE | ✅ Wired (`IDEView` → `/api/orchestrator` + `/api/mcp/tools/call`) |
+| Docker Zone | ✅ Self-contained static iframe — never backend-blocked |
+| MCP | ❌→✅ was broken — fixed this block |
+
+### The one real bug — `mcp-rest-adapter` never running
+
+`/api/mcp/*` and the IDE file-tree both proxy to `mcp-rest-adapter:8821`.
+That container was never started → MCP tab + IDE file-tree both dead.
+
+**Fix shipped:**
+- `docker-compose.mcp-gateway.yml` — corrected 2 stale values: `MCP_WORKSPACE_SOURCE_PATH`
+  (old `HyperStation zone` path) + external network `name` (`hypercode_public_net`
+  → real `hypercode_agents_net`)
+- Built `mcp-rest-adapter:local`, started via `docker run` on `hypercode_agents_net`
+  (compose-merge hit Sacred Rule #21 — `mcp-gateway` is double-defined)
+- **Verified:** `/health` ok from inside adapter + from dashboard via Docker DNS;
+  dashboard `GET /api/mcp/health` → HTTP 200; `/mcp` page → HTTP 200
+
+### Tech debt created
+
+`mcp-rest-adapter` is `docker run`-managed (`--restart unless-stopped`), not in a
+compose project. Follow-up: fold it into a root-included compose file, or de-dupe
+the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can be included.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
 |------|--------|-------|
 | Dashboard — Agent Monitor tab | ✅ DONE | Option B polling live + deployed (`1bd0a9a`, image `88f2c40`, healthy) |
-| Dashboard — backend endpoints | ❌ Not started | 8 endpoints required, 0 exist. The real remaining work. |
-| Dashboard — IDE/Mission/Docker/MCP tabs | ❌ Backend-blocked | Need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints |
+| Dashboard — MCP tab + IDE file-tree | ✅ DONE | `mcp-rest-adapter` started + verified (Block 4) |
+| Dashboard — IDE/Mission/Docker tabs | ✅ Wired | Live dashboard already wired — NOT backend-blocked (Block 3 claim was about the staging prototype). Browser-verify pending |
+| `mcp-rest-adapter` compose-managed | ❌ Tech debt | Currently `docker run`; fold into a root-included compose file |
 
 ---
 
@@ -148,8 +195,12 @@ The morning "Dashboard v2.0 BUILT" claims were audited against disk + live infra
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Confirm Agent Monitor polling** — 30-sec browser check at `http://localhost:8088/agents`: DevTools Network → `agents/status` should fire every 5s.
-2. **Scope the dashboard backend build** — IDE/Mission/Docker/MCP tabs need `/execution`, `/missions`, `/docker/*`, `/mcp/*` endpoints. Budget a focused day. Do NOT run `deploy-dashboard-upgrade.bat` — staging components are unintegrated + backend-blocked.
+1. **Browser-verify all 5 dashboard tabs** at `http://127.0.0.1:8088` (use `127.0.0.1`,
+   not `localhost` — Windows IPv6, Sacred Rule #11). Agent Monitor → `agents/status`
+   every 5s; Mission/IDE/Docker/MCP tabs all render with live data.
+2. **Compose-manage `mcp-rest-adapter`** — currently `docker run`. Fold into a
+   root-included compose file, or de-dupe the `mcp-gateway` double-definition.
+   `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — consider deleting it.
 3. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
 4. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
 5. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.

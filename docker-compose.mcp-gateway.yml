@@ -92,7 +92,7 @@ services:
       - MCP_GATEWAY_SSE_URL=http://host.docker.internal:8820/sse
       - MCP_GATEWAY_AUTH_TOKEN=${MCP_GATEWAY_API_KEY:?MCP_GATEWAY_API_KEY must be set}
       - MCP_WORKSPACE_TARGET_PATH=/workspace
-      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HyperStation zone/HyperCode/HyperCode-V2.4
+      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4
       - MCP_LOCAL_WORKSPACE_ROOT=/workspace
     volumes:
       - ./:/workspace:ro
@@ -324,4 +324,4 @@ services:
 networks:
   backend-net:
     external: true
-    name: hypercode_public_net
+    name: hypercode_agents_net
