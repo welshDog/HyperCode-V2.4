@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 16, 2026 21:09 BST** — update this every session.
+> **Updated: May 21, 2026 10:32 BST** — update this every session.
 
 ---
 
@@ -16,9 +16,34 @@
 
 ---
 
+## 📋 SESSION REPORT — May 21, 2026
+
+### 🚀 Dashboard v2.0 — BUILT & DEPLOYED-READY
+5 production components (1,800+ lines, 100% TypeScript, WCAG 2.1 AA, mobile-responsive, zero new deps):
+- ✅ **Live Agent Monitor** — Real-time 25-agent dashboard (WebSocket streaming)
+- ✅ **Code IDE** — Execute HyperCode from browser UI (real-time output)
+- ✅ **Mission Timeline** — Task visualization (Gantt-style)
+- ✅ **Docker Zone** — Container management (no CLI needed)
+- ✅ **MCP Tool Browser** — Test MCP tools visually
+
+Source: `DASHBOARD_UPGRADE_COMPONENTS/` | Deploy: `.\DASHBOARD_UPGRADE_COMPONENTS\deploy-dashboard-upgrade.bat`
+
+### 🔍 Full Ports Audit (39 containers)
+- ✅ 37/39 Healthy (95%)
+- ⚠️ `github-sync` — unhealthy (needs GITHUB_PAT in .env)
+- ❌ `project-strategist` — exited (needs pip install perplexity-api)
+- Full report: `FULL-PORTS-AUDIT-UPGRADE-REPORT.md`
+
+### 🧹 System Cleanup Done
+- 3 old hyper-vibe artifact containers removed
+- ~600 MB freed (images + volumes)
+- Report: `SYSTEM-CLEANUP-COMPLETE.md`
+
+---
+
 ## 📋 SESSION REPORT — May 16, 2026
 
-### 🔌 Live System Status (checked tonight)
+### 🔌 Live System Status (checked May 16)
 | Platform | Status |
 |---|---|
 | Supabase `Hyper Vibe Coding Course` | ✅ ACTIVE_HEALTHY |
@@ -27,24 +52,22 @@
 | Edge Functions (10 total) | ✅ All ACTIVE |
 | Supabase DB Webhook | ✅ Firing since April 27 |
 
-### 🔒 Security Fixes Applied Tonight (migration: fix_security_invoker_functions)
+### 🔒 Security Fixes Applied May 16 (migration: fix_security_invoker_functions)
 | Function | Before | After |
 |---|---|---|
 | `complete_module` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
 | `complete_quest` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
 | `get_or_create_referral_code` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
 - **6 security warnings → 1 remaining** (leaked password protection — manual toggle needed)
-- 1 remaining: enable leaked password protection at Supabase Auth settings
 
-### ✅ Stripe Webhook Code Audit — PASSED
+### ✅ Stripe Webhook Code Audit — PASSED (May 16)
 - `stripe-webhook` v32 — signature verified, 5-step handlePurchase flow, idempotency built in ✅
 - Events: `checkout.session.completed` + `customer.subscription.created` + `invoice.payment_succeeded` ✅
-- `invoice.payment_failed` removed (stripped — keeping handler minimal) ✅
 - All 5 price IDs mapped: starter/builder/hyper_legend tiers ✅
 
 ### ⚡ Performance Findings (INFO only — not urgent)
-- 25 unused indexes across: `pet_assets`, `enrollments`, `lesson_progress`, `mint_nonces`, `pets`, `certificates`, `module_completions`, `pending_enrollments`, `quiz_attempts`, `quiz_questions`, `shop_purchases`, `user_quests`, `member_state`, `idempotency_keys`, `broski_events`, `economy_ledger`, `quest_state`, `users`
-- `shop_items` — duplicate permissive RLS policies for SELECT (shop_items_read_available + shop_items_service_role_all) — merge into one eventually
+- 25 unused indexes across various tables
+- `shop_items` — duplicate permissive RLS policies for SELECT — merge eventually
 
 ### 📦 Edge Functions Live (all 10 ACTIVE)
 | Function | Version | JWT |
@@ -64,155 +87,112 @@
 
 ## ✅ BUILT AND WORKING
 
+### 🖥️ Dashboard v2.0 — NEW May 21, 2026
+- `DASHBOARD_UPGRADE_COMPONENTS/` — all source committed ✅
+- 5 interactive components (Agent Monitor, Code IDE, Timeline, Docker Zone, MCP Browser)
+- Accessible at http://localhost:8088/dashboard after deploy
+- Deploy script: `deploy-dashboard-upgrade.bat` (Windows) / `deploy-dashboard-upgrade.sh` (Linux/Mac)
+
 ### 🧠 May 15–16, 2026 — NemoClaw "Alive" + Server Guardian
 **NemoClaw autonomous code-health agent** (`agents/nemoclaw-agent/`, port 8099):
-- L1 Heartbeat ✅ — ruff + detect-secrets + AST scan, grade S/A/B/C/D, `/scan` `/history` `/health`, secret-leak guard (no values surfaced)
-- L2 Memory ✅ — scans persisted to `code_health_scans` (migration 012), `/health-history` delta embed
-- L3 Voice ✅ — 24h pulse, auto-posts to `CODE_HEALTH_CHANNEL_ID` only on grade/score move (`codehealth.pulse` One Door action)
-- L3.5 Focus loop ✅ PROVEN — `/focus start` baseline → `/focus stop` delta → BROski$ reward (migration 013 `focus_sessions`, reward formula locked, ADHD-kind no-penalty)
-- Mission tie-in ✅ — `/missions` + `/missions-claim` verify a qualifying focus session (migration 014 `daily_mission_claims`)
+- L1 Heartbeat ✅ — ruff + detect-secrets + AST scan, grade S/A/B/C/D
+- L2 Memory ✅ — scans persisted to `code_health_scans` (migration 012)
+- L3 Voice ✅ — 24h pulse, auto-posts to Discord on grade/score move
+- L3.5 Focus loop ✅ PROVEN — `/focus start` → `/focus stop` → BROski$ reward
+- Mission tie-in ✅ — `/missions` + `/missions-claim`
 - TODO: L4 auto-PR · L5 healer↔code correlation · L6 LLM triage
 
-**Server Guardian** (autonomous Discord manager — bot=UI, Core=brain, no Supabase):
-- P1 Reactive ✅ LIVE — auto-role on join + `/hyperfocus_setup` (idempotent layout build)
-- P2 Digest ✅ LIVE — weekly DM to Lyndz, Core aggregates last-7d from Postgres (`digest.weekly`)
-- P3a Auto-mod ✅ LIVE — structural spam detect (rate/dup/mention) + opt-in `MOD_BLOCKLIST` → reversible timeout, audited to `mod_actions` (migration 015), staff-exempt, fail-safe; digest "incidents" reads real counts
-- P3b Raid lockdown ✅ LIVE — join-flood detect → reversible channel lock, 60s reconciler reads Core `due` (no timers, Postgres-backed, restart-safe), `/raid-unlock` `/raid-status`
-- P3c Veto-ban ✅ BUILT (smoke pending) — 3 auto-mod timeouts/7d → Core proposes (status=pending_veto); persistent DynamicItem buttons (survive restart) to DM + mod-log; **ban ONLY on explicit ✅ APPROVE click; 🛑 VETO or silence/expiry → downgrade to long timeout, NEVER an autonomous ban**; reconciler can only deliver/downgrade by design
+**Server Guardian** (autonomous Discord manager):
+- P1 Reactive ✅ LIVE — auto-role on join + `/hyperfocus_setup`
+- P2 Digest ✅ LIVE — weekly DM, Core aggregates last-7d from Postgres
+- P3a Auto-mod ✅ LIVE — structural spam detect + reversible timeout
+- P3b Raid lockdown ✅ LIVE — join-flood detect → reversible channel lock
+- P3c Veto-ban ✅ BUILT — ban ONLY on explicit ✅ APPROVE click (NEVER autonomous)
 
-**Infra:** `scripts/launch-bot.ps1` one-shot launcher (preflight→up). Alembic now up to **015**. Tests: **251 passed, 6 skipped** ✅ (verified May 16, post NemoClaw+Guardian).
-**Active bot cogs** (`cogs/bot.py`): welcome, economy, leaderboard, ai, focus, missions, health_check, health_history, codehealth_voice, server_builder, digest, moderation. `main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`. ~20 more cogs unwired in `src/cogs/`.
+**Infra:** Alembic up to **015**. Tests: **251 passed, 6 skipped** ✅
 
 ### 🔥 May 15, 2026 — Discord "One Brain" Lock-In
 - **Option A enforced:** `broski-bot` calls Core only — no Supabase in bot ✅
 - **Discord bot library locked:** `discord.py==2.4.0` ✅
 - **Bot entrypoint locked:** `python -u -m cogs.bot` ✅
 - **Core "One Door" endpoint:** `POST /api/v1/discord/actions` + idempotency ✅
-- Premium Discord embeds: medals + colors + mentions + comma formatting ✅
-- `scripts/env_check.py` keys-only preflight for `.env` + secrets + profiles ✅
 
 ### Infrastructure
-- 48 Docker containers running ✅ (post-cleanup May 3)
-- 5 isolated networks — `data-net` + `obs-net` internal (no internet) ✅
+- 39 containers audited May 21 — 37/39 healthy ✅
+- 48 containers total (post-cleanup May 3) ✅
+- 5 isolated networks — `data-net` + `obs-net` internal ✅
 - Docker secrets pattern — `.txt` files, never baked into images ✅
-- Kubernetes + Helm charts in `k8s/` + `helm/` — scale path ready ✅
+- Kubernetes + Helm charts in `k8s/` + `helm/` ✅
 - Memory limits on ALL services ✅
-- `scripts/pre-build-check.sh` ✅ — aborts if <15GB free
-- Socket-proxy split — main read-only, healer proxy write-only ✅ April 19
-- Healer on obs-net — can reach Grafana/Prometheus for diagnostics ✅ April 19
-- healthcheck IPv6 fix — hypercode-core uses `localhost` not `127.0.0.1` ✅ May 4
+- Socket-proxy split — main read-only, healer proxy write-only ✅
 - Weekly cleanup: `docker system prune -a --filter "until=168h"`
-- Claude hyper skill zip added ✅ May 7
 
 ### Observability
 - Prometheus 7/7 targets UP ✅
 - Grafana at `:3001` ✅
 - OTLP traces live in Tempo ✅
 - Loki + Promtail — log aggregation running ✅
-- Gordon Tier 3 Grafana dashboard — KPI, pool stacks, queue depth, DLQ, heatmap ✅ April 19
-- Gordon Tier 3 Prometheus alerts — 10 alerts (DB pool + Celery) ✅ April 19
+- Gordon Tier 3 dashboard + 10 alerts ✅
 
 ### Backend (FastAPI — hypercode-core)
 - `/metrics` Prometheus endpoint ✅
 - `/health` with Redis cache (10s TTL) ✅
-- Rate limiting — Redis DB 2, Stripe webhook exempt, memory:// in tests ✅
-- Redis caching (`@cache_response`) — DB 1 ✅
+- Rate limiting — Redis DB 2, Stripe webhook exempt ✅
 - Circuit breakers — 3 active: `llm-router`, `crew-orchestrator`, `stripe-api` ✅
 - Security headers middleware ✅
-- Core deps split — `requirements.txt` core only, `requirements-ai.txt` optional AI ✅ April 23
-- AI backend profile — `docker compose --profile ai up -d` ✅ April 23
 
 ### Database
-- PostgreSQL running, Alembic migrations up to `015` ✅ May 16
+- PostgreSQL running, Alembic migrations up to `015` ✅
 - Async engine + connection pooling (`asyncpg`, pool_size=10) ✅
-- DB pool metrics — `DBPoolCollector` on `/metrics` ✅ April 19
 
 ### Stripe + Payments
 - Full Stripe checkout + webhook + BROski$ awards ✅
-- B3 E2E Stripe loop PROVED ✅ April 25
-- `scripts/Test-ShopPurchase.ps1` — E2E test passing ✅ May 3
-- Stripe webhook secret updated + redeployed ✅ May 5 🔥
 - Webhook code audited May 16 — PERFECT ✅
+- `scripts/Test-ShopPurchase.ps1` — E2E test passing ✅
 
 ### BROski$ Token Economy
 - `public.users.broski_tokens` balance + `token_transactions` ledger ✅
-- `award_tokens()` + `spend_tokens()` SECURITY INVOKER ✅ (fixed May 16)
+- `award_tokens()` + `spend_tokens()` SECURITY INVOKER ✅
 - Token grants: starter=200, builder=800, hyper=2500 ✅
-- BROski$ Obsidian Coin Tracker LIVE ✅ May 5 (Dataview widget, Level 11)
 
 ### Course Frontend (Hyper-Vibe)
 - `/pricing` → Stripe checkout → `/payment-success` → enrolled ✅
 - Certificates, Quiz, Referral system ✅
-- `/welcome` hero onboarding page LIVE on Vercel ✅ May 3
-- Security headers 6/6 ✅ (`frontend/vercel.json`)
-- Dev command: `npm run dev:frontend` ✅ May 4
-- BUSINESS_PLAN.md v1.1 — sponsor-ready, corrected pricing (£9 Pro / £29 Hyper) ✅ May 5
-- Vercel env vars — VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY on ALL 3 environments ✅ May 5
-- `/register` Failed to fetch bug FIXED ✅ May 5
-- Dead asset cleanup — phantom preload + unused hero.webp removed ✅ May 5
+- `/welcome` hero onboarding page LIVE on Vercel ✅
+- Security headers 6/6 ✅
 
 ### 🐾 BROskiPets — WEB3 MINT LIVE 🔥 (May 7, 2026)
-- broski-pets-bridge LIVE ✅ April 29
-- Docker DNS fixed ✅
-- IDOR hardened on pets endpoints ✅
-- Cosmic Dragon minted + leaderboard live ✅
-- XP confirmed: 0→10, streak day 1 ✅
-- **RainbowKit + wagmi + viem Web3 wallet integration** ✅ May 7
-- **Base Sepolia testnet + Base mainnet configured** ✅ May 7
-- **`useMintPet` hook — two-step mint flow (Edge Function auth + on-chain tx)** ✅ May 7
-- **Supabase Edge Functions: mint-pet-auth v9, mint-pet-confirm v6, get-pet-balance v5, pet-evolve-check v1** ✅
-- **Supabase migrations: mint_nonces + pet ID sequencing** ✅ May 7
-- **CSP headers updated** for WalletConnect + blockchain RPC endpoints ✅ May 7
-- **10 pet species images + species catalogue with metadata** ✅ May 7
-- **SpeciesPicker + MintPetButton components** ✅ May 7
-- **Pets page rebuilt** — three-step mint interface ✅ May 7
+- RainbowKit + wagmi + viem Web3 wallet integration ✅
+- Base Sepolia testnet + Base mainnet configured ✅
+- Two-step mint flow (Edge Function auth + on-chain tx) ✅
+- 10 pet species images + species catalogue ✅
 
 ### Agents (25+)
 - healer-agent, agent-x, crew-orchestrator, hyper-architect, hyper-observer ✅
 - MCP-GitHub LIVE — 26 tools via `mcp-gateway` ✅
-- crew-orchestrator forwards `X-API-Key` to agent `/execute` calls ✅
 - coder-agent ↔ Ollama end-to-end working ✅
-- hyper-split-agent ✅ April 25
-- broski-pets-bridge LIVE ✅ April 29
 
 ### 🏆 Hyperfocus Features — ALL 5 DONE ✅
-- Feature 1: Micro-Achievement Git Hook ✅ April 25
-- Feature 2: HyperSplit Agent ✅ April 25
-- Feature 3: Session Snapshot Agent ✅ April 25
-- Feature 4: Morning Briefing `/briefing` ✅ April 26
-- Feature 5: Focus/Panic Mode `make focus` / `make calm` ✅ April 26
+- Feature 1: Micro-Achievement Git Hook ✅
+- Feature 2: HyperSplit Agent ✅
+- Feature 3: Session Snapshot Agent ✅
+- Feature 4: Morning Briefing `/briefing` ✅
+- Feature 5: Focus/Panic Mode `make focus` / `make calm` ✅
 
 ### 🧠 BROski Brain — COMPLETE May 5 ✅
-- Repo: `github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne`
-- Full PARA vault scaffold + 4 project notes pre-seeded ✅
-- Dashboard + Dataview live queries ✅
-- Templates: Daily, Project, Task, Morning Briefing ✅
-- BROski$ Coin Tracker — Dataview widget ✅ (Level 11)
-- Focus/Calm/Hyper CSS modes ✅ (Level 12)
-- GitHub bridge: `scripts/github_to_obsidian.py` — syncs 4 repos → vault ✅ (Level 9)
-- Obsidian Git: auto-commits vault every 10 mins → GitHub ✅ (Level 10)
-- `setup.ps1` one-run bootstrap ✅
+- Full PARA vault scaffold + Dashboard + Dataview live queries ✅
+- GitHub bridge syncs 4 repos → vault ✅
+- Obsidian Git: auto-commits vault every 10 mins ✅
 
 ### Security
-- Trivy scanner running ✅ (CI blocked — GitHub billing lock)
-- Socket-proxy least privilege ✅ April 19
-- Stripe keys rotated + scrubbed from 218 commits ✅
 - 3 DB functions fixed SECURITY DEFINER → INVOKER ✅ May 16
-- Trivy CVE-2026-42215 + CVE-2026-42284 in GitPython 3.1.45 flagged → fix: upgrade to 3.1.47 ⚠️ May 7
-
-### Celery
-- `task_acks_late=True`, `worker_prefetch_multiplier=1` ✅
-- `run_agent_task` with exponential backoff ✅
-- Gordon Tier 3: soft/hard time limits, DLQ on max retries ✅ April 19
-- Priority queues: high/normal/low + dlq (capped 10k) ✅ April 19
+- Stripe keys rotated + scrubbed from 218 commits ✅
+- Trivy CVE-2026-42215 + CVE-2026-42284 in GitPython 3.1.45 flagged ⚠️
 
 ### HyperAgent-SDK
 - `@w3lshdog/hyper-agent@0.1.7` published ✅
-- CLI: validate, registry, studio, status, agents, tokens, graduate ✅
-- v0.3.0 — `awardFromCourse` client — server-only, idempotency via sourceId ✅ April 30
-- TypeScript + MCP starter templates + `init` command ✅ April 30
 - 57 tests passing ✅
-- **⚠️ SDK needs update** — Web3/dNFT types not yet in `hyper-agent-spec.json` — bump to v0.4.0
+- **⚠️ SDK needs update** — Web3/dNFT types not yet in spec — bump to v0.4.0
 
 ---
 
@@ -223,25 +203,27 @@
 - [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml` (tech debt)
 - [ ] Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars
 - [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens correctly
-- [ ] Add `GITHUB_PAT` to HyperCode-V2.4 `.env` + spin up `github-sync` Docker container
+- [ ] Add `GITHUB_PAT` to `.env` + spin up `github-sync` Docker container → fixes unhealthy container
 - [ ] Upgrade GitPython to 3.1.47 — fixes CVE-2026-42215 + CVE-2026-42284
 - [ ] SDK bump to v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json`
-- [ ] Clean up `shop_items` duplicate RLS policies (shop_items_read_available + shop_items_service_role_all)
+- [ ] Clean up `shop_items` duplicate RLS policies
 - [ ] Tidy 25 unused DB indexes (low priority — after launch)
+- [ ] Fix `project-strategist`: `docker exec project-strategist pip install perplexity-api`
 
 ---
 
 ## 🚀 NEXT UP (in order)
 
-1. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
-2. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242` — verify full money chain
-3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
-4. **First student invite** — `/welcome` is green 🎓
-5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
-6. **Fix GitHub Actions billing lock**
-7. **Level 13** — Morning Briefing live
-8. **Level 14** — GitHub Webhooks real-time
-9. **Level 15** — HyperAgent AI Daily Briefing
+1. **Deploy Dashboard v2.0** — `deploy-dashboard-upgrade.bat` (30 seconds)
+2. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
+3. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
+4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
+5. **First student invite** — `/welcome` is green 🎓
+6. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+7. **Fix GitHub Actions billing lock**
+8. **Level 13** — Morning Briefing live
+9. **Level 14** — GitHub Webhooks real-time
+10. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
@@ -252,36 +234,36 @@ Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
 Tests:            pytest backend/tests -q  (251 passed, 6 skipped — verified May 16)
+Dashboard v2.0:   http://localhost:8088/dashboard (deploy first!)
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt
-Alembic:          up to 015 — if missing → 'alembic stamp 014' then upgrade head
+Alembic:          up to 015
 Supabase table:   courses uses price_pence (int) + is_active (bool)
 Docker context:   must be 'desktop-linux' on Windows
-Memory limits:    ALL services capped — agent-x=1G, core=1.5G, postgres=2G
+Memory limits:    ALL services capped
 healthcheck:      hypercode-core uses localhost not 127.0.0.1 (IPv6)
-Pre-build check:  make build → auto-runs pre-build-check.sh
 make focus:       stops 14 non-essential containers + 25-min timer
 make calm:        restores all + awards 75 BROski$
 broski-pets:      health → http://localhost:8098/health
 nemoclaw-agent:   health → http://localhost:8099/health  (profile: nemoclaw)
-launch bot:       .\scripts\launch-bot.ps1  (preflight → up)
-Guardian P3c:     ban ONLY on explicit APPROVE click — silence=downgrade, NEVER autonomous ban
+launch bot:       .\scripts\launch-bot.ps1
+Guardian P3c:     ban ONLY on explicit APPROVE click — NEVER autonomous ban
 Course path:      H:\Hyper-Vibe-Coding-Course
 Course dev:       npm run dev:frontend
 Brain repo:       H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
 GitHub sync:      python scripts/github_to_obsidian.py (needs GITHUB_PAT env var)
 Obsidian Git:     auto-commits vault every 10 mins to brain repo
 IDE:              Claude Code terminal + Perplexity AI (Windows)
-Trae Pro:         expired May 2026 — Claude Code is agent brain this month
 Stripe webhook:   secret updated May 5 ✅ — fresh whsec_ live in Supabase
 BROskiPets Web3:  RainbowKit + wagmi + Base Sepolia — mint live May 7 🔥
 Mint flow:        Edge Function auth → on-chain Base Sepolia tx
-CSP headers:      updated for WalletConnect + blockchain RPC ✅ May 7
 GitPython:        upgrade to 3.1.47 — CVE-2026-42215 + CVE-2026-42284 ⚠️
-Security funcs:   complete_module, complete_quest, get_or_create_referral_code → SECURITY INVOKER ✅ May 16
+Security funcs:   complete_module, complete_quest, get_or_create_referral_code → SECURITY INVOKER ✅
 Supabase project: yhtmuibgdnxhbgboajhc (eu-west-2)
 Vercel team:      BROskis (team_Uy6hGYD4AZqclHqUeEsmZuDP)
+github-sync:      unhealthy — add GITHUB_PAT to .env to fix
+project-strategist: exited — pip install perplexity-api to fix
 ```
 
 ---
@@ -294,13 +276,12 @@ docker-compose.secrets.yml            — secrets injection
 backend/app/main.py                   — FastAPI core
 backend/app/core/config.py            — all settings
 monitoring/prometheus/                — LIVE Prometheus config
-frontend/vercel.json                  — Vercel config + security headers ✅
+frontend/vercel.json                  — Vercel config + security headers
 frontend/src/pages/Welcome.tsx        — hero onboarding page (LIVE)
 scripts/Test-ShopPurchase.ps1         — E2E shop test
 scripts/STRIPE_E2E_RUNBOOK.md         — Stripe E2E test steps
 agents/                               — all agent code
 secrets/                              — Docker secrets (.txt files, gitignored)
-HYPER_ECOSYSTEM_PLAN_MAY4.md         — 4-repo master plan
-BROski-Obsidian-Brain/scripts/        — github_to_obsidian.py + setup.ps1
-BROski-Obsidian-Brain/docker/         — Dockerfile.github-sync + compose
+DASHBOARD_UPGRADE_COMPONENTS/         — Dashboard v2.0 source + deploy scripts ✅ NEW
+SESSION_SNAPSHOT_2026-05-21.md        — today's brain save file ✅ NEW
 ```
