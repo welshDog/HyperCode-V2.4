@@ -163,6 +163,25 @@ That container was never started → MCP tab + IDE file-tree both dead.
 - **Verified:** `/health` ok from inside adapter + from dashboard via Docker DNS;
   dashboard `GET /api/mcp/health` → HTTP 200; `/mcp` page → HTTP 200
 
+### Browser-verification sweep — all 5 tabs
+
+Probed every tab page + data endpoint at `http://127.0.0.1:8088`:
+
+| Tab | Verdict |
+|---|---|
+| Agent Monitor | ✅ page 200 · `/api/v1/agents/status` → 3 live agents |
+| Mission | ✅ page 200 · `/api/tasks` empty (no login token — expected) |
+| IDE | ⚠️ page 200 · file-tree dir-listing works; file *open* broken (see below) |
+| Docker Zone | ✅ page 200 · static docker dashboard 200 |
+| MCP | ✅ page 200 · `/api/mcp/health` 200 |
+
+**4/5 fully working, IDE mostly.** New follow-up surfaced: `mcp-rest-adapter`
+speaks the **old MCP SSE transport**, but `docker/mcp-gateway:latest` speaks
+the **newer Streamable HTTP transport** (`:8820/sse` → 307 → `/mcp`; `/mcp`
+needs an `Mcp-Session-Id` header). Local `/workspace` listing works (adapter
+does it locally); `/tools/discover`, IDE file-open, and real MCP tool calls
+need an adapter rewrite to Streamable HTTP. Details in `docs/DASHBOARD_BACKEND_SCOPE.md`.
+
 ### Tech debt created
 
 `mcp-rest-adapter` is `docker run`-managed (`--restart unless-stopped`), not in a
@@ -177,7 +196,8 @@ the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can be included
 |------|--------|-------|
 | Dashboard — Agent Monitor tab | ✅ DONE | Option B polling live + deployed (`1bd0a9a`, image `88f2c40`, healthy) |
 | Dashboard — MCP tab + IDE file-tree | ✅ DONE | `mcp-rest-adapter` started + verified (Block 4) |
-| Dashboard — IDE/Mission/Docker tabs | ✅ Wired | Live dashboard already wired — NOT backend-blocked (Block 3 claim was about the staging prototype). Browser-verify pending |
+| Dashboard — all 5 tabs browser-verified | ✅ DONE | 4/5 fully working, IDE mostly (file-tree ok, file-open blocked) |
+| `mcp-rest-adapter` → Streamable HTTP rewrite | ❌ Follow-up | Adapter speaks old SSE; gateway speaks Streamable HTTP. Unblocks IDE file-open + real MCP tool calls |
 | `mcp-rest-adapter` compose-managed | ❌ Tech debt | Currently `docker run`; fold into a root-included compose file |
 
 ---
@@ -195,9 +215,10 @@ the `mcp-gateway` definition so `docker-compose.mcp-gateway.yml` can be included
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Browser-verify all 5 dashboard tabs** at `http://127.0.0.1:8088` (use `127.0.0.1`,
-   not `localhost` — Windows IPv6, Sacred Rule #11). Agent Monitor → `agents/status`
-   every 5s; Mission/IDE/Docker/MCP tabs all render with live data.
+1. **Rewrite `mcp-rest-adapter` to Streamable HTTP** — `services/mcp-rest-adapter/app.py`
+   `_jsonrpc` speaks old SSE; `docker/mcp-gateway:latest` needs Streamable HTTP
+   (POST `initialize` → `Mcp-Session-Id` → reuse). Unblocks IDE file-open + real
+   MCP tool calls. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
 2. **Compose-manage `mcp-rest-adapter`** — currently `docker run`. Fold into a
    root-included compose file, or de-dupe the `mcp-gateway` double-definition.
    `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — consider deleting it.

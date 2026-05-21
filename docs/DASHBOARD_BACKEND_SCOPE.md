@@ -92,14 +92,52 @@ Env keys note: `MCP_GATEWAY_API_KEY` lives in **`.env.mcp`**, not `.env`.
 
 ---
 
-## Genuine remaining dashboard work (small)
+## Verification sweep — 2026-05-21
 
-1. **Browser-verify all 5 tabs** at `http://127.0.0.1:8088` (use `127.0.0.1`,
-   not `localhost` — Windows resolves `localhost` to IPv6 first; Sacred Rule #11).
-2. **Mission tab** shows nothing without a login token (`useTasks` reads
+All 5 tab pages + their data endpoints probed at `http://127.0.0.1:8088`.
+
+| Tab | Page | Data path | Verdict |
+|---|---|---|---|
+| Agent Monitor | 200 | Core `/api/v1/agents/status` → 3 live agents (healer/core/celery) | ✅ WORKS |
+| Mission | 200 | `/api/tasks` → `{tasks:[],total:0}` — empty, no login token | ✅ WORKS (needs login for rows) |
+| IDE | 200 | file-tree dir-listing → real `/workspace` entries ✅; `/api/orchestrator` reachable | ⚠️ MOSTLY (file *open* broken — see below) |
+| Docker Zone | 200 | static `/hypercode-docker-dashboard.html` → 200 | ✅ WORKS |
+| MCP | 200 | `/api/mcp/health` → 200 (all `MCPGatewayView` uses) | ✅ WORKS |
+
+**4/5 fully working; IDE mostly.** Every tab renders and its primary built-in
+function works.
+
+## ⚠️ Real follow-up found — adapter ↔ gateway transport mismatch
+
+`mcp-rest-adapter`'s `app.py` speaks the **old MCP SSE transport** (`GET /sse` →
+`event: endpoint` → POST to a session URL, `protocolVersion 2024-11-05`).
+
+The running `docker/mcp-gateway:latest` speaks the **newer Streamable HTTP
+transport**: `:8820/sse` 307-redirects to `/mcp`, and `/mcp` rejects plain GETs
+with `400 Bad Request: GET requires an Mcp-Session-Id header`.
+
+Result — what works vs not:
+- ✅ `filesystem:list_directory` under `/workspace` — adapter serves this
+  **locally** (`_local_list_directory`), no gateway needed → IDE file-tree works
+- ✅ `/api/mcp/health` — trivial, no gateway → MCP tab works
+- ❌ `/tools/discover` — needs gateway → **HTTP 500** (httpx `HTTPStatusError`
+  on the unfollowed 307)
+- ❌ `filesystem:read_file` → IDE file *opening* — needs gateway → broken
+- ❌ any real MCP tool call beyond local filesystem listing
+
+**Fix (follow-up):** rewrite `services/mcp-rest-adapter/app.py`'s `_jsonrpc` to
+speak Streamable HTTP — POST `initialize` → capture `Mcp-Session-Id` → reuse it
+on subsequent POSTs. Not a config tweak; the SSE handshake code goes away.
+
+## Genuine remaining dashboard work
+
+1. ✅ **Browser-verify all 5 tabs** — DONE (table above).
+2. **Adapter ↔ gateway transport rewrite** — Streamable HTTP (above). Unblocks
+   IDE file-open + real MCP tool calls.
+3. **Mission tab** shows nothing without a login token (`useTasks` reads
    `localStorage.token`; Core `/api/v1/tasks` is auth-gated). Decide: dashboard
    login flow, or a public read endpoint like `/agents/status`.
-3. **Compose-manage `mcp-rest-adapter`** (tech debt above).
-4. `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — the live
+4. **Compose-manage `mcp-rest-adapter`** (tech debt above).
+5. `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — the live
    dashboard already does everything it sketched. Consider deleting it to stop
    future audits tripping over it.
