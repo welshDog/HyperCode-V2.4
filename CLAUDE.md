@@ -1,6 +1,6 @@
 # 🧠 HYPERFOCUS z0ne — MASTER CLAUDE.md
 > **For ANY AI — Claude, Perplexity, GPT, Gemini, Cursor. Read this first. Every session.**
-> Last updated: May 19, 2026 · Built by @welshDog + AI
+> Last updated: May 21, 2026 · Built by @welshDog + AI
 > **This is the constitution. SESSION_SNAPSHOT is the living state.**
 
 ---
@@ -97,6 +97,8 @@ Hyper-Vibe-Coding-Course  ──── manifest.json (hyper-agent-spec) ──�
 | 18 | **Two socket proxies — NEVER merge** | Main = read-only · `healer` = CONTAINERS/POST/PING only | LLM code gains write access to containers |
 | 19 | **Memory limits on ALL services** | Agent X caused OOM crash Apr 17 building 30 images uncapped | OOM cascade kills entire stack |
 | 20 | **`make build` runs `pre-build-check.sh` first** | Aborts if <15GB free disk | OOM during build |
+| 21 | **Compose: use `docker compose -f docker-compose.yml` ALONE** — root already `include:`s core/observability/agents/bropets/brain | Also passing `-f docker-compose.agents.yml` loads it twice → list fields (`security_opt` etc.) double | False "items 0 and 1 are equal" validation error — `build`/`up` silently no-op |
+| 22 | **Dashboard healthcheck: `timeout ≥ 10s`, `start-period ≥ 90s`** | Next.js compiles routes on first request — a tight check times out on cold start | Healthy app flagged `unhealthy`; `docker run` inherits the Dockerfile check, not the compose one |
 
 ---
 
@@ -285,6 +287,8 @@ docker compose --profile discord up -d broski-bot # bot only
 - ✅ BROski$ Shop Fulfillment v2 BUILT — May 17 🛒
 - ✅ CLAUDE.md constitution merged + AI-optimised — May 19 📜
 - ✅ CLAUDE.md §2 paths corrected + Rule #11 clarified — May 19 🗺️
+- ✅ Dashboard Agent Monitor LIVE — `useAgentStatus` 5s REST polling fallback (`/api/v1/agents/status`), rebuilt + deployed healthy — May 21 🖥️
+- ✅ Dashboard v2.0 honesty audit — surfaced "0/8 backend endpoints exist", corrected inflated docs, hardened healthcheck — May 21 🔍
 
 ---
 
