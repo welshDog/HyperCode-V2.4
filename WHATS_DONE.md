@@ -24,7 +24,8 @@
 - ✅ Dockerfile healthcheck hardened `5s/15s → 10s/90s` — commit `31f9f7c`
 - ✅ `AGENT-START.md` boot-file path fixed (`rewrites/` → `docs/`) — commit `4d3a18e`
 - ✅ **MCP tab + IDE FULLY WORKING** — `mcp-rest-adapter` was never running (started it), then rewrote `app.py` from the dead MCP SSE transport to **Streamable HTTP** (what `docker/mcp-gateway:latest` actually speaks). Verified: `/tools/discover` → 28 real gateway tools; IDE file-open returns real content; path-escape → 403. See `docs/DASHBOARD_BACKEND_SCOPE.md`.
-- ⚠️ **`DASHBOARD_UPGRADE_COMPONENTS/` = DEAD staging prototype.** It is NOT the deployed dashboard — the live `hypercode-dashboard` builds from `agents/dashboard/`, a mature fully-wired Next.js app. The earlier "0/8 backend endpoints / IDE/Mission/Docker/MCP backend-blocked" claim was about this dead prototype, NOT the live dashboard. Do NOT run `deploy-dashboard-upgrade.bat`. Consider deleting the folder.
+- ✅ **`mcp-rest-adapter` compose-managed** — first-class service in `docker-compose.agents.yml` (profile: agents). Commit `dfc4c31`.
+- ✅ **`DASHBOARD_UPGRADE_COMPONENTS/` DELETED 2026-05-21** — dead staging prototype, never the live dashboard (`agents/dashboard/` is). Its bogus "0/8 backend endpoints" claim caused a whole misdirected audit. Gone now.
 
 ### 🔍 Full Ports Audit (39 containers)
 - ✅ 37/39 Healthy (95%)
@@ -85,11 +86,11 @@
 
 ## ✅ BUILT AND WORKING
 
-### 🖥️ Dashboard v2.0 — NEW May 21, 2026
-- `DASHBOARD_UPGRADE_COMPONENTS/` — all source committed ✅
-- 5 interactive components (Agent Monitor, Code IDE, Timeline, Docker Zone, MCP Browser)
-- Accessible at http://localhost:8088/dashboard after deploy
-- Deploy script: `deploy-dashboard-upgrade.bat` (Windows) / `deploy-dashboard-upgrade.sh` (Linux/Mac)
+### 🖥️ Dashboard — live + all 5 tabs working (May 21, 2026)
+- Source: `agents/dashboard/` (Next.js) — builds the `hypercode-dashboard` image
+- 5 tabs at `http://127.0.0.1:8088`: `/agents` `/mission` `/ide` `/docker-zone` `/mcp` — all verified working
+- Backed by Next.js API proxy routes (`app/api/*`) → Core + `mcp-rest-adapter`
+- ⚠️ The old `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype was deleted — it was never the live dashboard
 
 ### 🧠 May 15–16, 2026 — NemoClaw "Alive" + Server Guardian
 **NemoClaw autonomous code-health agent** (`agents/nemoclaw-agent/`, port 8099):
@@ -212,16 +213,15 @@
 
 ## 🚀 NEXT UP (in order)
 
-1. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` prototype** — live dashboard already does it all; do NOT run `deploy-dashboard-upgrade.bat`
-2. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
-3. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
-4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
-5. **First student invite** — `/welcome` is green 🎓
-6. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
-7. **Fix GitHub Actions billing lock**
-8. **Level 13** — Morning Briefing live
-9. **Level 14** — GitHub Webhooks real-time
-10. **Level 15** — HyperAgent AI Daily Briefing
+1. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
+2. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
+3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
+4. **First student invite** — `/welcome` is green 🎓
+5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+6. **Fix GitHub Actions billing lock**
+7. **Level 13** — Morning Briefing live
+8. **Level 14** — GitHub Webhooks real-time
+9. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
@@ -232,7 +232,7 @@ Start command:    docker compose -f docker-compose.yml -f docker-compose.secrets
 AI backend:       docker compose --profile ai up -d
 Discord bot:      docker compose --profile discord up -d broski-bot
 Tests:            pytest backend/tests -q  (251 passed, 6 skipped — verified May 16)
-Dashboard v2.0:   http://localhost:8088/dashboard (deploy first!)
+Dashboard:        http://127.0.0.1:8088 — tabs: /agents /mission /ide /docker-zone /mcp
 Prometheus live:  monitoring/prometheus/prometheus.yml
 Redis DB split:   DB 1 = cache  |  DB 2 = rate limits
 Stripe webhook:   ALWAYS rate-limit exempt

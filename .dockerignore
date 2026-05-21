@@ -93,7 +93,7 @@ Thumbs.db
 *.tmp
 *.temp
 
-# HyperCode BIG folders (but KEEP DASHBOARD_UPGRADE_COMPONENTS!)
+# HyperCode BIG folders
 agents/
 backend/
 frontend/node_modules/

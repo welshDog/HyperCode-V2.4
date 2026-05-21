@@ -243,6 +243,18 @@ Start command unchanged: `docker compose -f docker-compose.yml --profile agents 
 
 ---
 
+# 🧹 BLOCK 7 — deleted the dead staging prototype (evening)
+
+**Status:** ✅ COMPLETE.
+
+`DASHBOARD_UPGRADE_COMPONENTS/` (13 files) deleted via `git rm -r`. It was the
+abandoned staging prototype whose bogus "0/8 backend endpoints" `INTEGRATION_GUIDE.md`
+kicked off this whole misdirected audit — it was never the live dashboard
+(`agents/dashboard/` is). No code referenced it; only docs + a stale `.dockerignore`
+comment, which was cleaned up. Nothing builds from it, nothing breaks.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
@@ -268,13 +280,11 @@ Start command unchanged: `docker compose -f docker-compose.yml --profile agents 
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Delete the dead `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype** — the
-   live dashboard already does everything it sketched; it only causes audit confusion.
-2. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
-3. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
-4. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
-5. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
-6. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
+1. **Test Claude Code → agent conversation** — type "List all agents" in Claude Code chat.
+2. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
+3. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+4. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
+5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
 
 ---
 

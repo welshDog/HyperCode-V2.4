@@ -142,8 +142,7 @@ from the read-only `/workspace` bind mount. Added `_local_read_file` (mirrors
    `localStorage.token`; Core `/api/v1/tasks` is auth-gated). Decide: dashboard
    login flow, or a public read endpoint like `/agents/status`.
 4. ✅ **Compose-manage `mcp-rest-adapter`** — DONE (now in `agents.yml`).
-5. `DASHBOARD_UPGRADE_COMPONENTS/` staging prototype is dead — the live
-   dashboard already does everything it sketched. Consider deleting it to stop
-   future audits tripping over it.
+5. ✅ **`DASHBOARD_UPGRADE_COMPONENTS/` deleted** — DONE 2026-05-21. The dead
+   staging prototype (13 files) is gone; the live dashboard always did the work.
 6. *(optional)* Bring up the `filesystem` / `postgres` MCP servers if the IDE
    ever needs gateway-backed file ops beyond the local `/workspace` mount.
