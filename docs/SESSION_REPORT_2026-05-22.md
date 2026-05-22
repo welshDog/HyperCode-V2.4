@@ -92,15 +92,63 @@ The tracked "Privacy + Terms page stubs" task is done.
 
 ---
 
+# 🐳 BLOCK 4 — GitPython 3.1.50 LANDED in the image
+
+**Repo:** `HyperCode-V2.4` · **Status:** ✅ COMPLETE
+
+Docker was running (29.4.3, 31 containers), so the fix was taken all the
+way — not left as a source-only change:
+
+- `docker compose -f docker-compose.yml build hypercode-core` → rebuilt
+  `hypercode-core:latest` from the updated `requirements.txt`.
+- **Verified:** `docker run --rm --entrypoint pip hypercode-core:latest
+  show GitPython` → `Version: 3.1.50`. The CVE fix is live in the image.
+
+> Follow-up (optional): `docker compose up -d hypercode-core` to swap the
+> running container, then re-run Trivy to confirm 0 GitPython advisories.
+
+---
+
+# 🧪 BLOCK 5 — Course e2e suite: 18 failing → 99/99 green
+
+**Repo:** `Hyper-Vibe-Coding-Course` · **Status:** ✅ COMPLETE
+
+A whole-suite Playwright audit. The suite started at **18 failed** (chromium).
+Every failure was test drift, not an app bug — fixed across 8 spec files +
+the config:
+
+- **`onboarded_at` staleness** (auth, quests, learning, course-module,
+  courses): auth mocks lacked `user_metadata.onboarded_at`, so Login routed
+  to `/welcome` and every `loginAsTestUser` timed out on `/dashboard`.
+- **Copy/selector drift**: landing CTAs ("Let's GO", not "Join waitlist");
+  `/courses` h1 + "Start quest →"; `/catalog` h1 "Pick your next build
+  session."; catalog "View →"; free-course CTA "Let's GO — free →".
+- **`pets-mint-gate`**: rewritten — logged-out `/pets` is now a hard login
+  gate (no inline species picker / "unlock mint" lock).
+- **Stale orphan deleted**: root `tests/e2e/auth.spec.ts` (outside the
+  Playwright testDir, never run).
+- **Slow-browser stability**: per-spec timeout bumps + a global
+  `expect: { timeout: 15_000 }` in `playwright.config.ts` — one dev server
+  feeding many parallel workers pushed cold-compile first-paint past 5s.
+
+**Verified: 99/99 green across chromium + firefox + webkit.**
+Commits: `170db7e`, `8fa8ecb`, `10229ef`, `43776bf`, `df8512f` (+ earlier
+`166596b`, `df7df74`).
+
+---
+
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-Remaining "finish" items are mostly **human-gated or need running infra**:
+Remaining "finish" items are **human-gated or need running infra**:
 
 1. **`npm publish` HyperAgent-SDK 0.4.0** — registry on 0.1.7, code on 0.4.0
    (authenticated step — Lyndz).
-2. **Rebuild `hypercode-core` image** so the GitPython 3.1.50 pin lands;
-   re-run Trivy to confirm 0 GitPython advisories.
-3. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+2. **Swap the running `hypercode-core` container** — `docker compose up -d
+   hypercode-core` (image already rebuilt with GitPython 3.1.50); re-run
+   Trivy to confirm 0 GitPython advisories.
+3. **Stripe real-card E2E** — `stripe listen` + card `4242 4242 4242 4242`
+   on the Stripe-hosted page (the automatable Path A is already covered by
+   `stripe-checkout.spec.ts`, verified green).
 4. **BROskiPets Web3 E2E** — mint on Base Sepolia (MetaMask = human gate).
 5. **Guardian P3c smoke test** — Discord server (human gate).
 6. **GitHub Actions billing lock** — github.com/settings/billing (human).
@@ -113,14 +161,15 @@ Remaining "finish" items are mostly **human-gated or need running infra**:
 ```
 SDK:            @w3lshdog/hyper-agent — code v0.4.0, npm 0.1.7 (publish pending)
 SDK tests:      72 passed, 0 failed
-GitPython:      pinned 3.1.50 (clears all 5 advisories) — image rebuild pending
-Containers:     37/39 healthy (per May 21 audit)
+GitPython:      3.1.50 — pinned AND verified live in hypercode-core:latest image
+Course e2e:     99/99 green (chromium + firefox + webkit) — was 18 failing
+Containers:     37/39 healthy (per May 21 audit) + hypercode-core rebuilt
 V2.4 tests:     251 passed, 6 skipped
 Alembic:        up to migration 015
 MCP server:     http://localhost:8823/sse
 Supabase:       ACTIVE_HEALTHY (eu-west-2)
 Vercel:         LIVE — hyper-vibe-coding-course.vercel.app
-CVEs open:      GitPython cleared in source; other open CVEs unchanged
+CVEs open:      GitPython cleared (source + image); other open CVEs unchanged
 ```
 
 ---

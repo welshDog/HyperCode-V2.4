@@ -26,7 +26,12 @@
 ### 🔒 GitPython CVE fix — 3.1.45 → 3.1.50
 - ✅ Pinned `backend/requirements.txt` GitPython 3.1.45 → **3.1.50**. Commit `2d11313`.
 - ⚠️ **Contradiction surfaced:** every doc said "upgrade to 3.1.47" — but the Trivy report shows GitPython 3.1.45 has **5** advisories, and 3.1.47 fixes only 2. 3.1.50 clears all 5 (incl. `GHSA-mv93-w799-cj2w`, an RCE that bypasses the CVE-2026-42215 patch).
-- ⚠️ Rebuild `hypercode-core` image for the pin to take effect.
+- ✅ `hypercode-core:latest` **rebuilt + verified** — `docker run … pip show GitPython` → `3.1.50`. The fix is live in the image (swap the running container with `docker compose up -d hypercode-core`).
+
+### 🧪 Course e2e suite — 18 failing → **99/99 green**
+- ✅ Whole-suite Playwright audit (`Hyper-Vibe-Coding-Course`). Started at 18 failed on chromium; every failure was test drift, not an app bug.
+- ✅ Fixed `onboarded_at` auth-mock staleness, landing/courses/catalog copy + selector drift, rewrote `pets-mint-gate` for the new login gate, deleted a dead orphan spec, and added a global `expect` timeout for slow-browser stability.
+- ✅ **99/99 green across chromium + firefox + webkit.** Commits `166596b` `df7df74` `170db7e` `8fa8ecb` `10229ef` `43776bf` `df8512f`.
 
 ### 🧹 Cleanup + stale-doc corrections
 - ✅ **Course:** deleted dead `frontend/src/styles/globals.css` (690 lines, 0 importers — `index.css` superseded it). Course commits `26474d4` + `89f2912`. Build verified green.
