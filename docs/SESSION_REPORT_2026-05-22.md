@@ -92,20 +92,22 @@ The tracked "Privacy + Terms page stubs" task is done.
 
 ---
 
-# 🐳 BLOCK 4 — GitPython 3.1.50 LANDED in the image
+# 🐳 BLOCK 4 — GitPython 3.1.50 LANDED in the running container
 
 **Repo:** `HyperCode-V2.4` · **Status:** ✅ COMPLETE
 
 Docker was running (29.4.3, 31 containers), so the fix was taken all the
-way — not left as a source-only change:
+way to the live container — not left as a source-only change:
 
-- `docker compose -f docker-compose.yml build hypercode-core` → rebuilt
-  `hypercode-core:latest` from the updated `requirements.txt`.
-- **Verified:** `docker run --rm --entrypoint pip hypercode-core:latest
-  show GitPython` → `Version: 3.1.50`. The CVE fix is live in the image.
+- `docker compose build hypercode-core` → rebuilt `hypercode-core:latest`
+  from the updated `requirements.txt`.
+- `docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+  --no-deps hypercode-core` → recreated the running container on the new image.
+- **Verified in the RUNNING container:** `docker exec hypercode-core pip
+  show GitPython` → `Version: 3.1.50`; container `healthy`; `/health` → 200.
+  The old container was on GitPython 3.1.45 — the CVE fix is now fully live.
 
-> Follow-up (optional): `docker compose up -d hypercode-core` to swap the
-> running container, then re-run Trivy to confirm 0 GitPython advisories.
+> Follow-up (optional): re-run Trivy to confirm 0 GitPython advisories.
 
 ---
 
@@ -143,9 +145,9 @@ Remaining "finish" items are **human-gated or need running infra**:
 
 1. **`npm publish` HyperAgent-SDK 0.4.0** — registry on 0.1.7, code on 0.4.0
    (authenticated step — Lyndz).
-2. **Swap the running `hypercode-core` container** — `docker compose up -d
-   hypercode-core` (image already rebuilt with GitPython 3.1.50); re-run
-   Trivy to confirm 0 GitPython advisories.
+2. ✅ **DONE** — `hypercode-core` container swapped to the rebuilt image;
+   GitPython 3.1.50 verified live, container healthy, `/health` → 200.
+   (Optional: re-run Trivy to confirm 0 GitPython advisories.)
 3. **Stripe real-card E2E** — `stripe listen` + card `4242 4242 4242 4242`
    on the Stripe-hosted page (the automatable Path A is already covered by
    `stripe-checkout.spec.ts`, verified green).
@@ -161,7 +163,7 @@ Remaining "finish" items are **human-gated or need running infra**:
 ```
 SDK:            @w3lshdog/hyper-agent — code v0.4.0, npm 0.1.7 (publish pending)
 SDK tests:      72 passed, 0 failed
-GitPython:      3.1.50 — pinned AND verified live in hypercode-core:latest image
+GitPython:      3.1.50 — pinned, image rebuilt, running container swapped + verified live
 Course e2e:     99/99 green (chromium + firefox + webkit) — was 18 failing
 Containers:     37/39 healthy (per May 21 audit) + hypercode-core rebuilt
 V2.4 tests:     251 passed, 6 skipped

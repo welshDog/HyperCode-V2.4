@@ -26,7 +26,7 @@
 ### 🔒 GitPython CVE fix — 3.1.45 → 3.1.50
 - ✅ Pinned `backend/requirements.txt` GitPython 3.1.45 → **3.1.50**. Commit `2d11313`.
 - ⚠️ **Contradiction surfaced:** every doc said "upgrade to 3.1.47" — but the Trivy report shows GitPython 3.1.45 has **5** advisories, and 3.1.47 fixes only 2. 3.1.50 clears all 5 (incl. `GHSA-mv93-w799-cj2w`, an RCE that bypasses the CVE-2026-42215 patch).
-- ✅ `hypercode-core:latest` **rebuilt + verified** — `docker run … pip show GitPython` → `3.1.50`. The fix is live in the image (swap the running container with `docker compose up -d hypercode-core`).
+- ✅ `hypercode-core:latest` **rebuilt** AND the **running container swapped + verified** — `docker exec hypercode-core pip show GitPython` → `3.1.50`, container healthy, `/health` → 200. The CVE fix is fully live (old container was on 3.1.45).
 
 ### 🧪 Course e2e suite — 18 failing → **99/99 green**
 - ✅ Whole-suite Playwright audit (`Hyper-Vibe-Coding-Course`). Started at 18 failed on chromium; every failure was test drift, not an app bug.
