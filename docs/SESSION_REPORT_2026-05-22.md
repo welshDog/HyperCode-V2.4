@@ -17,7 +17,7 @@
 | GitPython CVE | ✅ 3.1.45 → 3.1.50, verified live in the running container |
 | Course e2e suite | ✅ 18 failing → **99/99** (chromium + firefox + webkit) |
 | BROski Brain | ✅ **30th container LIVE** — engine 20/20, healthy |
-| Full test sweep | ✅ **~458 tests pass** across 5 repos, 0 regressions |
+| Full test sweep | ✅ **~460 tests pass** across 5 repos, 0 regressions — 2 drift fixes shipped |
 | Dead code + stale docs | ✅ `globals.css` removed, 4 contradictions corrected |
 
 Blocks 1–7 below have the detail.
@@ -183,26 +183,26 @@ finished Hyper Brain, real working") is met. That is the 30th container.
 **Status:** ✅ COMPLETE — full detail in `docs/PROJECT_TEST_REPORT_2026-05-22.md`
 (commit `14ed535`)
 
-Whole-ecosystem test run at Lyndz's request. **~458 tests pass, 0 regressions.**
+Whole-ecosystem test run at Lyndz's request. **~460 tests pass, 0 regressions.**
 
 | Repo | Result |
 |---|---|
 | HyperAgent-SDK | **72 / 72** ✅ |
 | Hyper-Vibe-Course | **99 / 99** ✅ (3 browsers) |
 | HyperCode-V2.4 | **243 passed / 6 skipped** ✅ |
-| BROskiPets-LLM-dNFT | 42 passed / 65 skipped / **1 fail** ⚠️ |
-| BROski-Obsidian-Brain | 2 passed / **1 fail** ⚠️ + engine live |
+| BROskiPets-LLM-dNFT | **43 passed / 65 skipped / 0 fail** ✅ |
+| BROski-Obsidian-Brain | **3 passed / 0 fail** ✅ + engine live |
 
 GitPython 3.1.50 broke nothing — V2.4 ran **243 green after** the bump.
 
-**2 pre-existing drift issues found — 0 regressions:**
+**2 pre-existing drift issues found — both FIXED this session, 0 regressions:**
 1. **Brain** — `coins_total_7d` test used hard-coded fixture dates against a
    *rolling 7-day window* → 0 vs 35. ✅ **FIXED** (`b32af73`) — relative-date
    fixtures, re-verified 3/3 green.
-2. **BROskiPets** — `eeps/squad.json` and `docs/BROskiPets_all_EEPs_MetaData`
-   are two genuinely different datasets (different size, schema *and* entries).
-   ⚠️ **Needs a canonical-source decision from Lyndz** — not a mechanical
-   regenerate; overwriting either file destroys real data.
+2. **BROskiPets** — `eeps/squad.json` had drifted into a stale subset of the
+   canonical EEP roster. ✅ **FIXED** (`5485cfe`) — per Lyndz's call (docs
+   mirror is canonical), `squad.json` regenerated from it (78 EEPs) + the
+   test's backwards assertion message corrected. Re-verified 43/0 green.
 
 V2.4's "4 fails + 1 error" are **ad-hoc-container env artifacts** (repo-root
 `agents/` + `scripts/` not mounted, `@pytest.mark.e2e` tests) — not
@@ -225,6 +225,9 @@ regressions; they pass in the full dev environment.
 | `166596b` `df7df74` | Course | test: refresh stale auth e2e specs |
 | `170db7e` `8fa8ecb` | Course | test: fix e2e `onboarded_at` + copy/selector drift |
 | `10229ef` `43776bf` `df8512f` | Course | test: stabilise e2e (timeouts, config) |
+| `b32af73` | Brain | test: gamification summary uses rolling-window-relative dates |
+| `5485cfe` | BROskiPets | fix: regenerate `eeps/squad.json` from the canonical EEP roster |
+| `14ed535` `4c8b8ab` `f545db3` | V2.4 | docs: test-sweep report + finalised session report |
 
 Plus: the BROski Brain 30th container deployed (infra, no commit), and the
 root `CLAUDE.md` ecosystem constitution corrected (not git-tracked).
@@ -233,11 +236,10 @@ root `CLAUDE.md` ecosystem constitution corrected (not git-tracked).
 
 ## 🚀 OPEN ITEMS — what's left
 
-### From the test sweep
+### From the test sweep — ✅ both drift fixes shipped
 - **Brain** — `coins_total_7d` time-dependent test ✅ **FIXED** (`b32af73`).
-- **BROskiPets** — decide whether `eeps/squad.json` or the EEP docs mirror is
-  canonical, then align the other file + the test (detail in
-  `PROJECT_TEST_REPORT_2026-05-22.md`).
+- **BROskiPets** — `eeps/squad.json` regenerated from the canonical EEP
+  roster ✅ **FIXED** (`5485cfe`). No open drift from the sweep.
 
 ### Human-gated — need Lyndz's credentials / hands
 1. **`npm publish` HyperAgent-SDK 0.4.0** — needs `npm login` (registry still on 0.1.7).
@@ -255,7 +257,7 @@ root `CLAUDE.md` ecosystem constitution corrected (not git-tracked).
 
 ```
 SDK:             @w3lshdog/hyper-agent — code v0.4.0, npm 0.1.7 (publish pending)
-Ecosystem tests: ~458 passing — SDK 72 · Course 99 · V2.4 243 · BROskiPets 42 · Brain 2
+Ecosystem tests: ~460 passing — SDK 72 · Course 99 · V2.4 243 · BROskiPets 43 · Brain 3
 GitPython:       3.1.50 — pinned, image rebuilt, running container verified live
 Course e2e:      99/99 green (chromium + firefox + webkit) — was 18 failing
 BROski Brain:    30th container LIVE — engine 20/20, healthy, 9/9 services
@@ -265,7 +267,7 @@ Alembic:         up to migration 015
 MCP server:      http://localhost:8823/sse
 Supabase:        ACTIVE_HEALTHY (eu-west-2)
 Vercel:          LIVE — hyper-vibe-coding-course.vercel.app
-Open issues:     2 drift tests — Brain (time-drift) · BROskiPets (docs↔squad.json)
+Open issues:     none from the sweep — both drift fixes shipped + re-verified
 Regressions:     0
 ```
 

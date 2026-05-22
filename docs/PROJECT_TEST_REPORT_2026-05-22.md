@@ -8,7 +8,7 @@
 
 ## 🏁 Verdict
 
-**The ecosystem is healthy. ~458 tests pass. 0 regressions. 2 pre-existing drift issues found — 1 fixed this session, 1 needs a canonical-source call from Lyndz.**
+**The ecosystem is healthy. ~460 tests pass. 0 regressions. 2 pre-existing drift issues found — both fixed this session.**
 
 This session's changes (GitPython 3.1.45→3.1.50, SDK v0.4.0, the e2e refresh)
 introduced **no breakage** — the V2.4 backend suite ran 243 green *after* the
@@ -23,13 +23,14 @@ GitPython bump, and the Course e2e suite is 99/99.
 | **HyperAgent-SDK** | `node --test` — 72 tests | **72 pass / 0 fail** | ✅ Green |
 | **Hyper-Vibe-Course** | Playwright e2e — 33 × 3 browsers | **99 pass / 0 fail** | ✅ Green |
 | **HyperCode-V2.4** | `pytest backend/tests` | **243 pass / 6 skip / 4 fail + 1 err** | ✅ Core green* |
-| **BROskiPets-LLM-dNFT** | `pytest tests/` | **42 pass / 65 skip / 1 fail** | ⚠️ 1 data-drift |
-| **BROski-Obsidian-Brain** | `pytest` + live engine | **2 pass / 1 fail** · engine 20/20 LIVE | ⚠️ 1 time-drift |
+| **BROskiPets-LLM-dNFT** | `pytest tests/` | **43 pass / 65 skip / 0 fail** | ✅ Green |
+| **BROski-Obsidian-Brain** | `pytest` + live engine | **3 pass / 0 fail** · engine 20/20 LIVE | ✅ Green |
 
 `*` V2.4's 4 fails + 1 error are **environment artifacts of the ad-hoc test
 run, not code regressions** — see § HyperCode-V2.4 below.
 
-**Tests passing across the ecosystem: ~458.**
+**Tests passing across the ecosystem: ~460.** Both drift issues found in the
+first pass were fixed this session and re-verified green (see § The 2 issues).
 
 ---
 
@@ -76,7 +77,7 @@ are accounted for. **Key takeaway: GitPython 3.1.50 broke nothing.**
 
 ---
 
-## ⚠️ BROskiPets-LLM-dNFT — 42 passed, 65 skipped, 1 failed
+## ✅ BROskiPets-LLM-dNFT — 43 passed, 65 skipped, 0 failed
 
 `pytest tests/` in a Python **3.11** venv (the repo's pin target — a 3.13
 venv fails: `ckzg` / `pydantic-core` / `lru-dict` have no 3.13 wheels for
@@ -84,36 +85,24 @@ the pinned versions). The `web3` bundled pytest plugin had to be disabled
 (`-p no:pytest_ethereum`) — it crashes collection on an `eth_typing`
 version skew.
 
-### 🔴 Genuine issue — `squad.json` vs the EEP docs mirror ⚠️ NEEDS A DECISION
-`test_docs_eep_metadata_mirror_matches_squad_json` **FAILED**:
-`docs/BROskiPets_all_EEPs_MetaData` ≠ `eeps/squad.json`.
+### ✅ FIXED — `squad.json` was a stale EEP subset (commit `5485cfe`)
+`test_docs_eep_metadata_mirror_matches_squad_json` was **FAILED**:
+`eeps/squad.json` had drifted hard from `docs/BROskiPets_all_EEPs_MetaData`
+— different entries, sizes *and* schema. They had become two different
+datasets: a stale ~6-8-entry subset vs the full **78-EEP roster** (richer
+schema, with `role`).
 
-A closer look (after the report's first draft) shows this is **not** a
-mechanical "regenerate the mirror" — the two files are genuinely different
-datasets:
-
-| File | Entries | Schema | Sample (id 001) |
-|---|---|---|---|
-| `eeps/squad.json` | ~6-8 | `id/name/species/rarity/power` | SpiderEep · Common · "Precision web control…" |
-| `docs/BROskiPets_all_EEPs_MetaData` | 70+ | adds `role` | SpiderEep · **Legendary** · "Debug crawler…" |
-
-Even shared IDs differ entirely (id 002 = "WelshDog" in `squad.json`,
-"VenomEep" in the docs file). One reads as a small **curated squad**, the
-other as the **full EEP roster** with a richer schema.
-
-**Blindly overwriting either file destroys real data — not done.** Lyndz
-must decide which is canonical:
-- (a) `squad.json` canonical → the test + docs file are wrong;
-- (b) docs file canonical → `squad.json` is stale/truncated;
-- (c) they're meant to differ (squad ⊂ all EEPs) → the test premise is
-  wrong and should be rewritten or removed.
+**Resolution** — per Lyndz, the docs file is the canonical EEP roster.
+`eeps/squad.json` was regenerated from it (78 EEPs), and the test's
+assertion message — which had the sync direction backwards — was corrected.
+Re-verified — **43 passed / 0 failed**.
 
 > 65 skipped is high — likely the on-chain / service-dependent tests
 > skipping without a chain or live services. Worth a review (see Recs).
 
 ---
 
-## 🧠 BROski-Obsidian-Brain — engine LIVE + 2/3 unit tests
+## 🧠 BROski-Obsidian-Brain — engine LIVE + 3/3 unit tests
 
 ### 🎉 The 30th container is LIVE
 Started this session (`docker network create hyper-brain-net` +
@@ -143,19 +132,19 @@ Re-verified — **3/3 green**.
 | # | Repo | Issue | Status |
 |---|---|---|---|
 | 1 | Brain | `coins_total_7d` test used hard-coded dates vs a rolling 7-day window | ✅ **FIXED** `b32af73` — relative-date fixtures, 3/3 green |
-| 2 | BROskiPets | `eeps/squad.json` ≠ `docs/BROskiPets_all_EEPs_MetaData` | ⚠️ **NEEDS A DECISION** — two different datasets, see § BROskiPets |
+| 2 | BROskiPets | `eeps/squad.json` was a stale subset of the canonical EEP roster | ✅ **FIXED** `5485cfe` — squad.json regenerated from the docs mirror (78 EEPs), 43/0 green |
 
-Neither is a regression. #1 was test-fixture drift (now fixed). #2 turned
-out deeper than a "regenerate" — it's a genuine "which dataset is canonical"
-call only Lyndz can make; no file was overwritten (data-loss risk).
+Neither was a regression — both pre-existing drift, both fixed + re-verified
+this session. #2 needed a canonical-source call from Lyndz first (the two
+files had become genuinely different datasets) — no file was overwritten
+blindly.
 
 ---
 
 ## 📋 Recommendations
 
-1. **Brain drift — ✅ done** (`b32af73`). **BROskiPets — decide which of
-   `squad.json` / the EEP docs mirror is canonical** (see § BROskiPets), then
-   align the non-canonical file + the test.
+1. **Both drift fixes — ✅ done** (Brain `b32af73`, BROskiPets `5485cfe`).
+   No open drift from the sweep.
 2. **BROskiPets — pin a Python version for tests.** A 3.13 venv can't build
    the deps; add a `tox`/CI note or `.python-version` → 3.11. Also pin/upgrade
    `eth_typing` so the `web3` pytest plugin stops crashing collection.
