@@ -8,7 +8,7 @@
 
 ## 🏁 Verdict
 
-**The ecosystem is healthy. ~458 tests pass. 0 regressions. 2 genuine pre-existing drift issues found — both small, both diagnosed below.**
+**The ecosystem is healthy. ~458 tests pass. 0 regressions. 2 pre-existing drift issues found — 1 fixed this session, 1 needs a canonical-source call from Lyndz.**
 
 This session's changes (GitPython 3.1.45→3.1.50, SDK v0.4.0, the e2e refresh)
 introduced **no breakage** — the V2.4 backend suite ran 243 green *after* the
@@ -84,11 +84,29 @@ the pinned versions). The `web3` bundled pytest plugin had to be disabled
 (`-p no:pytest_ethereum`) — it crashes collection on an `eth_typing`
 version skew.
 
-### 🔴 Genuine issue — docs mirror out of sync
+### 🔴 Genuine issue — `squad.json` vs the EEP docs mirror ⚠️ NEEDS A DECISION
 `test_docs_eep_metadata_mirror_matches_squad_json` **FAILED**:
-`docs/BROskiPets_all_EEPs_MetaData` has drifted from `eeps/squad.json` —
-different content **and** 73 extra items. The test is correct; it caught
-real drift. **Fix:** regenerate the docs mirror from `squad.json`.
+`docs/BROskiPets_all_EEPs_MetaData` ≠ `eeps/squad.json`.
+
+A closer look (after the report's first draft) shows this is **not** a
+mechanical "regenerate the mirror" — the two files are genuinely different
+datasets:
+
+| File | Entries | Schema | Sample (id 001) |
+|---|---|---|---|
+| `eeps/squad.json` | ~6-8 | `id/name/species/rarity/power` | SpiderEep · Common · "Precision web control…" |
+| `docs/BROskiPets_all_EEPs_MetaData` | 70+ | adds `role` | SpiderEep · **Legendary** · "Debug crawler…" |
+
+Even shared IDs differ entirely (id 002 = "WelshDog" in `squad.json`,
+"VenomEep" in the docs file). One reads as a small **curated squad**, the
+other as the **full EEP roster** with a richer schema.
+
+**Blindly overwriting either file destroys real data — not done.** Lyndz
+must decide which is canonical:
+- (a) `squad.json` canonical → the test + docs file are wrong;
+- (b) docs file canonical → `squad.json` is stale/truncated;
+- (c) they're meant to differ (squad ⊂ all EEPs) → the test premise is
+  wrong and should be rewritten or removed.
 
 > 65 skipped is high — likely the on-chain / service-dependent tests
 > skipping without a chain or live services. Worth a review (see Recs).
@@ -109,32 +127,35 @@ Started this session (`docker network create hyper-brain-net` +
 
 **The Hyper Brain is finished and running for real — 20/20 levels live.**
 
-### ⚠️ Genuine issue — time-dependent test
-`pytest tests/` (in the `hyper-brain` container) → **2 passed, 1 failed**.
-`test_compute_gamification_summary_rolls_up_frontmatter` expects
-`coins_total_7d == 35` but got `0`. Cause: the test fixture writes vault
-entries with hard-coded dates, but `coins_total_7d` is a **rolling 7-day
-window relative to `now()`** — those dates have aged out of the window.
-**Fix:** make the fixture dates relative to `datetime.now()`.
+### ✅ FIXED — time-dependent test (commit `b32af73`)
+`pytest tests/` (in the `hyper-brain` container) was **2 passed, 1 failed**.
+`test_compute_gamification_summary_rolls_up_frontmatter` expected
+`coins_total_7d == 35` but got `0` — the fixture wrote vault entries with
+hard-coded dates (2026-05-13/14), but `coins_total_7d` is a **rolling 7-day
+window relative to `now()`** and those dates had aged out.
+**Fixed:** fixtures now derive dates from `datetime.now(timezone.utc)`.
+Re-verified — **3/3 green**.
 
 ---
 
-## 🛠️ The 2 genuine issues — both small, both drift
+## 🛠️ The 2 genuine issues
 
-| # | Repo | Issue | Fix effort |
+| # | Repo | Issue | Status |
 |---|---|---|---|
-| 1 | Brain | `coins_total_7d` test uses hard-coded dates vs a rolling 7-day window | ~5 min — relative dates in the fixture |
-| 2 | BROskiPets | `docs/BROskiPets_all_EEPs_MetaData` out of sync with `eeps/squad.json` | ~5 min — regenerate the docs mirror |
+| 1 | Brain | `coins_total_7d` test used hard-coded dates vs a rolling 7-day window | ✅ **FIXED** `b32af73` — relative-date fixtures, 3/3 green |
+| 2 | BROskiPets | `eeps/squad.json` ≠ `docs/BROskiPets_all_EEPs_MetaData` | ⚠️ **NEEDS A DECISION** — two different datasets, see § BROskiPets |
 
-Neither is a regression. Both are the *same class* of bug found in the
-Course e2e audit this session: tests/data that the project quietly
-outgrew. The tests are doing their job by flagging it.
+Neither is a regression. #1 was test-fixture drift (now fixed). #2 turned
+out deeper than a "regenerate" — it's a genuine "which dataset is canonical"
+call only Lyndz can make; no file was overwritten (data-loss risk).
 
 ---
 
 ## 📋 Recommendations
 
-1. **Fix the 2 drift items** (~10 min total) — quick wins, keeps suites honest.
+1. **Brain drift — ✅ done** (`b32af73`). **BROskiPets — decide which of
+   `squad.json` / the EEP docs mirror is canonical** (see § BROskiPets), then
+   align the non-canonical file + the test.
 2. **BROskiPets — pin a Python version for tests.** A 3.13 venv can't build
    the deps; add a `tox`/CI note or `.python-version` → 3.11. Also pin/upgrade
    `eth_typing` so the `web3` pytest plugin stops crashing collection.

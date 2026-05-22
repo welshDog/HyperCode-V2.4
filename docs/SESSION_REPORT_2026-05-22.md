@@ -195,11 +195,14 @@ Whole-ecosystem test run at Lyndz's request. **~458 tests pass, 0 regressions.**
 
 GitPython 3.1.50 broke nothing — V2.4 ran **243 green after** the bump.
 
-**2 genuine issues found — both pre-existing drift, neither a regression:**
-1. **Brain** — `coins_total_7d` test uses hard-coded fixture dates against a
-   *rolling 7-day window* → 0 vs 35. ~5 min fix (relative dates).
-2. **BROskiPets** — `docs/BROskiPets_all_EEPs_MetaData` is genuinely out of
-   sync with `eeps/squad.json`. ~5 min fix (regenerate the mirror).
+**2 pre-existing drift issues found — 0 regressions:**
+1. **Brain** — `coins_total_7d` test used hard-coded fixture dates against a
+   *rolling 7-day window* → 0 vs 35. ✅ **FIXED** (`b32af73`) — relative-date
+   fixtures, re-verified 3/3 green.
+2. **BROskiPets** — `eeps/squad.json` and `docs/BROskiPets_all_EEPs_MetaData`
+   are two genuinely different datasets (different size, schema *and* entries).
+   ⚠️ **Needs a canonical-source decision from Lyndz** — not a mechanical
+   regenerate; overwriting either file destroys real data.
 
 V2.4's "4 fails + 1 error" are **ad-hoc-container env artifacts** (repo-root
 `agents/` + `scripts/` not mounted, `@pytest.mark.e2e` tests) — not
@@ -230,9 +233,11 @@ root `CLAUDE.md` ecosystem constitution corrected (not git-tracked).
 
 ## 🚀 OPEN ITEMS — what's left
 
-### Quick code fixes (from the test sweep) — ~10 min total
-- **Brain** — fix the `coins_total_7d` time-dependent test (relative fixture dates).
-- **BROskiPets** — regenerate `docs/BROskiPets_all_EEPs_MetaData` from `eeps/squad.json`.
+### From the test sweep
+- **Brain** — `coins_total_7d` time-dependent test ✅ **FIXED** (`b32af73`).
+- **BROskiPets** — decide whether `eeps/squad.json` or the EEP docs mirror is
+  canonical, then align the other file + the test (detail in
+  `PROJECT_TEST_REPORT_2026-05-22.md`).
 
 ### Human-gated — need Lyndz's credentials / hands
 1. **`npm publish` HyperAgent-SDK 0.4.0** — needs `npm login` (registry still on 0.1.7).
