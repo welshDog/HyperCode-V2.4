@@ -281,6 +281,28 @@ re-init MCP). Expected behaviour, not a fault.
 
 ---
 
+# 🛡️ BLOCK 9 — leaked-password protection (free, cross-repo to Course)
+
+**Status:** ✅ COMPLETE.
+
+The tracked "toggle leaked password protection" task turned out **not** to be a
+2-minute Supabase click — that feature is **Pro-plan only** (~$25/mo). Closed the
+gap for free instead, in the **Course** repo (`Hyper-Vibe-Coding-Course`):
+
+- `frontend/src/lib/hibp.ts` — `pwnedPasswordCount()`: checks a password against
+  the HaveIBeenPwned Pwned Passwords API via k-anonymity (only the first 5 chars
+  of the SHA-1 hash leave the browser). Fails open on any error.
+- `Auth.tsx` Register — signup rejects breached passwords, shows the breach count.
+- `vercel.json` — added `api.pwnedpasswords.com` to the `connect-src` CSP (else
+  the browser silently blocks the check on prod).
+
+Verified: tsc + eslint + build green; functional test — `"password"` → 52.2M
+breaches blocked, `"Password1"` → 3.4M blocked (passes the basic length/case/
+digit rules but is now caught), strong unique password → 0, allowed.
+Course commit `48d2f9e`.
+
+---
+
 ## 🟡 IN PROGRESS
 
 | Task | Status | Notes |
@@ -300,16 +322,15 @@ re-init MCP). Expected behaviour, not a fault.
 | 2 CVEs in GitPython 3.1.45 | Upgrade to 3.1.47 | Medium |
 | `github-sync` unhealthy | Add `GITHUB_PAT` to `.env` | Low |
 | `project-strategist` exited | `docker exec project-strategist pip install perplexity-api` | Low |
-| Leaked password protection OFF | Supabase Auth Settings → toggle ON | Medium |
+| Leaked password protection | ✅ Resolved — Supabase's toggle is Pro-only, so closed instead with a free HaveIBeenPwned check on Course signup (`48d2f9e`) | Done |
 
 ---
 
 ## 🚀 NEXT SESSION — FIRST TASKS
 
-1. **Toggle leaked password protection** — Supabase Auth settings (2 mins).
-2. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
-3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
-4. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
+1. **E2E checkout test** — `stripe listen` + card `4242 4242 4242 4242`.
+2. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet.
+3. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec.
 
 ---
 

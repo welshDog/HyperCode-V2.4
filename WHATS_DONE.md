@@ -58,7 +58,7 @@
 | `complete_module` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
 | `complete_quest` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
 | `get_or_create_referral_code` | ⚠️ SECURITY DEFINER — anon callable | ✅ SECURITY INVOKER |
-- **6 security warnings → 1 remaining** (leaked password protection — manual toggle needed)
+- **6 security warnings → all addressed** — leaked password protection (the last one) closed via a free HaveIBeenPwned check on Course signup; Supabase's own toggle is Pro-only
 
 ### ✅ Stripe Webhook Code Audit — PASSED (May 16)
 - `stripe-webhook` v32 — signature verified, 5-step handlePurchase flow, idempotency built in ✅
@@ -198,7 +198,7 @@
 
 ## 🔧 ONE-TIME MANUAL STEPS REMAINING
 
-- [ ] **Enable leaked password protection** — Supabase Auth settings → Password Security → ON
+- [x] **Leaked password protection** — DONE via free HaveIBeenPwned check on Course signup (`48d2f9e`). Supabase's own toggle is Pro-plan only, so not used.
 - [ ] **Fix GitHub Actions billing lock** — github.com/settings/billing
 - [ ] Add `env_file: .env` to `hypercode-core` in `docker-compose.yml` (tech debt)
 - [ ] Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars
@@ -214,15 +214,14 @@
 
 ## 🚀 NEXT UP (in order)
 
-1. **Toggle leaked password protection** — Supabase Auth settings (2 mins)
-2. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
-3. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
-4. **First student invite** — `/welcome` is green 🎓
-5. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
-6. **Fix GitHub Actions billing lock**
-7. **Level 13** — Morning Briefing live
-8. **Level 14** — GitHub Webhooks real-time
-9. **Level 15** — HyperAgent AI Daily Briefing
+1. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
+2. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
+3. **First student invite** — `/welcome` is green 🎓
+4. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+5. **Fix GitHub Actions billing lock**
+6. **Level 13** — Morning Briefing live
+7. **Level 14** — GitHub Webhooks real-time
+8. **Level 15** — HyperAgent AI Daily Briefing
 
 ---
 
