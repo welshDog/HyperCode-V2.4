@@ -187,7 +187,7 @@
 ### Security
 - 3 DB functions fixed SECURITY DEFINER → INVOKER ✅ May 16
 - Stripe keys rotated + scrubbed from 218 commits ✅
-- Trivy CVE-2026-42215 + CVE-2026-42284 in GitPython 3.1.45 flagged ⚠️
+- GitPython 3.1.45 → **3.1.50** pinned ✅ May 22 — clears ALL 5 advisories (CVE-2026-42215, -42284, -44243, -44244 + GHSA-mv93-w799-cj2w RCE). ⚠️ The long-tracked "3.1.47" target was wrong — 3.1.47 still leaves 3 HIGH vulns open. Image rebuild pending.
 
 ### HyperAgent-SDK
 - `@w3lshdog/hyper-agent@0.1.7` published ✅
@@ -204,7 +204,7 @@
 - [ ] Set `VITE_STRIPE_PAYMENT_LINK_URL` in `.env.local` + Vercel env vars
 - [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens correctly
 - [ ] Add `GITHUB_PAT` to `.env` + spin up `github-sync` Docker container → fixes unhealthy container
-- [ ] Upgrade GitPython to 3.1.47 — fixes CVE-2026-42215 + CVE-2026-42284
+- [x] **GitPython CVE fix** — pinned 3.1.45 → 3.1.50 in `backend/requirements.txt` (May 22). 3.1.50 clears all 5 advisories; 3.1.47 (the old tracked target) was insufficient. ⚠️ Rebuild `hypercode-core` image for it to take effect.
 - [ ] SDK bump to v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json`
 - [ ] Clean up `shop_items` duplicate RLS policies
 - [ ] Tidy 25 unused DB indexes (low priority — after launch)
@@ -256,7 +256,7 @@ IDE:              Claude Code terminal + Perplexity AI (Windows)
 Stripe webhook:   secret updated May 5 ✅ — fresh whsec_ live in Supabase
 BROskiPets Web3:  RainbowKit + wagmi + Base Sepolia — mint live May 7 🔥
 Mint flow:        Edge Function auth → on-chain Base Sepolia tx
-GitPython:        upgrade to 3.1.47 — CVE-2026-42215 + CVE-2026-42284 ⚠️
+GitPython:        pinned 3.1.50 (clears all 5 CVEs) — rebuild core image to apply
 Security funcs:   complete_module, complete_quest, get_or_create_referral_code → SECURITY INVOKER ✅
 Supabase project: yhtmuibgdnxhbgboajhc (eu-west-2)
 Vercel team:      BROskis (team_Uy6hGYD4AZqclHqUeEsmZuDP)
