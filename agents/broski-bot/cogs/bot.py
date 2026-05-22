@@ -54,6 +54,8 @@ COGS = [
     "cogs.moderation",
     "cogs.raid_guard",
     "cogs.ban_veto",
+    "cogs.ops_alerts",
+    "cogs.briefing",
 ]
 
 
