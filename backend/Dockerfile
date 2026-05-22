@@ -77,8 +77,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application code LAST (most frequently changed layer)
 COPY . .
 
-# Remove setuptools vendored wheel metadata/executables flagged by scanners
-RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)"
+# Remove setuptools vendored wheel/jaraco metadata/executables flagged by scanners
+# (jaraco.context-5.3.0 dist-info ships inside setuptools/_vendor — the standalone
+#  install is pinned to 6.1.0 in requirements.txt; this strips the vendored phantom)
+RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for pat in ('wheel-*.dist-info', 'jaraco.*-*.dist-info') for p in glob.glob(os.path.join(vendor, pat))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)"
 
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
