@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE.md — HyperCode Ecosystem
 > One file. Short bullets. No walls of text.
-> **Updated: May 21, 2026 (dashboard rebuild + audit)** — update this every session.
+> **Updated: May 22, 2026 (SDK v0.4.0 + GitPython CVE + cleanup)** — update this every session.
 
 ---
 
@@ -13,6 +13,25 @@
 | Hyper-Vibe-Coding-Course | Course frontend + Supabase + token shop + Web3 pets | `H:\Hyper-Vibe-Coding-Course` |
 | BROskiPets-LLM-dNFT | Pet NFT system — LLM + on-chain | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
 | BROski-Obsidian-Brain | Second Brain vault — Obsidian + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` ✅ May 5 |
+
+---
+
+## 📋 SESSION REPORT — May 22, 2026
+
+### 🧰 HyperAgent-SDK v0.4.0 — Web3/dNFT manifest types
+- ✅ New optional `web3` block in `hyper-agent-spec.json` — `chain`, `token_standard`, `dnft`, `contract_address`, `capabilities`, `signer_env_var`. Non-breaking + additive — every existing manifest still validates.
+- ✅ Two new registry auto-badges — `⛓️ web3-enabled` + `🛂 dnft`. TypeScript types mirrored (`AgentWeb3` etc.). +12 tests → **72 pass, 0 fail**.
+- ✅ npm version bumped 0.3.0 → 0.4.0. Commit `7474f2a`. ⚠️ `npm publish` still pending (npm registry on 0.1.7).
+
+### 🔒 GitPython CVE fix — 3.1.45 → 3.1.50
+- ✅ Pinned `backend/requirements.txt` GitPython 3.1.45 → **3.1.50**. Commit `2d11313`.
+- ⚠️ **Contradiction surfaced:** every doc said "upgrade to 3.1.47" — but the Trivy report shows GitPython 3.1.45 has **5** advisories, and 3.1.47 fixes only 2. 3.1.50 clears all 5 (incl. `GHSA-mv93-w799-cj2w`, an RCE that bypasses the CVE-2026-42215 patch).
+- ⚠️ Rebuild `hypercode-core` image for the pin to take effect.
+
+### 🧹 Cleanup + stale-doc corrections
+- ✅ **Course:** deleted dead `frontend/src/styles/globals.css` (690 lines, 0 importers — `index.css` superseded it). Course commits `26474d4` + `89f2912`. Build verified green.
+- ✅ **SDK:** corrected `CLAUDE.md` — `graduate build`/`graduate trigger` CLI is **implemented + tested** (3 tests), not "designed-only". Commit `72cb131`.
+- ✅ **Verified already-done:** Course `/privacy` + `/terms` are full live pages wired into `App.tsx` (parallel workflow shipped them) — not stubs.
 
 ---
 
@@ -190,9 +209,11 @@
 - GitPython 3.1.45 → **3.1.50** pinned ✅ May 22 — clears ALL 5 advisories (CVE-2026-42215, -42284, -44243, -44244 + GHSA-mv93-w799-cj2w RCE). ⚠️ The long-tracked "3.1.47" target was wrong — 3.1.47 still leaves 3 HIGH vulns open. Image rebuild pending.
 
 ### HyperAgent-SDK
-- `@w3lshdog/hyper-agent@0.1.7` published ✅
-- 57 tests passing ✅
-- **⚠️ SDK needs update** — Web3/dNFT types not yet in spec — bump to v0.4.0
+- `@w3lshdog/hyper-agent` — npm published `0.1.7`, code at **v0.4.0** ✅
+- 72 tests passing ✅ (May 22)
+- ✅ **v0.4.0 — Web3/dNFT manifest types** (May 22): optional `web3` block + `web3-enabled`/`dnft` registry badges. Non-breaking.
+- ✅ `graduate build` + `graduate trigger` CLI — implemented + tested
+- ⚠️ `npm publish` still pending — registry on 0.1.7, code on 0.4.0
 
 ---
 
@@ -205,7 +226,7 @@
 - [ ] Add `DISCORD_USER_ID=<your_id>` to `.env` so `make calm` awards tokens correctly
 - [ ] Add `GITHUB_PAT` to `.env` + spin up `github-sync` Docker container → fixes unhealthy container
 - [x] **GitPython CVE fix** — pinned 3.1.45 → 3.1.50 in `backend/requirements.txt` (May 22). 3.1.50 clears all 5 advisories; 3.1.47 (the old tracked target) was insufficient. ⚠️ Rebuild `hypercode-core` image for it to take effect.
-- [ ] SDK bump to v0.4.0 — add Web3/dNFT types to `hyper-agent-spec.json`
+- [x] **SDK v0.4.0** — Web3/dNFT types added to `hyper-agent-spec.json` (May 22). ⚠️ `npm publish` still pending (registry on 0.1.7)
 - [ ] Clean up `shop_items` duplicate RLS policies
 - [ ] Tidy 25 unused DB indexes (low priority — after launch)
 - [ ] Fix `project-strategist`: `docker exec project-strategist pip install perplexity-api`
@@ -217,7 +238,7 @@
 1. **E2E checkout test** — `stripe listen + card 4242 4242 4242 4242`
 2. **BROskiPets Web3 E2E** — test mint on Base Sepolia testnet with real wallet
 3. **First student invite** — `/welcome` is green 🎓
-4. **HyperAgent-SDK v0.4.0** — Web3/dNFT types in spec
+4. ~~HyperAgent-SDK v0.4.0~~ ✅ DONE May 22 — `npm publish` still pending
 5. **Fix GitHub Actions billing lock**
 6. **Level 13** — Morning Briefing live
 7. **Level 14** — GitHub Webhooks real-time
