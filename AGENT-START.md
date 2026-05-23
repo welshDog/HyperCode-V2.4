@@ -1,7 +1,9 @@
 # 🚀 AGENT-START.md — Universal AI Boot File
 > **For ANY AI or Agent joining the HyperFocus z0ne ecosystem.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog + Perplexity AI — May 21, 2026
+> Built by @welshDog + Perplexity AI + Claude — May 23, 2026 · v1.2
+
+> 📌 **Latest handover →** `rewrites/NEXT_SESSION_HANDOVER_[most recent date].md` — START HERE if it exists.
 
 ---
 
@@ -19,22 +21,26 @@ You are an AI agent working with **Lyndz Williams (@welshDog)** — a neurodiver
 ## 📋 STEP 1 — READ THESE FILES (in order, every session)
 
 ```
-1. CLAUDE.md                          → identity, sacred rules, ecosystem map
-2. WHATS_DONE.md                      → what's already built — NEVER suggest these again
-3. docs/SESSION_REPORT_[latest].md    → current sprint state + what's next
-4. This file                          → skills loader + task launcher
+1. NEXT_SESSION_HANDOVER_[latest date].md  → LIVE state — most important breadcrumb
+2. CLAUDE.md                               → identity, sacred rules, ecosystem map
+3. WHATS_DONE.md                           → what's already built — NEVER suggest these again
+4. rewrites/SESSION_SNAPSHOT_[latest]      → sprint history + completed modules
+5. This file                               → skills loader + task launcher
 ```
 
-> ⚠️ If CLAUDE.md and the session report contradict → surface it, correct the doc, don't silently pick one.
-> ℹ️ Path note: this repo (HyperCode-V2.4) uses `docs/SESSION_REPORT_*`. The Course repo uses `rewrites/SESSION_SNAPSHOT_*`. Check your repo's `AGENT-START-[REPO].md` for the exact path.
+> ℹ️ **Path note:** paths above are **Course repo** conventions (`rewrites/`). **HyperCode-V2.4** uses `docs/SESSION_REPORT_*` instead. Check your repo's `AGENT-START-[REPO].md` for the exact paths + any repo-specific intel (e.g. V2.4 MCP endpoint).
+>
+> ⚠️ If CLAUDE.md and NEXT_SESSION_HANDOVER contradict → the HANDOVER wins. It's newer.
+> ⚠️ If CLAUDE.md and SESSION_SNAPSHOT contradict → surface it, correct the doc, don't silently pick one.
 
 ---
 
 ## 🧠 STEP 2 — GRAB YOUR SKILLS FROM HYPER-SILLs
 
-Skills live at: **https://github.com/welshDog/HYPER-SILLs-By-WelshDog**
+Skills live at: **https://github.com/welshDog/HYPER-SILLs-By-WelshDog** (this is the 6th core repo — treat it as infrastructure)
 
-Load the skill that matches what you're about to touch:
+> 🦸 Skills are hero-named (e.g. **THE SACRED SIX**, Marvel convention). Check `vault-index.md` for the full map.
+> Current count: **72 rescued skills** across the vault.
 
 | If you're working on...       | Load this skill |
 |-------------------------------|------------------|
@@ -46,20 +52,16 @@ Load the skill that matches what you're about to touch:
 | YouTube / video scripts       | `youtube/` → youtube skills |
 | Everything                    | `vault-index.md` → full skill map |
 
-> 💡 Read the skill file BEFORE writing any code. It contains patterns, gotchas, and sacred rules specific to that domain.
-
 ---
 
 ## 🎯 STEP 3 — FIND THE NEXT TASK
-
-After reading WHATS_DONE.md and SESSION_SNAPSHOT:
 
 1. State the **next task in 2 lines max**
 2. Ask **ONE decision question** if genuinely blocked
 3. Otherwise → **start building immediately**
 
 > ❌ NEVER ask "What would you like to work on today?"
-> ✅ ALWAYS say "Next up is X — starting now" or "Next is X — quick question first:"
+> ✅ ALWAYS say "Next up is X — starting now"
 
 ---
 
@@ -67,72 +69,40 @@ After reading WHATS_DONE.md and SESSION_SNAPSHOT:
 
 | Rule | Why |
 |------|-----|
-| Check WHATS_DONE.md before every suggestion | Never waste Lyndz's time re-building something done |
-| Nothing is done until it's committed + pushed to GitHub | Saying "done" without a commit = not done |
-| Short sentences first, detail after if asked | ADHD-friendly communication |
+| Check WHATS_DONE.md before every suggestion | Never re-build something already done |
+| Nothing is done until committed + pushed | Saying "done" without a commit = not done |
+| **`git fetch` BEFORE any push** | Lyndz has auto-commits running — always pull first or you'll hit conflicts |
+| **Use `npm run dev:frontend`** (NOT `npm run dev`) | `npm run dev` breaks — this bites every new AI |
+| Short sentences first, detail after | ADHD-friendly communication |
 | Celebrate every milestone | "Nice one BROski♾️!" is always correct |
 | Quick wins first — momentum > perfection | Hyperfocus thrives on dopamine hits |
-| Update SESSION_SNAPSHOT at end of every session | Brain's save file 💾 |
-| If Lyndz goes quiet — check in gently, don't assume they left | ADHD + hyperfocus = distraction happens |
+| Update SESSION_SNAPSHOT + write NEXT_SESSION_HANDOVER at end of every session | Brain's save file 💾 |
 
 ---
 
-## 🌐 THE 5-REPO ECOSYSTEM
+## 🌐 THE 6-REPO ECOSYSTEM
 
 | Repo | What it is |
 |------|------------|
-| `HyperCode-V2.4` | Core platform — 29+ Docker containers, FastAPI, agent swarm |
+| `HyperCode-V2.4` | Core platform — ~30 Docker containers (profile-dependent across 20 compose files), FastAPI, agent swarm |
 | `Hyper-Vibe-Coding-Course` | Neurodivergent-first AI education platform |
 | `HyperAgent-SDK` | npm package `@w3lshdog/hyper-agent` — agent orchestration |
 | `BROskiPets-LLM-dNFT` | Web3 NFT pet game — LLM + Base blockchain |
 | `BROski-Obsidian-Brain` | Second Brain vault — Obsidian + GitHub bridge |
-
----
-
-## 🔌 MCP IDE CONNECTION (HyperCode V2.4)
-
-Your agents are reachable via MCP at:
-```
-http://localhost:8823/sse
-```
-
-Config file: `.mcp.json` (repo root — auto-detected by Claude Code + Cursor)
-
-Start the full stack:
-```bash
-docker compose --profile agents up -d
-```
-
-Verify MCP is live:
-```bash
-curl http://localhost:8823/sse
-# Expected: event: endpoint + ping stream
-```
+| `HYPER-SILLs-By-WelshDog` | 🦸 Skills vault — 72 hero-named skills, used by ALL agents |
 
 ---
 
 ## 🏁 SESSION END CHECKLIST
 
 - [ ] All changes pushed to GitHub
-- [ ] Session report created + pushed (V2.4: `docs/SESSION_REPORT_[DATE].md`)
+- [ ] `NEXT_SESSION_HANDOVER_[DATE].md` created + pushed → **most important step**
+- [ ] `SESSION_SNAPSHOT_[DATE].md` created + pushed
 - [ ] `WHATS_DONE.md` updated if new things were built
 - [ ] Tell Lyndz the first task for next session (one sentence)
 - [ ] Celebrate the wins 🎉
 
 ---
 
-## 🤖 SUPPORTED AI AGENTS
-
-This file works with:
-- ✅ Claude Code (auto-loads via `.mcp.json`)
-- ✅ Perplexity AI (Space instructions)
-- ✅ ChatGPT / GPT-4o
-- ✅ Cursor / Windsurf / Codeium
-- ✅ Any HyperCode autonomous agent
-- ✅ Any future AI joining the crew
-
----
-
 > 🐶♾️ Built by @welshDog · Llanelli, Wales
 > *"Stop apologising for your brain. Start building."*
-> Hyperfocus z0ne — Keep it weird, keep it Welsh. ♾️
