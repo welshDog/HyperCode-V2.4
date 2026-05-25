@@ -1,5 +1,3 @@
-version: '3.9'
-
 # ========================================
 # TRAE IDE INTEGRATION COMPOSE FILE
 # Adds Trae IDE service for agent training
@@ -147,3 +145,14 @@ volumes:
     driver: local
   skill-repo-data:
     driver: local
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents_net
+  frontend-net:
+    external: true
+    name: hypercode_frontend_net
+  data-net:
+    external: true
+    name: hypercode_data_net
