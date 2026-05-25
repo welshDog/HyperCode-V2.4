@@ -74,11 +74,11 @@ services:
           action: rebuild
 
   # Enable debug logging for all services
-  hypercode-core:
+hypercode-core:
     environment:
       - DEBUG=true
       - LOG_LEVEL=DEBUG
 
-  hypercode-ollama:
+hypercode-ollama:
     environment:
       - OLLAMA_DEBUG=1
