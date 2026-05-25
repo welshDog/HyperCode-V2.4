@@ -16,6 +16,9 @@ services:
           target: /app/app
         - path: ./backend/requirements.txt
           action: rebuild
+    environment:
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
 
   backend-specialist:
     develop:
@@ -73,12 +76,6 @@ services:
         - path: ./agents/dashboard
           action: rebuild
 
-  # Enable debug logging for all services
-hypercode-core:
-    environment:
-      - DEBUG=true
-      - LOG_LEVEL=DEBUG
-
-hypercode-ollama:
+  hypercode-ollama:
     environment:
       - OLLAMA_DEBUG=1
