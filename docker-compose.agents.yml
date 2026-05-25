@@ -2,7 +2,8 @@
 #
 # Always-on (no profile):
 #   docker-socket-proxy, docker-socket-proxy-healer, healer-agent,
-#   dashboard, hypercode-mcp-server, hypercode-ollama (in core.yml)
+#   dashboard, hypercode-mcp-server, hypercode-ollama (in core.yml),
+#   github-sync
 #
 # Profile-gated services — start with `--profile <name>`:
 #   ai            → ai-backend
@@ -276,6 +277,47 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================================================================
+  # GITHUB SYNC — always-on, no profile
+  # Runs github_to_obsidian.py every 4 hours via cron
+  # Healthcheck: verify cron process is alive (not HTTP — cron has no port)
+  # BROski♾️
+  # ====================================================================
+
+  github-sync:
+    build:
+      context: .
+      dockerfile: Dockerfile.github-sync
+    container_name: github-sync
+    restart: unless-stopped
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    volumes:
+      - github-sync-logs:/var/log
+    networks:
+      - agents-net
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -v grep | grep cron || exit 1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
     security_opt:
       - no-new-privileges:true
 
@@ -896,7 +938,7 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
-      - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-900}
+      - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-}
     volumes:
       - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro
