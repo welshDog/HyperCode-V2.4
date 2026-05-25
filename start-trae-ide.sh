@@ -17,8 +17,6 @@ echo -e "${BLUE}🎓 TRAE IDE — Agent Training Setup${NC}"
 echo -e "${BLUE}════════════════════════════════════════${NC}"
 echo ""
 
-cd HyperCode-V2.4
-
 # Step 1: Check if core system is running
 echo -e "${YELLOW}[1/4] Checking core services...${NC}"
 if ! docker ps | grep -q hypercode-core; then
