@@ -1,145 +1,192 @@
+# ========================================
+# Production Alert Rules for Prometheus
+# Add to: monitoring/prometheus/alert_rules.yml
+# Monitors critical services + system health
+# ========================================
+
 groups:
-  - name: hypercode-system
+  - name: hypercode_critical
     interval: 30s
     rules:
-      # ==================================================================
-      # CRITICAL ALERTS (Immediate escalation)
-      # ==================================================================
-
-      - alert: ContainerCrashed
-        expr: increase(container_last_seen{name!=""}[5m]) == 0 and container_last_seen{name!=""} > 0
+      # ─ CONTAINER CRASHES ─────────────────────────────────────────────────
+      - alert: ContainerRestarting
+        expr: rate(container_last_seen[5m]) > 0
         for: 2m
         labels:
           severity: critical
-          component: infrastructure
+          service: "{{ $labels.name }}"
         annotations:
-          summary: "Container {{ $labels.name }} has crashed or restarted"
-          description: "{{ $labels.name }} last seen more than 2 minutes ago. Possible OOM or crash."
+          summary: "Container {{ $labels.name }} restarting frequently"
+          description: "{{ $labels.name }} has restarted multiple times in 5 minutes"
 
+      - alert: ServiceDown
+        expr: up{job="docker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} has been down for 1 minute"
+
+      # ─ MEMORY PRESSURE ───────────────────────────────────────────────────
       - alert: HighMemoryUsage
-        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) > 0.9
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: "{{ $labels.name }}"
+        annotations:
+          summary: "{{ $labels.name }} memory > 85%"
+          description: "{{ $labels.name }} using {{ $value | humanizePercentage }} of memory limit"
+
+      - alert: CriticalMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.95
         for: 2m
         labels:
           severity: critical
-          component: resource
+          service: "{{ $labels.name }}"
         annotations:
-          summary: "Container {{ $labels.name }} at 90%+ memory"
-          description: "{{ $labels.name }} is consuming {{ $value | humanizePercentage }} of limit. Risk of OOM kill."
+          summary: "{{ $labels.name }} memory > 95% — CRITICAL"
+          description: "{{ $labels.name }} may OOM in seconds"
 
+      # ─ CPU THROTTLING ────────────────────────────────────────────────────
       - alert: HighCPUUsage
-        expr: (rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100) > 80
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
         for: 5m
         labels:
           severity: warning
-          component: resource
         annotations:
-          summary: "Container {{ $labels.name }} CPU at {{ $value | humanize }}%"
-          description: "Sustained high CPU usage detected. May cause slow responsiveness."
+          summary: "{{ $labels.name }} CPU > 80%"
+          description: "{{ $labels.name }} may be throttled"
 
-      - alert: HypercodeCoreFailed
-        expr: up{job="prometheus", instance="hypercode-core:8000"} == 0
-        for: 1m
-        labels:
-          severity: critical
-          component: core
-        annotations:
-          summary: "hypercode-core is DOWN"
-          description: "Core service unreachable for >1 min. All agents will fail."
-
-      - alert: PostgresUnhealthy
-        expr: up{job="prometheus", instance="postgres:5432"} == 0
-        for: 1m
-        labels:
-          severity: critical
-          component: database
-        annotations:
-          summary: "PostgreSQL is DOWN"
-          description: "Database unreachable. Data layer is offline."
-
-      - alert: RedisUnhealthy
-        expr: up{job="prometheus", instance="redis:6379"} == 0
-        for: 1m
-        labels:
-          severity: critical
-          component: cache
-        annotations:
-          summary: "Redis is DOWN"
-          description: "Cache layer offline. Agents may experience degradation."
-
-      # ==================================================================
-      # HIGH PRIORITY ALERTS (Watch closely)
-      # ==================================================================
-
-      - alert: AgentHealthCheckFailing
-        expr: (node_exporter_scrape_error{job="agent-health"} > 0) or (up{job="agent-health"} == 0)
-        for: 3m
-        labels:
-          severity: warning
-          component: agents
-        annotations:
-          summary: "Agent health check failed: {{ $labels.agent_name }}"
-          description: "{{ $labels.agent_name }} failed health probe 3+ times."
-
-      - alert: PrometheusOOM
-        expr: process_resident_memory_bytes{job="prometheus"} > 1.8e9
+      # ─ DISK SPACE ────────────────────────────────────────────────────────
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.15
         for: 5m
         labels:
           severity: warning
-          component: observability
         annotations:
-          summary: "Prometheus using >1.8GB memory"
-          description: "Prometheus memory high; consider retention size reduction."
+          summary: "Disk {{ $labels.device }} < 15% available"
+          description: "Free disk space: {{ $value | humanizePercentage }}"
 
-      - alert: LogDiskSpaceLow
-        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+      - alert: CriticalDiskSpace
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk {{ $labels.device }} < 5% available — CRITICAL"
+          description: "Disk will fill in hours if trend continues"
+
+      # ─ DATABASE HEALTH ──────────────────────────────────────────────────
+      - alert: PostgresConnectionPoolExhausted
+        expr: pg_stat_activity_count > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connection pool near limit"
+          description: "Active connections: {{ $value }}/25"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_slow_queries_total[5m]) > 5
         for: 5m
         labels:
           severity: warning
-          component: system
         annotations:
-          summary: "Root disk <15% free"
-          description: "Disk space critically low. Log rotation or cleanup needed."
+          summary: "PostgreSQL slow queries detected"
+          description: "{{ $value | printf '%.1f' }} slow queries per second"
 
-      - alert: CeleryQueueBacklog
-        expr: celery_task_queue_length > 1000
+      # ─ REDIS HEALTH ──────────────────────────────────────────────────────
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory > 85%"
+          description: "Redis eviction may occur soon"
+
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis connected clients > 100"
+          description: "Current connections: {{ $value }}"
+
+      # ─ API RESPONSE TIME ─────────────────────────────────────────────────
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API p95 latency > 1 second"
+          description: "{{ $labels.endpoint }} is slow"
+
+      # ─ HEALTH CHECK FAILURES ────────────────────────────────────────────
+      - alert: ServiceUnhealthy
+        expr: container_health_status{status="unhealthy"} > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.name }} health check failing"
+          description: "Container has failed health check multiple times"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # HYPERCODE-SPECIFIC ALERTS
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - name: hypercode_agents
+    interval: 30s
+    rules:
+      - alert: AgentResponseSlow
+        expr: histogram_quantile(0.95, rate(agent_request_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent {{ $labels.agent_name }} responding slowly"
+          description: "Response time: {{ $value | printf '%.1f' }}s"
+
+      - alert: OrchestrationStalled
+        expr: rate(orchestration_tasks_completed_total[5m]) == 0
         for: 10m
         labels:
           severity: warning
-          component: async
         annotations:
-          summary: "Celery queue backlog >1000 tasks"
-          description: "Worker pool may be overwhelmed. Check celery-worker logs."
+          summary: "Agent orchestration may be stalled"
+          description: "No tasks completed in 10 minutes"
 
-      - alert: HealerAgentCircuitBreakerActive
-        expr: healer_circuit_breaker_active == 1
+      - alert: AgentCrashLoop
+        expr: increase(agent_crashes_total[5m]) > 3
         for: 2m
         labels:
+          severity: critical
+        annotations:
+          summary: "Agent {{ $labels.agent_name }} in crash loop"
+          description: "{{ $value }} crashes in 5 minutes"
+
+  - name: hypercode_observability
+    interval: 1m
+    rules:
+      - alert: PrometheusHighMemory
+        expr: process_resident_memory_bytes{job="prometheus"} > 1000000000  # 1GB
+        for: 5m
+        labels:
           severity: warning
-          component: healer
         annotations:
-          summary: "Healer circuit breaker ACTIVE"
-          description: "Healer has detected cascading failure. Check healer logs."
+          summary: "Prometheus memory > 1GB"
+          description: "Consider scaling or increasing retention"
 
-      # ==================================================================
-      # INFO/MONITORING ALERTS (Informational)
-      # ==================================================================
-
-      - alert: HighContainerRestartRate
-        expr: increase(container_last_seen[15m]) > 5
+      - alert: LokiHighMemory
+        expr: process_resident_memory_bytes{job="loki"} > 800000000  # 800MB
         for: 5m
         labels:
-          severity: info
-          component: infrastructure
+          severity: warning
         annotations:
-          summary: "{{ $labels.name }} restarted 5+ times in 15min"
-          description: "High restart rate detected. Check logs for crash loop."
-
-      - alert: MissingHealthcheck
-        expr: container_health_status{status!~"healthy|none"} > 0
-        for: 5m
-        labels:
-          severity: info
-          component: infrastructure
-        annotations:
-          summary: "{{ $labels.name }} unhealthy status"
-          description: "Container {{ $labels.name }} health status is {{ $labels.status }}."
+          summary: "Loki memory > 800MB"
+          description: "Log volume may be high"

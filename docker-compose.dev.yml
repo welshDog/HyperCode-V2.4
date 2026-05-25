@@ -1,130 +1,84 @@
-version: "3.9"
+version: '3.9'
 
-# ════════════════════════════════════════════════════════════════════════════════
-# docker-compose.dev.yml — DEVELOPMENT MODE WITH HOT RELOAD
-# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml watch
-# Created: May 21, 2026
-# ════════════════════════════════════════════════════════════════════════════════
+# ========================================
+# Development Compose Override File
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Features: Hot reload, faster rebuilds, debug logging
+# ========================================
 
 services:
-
-  # ──────────────────────────────────────────────────────────────────────────────
-  # TIER 1: CORE CREW — DEVELOPMENT MODE
-  # ──────────────────────────────────────────────────────────────────────────────
-
-  crew-orchestrator:
+  hypercode-core:
+    # Enable hot reload for backend development
     develop:
       watch:
-        - path: ./agents/crew-orchestrator/src
+        - path: ./backend/app
+          action: sync
+          target: /app/app
+        - path: ./backend/requirements.txt
           action: rebuild
-        - path: ./agents/crew-orchestrator/requirements.txt
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - RELOAD=true
-
-  agent-x:
-    develop:
-      watch:
-        - path: ./agents/agent-x/src
-          action: rebuild
-        - path: ./agents/agent-x/requirements.txt
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - DRY_RUN_MODE=true
-
-  brain-agent:
-    develop:
-      watch:
-        - path: ./agents/brain/src
-          action: rebuild
-        - path: ./agents/brain/requirements.txt
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - MOCK_PERPLEXITY=true
-
-  coder-agent:
-    develop:
-      watch:
-        - path: ./agents/coder/src
-          action: rebuild
-        - path: ./agents/coder/requirements.txt
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - MOCK_LLM=true
-
-  tips-tricks-writer:
-    develop:
-      watch:
-        - path: ./agents/09-tips-tricks-writer/src
-          action: rebuild
-        - path: ./agents/09-tips-tricks-writer/requirements.txt
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-
-  # ──────────────────────────────────────────────────────────────────────────────
-  # TIER 2: SPECIALISTS — DEVELOPMENT MODE (selected)
-  # ──────────────────────────────────────────────────────────────────────────────
-
-  frontend-specialist:
-    develop:
-      watch:
-        - path: ./agents/01-frontend-specialist/src
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
 
   backend-specialist:
     develop:
       watch:
-        - path: ./agents/02-backend-specialist/src
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
+        - path: ./agents/02-backend-specialist
+          action: sync
+          target: /app
+        - path: ./agents/shared
+          action: sync
+          target: /app/shared
+
+  frontend-specialist:
+    develop:
+      watch:
+        - path: ./agents/01-frontend-specialist
+          action: sync
+          target: /app
+        - path: ./agents/shared
+          action: sync
+          target: /app/shared
 
   database-architect:
     develop:
       watch:
-        - path: ./agents/03-database-architect/src
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
+        - path: ./agents/03-database-architect
+          action: sync
+          target: /app
+        - path: ./agents/shared
+          action: sync
+          target: /app/shared
 
   qa-engineer:
     develop:
       watch:
-        - path: ./agents/04-qa-engineer/src
-          action: rebuild
-    environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - MOCK_BROWSER=true
+        - path: ./agents/04-qa-engineer
+          action: sync
+          target: /app
+        - path: ./agents/shared
+          action: sync
+          target: /app/shared
 
-  # ──────────────────────────────────────────────────────────────────────────────
-  # CORE SERVICE — DEVELOPMENT MODE
-  # ──────────────────────────────────────────────────────────────────────────────
-
-  hypercode-core:
+  devops-engineer:
     develop:
       watch:
-        - path: ./backend/app
+        - path: ./agents/05-devops-engineer
+          action: sync
+          target: /app
+        - path: ./agents/shared
+          action: sync
+          target: /app/shared
+
+  dashboard:
+    develop:
+      watch:
+        - path: ./agents/dashboard
           action: rebuild
-        - path: ./backend/requirements.txt
-          action: rebuild
+
+  # Enable debug logging for all services
+  hypercode-core:
     environment:
-      - LOG_LEVEL=DEBUG
-      - DEVELOPMENT=true
-      - SQLALCHEMY_ECHO=true
       - DEBUG=true
+      - LOG_LEVEL=DEBUG
+
+  hypercode-ollama:
+    environment:
+      - OLLAMA_DEBUG=1

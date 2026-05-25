@@ -301,9 +301,9 @@ services:
       - agents-net
     healthcheck:
       test: ["CMD-SHELL", "ps aux | grep -v grep | grep cron || exit 1"]
-      interval: 120s
+      interval: 60s
       timeout: 10s
-      retries: 2
+      retries: 3
       start_period: 10s
     deploy:
       resources:
@@ -320,8 +320,6 @@ services:
         max-file: "2"
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
 
   # ====================================================================
   # MISSION (profile: mission)
