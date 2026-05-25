@@ -1,0 +1,149 @@
+version: '3.9'
+
+# ========================================
+# TRAE IDE INTEGRATION COMPOSE FILE
+# Adds Trae IDE service for agent training
+# Usage: docker compose -f docker-compose.yml -f docker-compose.trae.yml up
+# ========================================
+
+services:
+  # Trae IDE Server — Interactive agent training interface
+  trae-ide:
+    image: ${TRAE_IDE_IMAGE:-trae/ide:latest}
+    container_name: trae-ide
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3500:3000"  # Trae IDE web dashboard
+    environment:
+      - TRAE_ENV=production
+      - AGENTS_REGISTRY_URL=http://crew-orchestrator:8080/agents
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - OLLAMA_URL=http://hypercode-ollama:11434
+      - AGENT_TIMEOUT=60
+      - MAX_CONVERSATIONS=100
+      - ENABLE_TRAINING=true
+      - ENABLE_RECORDING=true
+    networks:
+      - agents-net
+      - frontend-net
+    depends_on:
+      - hypercode-core
+      - crew-orchestrator
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - trae-sessions:/app/sessions
+      - trae-training-logs:/app/training-logs
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Agent Training API — Backend for agent communication
+  agent-training-api:
+    build:
+      context: ./services/agent-training
+      dockerfile: Dockerfile
+    container_name: agent-training-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8097:8080"
+    environment:
+      - PORT=8080
+      - CORE_URL=http://hypercode-core:8000
+      - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - REDIS_URL=redis://redis:6379/1
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - API_KEY=${API_KEY:-dev-master-key}
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      - redis
+      - postgres
+      - hypercode-core
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - ./services/agent-training:/app
+      - agent-training-cache:/app/cache
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # Skill Repository — Central store for trained skills
+  skill-repository:
+    image: ${POSTGRES_IMAGE:-postgres:15-alpine}
+    container_name: skill-repository
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=skills
+      - POSTGRES_PASSWORD=${SKILL_REPO_PASSWORD:-skills-secure}
+      - POSTGRES_DB=skill_store
+    volumes:
+      - skill-repo-data:/var/lib/postgresql/data
+      - ./services/skill-repository/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skills"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  trae-sessions:
+    driver: local
+  trae-training-logs:
+    driver: local
+  agent-training-cache:
+    driver: local
+  skill-repo-data:
+    driver: local
