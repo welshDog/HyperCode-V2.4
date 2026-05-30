@@ -99,7 +99,7 @@ services:
     restart: unless-stopped
 
   loki:
-    image: ${LOKI_IMAGE:-grafana/loki:3.1.0}
+    image: ${LOKI_IMAGE:-grafana/loki:3.5.7}
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
@@ -111,7 +111,7 @@ services:
     restart: unless-stopped
 
   promtail:
-    image: ${PROMTAIL_IMAGE:-grafana/promtail:3.1.0}
+    image: ${PROMTAIL_IMAGE:-grafana/promtail:3.5.7}
     container_name: promtail
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -119,6 +119,16 @@ services:
     command: -config.file=/etc/promtail/promtail-config.yml
     networks:
       - backend-net
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -lc 'exec 3<>/dev/tcp/localhost/9080; echo -e \"GET /ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; head -n 1 <&3 | grep -q \"200\"'",
+        ]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
   cadvisor:
