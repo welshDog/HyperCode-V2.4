@@ -158,6 +158,35 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  pyroscope:
+    image: grafana/pyroscope:2.0.2
+    container_name: pyroscope
+    command: ["-config.file=/etc/pyroscope/config.yaml"]
+    volumes:
+      - ./monitoring/pyroscope/config.yaml:/etc/pyroscope/config.yaml
+      - pyroscope-data:/data
+    ports:
+      - "127.0.0.1:4040:4040"
+    networks:
+      - obs-net
+      - agents-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   promtail:
     image: ${PROMTAIL_IMAGE:-grafana/promtail:3.5.7}
     container_name: promtail
@@ -451,6 +480,12 @@ volumes:
       type: none
       o: bind
       device: ${HC_DATA_ROOT}/alertmanager
+  pyroscope-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/pyroscope
 
 networks:
   obs-net:

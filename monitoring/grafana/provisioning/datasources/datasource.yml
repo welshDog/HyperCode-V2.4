@@ -92,3 +92,10 @@ datasources:
       # Loki search fallback — find traces by log query
       lokiSearch:
         datasourceUid: loki
+
+  - name: Pyroscope
+    type: grafana-pyroscope-datasource
+    uid: pyroscope
+    url: http://pyroscope:4040
+    access: proxy
+    editable: true
