@@ -183,26 +183,20 @@ git commit -m "chore: upgrade Loki/Promtail to 3.5.7"
 
 **Files:**
 - Create:
-  - `docs/monitoring/DASHBOARDS_AS_CODE.md`
+  - `docs/OBSERVABILITY_DASHBOARDS_AS_CODE.md`
+- Modify:
+  - `docs/OBSERVABILITY_QUICK_START.md`
 - Verify:
   - New dashboards appear via provisioning after restart
 
 - [ ] **Step 1: Document the workflow you already have**
 
-Create `docs/monitoring/DASHBOARDS_AS_CODE.md` with:
-```md
-# Dashboards as Code (HyperCode)
-
-Source of truth:
-- monitoring/grafana/provisioning/dashboards/*.json
-
-How to add/update a dashboard:
-1) In Grafana UI, open the dashboard
-2) Dashboard settings → JSON model → Copy
-3) Save to monitoring/grafana/provisioning/dashboards/<name>.json
-4) Restart Grafana container (or wait for provisioning refresh)
-5) Commit the JSON change
-```
+Create `docs/OBSERVABILITY_DASHBOARDS_AS_CODE.md` describing:
+- Source of truth: `monitoring/grafana/provisioning/dashboards/*.json`
+- Provider config: `monitoring/grafana/provisioning/dashboards/dashboard.yml`
+- Workflow: edit in UI → export JSON → overwrite repo file → restart Grafana → commit
+- Validation: `python scripts/maintenance/grafana_provisioning_doctor.py`
+- Recovery pointer: `docs/grafana_provisioning_recovery.md`
 
 Notes:
 - This workflow works even if `github-sync` is unhealthy; `github-sync` only affects “auto-sync to vault/Obsidian”, not Grafana provisioning itself.
@@ -218,7 +212,7 @@ Expected: dashboard set remains intact on reload.
 - [ ] **Step 3: Commit**
 
 ```powershell
-git add docs/monitoring/DASHBOARDS_AS_CODE.md
+git add docs/OBSERVABILITY_DASHBOARDS_AS_CODE.md docs/OBSERVABILITY_QUICK_START.md
 git commit -m "docs: dashboards-as-code workflow"
 ```
 

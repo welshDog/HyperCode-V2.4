@@ -169,6 +169,9 @@ test_concurrent_load_100_req_sec PASSED                  [ 60%]
    - `Redis` — Connection counts, memory usage
    - `PostgreSQL` — Query latency, connections
 
+**Dashboards-as-code (recommended):**
+- Read: `docs/OBSERVABILITY_DASHBOARDS_AS_CODE.md`
+
 ### Common Queries
 
 **Latency (p95, p99):**
