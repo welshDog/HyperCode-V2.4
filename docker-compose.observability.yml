@@ -49,7 +49,7 @@ services:
         max-file: "3"
 
   grafana:
-    image: ${GRAFANA_IMAGE:-grafana/grafana:11.2.0}
+    image: ${GRAFANA_IMAGE:-grafana/grafana:13.0.1}
     container_name: grafana
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
