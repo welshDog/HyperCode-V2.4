@@ -1,5 +1,5 @@
 # ── Stage 1: Builder ──────────────────────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -71,7 +71,7 @@ RUN addgroup --system appuser && adduser --system --group appuser
 RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
     chown -R appuser:appuser /app/cache
 
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code LAST (most frequently changed layer)
