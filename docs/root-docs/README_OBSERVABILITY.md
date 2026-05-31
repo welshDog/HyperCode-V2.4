@@ -2,7 +2,8 @@
 
 **Status:** ✅ DEPLOYED — All files committed, ready for production use
 
-**Date:** 2024-03-23
+**Date:** 2024-03-23  
+**Last refresh:** 2026-05-31
 
 **Delivered by:** Gordon (Docker's AI assistant)
 
@@ -64,7 +65,7 @@
 ## Quick Commands
 
 ```bash
-cd HyperCode-V2.0
+cd HyperCode-V2.4
 
 # Start observability stack (5 min setup)
 make -f Makefile.observability observability-stack
@@ -91,7 +92,7 @@ make -f Makefile.observability help
 ## What's Deployed (7 New Files)
 
 ```
-HyperCode-V2.0/
+HyperCode-V2.4/
 ├── OBSERVABILITY_EXEC_SUMMARY.md          ← Start here (for executives)
 ├── OBSERVABILITY_QUICK_START.md           ← Start here (for operators)
 ├── OBSERVABILITY_DELIVERY_SUMMARY.md      ← Detailed breakdown + next steps

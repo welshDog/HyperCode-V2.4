@@ -1,8 +1,8 @@
 # 👁️ Observability & Monitoring Guide
 
-**Doc Tag:** v2.4.0 | **Last Updated:** 2026-04-09
+**Doc Tag:** v2.4.0 | **Last Updated:** 2026-05-31
 
-HyperCode V2.0 ships an observability stack built on **Prometheus**, **Grafana**, **Loki**, **Promtail**, and **Tempo**.
+HyperCode V2.4 ships an observability stack built on **Prometheus**, **Grafana**, **Loki**, **Promtail**, and **Tempo**.
 
 > **Dashboards**
 > *   **Grafana**: [http://localhost:3001](http://localhost:3001) (credentials via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`)
@@ -14,6 +14,12 @@ The system automatically scrapes metrics from all core services.
 
 ### Key Targets
 *   `hypercode-core:8000` (FastAPI Application Metrics)
+*   `grafana:3000` (Grafana Metrics)
+*   `loki:3100` (Loki Metrics)
+*   `tempo:3200` (Tempo Metrics)
+*   `promtail:9080` (Promtail Metrics)
+*   `pyroscope:4040` (Pyroscope Metrics)
+*   `crew-orchestrator:8080` (Crew Orchestrator Metrics)
 *   `celery-exporter:9808` (Celery Worker Metrics)
 *   `minio:9000` (Object Storage Metrics)
 *   `node-exporter:9100` (Host System Metrics)
@@ -35,7 +41,8 @@ Config locations in this repo:
 - `monitoring/prometheus/prometheus.yml`
 
 ### Dashboard Highlights
-*   **HyperStation Mission Control**: Real-time view of active agents, tasks, and system health.
+*   **HyperCode Mission Control**: Real-time view of core services, error rates, and system health.
+*   **HyperCode Ecosystem Launchpad**: Navigation hub for dashboards, Explore, alerting, and core tools.
 *   **Prometheus 2.0 Overview**: Deep dive into scrape targets and time series data.
 *   **Celery Overview**: Task success/failure rates, queue depth, and worker status.
 

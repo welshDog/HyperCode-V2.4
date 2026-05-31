@@ -8,12 +8,18 @@
 
 **Tech Stack:** Docker Compose, Grafana, Prometheus, Loki, Tempo, Promtail, (optional) Pyroscope, (optional) k6.
 
+**Status (2026-05-31):**
+- Task 1 complete (backups captured)
+- Task 2 complete (Grafana upgraded to 13.0.1)
+- Task 3 complete (Loki/Promtail upgraded to 3.5.7)
+- Monitoring coverage expanded (Prometheus scrapes + dashboards + alerts)
+
 ---
 
 ## Current State (known from repo)
 
 - Primary stacks:
-  - `docker-compose.observability.yml` (Grafana on `:3001`, Loki on `:3100`, Tempo on `:3200`)
+  - `docker-compose.core.yml` + `docker-compose.observability.yml` (Grafana on `:3001`, Loki on `:3100`, Tempo on `:3200`)
   - `docker-compose.monitoring.yml` (smaller monitoring set)
 - Current pins (defaults in compose):
   - Grafana: `grafana/grafana:11.2.0`
@@ -35,7 +41,7 @@
 Run (PowerShell, from repo root). This tells you which stack contains the `grafana` service:
 ```powershell
 cd h:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4
-docker compose -f docker-compose.observability.yml ps
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml ps
 docker compose -f docker-compose.monitoring.yml ps
 docker compose -f docker-compose.yml -f docker-compose.secrets.yml ps
 ```
@@ -101,8 +107,8 @@ Concrete target lines:
 
 Run (choose the compose file you actually use):
 ```powershell
-docker compose -f docker-compose.observability.yml pull grafana
-docker compose -f docker-compose.observability.yml up -d grafana
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml pull grafana
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml up -d grafana
 ```
 
 - [ ] **Step 3: Verify Grafana is healthy and on v13**
@@ -151,8 +157,8 @@ Edit both compose files:
 
 Run (choose the compose file you actually use):
 ```powershell
-docker compose -f docker-compose.observability.yml pull loki promtail
-docker compose -f docker-compose.observability.yml up -d loki promtail
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml pull loki promtail
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml up -d loki promtail
 ```
 
 - [ ] **Step 3: Verify readiness**
@@ -205,7 +211,7 @@ Notes:
 
 Run:
 ```powershell
-docker compose -f docker-compose.observability.yml restart grafana
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml restart grafana
 ```
 Expected: dashboard set remains intact on reload.
 

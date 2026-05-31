@@ -31,13 +31,13 @@
 ### Step 1: Start the Observability Stack
 
 ```bash
-cd HyperCode-V2.0
+cd HyperCode-V2.4
 
 # Spin up Prometheus, Loki, Grafana, Tempo
 make -f Makefile.observability observability-stack
 
 # Or manually:
-docker-compose up -d prometheus loki tempo grafana promtail node-exporter cadvisor
+docker compose -f docker-compose.core.yml -f docker-compose.observability.yml up -d prometheus loki tempo grafana promtail node-exporter cadvisor
 ```
 
 **Verify:**

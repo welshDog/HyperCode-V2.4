@@ -37,13 +37,13 @@ groups:
       summary: "Grafana is down"
       description: "Prometheus cannot scrape grafana /metrics for more than 1 minute."
 
-  - alert: GrafanaRestartLoop
+  - alert: GrafanaProcessRestartLoop
     expr: changes(process_start_time_seconds{job="grafana"}[10m]) > 3
     for: 2m
     labels:
       severity: critical
     annotations:
-      summary: "Grafana restart loop suspected"
+      summary: "Grafana process restart loop suspected"
       description: "Grafana process start time changed >3x in 10m."
 
   - alert: LokiDown
