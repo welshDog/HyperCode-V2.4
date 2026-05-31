@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 # ---------------------------------------------------------------------------
-# Logging setup — structured log lines that match error_handling.md Rule 4
+# Logging setup
 # ---------------------------------------------------------------------------
 
 LOG_FORMAT = "[%(asctime)s] [%(levelname)s] [%(step)s] %(error_code)s %(message)s"
@@ -44,11 +44,9 @@ def get_step_logger(step: str, log_path: Optional[Path] = None) -> StepLoggerAda
             fmt="[%(asctime)s] [%(levelname)s] [%(step)s] %(error_code)s %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
-        # Console handler
         ch = logging.StreamHandler()
         ch.setFormatter(formatter)
         logger.addHandler(ch)
-        # File handler if path provided
         if log_path:
             log_path.parent.mkdir(parents=True, exist_ok=True)
             fh = logging.FileHandler(log_path, mode="a", encoding="utf-8")
@@ -79,7 +77,6 @@ class CircuitBreaker:
             return False
         elapsed = time.time() - self._opened_at[operation]
         if elapsed >= self.recovery_timeout:
-            # Auto-recover — reset state
             self._failures.pop(operation, None)
             self._opened_at.pop(operation, None)
             return False
@@ -103,38 +100,39 @@ class CircuitBreaker:
 
 
 # ---------------------------------------------------------------------------
-# Error classification — maps exceptions to ops_taxonomy.json error codes
+# Error classification
 # ---------------------------------------------------------------------------
 
-# Retryable error codes (transient — network, timeout, rate limits)
+# Retryable (transient — network, timeout, rate limits)
 RETRYABLE_CODES = {
     "NETWORK_ERROR",
     "TIMEOUT",
-    "GH_002",   # GitHub rate limit
-    "GH_004",   # GitHub network timeout
-    "DC_003",   # Discord network timeout
-    "HC_003",   # Briefing API timeout
+    "GH_002",
+    "GH_004",
+    "DC_003",
+    "HC_003",
 }
 
 # Non-retryable (permanent until human fixes something)
 NON_RETRYABLE_CODES = {
-    "GH_001",   # Invalid token
-    "GH_003",   # No repo access
-    "DC_001",   # Invalid webhook URL
-    "DC_002",   # Webhook 401/403
-    "HC_001",   # Docker daemon down
-    "VC_001",   # Git not initialized
-    "VC_002",   # Git config missing
-    "BR_001",   # Vault path missing
-    "BR_003",   # Template missing
+    "GH_001",
+    "GH_003",
+    "DC_001",
+    "DC_002",
+    "HC_001",
+    "VC_001",
+    "VC_002",
+    "BR_001",
+    "BR_003",
+    "NOT_FOUND",       # FIX: 404s are permanent — don't retry
     "PERMISSION_DENIED",
+    "VALUE_ERROR",     # FIX: bad config / invalid URL — don't retry
 }
 
 
 def classify_exception(e: Exception, step: str = "") -> str:
     """Map an exception to a taxonomy error code."""
     msg = str(e).lower()
-    etype = type(e).__name__
 
     if "rate limit" in msg or "429" in msg:
         return "GH_002" if "github" in step else "RATE_LIMITED"
@@ -147,7 +145,11 @@ def classify_exception(e: Exception, step: str = "") -> str:
     if "404" in msg or "not found" in msg:
         if "github" in step:
             return "GH_003"
-        return "NOT_FOUND"
+        return "NOT_FOUND"      # FIX: briefing 404 maps here -> non-retryable
+    if "invalid or deleted" in msg or "dc_001" in msg:
+        return "DC_001"         # FIX: Discord bad webhook -> non-retryable
+    if isinstance(e, ValueError):
+        return "VALUE_ERROR"    # FIX: catches bad webhook URL raise
     if "timeout" in msg or "timed out" in msg:
         if "github" in step:
             return "GH_004"
@@ -219,29 +221,26 @@ class OperationHandler:
     ) -> tuple[bool, Any, Optional[str], dict]:
         """
         Execute `func` with retry + circuit breaker.
-
-        Returns:
-            (success, result, error_code, details)
+        Returns: (success, result, error_code, details)
         """
         start_time = time.monotonic()
 
-        # --- Circuit breaker check ---
         if self.circuit_breaker.is_open(operation_name):
             wait = self.circuit_breaker.time_until_retry(operation_name)
             code = f"{operation_name.upper()[:2]}_CIRCUIT_OPEN"
             self._log(operation_name, "warning", code,
-                      f"Circuit breaker OPEN — retry in {wait}s")
+                      f"Circuit breaker OPEN - retry in {wait}s")
             return False, None, code, {
                 "reason": "Circuit breaker open (repeated failures)",
                 "recovery_in_seconds": wait,
                 "duration_seconds": round(time.monotonic() - start_time, 3),
             }
 
-        self._log(operation_name, "info", "OPS_000",
-                  f"Starting {operation_name}")
+        self._log(operation_name, "info", "OPS_000", f"Starting {operation_name}")
 
         last_error_code = "UNKNOWN_ERROR"
         last_exception = None
+        attempt = 1
 
         for attempt in range(1, self.max_retries + 1):
             try:
@@ -249,7 +248,7 @@ class OperationHandler:
                 self.circuit_breaker.record_success(operation_name)
                 duration = round(time.monotonic() - start_time, 3)
                 self._log(operation_name, "info", "OPS_000",
-                          f"✅ Succeeded on attempt {attempt} ({duration}s)")
+                          f"OK Succeeded on attempt {attempt} ({duration}s)")
                 return True, result, None, {
                     "attempt": attempt,
                     "duration_seconds": duration,
@@ -263,16 +262,13 @@ class OperationHandler:
                 self._log(operation_name, "warning", last_error_code,
                           f"Attempt {attempt}/{self.max_retries} failed: {e}")
 
-                # Non-retryable → fail fast
                 if last_error_code in NON_RETRYABLE_CODES:
                     self._log(operation_name, "error", last_error_code,
-                              "Non-retryable error — stopping immediately")
+                              "Non-retryable error - stopping immediately")
                     break
 
-                # Retryable → back off and try again
                 if attempt < self.max_retries:
                     delay = self.retry_delays[min(attempt - 1, len(self.retry_delays) - 1)]
-                    # Honour Retry-After if available (GitHub rate limits)
                     retry_after = getattr(e, "retry_after", None)
                     if retry_after:
                         delay = float(retry_after)
@@ -280,10 +276,9 @@ class OperationHandler:
                               f"Retrying in {delay}s...")
                     time.sleep(delay)
 
-        # All attempts exhausted
         duration = round(time.monotonic() - start_time, 3)
         self._log(operation_name, "error", last_error_code,
-                  f"❌ All attempts failed ({duration}s)")
+                  f"FAILED All attempts failed ({duration}s)")
         return False, None, last_error_code, {
             "attempt": attempt,
             "duration_seconds": duration,
@@ -293,7 +288,7 @@ class OperationHandler:
 
 
 # ---------------------------------------------------------------------------
-# StepResult — structured output that feeds ops_status_template.json
+# StepResult
 # ---------------------------------------------------------------------------
 
 class StepResult:
@@ -303,10 +298,9 @@ class StepResult:
     """
 
     STATUS_MAP = {
-        # (success, has_partial) → (status_str, icon)
-        (True, False):  ("SUCCESS",  "✅"),
-        (True, True):   ("PARTIAL",  "⚠️"),
-        (False, False): ("FAILED",   "❌"),
+        (True, False):  ("SUCCESS",  "OK"),
+        (True, True):   ("PARTIAL",  "PARTIAL"),
+        (False, False): ("FAILED",   "FAILED"),
     }
 
     def __init__(
@@ -326,7 +320,7 @@ class StepResult:
         self.partial = partial
         self.extra = extra or {}
         status_key = (success, partial)
-        status_str, icon = self.STATUS_MAP.get(status_key, ("UNKNOWN", "❓"))
+        status_str, icon = self.STATUS_MAP.get(status_key, ("UNKNOWN", "UNKNOWN"))
         self.status = status_str
         self.icon = icon
 
@@ -348,16 +342,13 @@ class StepResult:
 
 
 # ---------------------------------------------------------------------------
-# OpsSession — orchestrates the full chain and builds the status object
+# OpsSession
 # ---------------------------------------------------------------------------
 
 class OpsSession:
     """
     Runs the full 5-step ops chain and produces the canonical
     ops-status.json output.
-
-    Steps run in order. Health check failure is the ONLY hard stop
-    (per error_handling.md Rule 1).
     """
 
     CHAIN = [
@@ -382,10 +373,6 @@ class OpsSession:
         partial_check: Callable = None,
         **kwargs,
     ) -> StepResult:
-        """
-        Run one step via OperationHandler and wrap in StepResult.
-        `partial_check(result)` → True if the result counts as partial.
-        """
         success, result, error_code, details = self.handler.execute(
             step, func, *args, **kwargs
         )
@@ -395,23 +382,23 @@ class OpsSession:
         return sr
 
     def build_status_object(self) -> dict:
-        """Produce the canonical ops-status.json dict."""
         all_ok = all(sr.success for sr in self.results.values())
         any_partial = any(sr.partial for sr in self.results.values())
         any_error = any(not sr.success for sr in self.results.values())
 
         if all_ok and not any_partial:
-            overall_status, overall_icon = "SUCCESS", "✅"
+            overall_status, overall_icon = "SUCCESS", "OK"
         elif any_error:
-            overall_status, overall_icon = "FAILED", "❌"
+            overall_status, overall_icon = "FAILED", "FAILED"
         else:
-            overall_status, overall_icon = "PARTIAL", "⚠️"
+            overall_status, overall_icon = "PARTIAL", "PARTIAL"
 
-        # Collect next_steps from failed/partial steps
         next_steps = []
         for step, sr in self.results.items():
             if sr.error_code:
-                next_steps.append(f"[{sr.error_code}] Fix {step}: {sr.details.get('error', 'see logs')}")
+                next_steps.append(
+                    f"[{sr.error_code}] Fix {step}: {sr.details.get('error', 'see logs')}"
+                )
 
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -427,9 +414,13 @@ class OpsSession:
         }
 
     def save_status(self, status: dict) -> Path:
-        """Write ops-status.json to output_dir."""
+        """Write ops-status.json — always UTF-8 to handle emoji-free ASCII output."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         out_path = self.output_dir / f"{date_str}-ops-status.json"
-        out_path.write_text(json.dumps(status, indent=2, ensure_ascii=False))
+        # FIX: explicit utf-8 encoding + ensure_ascii=True so Windows cp1252 never chokes
+        out_path.write_text(
+            json.dumps(status, indent=2, ensure_ascii=True),
+            encoding="utf-8"
+        )
         return out_path
