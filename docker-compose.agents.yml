@@ -1581,3 +1581,7 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+volumes:
+  github-sync-logs:
+    driver: local

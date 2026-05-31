@@ -55,12 +55,12 @@ services:
       - "com.hyperfocuszone.tier=brain"
       - "com.hyperfocuszone.version=3.0.0"
 
-  github-sync:
+  github-sync-brain:
     profiles: ["brain"]
     build:
       context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
       dockerfile: docker/Dockerfile.github-sync
-    container_name: github-sync
+    container_name: github-sync-brain
     environment:
       - GITHUB_PAT=${GITHUB_PAT}
       - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
@@ -92,7 +92,7 @@ services:
         max-size: "10m"
         max-file: "3"
     labels:
-      - "com.hyperfocuszone.service=github-sync"
+      - "com.hyperfocuszone.service=github-sync-brain"
       - "com.hyperfocuszone.tier=brain"
 
 networks:

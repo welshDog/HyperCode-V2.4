@@ -30,7 +30,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/mcp',     label: 'MCP' },
   { href: '/docker-zone', label: 'Docker Zone' },
   { href: '/health',  label: 'Health' },
-  { href: '/pricing', label: '💳 Pricing' },
+  { href: '/pricing', label: '📈 Grafana' },
 ]
 
 function getHyperBrainUrl(): string {
