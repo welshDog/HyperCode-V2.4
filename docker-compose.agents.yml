@@ -1537,8 +1537,8 @@ services:
   devops-engineer:
     profiles: ["agents"]
     build:
-      context: .
-      dockerfile: agents/05-devops-engineer/Dockerfile
+      context: ./agents/05-devops-engineer
+      dockerfile: Dockerfile
     container_name: devops-engineer
     environment:
       - CORE_URL=http://hypercode-core:8000
