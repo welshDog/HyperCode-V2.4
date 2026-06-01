@@ -924,8 +924,8 @@ services:
   crew-orchestrator:
     profiles: ["agents"]
     build:
-      context: ./agents/crew-orchestrator
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agents/crew-orchestrator/Dockerfile
     container_name: crew-orchestrator
     environment:
       - CORE_URL=http://hypercode-core:8000
@@ -1348,8 +1348,8 @@ services:
   frontend-specialist:
     profiles: ["agents"]
     build:
-      context: ./agents/01-frontend-specialist
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agents/01-frontend-specialist/Dockerfile
     container_name: frontend-specialist
     environment:
       - CORE_URL=http://hypercode-core:8000
@@ -1394,8 +1394,8 @@ services:
   backend-specialist:
     profiles: ["agents"]
     build:
-      context: ./agents/02-backend-specialist
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agents/02-backend-specialist/Dockerfile
     container_name: backend-specialist
     environment:
       - CORE_URL=http://hypercode-core:8000
@@ -1440,8 +1440,8 @@ services:
   database-architect:
     profiles: ["agents"]
     build:
-      context: ./agents/03-database-architect
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agents/03-database-architect/Dockerfile
     container_name: database-architect
     environment:
       - CORE_URL=http://hypercode-core:8000
@@ -1489,8 +1489,8 @@ services:
   qa-engineer:
     profiles: ["agents"]
     build:
-      context: ./agents/04-qa-engineer
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: agents/04-qa-engineer/Dockerfile
     container_name: qa-engineer
     environment:
       - CORE_URL=http://hypercode-core:8000
