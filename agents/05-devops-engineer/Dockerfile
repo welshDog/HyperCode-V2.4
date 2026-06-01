@@ -19,7 +19,7 @@ RUN apt-get update --allow-releaseinfo-change && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install Python dependencies (leverage cache)
-COPY agents/05-devops-engineer/requirements.txt .
+COPY requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
 
@@ -78,12 +78,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     rm -rf /wheels
 
 # Copy application code
-COPY agents/05-devops-engineer/agent.py .
-COPY agents/05-devops-engineer/base_agent.py .
-COPY agents/05-devops-engineer/config.json .
-
-# Copy Shared Modules (Evolution Protocol)
-COPY agents/shared /app/agents/shared
+COPY agent.py .
+COPY base_agent.py .
+COPY config.json .
 
 # Mount point for Hive Mind
 VOLUME ["/app/hive_mind"]
