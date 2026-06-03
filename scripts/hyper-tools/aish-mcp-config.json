@@ -1,0 +1,45 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/AIShell/main/schemas/mcp-config.schema.json",
+  "mcpServers": {
+    "hypercode-gateway": {
+      "description": "HyperCode V2.4 MCP Gateway — exposes all 32 agent tools to aish",
+      "transport": "http",
+      "url": "http://localhost:8823",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "timeout": 30,
+      "retries": 3,
+      "tags": ["hypercode", "agents", "monitoring"]
+    },
+    "hyper-tools-ps": {
+      "description": "BRO PowerShell tools — LogHunter, ProcessMonitor, ContainerWatch, Discord alerts",
+      "transport": "stdio",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-NonInteractive",
+        "-File",
+        "${workspaceFolder}/scripts/hyper-tools/PSAI-Register-Tools.ps1"
+      ],
+      "env": {
+        "HYPERCODE_MCP_URL": "http://localhost:8823",
+        "HYPERCODE_DASHBOARD": "http://127.0.0.1:8088",
+        "HYPERCODE_CORE": "http://127.0.0.1:8000"
+      },
+      "timeout": 15,
+      "tags": ["powershell", "monitoring", "bro-tools"]
+    }
+  },
+  "defaults": {
+    "timeout": 30,
+    "retries": 2,
+    "logLevel": "info"
+  },
+  "aish": {
+    "autoConnect": true,
+    "preferredServer": "hypercode-gateway",
+    "sessionPersistence": true,
+    "systemPromptAddition": "You are connected to HyperCode V2.4. The stack runs 32 Docker containers. Use run_full_health_check first when diagnosing issues. MCP gateway is at :8823. Never restart all containers at once — target specific ones."
+  }
+}
