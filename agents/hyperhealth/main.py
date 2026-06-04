@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sys
 import uuid
+import subprocess
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -104,8 +105,23 @@ def _get_session_factory():
 async def lifespan(app: FastAPI):
     log.info("hyperhealth.startup", environment=ENVIRONMENT)
     engine = _get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    
+    # Run Alembic migrations on startup
+    try:
+        result = subprocess.run(
+            ["alembic", "upgrade", "head"],
+            cwd=_HERE,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        if result.returncode == 0:
+            log.info("hyperhealth.migrations_completed")
+        else:
+            log.warning("hyperhealth.migrations_warning", stderr=result.stderr)
+    except Exception as e:
+        log.warning("hyperhealth.migrations_error", error=str(e))
+    
     log.info("hyperhealth.db_ready")
     await _ping_healer()
     yield
