@@ -1585,3 +1585,22 @@ services:
 volumes:
   github-sync-logs:
     driver: local
+
+# ====================================================================
+# NETWORKS — declare all networks used across services in this file.
+# frontend-net is created by docker-compose.core.yml (external here).
+# agents-net, data-net, obs-net, backend-net are also external —
+# they are owned by core.yml and shared across the stack.
+# BROski♾️
+# ====================================================================
+networks:
+  agents-net:
+    external: true
+  frontend-net:
+    external: true
+  data-net:
+    external: true
+  obs-net:
+    external: true
+  backend-net:
+    external: true
