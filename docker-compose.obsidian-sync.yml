@@ -23,8 +23,9 @@ services:
       - ./:/workspace
       - ./results:/workspace/results
       - ./rewrites:/workspace/rewrites
-      - ./vault:/workspace/vault
+      # Real Obsidian Brain vault — confirmed path on host
+      - /mnt/h/BROski-Obsidian-Brain-for-HyperFocus-z0ne:/workspace/vault
     restart: "no"
-    # No network needed — this is a one-shot git sync script.
-    # It reads local volume mounts and pushes to GitHub via HTTPS/SSH.
+    # No network needed — one-shot git sync script.
+    # Reads local volume mounts and pushes to GitHub via HTTPS/SSH.
     # BROski♾️
