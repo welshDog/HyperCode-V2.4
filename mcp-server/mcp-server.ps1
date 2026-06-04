@@ -1,5 +1,5 @@
 # ============================================================
-# 🔧 Lyndz MCP Server — DevOps + Supabase + Grafana Tools
+# 🔧 Lyndz MCP Server — DevOps + Supabase + Grafana + BROski$
 # ============================================================
 # Sacred Rules:
 #   - docker-ce-cli ONLY (never docker.io)
@@ -554,10 +554,253 @@ function get_loki_recent_logs {
 }
 
 # ============================================================
-# 🚀 REGISTER ALL 14 TOOLS — expose to AI Shell via MCP
+# SECTION 4 — BROski$ TOKEN ECONOMY TOOLS
+# ============================================================
+# Reads from Supabase views + RPC functions created by migration:
+#   broski_token_balances    view
+#   broski_leaderboard       view
+#   broski_economy_snapshot  view
+#   get_broski_balance()     DB function
+#   get_broski_tx_history()  DB function
+# ============================================================
+
+function get_broski_balance {
+    <#
+    .SYNOPSIS
+        Returns the BROski$ token balance for a Discord user.
+    .DESCRIPTION
+        Calls the Supabase RPC function get_broski_balance which reads
+        users.broski_tokens + member_state.coins and returns a unified wallet.
+        Also returns level, streak, and last_active.
+    .EXAMPLE
+        get_broski_balance -DiscordId "123456789012345678"
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, HelpMessage = "Discord snowflake ID")]
+        [string]$DiscordId
+    )
+
+    $url = $env:SUPABASE_URL
+    $key = $env:SUPABASE_KEY
+    if (-not $url -or -not $key) { return "ERROR: Supabase env vars not set." }
+
+    $headers = @{
+        "apikey"        = $key
+        "Authorization" = "Bearer $key"
+        "Content-Type"  = "application/json"
+    }
+
+    try {
+        $body     = @{ p_discord_id = $DiscordId } | ConvertTo-Json
+        $endpoint = "$url/rest/v1/rpc/get_broski_balance"
+        $result   = Invoke-RestMethod -Uri $endpoint -Headers $headers -Method POST -Body $body
+
+        if (-not $result) { return "No wallet found for Discord ID: $DiscordId" }
+        $result | ConvertTo-Json -Depth 3
+    } catch {
+        return "Balance lookup error: $_"
+    }
+}
+
+function get_broski_leaderboard {
+    <#
+    .SYNOPSIS
+        Returns the top BROski$ holders ranked by total balance.
+    .DESCRIPTION
+        Queries the broski_leaderboard view (rank, display_name, web2_balance,
+        economy_coins, total_broski, subscription_tier).
+    .EXAMPLE
+        get_broski_leaderboard -TopN 10
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $false, HelpMessage = "How many top users to return")]
+        [ValidateRange(1, 50)]
+        [int]$TopN = 10
+    )
+
+    $url = $env:SUPABASE_URL
+    $key = $env:SUPABASE_KEY
+    if (-not $url -or -not $key) { return "ERROR: Supabase env vars not set." }
+
+    $headers = @{
+        "apikey"        = $key
+        "Authorization" = "Bearer $key"
+    }
+
+    try {
+        $endpoint = "$url/rest/v1/broski_leaderboard?limit=$TopN"
+        $rows     = Invoke-RestMethod -Uri $endpoint -Headers $headers -Method GET
+        if (-not $rows) { return "No leaderboard data found." }
+        $rows | ConvertTo-Json -Depth 3
+    } catch {
+        return "Leaderboard error: $_"
+    }
+}
+
+function get_broski_tx_history {
+    <#
+    .SYNOPSIS
+        Returns unified BROski$ transaction history for a Discord user.
+    .DESCRIPTION
+        Calls the Supabase RPC function get_broski_tx_history which merges
+        token_transactions (Web2) + broski_transactions (Discord bot).
+        Returns source, amount, reason, and created_at for each tx.
+    .EXAMPLE
+        get_broski_tx_history -DiscordId "123456789012345678" -Limit 20
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, HelpMessage = "Discord snowflake ID")]
+        [string]$DiscordId,
+
+        [Parameter(Mandatory = $false, HelpMessage = "Max transactions to return")]
+        [ValidateRange(1, 100)]
+        [int]$Limit = 20
+    )
+
+    $url = $env:SUPABASE_URL
+    $key = $env:SUPABASE_KEY
+    if (-not $url -or -not $key) { return "ERROR: Supabase env vars not set." }
+
+    $headers = @{
+        "apikey"        = $key
+        "Authorization" = "Bearer $key"
+        "Content-Type"  = "application/json"
+    }
+
+    try {
+        $body     = @{ p_discord_id = $DiscordId; p_limit = $Limit } | ConvertTo-Json
+        $endpoint = "$url/rest/v1/rpc/get_broski_tx_history"
+        $result   = Invoke-RestMethod -Uri $endpoint -Headers $headers -Method POST -Body $body
+
+        if (-not $result) { return "No transactions found for Discord ID: $DiscordId" }
+        $result | ConvertTo-Json -Depth 3
+    } catch {
+        return "Transaction history error: $_"
+    }
+}
+
+function get_broski_economy_stats {
+    <#
+    .SYNOPSIS
+        Returns a full BROski$ economy health snapshot.
+    .DESCRIPTION
+        Queries the broski_economy_snapshot view — returns total users,
+        combined supply, 24h transaction counts + volume across Web2 and Discord.
+        Use this for economy health checks and dashboards.
+    .EXAMPLE
+        get_broski_economy_stats
+    #>
+    [CmdletBinding()]
+    param()
+
+    $url = $env:SUPABASE_URL
+    $key = $env:SUPABASE_KEY
+    if (-not $url -or -not $key) { return "ERROR: Supabase env vars not set." }
+
+    $headers = @{
+        "apikey"        = $key
+        "Authorization" = "Bearer $key"
+    }
+
+    try {
+        $endpoint = "$url/rest/v1/broski_economy_snapshot?limit=1"
+        $result   = Invoke-RestMethod -Uri $endpoint -Headers $headers -Method GET
+        if (-not $result) { return "Economy snapshot returned no data." }
+        $result | ConvertTo-Json -Depth 3
+    } catch {
+        return "Economy stats error: $_"
+    }
+}
+
+# ============================================================
+# SECTION 5 — FULL STACK HEALTH CHECK
+# ============================================================
+
+function get_full_health_check {
+    <#
+    .SYNOPSIS
+        Runs a full health check across the entire HyperCode stack.
+    .DESCRIPTION
+        Tests: Supabase REST API, Grafana, Prometheus, Loki,
+        BROski$ economy snapshot, and Docker container count.
+        Returns a unified pass/fail report for each service.
+        Run this after any deploy or reboot.
+    .EXAMPLE
+        get_full_health_check
+    #>
+    [CmdletBinding()]
+    param()
+
+    $url          = $env:SUPABASE_URL     ?? "https://yhtmuibgdnxhbgboajhc.supabase.co"
+    $key          = $env:SUPABASE_KEY
+    $grafanaUrl   = $env:GRAFANA_URL      ?? "http://127.0.0.1:3001"
+    $prometheusUrl = $env:PROMETHEUS_URL  ?? "http://127.0.0.1:9090"
+    $lokiUrl      = $env:LOKI_URL         ?? "http://127.0.0.1:3100"
+
+    $results = [System.Collections.Generic.List[PSCustomObject]]::new()
+
+    # Helper: ping an endpoint
+    function Test-Service($name, $uri, $headers = @{}) {
+        try {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $null = Invoke-RestMethod -Uri $uri -Headers $headers -Method GET -TimeoutSec 8
+            $sw.Stop()
+            return [PSCustomObject]@{ Service = $name; Status = "✅ OK"; Ms = $sw.ElapsedMilliseconds }
+        } catch {
+            return [PSCustomObject]@{ Service = $name; Status = "❌ FAIL"; Ms = 0; Error = "$_" }
+        }
+    }
+
+    # 1. Supabase REST
+    $sbHeaders = @{ "apikey" = $key; "Authorization" = "Bearer $key" }
+    $results.Add((Test-Service "Supabase REST" "$url/rest/v1/users?limit=1" $sbHeaders))
+
+    # 2. BROski$ economy snapshot
+    $results.Add((Test-Service "BROski$ Economy" "$url/rest/v1/broski_economy_snapshot?limit=1" $sbHeaders))
+
+    # 3. BROski leaderboard view
+    $results.Add((Test-Service "BROski Leaderboard" "$url/rest/v1/broski_leaderboard?limit=1" $sbHeaders))
+
+    # 4. Grafana
+    $grafHeaders = @{}
+    if ($env:GRAFANA_TOKEN) { $grafHeaders["Authorization"] = "Bearer $($env:GRAFANA_TOKEN)" }
+    $results.Add((Test-Service "Grafana" "$grafanaUrl/api/health" $grafHeaders))
+
+    # 5. Prometheus
+    $results.Add((Test-Service "Prometheus" "$prometheusUrl/-/healthy"))
+
+    # 6. Loki
+    $results.Add((Test-Service "Loki" "$lokiUrl/ready"))
+
+    # 7. Docker container count
+    try {
+        $running = (docker ps --format "{{.Names}}" 2>$null | Measure-Object -Line).Lines
+        $results.Add([PSCustomObject]@{ Service = "Docker"; Status = "✅ OK"; Ms = 0; Running = "$running containers" })
+    } catch {
+        $results.Add([PSCustomObject]@{ Service = "Docker"; Status = "❌ FAIL"; Ms = 0; Error = "docker not reachable" })
+    }
+
+    # Summary
+    $pass = ($results | Where-Object { $_.Status -like "*OK*" } | Measure-Object).Count
+    $fail = ($results | Where-Object { $_.Status -like "*FAIL*" } | Measure-Object).Count
+
+    [PSCustomObject]@{
+        Timestamp   = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+        Passed      = $pass
+        Failed      = $fail
+        Overall     = if ($fail -eq 0) { "🟢 ALL SYSTEMS GO" } else { "🔴 $fail SERVICE(S) DOWN" }
+        Services    = $results
+    } | ConvertTo-Json -Depth 5
+}
+
+# ============================================================
+# 🚀 REGISTER ALL 19 TOOLS — expose to AI Shell via MCP
 # ============================================================
 New-MCPServer -FunctionInfo @(
-    # DevOps Tools
+    # Section 1 — DevOps (6)
     (Get-Item Function:get_docker_status),
     (Get-Item Function:get_log_tail),
     (Get-Item Function:test_endpoint_health),
@@ -565,15 +808,24 @@ New-MCPServer -FunctionInfo @(
     (Get-Item Function:get_system_resources),
     (Get-Item Function:list_directory),
 
-    # Supabase Tools
+    # Section 2 — Supabase (4)
     (Get-Item Function:query_supabase_table),
     (Get-Item Function:get_supabase_table_list),
     (Get-Item Function:check_supabase_recent_payments),
     (Get-Item Function:get_supabase_auth_stats),
 
-    # Grafana / Observability Tools
+    # Section 3 — Grafana / Observability (4)
     (Get-Item Function:get_grafana_alerts),
     (Get-Item Function:get_grafana_datasource_health),
     (Get-Item Function:query_prometheus_metric),
-    (Get-Item Function:get_loki_recent_logs)
+    (Get-Item Function:get_loki_recent_logs),
+
+    # Section 4 — BROski$ Token Economy (4)
+    (Get-Item Function:get_broski_balance),
+    (Get-Item Function:get_broski_leaderboard),
+    (Get-Item Function:get_broski_tx_history),
+    (Get-Item Function:get_broski_economy_stats),
+
+    # Section 5 — Health Check (1)
+    (Get-Item Function:get_full_health_check)
 )
