@@ -50,6 +50,12 @@ try:
 except ImportError:
     from config import settings
 
+# Import result writer for vault sync
+try:
+    from .result_writer import write_and_sync
+except ImportError:
+    from result_writer import write_and_sync
+
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
@@ -538,6 +544,7 @@ async def execute_task(
         agents_to_run = [task.agent]
 
     results = {}
+    _t_start = perf_counter()
 
     # Update progress
     if redis_client:
@@ -642,7 +649,36 @@ async def execute_task(
             json.dumps({"event": "broski_event_published", "task_id": task.id})
         )
 
-    return {"status": "completed", "message": "Workflow finished", "results": results}
+    # ── Post-run: write results + trigger Obsidian vault sync ─────────────────
+    _duration = perf_counter() - _t_start
+    obsidian_sync_info: dict = {"status": "skipped"}
+    try:
+        obsidian_sync_info = await write_and_sync(
+            result=results,
+            task_id=task.id,
+            agents=list(results.keys()),
+            duration_seconds=_duration,
+        )
+        logger.info(
+            json.dumps({
+                "event": "obsidian_sync",
+                "task_id": task.id,
+                "sync_result": obsidian_sync_info.get("sync_result"),
+            })
+        )
+    except Exception as _sync_exc:
+        # Vault sync is non-blocking — never fail the API response
+        logger.warning(
+            json.dumps({"event": "obsidian_sync_failed", "reason": str(_sync_exc)})
+        )
+        obsidian_sync_info = {"status": "error", "reason": str(_sync_exc)}
+
+    return {
+        "status": "completed",
+        "message": "Workflow finished",
+        "results": results,
+        "obsidian_sync": obsidian_sync_info,
+    }
 
 
 @app.post("/task")
@@ -1008,32 +1044,23 @@ async def health_check():
 @app.get("/agents")
 async def get_agents(api_key: str = Depends(require_api_key)):
     """Get status of all agents"""
-    # In a real system, we'd query Prometheus or Docker
-    # For now, we return the configured agents with 'idle' status
-    # unless we track them in Redis
-
     agents_list = []
     for key in settings.enabled_agent_keys():
         url = settings.agents[key]
-        # Clean up name
         name = key.replace("_", " ").title()
         role = key.split("_")[-1].title() if "_" in key else "Agent"
 
-        # Check Redis for status if available
         status = "idle"
         cpu = 0
         ram = 0
 
         if redis_client:
-            # Check if agent is busy
-            # This key would be set during execution
             current_task = await redis_client.get(f"agent:{key}:current_task")
             if current_task:
                 status = "working"
-                cpu = 45 + (len(name) * 2)  # Mock variation
+                cpu = 45 + (len(name) * 2)
                 ram = 30 + (len(name) * 3)
             else:
-                # Mock idle stats
                 cpu = 1 + (len(name) % 5)
                 ram = 10 + (len(name) % 10)
 
@@ -1058,7 +1085,6 @@ async def get_tasks(api_key: str = Depends(require_api_key)):
     if not redis_client:
         return []
 
-    # Get last 10 tasks from a list
     task_ids = await redis_client.lrange("tasks:history", 0, 9)
     tasks = []
 
@@ -1076,14 +1102,11 @@ async def get_logs(api_key: str = Depends(require_api_key)):
     if not redis_client:
         return []
 
-    # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
 
 
-# ── WebSocket event stream ────────────────────────────────────────────────────
-# Subscribes to Redis pub/sub channels and broadcasts all agent activity to
-# connected dashboard clients in real time.
+# ── WebSocket event stream ────────────────────────────────────────────────────────────────────────────
 
 _ws_clients: set[WebSocket] = set()
 
@@ -1136,7 +1159,6 @@ async def ws_events(websocket: WebSocket):
     await websocket.accept()
     _ws_clients.add(websocket)
 
-    # Send the last 20 log entries as initial state
     if redis_client:
         try:
             recent = await redis_client.lrange("logs:global", 0, 19)
@@ -1152,12 +1174,9 @@ async def ws_events(websocket: WebSocket):
             pass
 
     try:
-        # Keep the connection open; client pings keep it alive
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         pass
     finally:
         _ws_clients.discard(websocket)
-
-
