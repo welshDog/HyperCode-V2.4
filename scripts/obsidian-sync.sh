@@ -14,6 +14,10 @@ SKILL_VERSION="${SKILL_VERSION:-1}"
 
 mkdir -p "$REPO_DIR" "$RESULTS_DIR" "$HANDOVER_DIR"
 
+# ── SSH auth ────────────────────────────────────────────────────────────────
+# Trust GitHub host key inside the alpine container (no interactive prompt)
+ssh-keyscan -H github.com >> /root/.ssh/known_hosts 2>/dev/null || true
+
 cd "$REPO_DIR"
 
 if [ ! -d ".git" ]; then
@@ -59,13 +63,25 @@ A/B test complete.
 Promote winner after human check.
 EOF
 
-SESSION_NOTE="${REPO_DIR}/${SESSION_NOTE_PREFIX}_${STAMP_UTC}.md"
-SKILL_FILE="${REPO_DIR}/${SKILL_CATEGORY}${SKILL_FILE_BASENAME}v${SKILL_VERSION}.md"
-HANDOVER_FILE="${HANDOVER_DIR}/NEXTSESSIONHANDOVER${DATE_UTC}.md"
+# ── PARA-correct vault paths ─────────────────────────────────────────────────
+# Sacred rule: NEVER dump notes in vault root. BROski♾️
+SESSION_NOTES_DIR="${REPO_DIR}/HYPERFOCUS_ZONE/05-Focus-Sessions"
+SKILL_DIR="${REPO_DIR}/HYPERFOCUS_ZONE/03-Resources/Agent-YAMLs"
+INBOX_DIR="${REPO_DIR}/HYPERFOCUS_ZONE/00-Inbox"
+
+mkdir -p "$SESSION_NOTES_DIR" "$SKILL_DIR" "$INBOX_DIR"
+
+SESSION_NOTE="${SESSION_NOTES_DIR}/${SESSION_NOTE_PREFIX}_${STAMP_UTC}.md"
+SKILL_FILE="${SKILL_DIR}/${SKILL_FILE_BASENAME}v${SKILL_VERSION}.md"
+HANDOVER_FILE="${INBOX_DIR}/NEXTSESSIONHANDOVER_${DATE_UTC}.md"
 
 cat > "$SESSION_NOTE" <<EOF
 ---
-TITLE ${SESSION_NOTE_PREFIX} ${STAMP_UTC}
+created: ${DATE_UTC}
+tags: [hyperagent, sync, focus-session]
+status: active
+project: HyperCode-V2.4
+priority: medium
 ---
 
 # ${SESSION_NOTE_PREFIX} ${STAMP_UTC}
@@ -152,5 +168,5 @@ git push origin "$DEFAULT_BRANCH"
 
 echo "Nice one BROski\u267e\ufe0f! Vault sync complete."
 echo "Session note: $SESSION_NOTE"
-echo "Skill file: $SKILL_FILE"
-echo "Handover: $HANDOVER_FILE"
+echo "Skill file:   $SKILL_FILE"
+echo "Handover:     $HANDOVER_FILE"

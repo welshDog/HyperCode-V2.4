@@ -25,7 +25,9 @@ services:
       - ./rewrites:/workspace/rewrites
       # Real Obsidian Brain vault — confirmed path on host
       - /mnt/h/BROski-Obsidian-Brain-for-HyperFocus-z0ne:/workspace/vault
+      # Windows SSH keys — no WSL SSH folder, mount from host
+      - /mnt/c/Users/Lyndz/.ssh:/root/.ssh:ro
     restart: "no"
     # No network needed — one-shot git sync script.
-    # Reads local volume mounts and pushes to GitHub via HTTPS/SSH.
+    # Reads local volume mounts and pushes to GitHub via SSH.
     # BROski♾️
