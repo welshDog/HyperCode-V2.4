@@ -1,6 +1,9 @@
 #!/bin/sh
 set -eu
 
+# ── Install deps (alpine has neither git nor ssh by default) ────────────
+apk add --no-cache git openssh-client 2>/dev/null
+
 DATE_UTC="$(date -u +%Y-%m-%d)"
 STAMP_UTC="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
 REPO_DIR="${OBSIDIAN_REPO_DIR:-/workspace/vault}"
@@ -15,7 +18,13 @@ SKILL_VERSION="${SKILL_VERSION:-1}"
 mkdir -p "$REPO_DIR" "$RESULTS_DIR" "$HANDOVER_DIR"
 
 # ── SSH auth ────────────────────────────────────────────────────────────────
-# Trust GitHub host key inside the alpine container (no interactive prompt)
+# Copy SSH keys from read-only host mount to writable location
+mkdir -p /root/.ssh
+cp /root/.ssh-host/id_ed25519 /root/.ssh/id_ed25519
+cp /root/.ssh-host/id_ed25519.pub /root/.ssh/id_ed25519.pub
+chmod 700 /root/.ssh
+chmod 600 /root/.ssh/id_ed25519
+# Trust GitHub host key — no interactive prompt
 ssh-keyscan -H github.com >> /root/.ssh/known_hosts 2>/dev/null || true
 
 cd "$REPO_DIR"
