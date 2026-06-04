@@ -23,11 +23,10 @@ services:
       - ./:/workspace
       - ./results:/workspace/results
       - ./rewrites:/workspace/rewrites
-      # Real Obsidian Brain vault — confirmed path on host
-      - /mnt/h/BROski-Obsidian-Brain-for-HyperFocus-z0ne:/workspace/vault
-      # Windows SSH keys — no WSL SSH folder, mount from host
-      - /mnt/c/Users/Lyndz/.ssh:/root/.ssh:ro
+      # Vault cloned to WSL Linux filesystem (avoids NTFS permission issues on H:)
+      - /home/lyndz/BROski-Obsidian-Brain-for-HyperFocus-z0ne:/workspace/vault
+      # SSH keys from WSL home — script copies to writable temp dir
+      - /home/lyndz/.ssh:/root/.ssh-host:ro
     restart: "no"
     # No network needed — one-shot git sync script.
-    # Reads local volume mounts and pushes to GitHub via SSH.
     # BROski♾️
