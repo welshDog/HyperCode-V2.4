@@ -2,7 +2,6 @@ services:
   obsidian-sync:
     image: alpine:3.20
     container_name: obsidian-sync
-    profiles: ["agents"]
     working_dir: /workspace
     entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
     environment:
@@ -25,11 +24,7 @@ services:
       - ./results:/workspace/results
       - ./rewrites:/workspace/rewrites
       - ./vault:/workspace/vault
-    networks:
-      - agents-net
     restart: "no"
-    command: []
-
-networks:
-  agents-net:
-    external: true
+    # No network needed — this is a one-shot git sync script.
+    # It reads local volume mounts and pushes to GitHub via HTTPS/SSH.
+    # BROski♾️
