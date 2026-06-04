@@ -6,12 +6,9 @@ services:
     entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
     environment:
       TZ: Europe/London
-      # Ephemeral workspace — fresh clone every run
       WORKSPACE_DIR: /workspace/sync-env
-      # Read-only input from HyperAgent loop
       RESULTS_DIR: /results
       HANDOVER_DIR: /handovers
-      # Target vault repo — full name
       VAULT_REPO: ${VAULT_REPO:-git@github.com:welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne.git}
       DEFAULT_BRANCH: ${DEFAULT_BRANCH:-main}
       GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-BROski Bot}
@@ -23,22 +20,19 @@ services:
       SKILL_CATEGORY: ${SKILL_CATEGORY:-agents}
       SKILL_FILE_BASENAME: ${SKILL_FILE_BASENAME:-HYPERAGENTLOOPSYNC}
       SKILL_VERSION: ${SKILL_VERSION:-1}
-      # Optional DRY_RUN mode (true = no push)
       DRY_RUN: ${DRY_RUN:-false}
     volumes:
       # Scripts — entrypoint needs this
       - ./scripts:/workspace/scripts:ro
-      # SSH keys from host — mounted read-only, script copies to writable /root/.ssh
+      # SSH keys from host — read-only, script copies to writable /root/.ssh
       - ~/.ssh:/root/.ssh-host:ro
-      # Results from HyperAgent loop — read-only
-      - ./results:/results:ro
-      # Handover notes — read-only
-      - ./rewrites:/handovers:ro
-      # Ephemeral workspace — persists across runs in same volume
+      # Results + handovers — writable so placeholders can be created
+      - ./results:/results
+      - ./rewrites:/handovers
+      # Ephemeral workspace
       - obsidian-sync-workspace:/workspace/sync-env
     restart: "no"
-    # No network needed — one-shot stateless sync.
-    # BROski♾️
+    # No network needed — one-shot stateless sync. BROski♾️
 
 volumes:
   obsidian-sync-workspace:
