@@ -23,8 +23,8 @@ services:
       - ./:/workspace
       - ./results:/workspace/results
       - ./rewrites:/workspace/rewrites
-      # Vault cloned to WSL Linux filesystem (avoids NTFS permission issues on H:)
-      - /home/lyndz/BROski-Obsidian-Brain-for-HyperFocus-z0ne:/workspace/vault
+      # Vault cloned into ./vault — Docker Desktop can see this path directly
+      - ./vault:/workspace/vault
       # SSH keys from WSL home — script copies to writable temp dir
       - /home/lyndz/.ssh:/root/.ssh-host:ro
     restart: "no"
