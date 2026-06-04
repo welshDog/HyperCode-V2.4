@@ -2,13 +2,17 @@ services:
   obsidian-sync:
     image: alpine:3.20
     container_name: obsidian-sync
-    working_dir: /workspace
+    working_dir: /workspace/sync-env
     entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
     environment:
       TZ: Europe/London
-      OBSIDIAN_REPO_DIR: /workspace/vault
-      RESULTS_DIR: /workspace/results
-      HANDOVER_DIR: /workspace/rewrites
+      # Ephemeral workspace — fresh clone every run
+      WORKSPACE_DIR: /workspace/sync-env
+      # Read-only input from HyperAgent loop
+      RESULTS_DIR: /results
+      HANDOVER_DIR: /handovers
+      # Target vault repo
+      VAULT_REPO: ${VAULT_REPO:-git@github.com:welshDog/BROski-Obsidian-Brain.git}
       DEFAULT_BRANCH: ${DEFAULT_BRANCH:-main}
       GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-BROski Bot}
       GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-broski-bot@hyperfocus.zone}
@@ -19,14 +23,21 @@ services:
       SKILL_CATEGORY: ${SKILL_CATEGORY:-agents}
       SKILL_FILE_BASENAME: ${SKILL_FILE_BASENAME:-HYPERAGENTLOOPSYNC}
       SKILL_VERSION: ${SKILL_VERSION:-1}
+      # Optional DRY_RUN mode (true = no push)
+      DRY_RUN: ${DRY_RUN:-false}
     volumes:
-      - ./:/workspace
-      - ./results:/workspace/results
-      - ./rewrites:/workspace/rewrites
-      # Vault cloned into ./vault — Docker Desktop can see this path directly
-      - ./vault:/workspace/vault
-      # SSH keys from WSL home — script copies to writable temp dir
-      - /home/lyndz/.ssh:/root/.ssh-host:ro
+      # SSH keys from host — mounted read-only
+      - ~/.ssh:/home/sync/.ssh:ro
+      # Results from HyperAgent loop — read-only
+      - ${RESULTS_DIR:-.}/results:/results:ro
+      # Handover notes — read-only
+      - ${HANDOVERS_DIR:-.}/rewrites:/handovers:ro
+      # Ephemeral workspace — persists across runs of the same container
+      - obsidian-sync-workspace:/workspace/sync-env
     restart: "no"
-    # No network needed — one-shot git sync script.
+    # No network needed — one-shot stateless sync.
     # BROski♾️
+
+volumes:
+  obsidian-sync-workspace:
+    driver: local
