@@ -1,0 +1,15 @@
+{
+  "watch_dir": ".",
+  "dockerfile": "Dockerfile",
+  "image_name": "myapp:dev",
+  "container_name": "myapp-dev",
+  "ports": {
+    "8000/tcp": 8000
+  },
+  "volumes": {
+    "/app": {
+      "bind": "/app",
+      "mode": "rw"
+    }
+  }
+}
