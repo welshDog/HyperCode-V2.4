@@ -8,9 +8,11 @@
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![CI](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/ci.yml)
+[![Health Check](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/health-check.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/health-check.yml)
 [![Docker Build](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/docker.yml)
 [![Version](https://img.shields.io/badge/version-2.4.2-blue)](docs/CHANGELOG.md)
-[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2032%2F32-brightgreen)](WHATS_DONE.md)
+[![System Health](https://img.shields.io/badge/health-GREEN%20🟢%2048%2F48-brightgreen)](WHATS_DONE.md)
+[![Containers](https://img.shields.io/badge/containers-48%20running-brightgreen)](PORT_MAP_COMPLETE.md)
 [![Sponsor on GitHub](https://img.shields.io/badge/Sponsor-💙%20BROski%20Labs-pink)](https://github.com/sponsors/welshDog)
 [![Contributing](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
@@ -27,7 +29,7 @@
 </div>
 
 **Docs Status:** Active  
-**Docs Last Updated:** 2026-04-20  
+**Docs Last Updated:** 2026-06-06  
 **Applies To:** HyperCode v2.4.2
 
 ## 🧠 What Is HyperCode V2.4?
@@ -51,7 +53,7 @@ This was built for a specific kind of mind: **ADHD, dyslexic, and autistic devel
 
 ## 💙 Support This Project
 
-HyperCode is built and maintained by a solo neurodivergent developer in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿 — built in hyperfocus, with a family of 6 depending on it.
+HyperCode is built and maintained by a solo neurodivergent developer in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁥 — built in hyperfocus, with a family of 6 depending on it.
 
 > *"You built the future people keep saying they want."* — Gordon (Docker AI), Grade A review
 
@@ -70,30 +72,31 @@ Every sponsor directly helps keep the lights on, the agents running, and new lab
 The **Hyper-Vibe Coding Course** walks you through the entire HyperCode stack — from a blank Docker Compose file to a working self-healing AI infra lab with full observability, Stripe payments, and a token economy.
 
 - 🧠 Built for neurodivergent learners — chunked, pattern-based, no fluff
-- 🐳 Run the full 32-container lab on your own machine
+- 🐳 Run the full 48-container lab on your own machine
 - 📡 Wire Prometheus, Grafana, Loki, and Tempo like an SRE
 - 🤖 Build agents that heal broken services automatically
 - 💳 Ship a working Stripe + BROski token economy end-to-end
 
 **[→ Start the Hyper-Vibe Coding Course](https://github.com/welshDog/Hyper-Vibe-Coding-Course)**
 
-*Course income directly supports this repo and my family. Thank you. 🏴󠁧󠁢󠁷󠁬󠁳󠁿*
+*Course income directly supports this repo and my family. Thank you. 🏴󠁧󠁢󠁷󠁬󠁳󠁥*
 
 ---
 
-## 🟢 Live System Status — April 2026
+## 🟢 Live System Status — June 2026
 
-> 32/32 containers healthy · Stripe payments LIVE · CognitiveUplink WS LIVE
+> 48/48 containers healthy · Stripe payments LIVE · CognitiveUplink WS LIVE · Sacred Rules CI ✅
 
 | Category | Grade | Status |
 |---|---|---|
-| 🐳 Infrastructure | 100% | 32/32 containers healthy |
+| 🐳 Infrastructure | 100% | 48/48 containers healthy |
 | 🤖 Agent Crew | All online | Agent X, Crew Orchestrator, Healer, all specialists |
 | 📡 Observability | A+ | Prometheus + Grafana + Loki + Tempo live |
 | 🔐 Security | A+ | Non-root, cap drops, Trivy scanning, network isolation |
 | 🧬 Autonomy | A+ | Self-healing, CognitiveUplink WS, agent evolution |
 | 💳 Payments | LIVE | Stripe Checkout + webhook handler + DB writes |
 | 🔌 WebSocket | LIVE | `/ws/uplink` CognitiveUplink → Crew Orchestrator |
+| 💚 CI Health Check | ✅ PASSING | Sacred Rules lint + .env guard + compose validation |
 
 ```bash
 # Start the full stack
@@ -230,8 +233,8 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 > **New:** HyperCode now features an **Evolutionary Pipeline** that allows agents to upgrade themselves autonomously! See [docs/guides/EVOLUTIONARY_PIPELINE_SETUP.md](docs/guides/EVOLUTIONARY_PIPELINE_SETUP.md) to learn more.
 
 ### Prerequisites
-- Docker Desktop
-- Windows PowerShell
+- Docker Desktop (docker-ce-cli)
+- Windows PowerShell or Linux/Mac terminal
 
 ### Installation
 
@@ -244,7 +247,7 @@ Agent X is a meta-agent system designed to architect, implement, and deploy spec
 2. **Configure Environment**
    ```powershell
    cp .env.example .env
-   # Edit .env and add your API keys (PERPLEXITY/OpenAI)
+   # Edit .env and add your API keys — NEVER commit .env!
    ```
 
 3. **Validate your .env before launch**
@@ -307,22 +310,21 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed system design.
 
 Check the latest system health report: [STATUS_REPORT.md](STATUS_REPORT.md)
 
+[![Health Check](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/health-check.yml/badge.svg)](https://github.com/welshDog/HyperCode-V2.4/actions/workflows/health-check.yml)
+
 ---
 
 ## 📚 Documentation
 
 | Document | What's Inside |
 |---|---|
-| [STATUS_REPORT.md](STATUS_REPORT.md) | 🆕 Live infrastructure health + agent status (April 2026) |
-| [README_HEALTH_REPORTS.md](docs/root-docs/README_HEALTH_REPORTS.md) | System health report format + agent status logs |
-| [README_INFRASTRUCTURE_UPGRADE.md](docs/root-docs/README_INFRASTRUCTURE_UPGRADE.md) | Infrastructure upgrade guide |
-| [README_OBSERVABILITY.md](docs/root-docs/README_OBSERVABILITY.md) | Grafana + Prometheus setup + alerting |
-| [SUPER_HYPER_BROSKI_AGENT_README.md](docs/SUPER_HYPER_BROSKI_AGENT_README.md) | Super Hyper BROski Agent guide |
-| [QUICKSTART.md](QUICKSTART.md) | Fast setup guide |
+| [STATUS_REPORT.md](STATUS_REPORT.md) | 🆕 Live infrastructure health + agent status (June 2026) |
+| [QUICKSTART.md](QUICKSTART.md) | ⚡ Fast 5-step setup guide |
 | [START_HERE.md](START_HERE.md) | MCP Gateway + Model Runner |
 | [RUNBOOK.md](RUNBOOK.md) | Stack won't boot? Fix it here |
-| [TESTING_GUIDE.md](docs/TESTING_GUIDE.md) | Unit/integration/e2e test commands (Playwright included) |
 | [SECURITY.md](SECURITY.md) | Security policy and audit artifacts |
+| [WHATS_DONE.md](WHATS_DONE.md) | Completed features tracker |
+| [PORT_MAP_COMPLETE.md](PORT_MAP_COMPLETE.md) | All 48 container ports |
 
 *   [Architecture Overview](docs/ARCHITECTURE.md) · [CLI Manual](docs/CLI.md) · [API Reference](docs/API.md)
 *   [Troubleshooting](docs/TROUBLESHOOTING.md) · [Tips & Tricks](docs/tips-and-tricks/README.md)
@@ -334,7 +336,7 @@ Check the latest system health report: [STATUS_REPORT.md](STATUS_REPORT.md)
 
 ```
 backend/          FastAPI core — API, auth, Stripe, BROski$ engine
-agents/           All 25+ built-in HyperCode agents
+agents/           All 48 built-in HyperCode agents
 services/         Microservice helpers (memstream, healer-api, etc.)
 cli/              Command-line tools for the HyperCode platform
 monitoring/       Prometheus + alertmanager rules (active config here)
@@ -346,38 +348,10 @@ secrets/          Local-only Docker secrets — gitignored, never committed
 
 hyperlaunch.py    Main launcher script (Python)
 hyperlaunch.sh    Main launcher script (Bash)
-docker-compose.yml              Full 29-service production stack
+docker-compose.yml              Full 48-service production stack
 docker-compose.secrets.yml      Secrets injection layer
+compose-config.yaml             Profile definitions + Sacred Rules config
 ```
-
-> Docker compose file guide: [docs/DOCKER_PROFILES.md](docs/DOCKER_PROFILES.md)
-
----
-
-## 📖 Recommended Reading Order
-
-New here? Read in this order:
-
-| Step | Doc | What you get |
-|---|---|---|
-| 1 | [START_HERE.md](START_HERE.md) | High-level overview + MCP/Model Runner setup |
-| 2 | [docs/HYPERCODE_SUMMARY.md](docs/HYPERCODE_SUMMARY.md) | What HyperCode actually is |
-| 3 | [docs/PROJECT_REPORT.md](docs/PROJECT_REPORT.md) | Current state of the platform |
-| 4 | [docs/ULTIMATE_HEALTH_REPORT_2026-04-01.md](docs/ULTIMATE_HEALTH_REPORT_2026-04-01.md) | System health deep-dive |
-| 5 | [docs/SUPER_HYPER_BROSKI_AGENT_README.md](docs/SUPER_HYPER_BROSKI_AGENT_README.md) | The agents layer |
-| 6 | [docs/INDEX.md](docs/INDEX.md) | Full docs navigation |
-
----
-
-## 🌐 The Ecosystem
-
-HyperCode V2.4 is the platform. It connects to two sibling repos:
-
-| Repo | What it is | Link |
-|---|---|---|
-| **HyperCode V2.4** (this repo) | The platform — Docker stack, agents, API, observability | You're here |
-| **HyperAgent-SDK** | The agent kit — build agents with `@w3lshdog/hyper-agent` | [github.com/welshDog/HyperAgent-SDK](https://github.com/welshDog/HyperAgent-SDK) |
-| **Hyper-Vibe-Coding-Course** | The learning layer — courses, lessons, Supabase + Vercel | [github.com/welshDog/Hyper-Vibe-Coding-Course](https://github.com/welshDog/Hyper-Vibe-Coding-Course) |
 
 ---
 
@@ -443,7 +417,7 @@ See the [LICENSE](LICENSE) file for full details.
 
 <div align="center">
 
-**Built with 🧠 + ❤️ + ♾ in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿**
+**Built with 🧠 + ❤️ + ♾ in Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁥**
 
 *by [@welshDog](https://github.com/welshDog) — Lyndz Williams*
 
