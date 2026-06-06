@@ -2,7 +2,7 @@
 > **For ANY AI assistant — Claude, Perplexity, GPT, Gemini — read this first. Every word.**
 > Last updated: **May 19, 2026**
 > Promoted from `Merge_CLAUDE.md` → canonical root `CLAUDE.md` (auto-loaded every session).
-> Status: V2.4 ~30 containers running 🟢 (profile-dependent) | 251 tests ✅ (251 passed, 6 skipped — May 16) | Prometheus 7/7 ✅ | Stripe LIVE 💳 | Discord Bot LIVE 🤖 | NemoClaw Alive L1-3.5 LIVE 🧠 | Server Guardian P1-3c LIVE/BUILT 🛡️ | BROskiPets Web3 LIVE 🔥 | Shop Fulfillment v2 BUILT 🛒 (deploy pending) | **HyperLabs funnel LIVE + a11y-certified 🎓 (May 19)**
+> Status: V2.4 ~30 containers running 🟢 (profile-dependent) | 251 tests ✅ (251 passed, 6 skipped — May 16) | Prometheus 7/7 ✅ | Stripe TEST 💳 (LIVE wiring pending — see §5b) | Discord Bot LIVE 🤖 | NemoClaw Alive L1-3.5 LIVE 🧠 | Server Guardian P1-3c LIVE/BUILT 🛡️ | BROskiPets Web3 LIVE 🔥 | Shop Fulfillment v2 BUILT 🛒 (deploy pending) | **HyperLabs funnel LIVE + a11y-certified 🎓 (May 19)**
 
 ---
 
@@ -143,7 +143,7 @@ Key ports:
 | OTLP Traces | LIVE in Tempo ✅ |
 | Circuit Breakers | 3 active — all CLOSED ✅ |
 | Docker AI Grade | A 🏅 |
-| Stripe | LIVE 💳 (webhook secret updated May 5) |
+| Stripe | **TEST mode** 💳 — LIVE not yet wired (verified 2026-06-07: every `price_*` ID in `Hyper-Vibe-Coding-Course/supabase/functions/stripe-webhook/index.ts:11-20` PRICE_TO_TIER resolves to a `dashboard.stripe.com/test/prices/...` URL; price IDs are mode-scoped, so LIVE checkouts would all fall through to `logUnmatchedPayment`). Webhook secret was updated May 5, but for the TEST endpoint. To go LIVE: add LIVE price IDs + LIVE webhook endpoint + pick secret at runtime by `event.livemode`. |
 | Gamification | HUD, XP, Quests, Leaderboard LIVE ✅ |
 | BROskiPets Web3 Mint | LIVE on Base Sepolia 🔥 May 7 |
 | broski-bot Discord | OPTION A LIVE 🤖 May 15 |
@@ -411,7 +411,7 @@ hyper-agent graduate trigger <discord_id> [--tokens 500] [--json]
 - ✅ All 5 HyperFocus Features LIVE
 - ✅ BROski Brain v2.2 — Levels 9–12 unlocked
 - ✅ MCP-GitHub LIVE — 26 tools via Docker MCP gateway
-- ✅ Stripe LIVE — E2E proven April 25 · Course → Stripe → enrolled money path
+- ⚠️ Stripe TEST E2E proven April 25 · Course → Stripe → enrolled money path — but the integration is still TEST-only as of 2026-06-07. LIVE wiring (price IDs + webhook endpoint) is pending.
 - ✅ BUSINESS_PLAN.md v1.1 — sponsor-ready
 - ✅ BROskiPets Web3 Mint LIVE — May 7 🔥🐾
 - ✅ HyperAgent Graduate Build DESIGNED — May 15 📐
