@@ -300,7 +300,8 @@ services:
     networks:
       - agents-net
     healthcheck:
-      test: ["CMD-SHELL", "ps aux | grep -v grep | grep cron || exit 1"]
+      # grep PID 1's comm (cron -f runs as PID 1). Zero deps — `ps`/`pgrep` not installed in python:3.11-slim.
+      test: ["CMD-SHELL", "grep -q cron /proc/1/comm || exit 1"]
       interval: 120s
       timeout: 10s
       retries: 2
