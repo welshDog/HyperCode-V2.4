@@ -1,0 +1,94 @@
+name: 💚 HyperCode Health Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run every day at 08:00 UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    name: ⚡ Ecosystem Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml requests
+
+      - name: 🔍 Lint Sacred Rules — check no docker.io references
+        run: |
+          echo "Checking for forbidden docker.io references..."
+          if grep -r "docker.io" --include="*.py" --include="*.yml" --include="*.yaml" --include="*.sh" .; then
+            echo "FAIL: docker.io found! Use docker-ce-cli only."
+            exit 1
+          else
+            echo "PASS: No docker.io references found."
+          fi
+
+      - name: 🔍 Lint Sacred Rules — check no backend.app imports
+        run: |
+          echo "Checking for forbidden 'from backend.app' imports..."
+          if grep -r "from backend\.app" --include="*.py" .; then
+            echo "FAIL: 'from backend.app' import found! Use 'from app.X import Y'."
+            exit 1
+          else
+            echo "PASS: No forbidden imports found."
+          fi
+
+      - name: 🔍 Lint Sacred Rules — check Python indentation (no 3-space indent)
+        run: |
+          echo "Checking for 3-space Python indentation..."
+          if grep -rP "^   [^ ]" --include="*.py" .; then
+            echo "WARN: Possible 3-space indent detected. Use 4 spaces always."
+          else
+            echo "PASS: Python indentation looks clean."
+          fi
+
+      - name: 🔍 Check .env not committed
+        run: |
+          echo "Checking .env files are not committed..."
+          if find . -name ".env" -not -path "./.git/*" | grep -q .; then
+            echo "FAIL: .env file found in repo! Remove immediately."
+            exit 1
+          else
+            echo "PASS: No .env files committed."
+          fi
+
+      - name: 📄 Validate docker-compose files
+        run: |
+          echo "Checking docker-compose YAML files are valid..."
+          python -c "
+import yaml, glob, sys
+files = glob.glob('docker-compose*.yml') + glob.glob('docker-compose*.yaml')
+errors = []
+for f in files:
+    try:
+        with open(f) as fh:
+            yaml.safe_load(fh)
+        print(f'PASS: {f}')
+    except Exception as e:
+        print(f'FAIL: {f} -> {e}')
+        errors.append(f)
+if errors:
+    sys.exit(1)
+"
+
+      - name: ✅ Health Check Complete
+        run: |
+          echo ""
+          echo "💚 All health checks passed! BROski♾️ is looking healthy."
+          echo "🏴󠁧󠁢󠁷󠁬󠁳󠁥 Built in Llanelli, South Wales by @welshDog"
