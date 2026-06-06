@@ -1,0 +1,98 @@
+# HyperCode V2.4 — Compose Configuration Profiles
+# Use with: docker compose --profile <name> up -d
+# Sacred Rule: docker-ce-cli ONLY — NEVER docker.io
+
+# ============================================================
+# PROFILE DEFINITIONS
+# ============================================================
+
+profiles:
+  # Core infrastructure — always start first
+  core:
+    description: "Redis, Postgres, API gateway"
+    files:
+      - docker-compose.core.yml
+
+  # Full agent stack — all 48 containers
+  agents:
+    description: "All BROski AI agents"
+    files:
+      - docker-compose.agents.yml
+
+  # Lightweight agent mode
+  agents-lite:
+    description: "Reduced agent set for low-resource environments"
+    files:
+      - docker-compose.agents-lite.yml
+
+  # Observability stack
+  monitoring:
+    description: "Prometheus, Grafana, alerting"
+    files:
+      - docker-compose.monitoring.yml
+      - docker-compose.observability.yml
+
+  # MCP gateway
+  mcp:
+    description: "MCP gateway for agent tool calls"
+    files:
+      - docker-compose.mcp-gateway.yml
+
+  # BROski Pets NFT stack
+  bropets:
+    description: "BROskiPets LLM dNFT game services"
+    files:
+      - docker-compose.bropets.yml
+
+  # Obsidian brain sync
+  brain:
+    description: "Obsidian second-brain sync bridge"
+    files:
+      - docker-compose.brain.yml
+      - docker-compose.obsidian-sync.yml
+
+  # Production mode
+  prod:
+    description: "Production hardened stack"
+    files:
+      - docker-compose.prod.yml
+
+  # Dev mode
+  dev:
+    description: "Development with hot reload"
+    files:
+      - docker-compose.dev.yml
+
+  # Nano — minimal footprint
+  nano:
+    description: "Absolute minimum — Redis + API only"
+    files:
+      - docker-compose.nano.yml
+
+# ============================================================
+# REDIS CONFIG
+# Sacred Rule: DB1=cache, DB2=rate-limits. NEVER mix.
+# ============================================================
+
+redis:
+  cache_db: 1
+  rate_limit_db: 2
+  default_url: "redis://redis:6379"
+
+# ============================================================
+# STRIPE
+# Sacred Rule: webhook endpoint is ALWAYS rate-limit exempt
+# ============================================================
+
+stripe:
+  webhook_rate_limit_exempt: true
+  webhook_path: "/webhook/stripe"
+
+# ============================================================
+# PYTHON STANDARDS
+# Sacred Rule: 4 spaces indent, from app.X import Y
+# ============================================================
+
+python:
+  indent: 4
+  import_style: "from app.X import Y"
