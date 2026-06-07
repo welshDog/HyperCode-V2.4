@@ -649,7 +649,7 @@ async def execute_task(
             json.dumps({"event": "broski_event_published", "task_id": task.id})
         )
 
-    # ── Post-run: write results + trigger Obsidian vault sync ─────────────────
+    # ── Post-run: write results to ./results (obsidian-watcher pushes them) ────
     _duration = perf_counter() - _t_start
     obsidian_sync_info: dict = {"status": "skipped"}
     try:
@@ -663,7 +663,7 @@ async def execute_task(
             json.dumps({
                 "event": "obsidian_sync",
                 "task_id": task.id,
-                "sync_result": obsidian_sync_info.get("sync_result"),
+                "sync_mode": obsidian_sync_info.get("sync_mode"),
             })
         )
     except Exception as _sync_exc:

@@ -18,8 +18,6 @@ Usage:
 """
 
 import json
-import os
-import subprocess
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -29,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 # Results directory (relative to HyperCode-V2.4 root)
 RESULTS_DIR = Path(__file__).resolve().parent.parent.parent / "results"
-WORKSPACE_DIR = Path(__file__).resolve().parent.parent.parent  # HyperCode-V2.4 root
 
 
 def ensure_results_dir() -> Path:
@@ -156,87 +153,30 @@ async def write_execution_results(
     }
 
 
-async def trigger_obsidian_sync(dry_run: bool = False) -> bool:
-    """
-    Trigger the obsidian-sync container to read results and push to vault.
-
-    This runs:
-      docker compose -f docker-compose.obsidian-sync.yml run --rm obsidian-sync
-
-    Args:
-        dry_run: If True, set DRY_RUN=true (no git push)
-
-    Returns:
-        True if sync succeeded, False otherwise
-    """
-    cwd = WORKSPACE_DIR
-    env = os.environ.copy()
-
-    if dry_run:
-        env["DRY_RUN"] = "true"
-
-    compose_cmd = [
-        "docker",
-        "compose",
-        "-f",
-        "docker-compose.obsidian-sync.yml",
-        "run",
-        "--rm",
-        "obsidian-sync",
-    ]
-
-    try:
-        logger.info(f"[result_writer] Triggering obsidian-sync from {cwd}")
-        logger.info(f"[result_writer] Command: {' '.join(compose_cmd)}")
-
-        # Run synchronously, capture output
-        result = subprocess.run(
-            compose_cmd,
-            cwd=str(cwd),
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 min timeout
-        )
-
-        if result.returncode == 0:
-            logger.info("[result_writer] Obsidian sync completed ✅")
-            logger.debug(f"[result_writer] stdout:\n{result.stdout}")
-            return True
-        else:
-            logger.error(f"[result_writer] Obsidian sync failed with code {result.returncode}")
-            logger.error(f"[result_writer] stderr:\n{result.stderr}")
-            return False
-
-    except subprocess.TimeoutExpired:
-        logger.error("[result_writer] Obsidian sync timeout (5 min)")
-        return False
-    except Exception as e:
-        logger.error(f"[result_writer] Failed to trigger obsidian-sync: {e}")
-        return False
-
-
 async def write_and_sync(
     result: Any,
     task_id: str,
     agents: Optional[list[str]] = None,
     duration_seconds: Optional[float] = None,
-    auto_sync: bool = True,
-    dry_run: bool = False,
+    **_legacy: Any,
 ) -> Dict[str, Any]:
     """
-    Convenience function: write results AND trigger sync in one call.
+    Write crew execution results to the shared ./results dir.
 
-    Args:
-        result: Execution result
-        task_id: Task ID
-        agents: List of agents
-        duration_seconds: Execution duration
-        auto_sync: If True, automatically trigger obsidian-sync after writing
-        dry_run: If True, sync with DRY_RUN=true
+    The push to the Obsidian vault is handled out-of-band by the
+    `obsidian-watcher` sidecar (docker-compose.obsidian-sync.yml), which
+    watches ./results and runs clone -> note -> commit -> push on change.
+    This function therefore only writes the files; it does NOT trigger a sync.
+
+    Rationale: the crew-orchestrator container has no docker CLI/socket, so the
+    old in-container `docker compose run obsidian-sync` trigger could never run
+    (it always returned sync_result=False). The watcher now owns triggering.
+
+    `**_legacy` absorbs the removed `auto_sync` / `dry_run` kwargs so any older
+    caller keeps working.
 
     Returns:
-        Dict with status and file paths
+        Dict with status, written file paths, and sync_mode.
     """
     files = await write_execution_results(
         result=result,
@@ -245,14 +185,10 @@ async def write_and_sync(
         duration_seconds=duration_seconds,
     )
 
-    sync_status = None
-    if auto_sync:
-        sync_status = await trigger_obsidian_sync(dry_run=dry_run)
-
     return {
         "status": "success",
         "files_written": {k: str(v) for k, v in files.items()},
-        "sync_triggered": auto_sync,
-        "sync_result": sync_status,
+        # Push is delegated to the obsidian-watcher sidecar (polls ./results).
+        "sync_mode": "watcher",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
