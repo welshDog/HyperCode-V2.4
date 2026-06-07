@@ -9,6 +9,7 @@ include:
   - docker-compose.core.yml
   - docker-compose.observability.yml
   - docker-compose.agents.yml
+  - docker-compose.obsidian-sync.yml    # Crew→vault sync: watcher (--profile agents) + one-shot (--profile vault-sync)
   - docker-compose.bropets.yml          # BROskiPets integration (--profile pets)
   - docker-compose.brain.yml            # Obsidian-Brain integration (--profile brain)
 

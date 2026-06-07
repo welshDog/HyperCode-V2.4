@@ -2,6 +2,10 @@ services:
   obsidian-sync:
     image: alpine:3.20
     container_name: obsidian-sync
+    # Manual one-shot (used via `docker compose ... run --rm obsidian-sync`).
+    # Profiled so it does NOT auto-start when this file is included in the
+    # main stack; `run` ignores profiles, so manual invocation still works.
+    profiles: ["vault-sync"]
     working_dir: /workspace/sync-env
     entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
     environment:
@@ -42,6 +46,9 @@ services:
   obsidian-watcher:
     image: alpine:3.20
     container_name: obsidian-watcher
+    # Auto-starts with the crew (same profile as crew-orchestrator) so the
+    # vault-sync loop is autonomous whenever the agent stack is up.
+    profiles: ["agents"]
     working_dir: /workspace/sync-env
     entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
     environment:
