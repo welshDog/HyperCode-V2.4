@@ -948,6 +948,9 @@ services:
       - ./agents/shared:/app/shared:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
       - agent_memory:/app/memory
+      # result_writer.py writes crew results here (path resolves to /results
+      # inside the container). Shared with obsidian-sync, which reads ./results.
+      - ./results:/results
     networks:
       - agents-net
       - data-net
