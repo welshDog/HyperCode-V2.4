@@ -1,214 +1,117 @@
 # HyperAgent Loop → Obsidian Vault Integration
 
-## Current State
+## Current State — ✅ LIVE & AUTONOMOUS (2026-06-07)
 
-✅ **Vault sync container is ready** — clones fresh, syncs to PARA folders, pushes to GitHub  
-✅ **Result writer module is ready** — `result_writer.py` created in `agents/crew-orchestrator/`  
-🔜 **Integration needed** — Wire the post-run hook into `agents/crew-orchestrator/main.py`
+The crew → Obsidian-Brain vault-sync loop is wired, proven end-to-end, and
+fully autonomous. Every `POST /execute` results in a PARA session note pushed
+to the Brain vault on GitHub — **no manual step**.
 
----
-
-## How to Wire It Up
-
-### Step 1: Add Import to `main.py`
-
-At the top of `agents/crew-orchestrator/main.py`, after existing imports, add:
-
-```python
-# Import result writer for post-execution sync
-try:
-    from .result_writer import write_and_sync
-except ImportError:
-    from result_writer import write_and_sync
-```
-
-### Step 2: Add Post-Run Hook to `/execute` Endpoint
-
-Find this section in `main.py` (near line 1070):
-
-```python
-    # Final update
-    if redis_client:
-        task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
-        task_data["progress"] = 100
-        task_data["status"] = "completed"
-        await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
-        await log_event("orchestrator", "success", "Workflow completed")
-
-        # Publish BROski$ reward event — backend Celery / Discord bot listens
-        broski_event = {
-            "event": "task_completed",
-            "task_id": task.id,
-            "task_type": task.type,
-            "agents": list(results.keys()),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-        await redis_client.publish("broski_events", json.dumps(broski_event))
-        logger.info(
-            json.dumps({"event": "broski_event_published", "task_id": task.id})
-        )
-
-    return {"status": "completed", "message": "Workflow finished", "results": results}
-```
-
-Replace the final `return` with this:
-
-```python
-    # ── POST-RUN HOOK: Write results and trigger vault sync ──────────────────
-    # Serialize execution results to canonical files, then trigger obsidian-sync
-    try:
-        started_at_str = task_data.get("started_at") if redis_client else datetime.now(timezone.utc).isoformat()
-        try:
-            started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
-        except:
-            started_at = datetime.now(timezone.utc)
-        
-        duration_secs = (datetime.now(timezone.utc) - started_at).total_seconds()
-        
-        sync_result = await write_and_sync(
-            result=results,
-            task_id=task.id,
-            agents=list(results.keys()),
-            duration_seconds=duration_secs,
-            auto_sync=True,
-            dry_run=False,
-        )
-        logger.info(
-            json.dumps({
-                "event": "results_synced_to_vault",
-                "task_id": task.id,
-                "sync_files": sync_result.get("files_written", {}),
-            })
-        )
-    except Exception as e:
-        logger.error(
-            json.dumps({
-                "event": "result_sync_failed",
-                "task_id": task.id,
-                "error": str(e),
-            })
-        )
-        # Non-blocking — don't fail the task if sync fails
-
-    return {"status": "completed", "message": "Workflow finished", "results": results}
-```
-
-### Step 3: Test the Chain
-
-#### Test 1 — Results files are written
-
-After an execution, check that the files are created:
-
-```bash
-# From HyperCode-V2.4 root
-ls -la results/latest-*
-cat results/latest-summary.md
-```
-
-Expected output:
-- `latest-summary.md` contains task summary + agent names
-- `latest-metrics.json` contains timing + token counts
-- `latest-report.md` contains full execution report
-
-#### Test 2 — Obsidian sync is triggered
-
-Check the logs of the crew-orchestrator container:
-
-```bash
-docker logs crew-orchestrator --tail 20 | grep "results_synced_to_vault"
-```
-
-Expected output:
-```
-{"event": "results_synced_to_vault", "task_id": "...", "sync_files": {...}}
-```
-
-#### Test 3 — Vault was updated on GitHub
-
-Check the vault repo for a fresh commit:
-
-```bash
-cd ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
-git log --oneline | head -3
-```
-
-Expected output:
-```
-abc1234 feat: sync HyperAgent loop — 2026-06-04T...
-def5678 previous commit
-...
-```
+| Piece | Status |
+|---|---|
+| `result_writer.py` write-only post-run hook in `main.py` | ✅ Live |
+| `crew-orchestrator` mounts shared `./results` | ✅ Live (commit `27fdd6f`) |
+| `obsidian-watcher` sidecar (auto-push on change) | ✅ Live (commits `67919bb`, `72e1038`) |
+| Dead in-container trigger removed | ✅ Done (commit `9c4c2db`) |
 
 ---
 
-## What Happens End-to-End
+## How It Works (current architecture)
 
 ```
-1. POST /execute with task description
+1. POST /execute  (X-API-Key: $ORCHESTRATOR_API_KEY)
    ↓
-2. Crew orchestrator runs agents, collects results
+2. crew-orchestrator runs the agents, collects results
    ↓
-3. POST-RUN HOOK triggers:
-   ├─ result_writer.write_execution_results() 
-   │  └─ Writes to ./results/latest-*.md
-   ├─ result_writer.trigger_obsidian_sync()
-   │  └─ Runs: docker compose -f docker-compose.obsidian-sync.yml run --rm obsidian-sync
-   │     └─ Container clones vault fresh
-   │     └─ Reads ./results/latest-*.md
-   │     └─ Creates session note in PARA structure
-   │     └─ Commits + pushes to GitHub
-   └─ Response returned to client
+3. POST-RUN HOOK — result_writer.write_and_sync():
+   └─ write_execution_results() -> ./results/latest-{summary.md,metrics.json,report.md}
+      (write ONLY — returns {"sync_mode": "watcher"}; it does NOT push)
    ↓
-4. Your Obsidian vault is auto-updated 🧠
+4. obsidian-watcher sidecar (always running, profile: agents):
+   ├─ polls ./results every WATCH_INTERVAL s (default 15, 3s debounce)
+   ├─ on change: clones the vault fresh, builds a PARA session note,
+   │  commits, and `git push` to origin/main
+   └─ uses host ~/.ssh/id_ed25519 for GitHub SSH auth
+   ↓
+5. Your Obsidian vault is auto-updated on GitHub 🧠
 ```
+
+> **Why a watcher, not an in-container trigger?** The crew-orchestrator
+> container has no docker CLI/socket, so the old
+> `docker compose run obsidian-sync` call from inside it could never work
+> (always returned `sync_result:false`). The watcher decouples the loop — the
+> orchestrator only writes files; the sidecar reacts and pushes. No
+> docker-in-docker, no socket surface.
 
 ---
 
-## Files Ready to Go
+## Operating It
 
-| File | Location | Status |
+### Start (auto-starts with the agent stack)
+The watcher is gated by `profiles: ["agents"]` and included in the root stack,
+so it comes up with the crew:
+
+```bash
+docker compose --profile agents up -d        # crew-orchestrator + obsidian-watcher
+docker ps --filter name=obsidian-watcher     # confirm it's running
+docker logs obsidian-watcher --tail 5        # should show "Watching /results ..."
+```
+
+### Manual one-shot (ad-hoc sync without the watcher)
+The one-shot service is gated by `profiles: ["vault-sync"]`; `run` ignores
+profiles, so this still works any time:
+
+```bash
+docker compose -f docker-compose.obsidian-sync.yml run --rm obsidian-sync
+# add -e DRY_RUN=true to clone + build the note WITHOUT pushing
+```
+
+### Tuning
+| Env | Default | Meaning |
 |---|---|---|
-| `result_writer.py` | `agents/crew-orchestrator/result_writer.py` | ✅ Created |
-| `docker-compose.obsidian-sync.yml` | Root | ✅ Updated (stateless) |
-| `scripts/obsidian-sync.sh` | Root | ✅ Updated (stateless) |
-| `main.py` (with hook) | `agents/crew-orchestrator/main.py` | 🔜 Manual edit needed |
+| `WATCH_INTERVAL` | `15` | watcher poll interval (seconds) |
+| `DRY_RUN` | `false` | `true` = build note but skip `git push` |
+| `VAULT_REPO` | BROski-Obsidian-Brain (SSH) | target vault |
+| `DEFAULT_BRANCH` | `main` | vault branch |
 
 ---
 
-## Rollback if Needed
-
-If the sync causes issues, you can disable it by:
-
-1. Setting `dry_run=True` in the `write_and_sync()` call (no git push)
-2. Removing the entire try/except block (falls back to old behavior)
-3. Setting `auto_sync=False` in the call (writes results but doesn't trigger container)
-
----
-
-## Next: Test an Execution
-
-Once you wire up main.py, run a test:
+## Verify End-to-End
 
 ```bash
-curl -X POST http://127.0.0.1:8081/execute \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: YOUR_ORCHESTRATOR_API_KEY" \
-  -d '{
-    "task": {
-      "id": "test-sync-001",
-      "type": "feature",
-      "description": "Build a test HyperAgent loop to verify vault sync",
-      "agents": ["backend_specialist"],
-      "requires_approval": false
-    }
-  }'
-```
+# 1. Fire a test execution (zero LLM cost — agents run without an LLM key)
+KEY=$(docker exec crew-orchestrator printenv ORCHESTRATOR_API_KEY)
+curl -sS -X POST http://127.0.0.1:8081/execute \
+  -H "Content-Type: application/json" -H "X-API-Key: $KEY" \
+  -d '{"task":{"id":"test-sync-001","type":"feature","description":"verify vault sync","agents":["backend_specialist"],"requires_approval":false}}'
+# Response includes:  "obsidian_sync": { "status":"success", "sync_mode":"watcher", ... }
 
-Then watch:
-1. Logs for `results_synced_to_vault` event
-2. `./results/latest-summary.md` file updated
-3. GitHub vault repo for new commits
+# 2. Watcher auto-pushes within ~one interval
+docker logs obsidian-watcher --tail 15 | grep -E "Change detected|Pushed"
+
+# 3. Confirm the vault advanced on GitHub
+git ls-remote git@github.com:welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne.git main
+```
 
 ---
 
-**BROski♾️ — The nervous system is ready. Time to connect it.**
+## Files
+
+| File | Location | Role |
+|---|---|---|
+| `result_writer.py` | `agents/crew-orchestrator/` | write-only result serializer (`write_and_sync`) |
+| `main.py` | `agents/crew-orchestrator/` | `/execute` post-run hook → `write_and_sync` |
+| `obsidian-sync.sh` | `scripts/` | sync logic + `WATCH_MODE` watcher loop |
+| `docker-compose.obsidian-sync.yml` | root | `obsidian-watcher` (profile agents) + `obsidian-sync` one-shot (profile vault-sync) |
+| `docker-compose.yml` | root | includes obsidian-sync.yml |
+
+---
+
+## Rollback / Disable
+
+- **Pause auto-push:** `docker stop obsidian-watcher` (results still get written; just not pushed).
+- **Dry-run a sync:** run the one-shot with `-e DRY_RUN=true`.
+- **Fully detach:** remove `obsidian-watcher` from the `agents` profile (or stop it); the orchestrator keeps writing `./results` harmlessly.
+
+---
+
+**BROski♾️ — The nervous system is connected and self-driving. 🧠🔥**
