@@ -55,6 +55,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        version_table="alembic_version_hyperhealth",
     )
 
     with context.begin_transaction():
@@ -62,7 +63,15 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    # Dedicated version table: hyperhealth shares the `hypercode` Postgres DB
+    # with hypercode-core but has its OWN migration tree (001 only). Without
+    # this, it reads core's `alembic_version` (=015) and crash-loops on
+    # "Can't locate revision 015". Keep this isolated from core.
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table="alembic_version_hyperhealth",
+    )
 
     with context.begin_transaction():
         context.run_migrations()
