@@ -102,7 +102,7 @@ class TestSecretManagement:
         import logging
         caplog.set_level(logging.DEBUG)
         
-        monkeypatch.setenv("PERPLEXITY_API_KEY", "sk-ant-secret-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-secret-key")
         
         # Simulate logging
         logger = logging.getLogger("app")

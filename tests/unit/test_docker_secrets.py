@@ -35,7 +35,6 @@ EXPECTED_SECRET_NAMES = {
     "minio_root_password",
     "discord_token",
     "openai_api_key",
-    "perplexity_api_key",
     "anthropic_api_key",
 }
 

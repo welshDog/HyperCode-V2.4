@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     MISSION_CONTROL_URL: str = "http://localhost:8088"  # URL sent to students in DM
     
     # AI
-    PERPLEXITY_API_KEY: Optional[str] = None
+    ANTHROPIC_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"
@@ -69,8 +69,6 @@ class Settings(BaseSettings):
     OLLAMA_NUM_CTX: int = 2048
     OLLAMA_NUM_PREDICT: int = 256
     OLLAMA_SEED: Optional[int] = None
-    PERPLEXITY_SESSION_AUTH: bool = False
-
     PETS_BRIDGE_URL: str = "http://broski-pets-bridge:8098"
 
     NEMOCLAW_URL: str = "http://nemoclaw-agent:8099"

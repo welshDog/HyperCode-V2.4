@@ -1,30 +1,27 @@
 """
-🧠 HyperCode Brain API — Perplexity Agent Integration
-Powered by Perplexity AI Agent API
-Author: BROski Brain 🦅 | HyperCode V2.0
-Date: 2026-03-12
+HyperCode Brain API — Anthropic → Ollama cognitive core.
 """
 
 import os
 import requests
 from typing import Optional
 
-PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions"
-DEFAULT_MODEL = "llama-3.1-sonar-large-128k-online"
+DEFAULT_MODEL = "claude-sonnet-4-6"
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 
 
 class BrainAPI:
     """
-    HyperCode Brain — Perplexity-powered cognitive core.
+    HyperCode Brain — Anthropic-powered cognitive core with Ollama fallback.
     Handles all agent queries, self-healing prompts,
     evo pipeline decisions, and real-time search.
     """
 
     def __init__(self, api_key: Optional[str] = None, model: str = DEFAULT_MODEL):
-        self.api_key = api_key or os.getenv("PERPLEXITY_API_KEY")
+        self.anthropic_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        self.ollama_base = os.getenv("LLM_API_BASE", "http://ollama:11434/v1")
+        self.ollama_model = os.getenv("LLM_MODEL", "llama3.2")
         self.model = model
-        if not self.api_key:
-            raise ValueError("❌ PERPLEXITY_API_KEY not set! Add it to your .env file.")
 
     def query(
         self,
@@ -33,24 +30,42 @@ class BrainAPI:
         temperature: float = 0.7,
     ) -> dict:
         """
-        Send a query to the Perplexity Brain API.
-        Returns full response dict including citations.
+        Send a query to the Brain (Anthropic → Ollama fallback).
+        Returns a dict with a 'choices' key for backward compatibility.
         """
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        if self.anthropic_key:
+            headers = {
+                "x-api-key": self.anthropic_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": self.model,
+                "max_tokens": 2048,
+                "system": system,
+                "messages": [{"role": "user", "content": prompt}],
+            }
+            response = requests.post(ANTHROPIC_API_URL, json=payload, headers=headers, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            text = data["content"][0]["text"]
+            return {"choices": [{"message": {"content": text}}]}
+
+        # Ollama fallback via OpenAI-compat endpoint
         payload = {
-            "model": self.model,
+            "model": self.ollama_model,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
             ],
             "temperature": temperature,
-            "return_citations": True,
-            "return_related_questions": True,
         }
-        response = requests.post(PERPLEXITY_API_URL, json=payload, headers=headers, timeout=30)
+        response = requests.post(
+            f"{self.ollama_base}/chat/completions",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=60,
+        )
         response.raise_for_status()
         return response.json()
 

@@ -183,7 +183,7 @@ def generate_docker_compose(services):
         env_vars = {}
         # Apply global env vars first if they match common keys
         for k, v in GLOBAL_ENV.items():
-            if k in ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB', 'API_KEY', 'JWT_SECRET', 'OPENAI_API_KEY', 'PERPLEXITY_API_KEY', 'DISCORD_TOKEN', 'DISCORD_BOT_TOKEN', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET']:
+            if k in ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB', 'API_KEY', 'JWT_SECRET', 'OPENAI_API_KEY', 'DISCORD_TOKEN', 'DISCORD_BOT_TOKEN', 'DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET']:
                 env_vars[k] = v
             # Ensure DB URL is injected even if not in manifest
             if k == 'HYPERCODE_DB_URL' and 'DATABASE_URL' not in [e.get('name') for e in service['env'] if isinstance(e, dict)]:
