@@ -1,48 +1,53 @@
-from crewai import Agent, Task, Crew, Process
+from crewai import Agent, Task, Crew, Process, LLM
 from typing import List, Dict, Any, Optional
 import httpx
 import os
 import json
 
 # ─── LLM Factory ────────────────────────────────────────────────────────────
-def _get_llm(tier: str = "haiku"):
+def _get_llm(tier: str = "haiku") -> LLM:
     """
-    Tier routing:
-      opus   → claude-opus-4-6        (crew manager — deep reasoning)
-      sonnet → claude-sonnet-4-5      (heavy agents — code, security, backend)
-      haiku  → claude-haiku-3         (light agents — QA, DevOps, Frontend)
-      fallback → ollama/llama3.2      (no API key — never goes dark)
+    Tier routing (crewai.LLM → litellm; crewai 1.x dropped langchain LLM objects).
+      opus   → anthropic/claude-opus-4-8    (crew manager — deep reasoning)
+      sonnet → anthropic/claude-sonnet-4-6  (heavy agents — code, security, backend)
+      haiku  → anthropic/claude-haiku-4-5   (light agents — QA, DevOps, Frontend)
+      fallback → ollama/llama3.2            (no API key — never goes dark)
+
+    litellm reads ANTHROPIC_API_KEY from the env; we also pass it explicitly.
+    NOTE: Opus 4.8 removed the sampling params (temperature/top_p/top_k) — sending
+    `temperature` to an Opus-4.8 request returns HTTP 400, so the opus tier omits it.
     """
     api_key = os.getenv("ANTHROPIC_API_KEY")
-    if api_key:
-        try:
-            from langchain_anthropic import ChatAnthropic
-            models = {
-                "opus":   "claude-opus-4-6",
-                "sonnet": "claude-sonnet-4-5",
-                "haiku":  "claude-haiku-3",
-            }
-            max_tokens = {
-                "opus":   8192,
-                "sonnet": 4096,
-                "haiku":  1024,
-            }
-            return ChatAnthropic(
-                model=models.get(tier, "claude-haiku-3"),
-                api_key=api_key,
-                max_tokens=max_tokens.get(tier, 1024),
-                temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
-            )
-        except ImportError:
-            pass  # langchain-anthropic not installed — fall through to Ollama
+    temperature = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 
-    # Fallback — Ollama (upgraded from tinyllama → llama3.2)
-    from langchain_openai import ChatOpenAI
-    return ChatOpenAI(
-        openai_api_base=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
-        openai_api_key=os.getenv("LLM_API_KEY", "NA"),
-        model_name=os.getenv("LLM_MODEL", "llama3.2"),
-        temperature=float(os.getenv("LLM_TEMPERATURE", "0.3")),
+    if api_key:
+        models = {
+            "opus":   "anthropic/claude-opus-4-8",
+            "sonnet": "anthropic/claude-sonnet-4-6",
+            "haiku":  "anthropic/claude-haiku-4-5",
+        }
+        max_tokens = {
+            "opus":   8192,
+            "sonnet": 4096,
+            "haiku":  1024,
+        }
+        kwargs: Dict[str, Any] = {
+            "model": models.get(tier, "anthropic/claude-haiku-4-5"),
+            "api_key": api_key,
+            "max_tokens": max_tokens.get(tier, 1024),
+        }
+        # Opus 4.8 rejects temperature (400) — only set it for sonnet/haiku.
+        if tier != "opus":
+            kwargs["temperature"] = temperature
+        return LLM(**kwargs)
+
+    # Fallback — Ollama via litellm's OpenAI-compatible provider (tinyllama → llama3.2).
+    # Mirrors the previous ChatOpenAI(.../v1) wiring so existing env vars still apply.
+    return LLM(
+        model=f"openai/{os.getenv('LLM_MODEL', 'llama3.2')}",
+        base_url=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
+        api_key=os.getenv("LLM_API_KEY", "NA"),
+        temperature=temperature,
     )
 
 
