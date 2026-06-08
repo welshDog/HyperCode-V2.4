@@ -56,7 +56,7 @@ jobs:
         DATABASE_URL: postgresql://postgres:changeme@localhost:5432/hypercode_test
         REDIS_URL: redis://localhost:6379/0
         ENVIRONMENT: test
-        PERPLEXITY_API_KEY: test-key
+        ANTHROPIC_API_KEY: test-key
       run: |
         cd backend
         pytest tests/ \
