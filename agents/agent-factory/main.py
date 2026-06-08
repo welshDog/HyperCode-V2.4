@@ -63,7 +63,7 @@ BLUEPRINTS: Dict[str, AgentProfile] = {
         name="Tips & Tricks Writer",
         role="documentation",
         capabilities=["technical-writing", "neurodivergent-ux", "chunking"],
-        config={"model": "claude-3-5-sonnet-20241022"}
+        config={"model": "claude-sonnet-4-6"}
     )
 }
 
