@@ -26,14 +26,57 @@ except Exception:  # pragma: no cover
     aioredis = None
 
 try:
-    import anthropic  # type: ignore
-except Exception:  # pragma: no cover
-    anthropic = None
-
-try:
     import structlog  # type: ignore
 except Exception:  # pragma: no cover
     structlog = None
+
+
+# ─── LLM helpers ────────────────────────────────────────────────────────────
+
+class _OllamaAdapter:
+    """Thin Anthropic-interface wrapper over the Ollama OpenAI-compat endpoint."""
+    def __init__(self, model: str, base_url: str, api_key: str) -> None:
+        from openai import AsyncOpenAI
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
+        self.messages = self  # so client.messages.create() works
+
+    async def create(self, model=None, max_tokens=1000, messages=None, system=None, **kwargs):
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.extend(messages or [])
+
+        class _Msg:
+            def __init__(self, text: str) -> None:
+                self.text = text
+
+        class _Resp:
+            def __init__(self, text: str) -> None:
+                self.content = [_Msg(text)]
+
+        resp = await self._client.chat.completions.create(
+            model=model or self._model,
+            max_tokens=max_tokens,
+            messages=msgs,
+        )
+        return _Resp(resp.choices[0].message.content or "")
+
+
+def _build_llm_client():
+    """
+    Anthropic → Ollama fallback chain, mirrors crew-orchestrator/_get_llm().
+    Returns an object exposing .messages.create() in the Anthropic SDK style.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if api_key:
+        from anthropic import AsyncAnthropic
+        return AsyncAnthropic(api_key=api_key)
+    return _OllamaAdapter(
+        model=os.getenv("LLM_MODEL", "llama3.2"),
+        base_url=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
+        api_key=os.getenv("LLM_API_KEY", "NA"),
+    )
 
 
 class _StdLoggerAdapter:
@@ -61,9 +104,8 @@ class AgentConfig:
     name: str = os.getenv("AGENT_NAME", "base-agent")
     role: str = os.getenv("AGENT_ROLE", "Generic Agent")
     port: int = int(os.getenv("AGENT_PORT", "8000"))
-    model: str = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
+    model: str = os.getenv("AGENT_MODEL", "claude-sonnet-4-6")
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379")
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
     extra: dict = field(default_factory=dict)
 
 
@@ -121,9 +163,8 @@ class BaseAgent:
         self.approval_system = ApprovalSystem()
         self.tools: list[Callable[..., Any]] = []
 
-        self.client = None
-        if anthropic and self.config.anthropic_api_key:
-            self.client = anthropic.AsyncAnthropic(api_key=self.config.anthropic_api_key)
+        # LLM client (Anthropic → Ollama fallback)
+        self.client = _build_llm_client()
 
         self.app = FastAPI(title=f"{self.config.name} Agent")
         @self.app.middleware("http")

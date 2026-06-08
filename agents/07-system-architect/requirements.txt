@@ -5,3 +5,4 @@ requests
 pydantic
 redis
 anthropic>=0.25.0
+openai
