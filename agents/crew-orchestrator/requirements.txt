@@ -8,5 +8,10 @@ chromadb>=0.4.22,<1.2.0
 structlog>=24.1.0
 python-json-logger>=2.0.7
 crewai[anthropic,litellm]>=1.14.4,<2.0.0
+# Explicit, first-class LLM deps. REQUIRED, not redundant: this image's Dockerfile
+# builds wheels with `pip wheel --no-deps`, which ignores crewai's [anthropic,litellm]
+# extras — so anthropic (extra-only) must be listed directly or it never installs.
+litellm>=1.60.0
+anthropic>=0.40.0
 arq>=0.25.0
 prometheus-client>=0.25.0
