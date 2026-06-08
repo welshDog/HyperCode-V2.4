@@ -662,7 +662,7 @@ async def webhook_course_module_complete(
 
 
 async def _chat_via_cloud(prompt: str, mode: str) -> tuple[str, str]:
-    """Returns (reply_text, model_name). Tries Anthropic then Perplexity. Raises ValueError if both fail."""
+    """Returns (reply_text, model_name). Uses Anthropic; raises ValueError if unavailable."""
     max_tokens = int(os.getenv("PETS_ANTHROPIC_MAX_TOKENS", "300"))
 
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -693,32 +693,7 @@ async def _chat_via_cloud(prompt: str, mode: str) -> tuple[str, str]:
         except Exception:
             pass
 
-    perplexity_key = os.getenv("PERPLEXITY_API_KEY", "")
-    if perplexity_key:
-        px_model = (
-            os.getenv("PETS_PERPLEXITY_MODEL_ASK", "sonar-pro")
-            if mode == "ask"
-            else os.getenv("PETS_PERPLEXITY_MODEL_CHAT", "sonar")
-        )
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            res = await client.post(
-                "https://api.perplexity.ai/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {perplexity_key}",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": px_model,
-                    "max_tokens": max_tokens,
-                    "messages": [{"role": "user", "content": prompt}],
-                },
-            )
-        if res.status_code == 200:
-            text = res.json()["choices"][0]["message"]["content"]
-            return text, px_model
-        raise ValueError(f"Perplexity API {res.status_code}: {res.text[:200]}")
-
-    raise ValueError("No cloud LLM API keys configured")
+    raise ValueError("No cloud LLM API key configured (set ANTHROPIC_API_KEY)")
 
 
 class ChatRequest(BaseModel):
