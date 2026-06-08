@@ -101,7 +101,6 @@ services:
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
       - JWT_SECRET=${HYPERCODE_JWT_SECRET}
-      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY}
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
@@ -124,7 +123,6 @@ services:
       - OLLAMA_REPEAT_PENALTY=1.1
       - OLLAMA_NUM_CTX=2048
       - OLLAMA_NUM_PREDICT=256
-      - PERPLEXITY_SESSION_AUTH=true
       - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
       - OTLP_ENDPOINT=http://tempo:4317
       - PROMETHEUS_METRICS_DISABLED=false
@@ -227,7 +225,6 @@ services:
       HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
       HYPERCODE_REDIS_URL: redis://redis:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
-      PERPLEXITY_API_KEY: ${PERPLEXITY_API_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]
       interval: 30s
