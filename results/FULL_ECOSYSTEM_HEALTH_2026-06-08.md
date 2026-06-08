@@ -213,7 +213,7 @@ MC writes to the **same** `yhtmuibgdnxhbgboajhc` project as the Course, so its h
 | Supabase advisors | ✅ 2 WARN, both intentional/accepted |
 | `early_access_signups` RLS | ✅ enabled + policy live |
 | `claim_level_reward` exposure | ✅ intentional (authenticated reward claim) |
-| Leaked-password protection | 🟡 disabled (optional hardening available) |
+| Leaked-password protection | 🟡 disabled — **requires Supabase Pro plan** (HaveIBeenPwned check). ⏸️ **Deferred until funds available** (Bro's call, 2026-06-08). Not a free toggle. |
 | Stripe mode | 🧪 TEST — no LIVE charge risk; LIVE wiring still a documented TODO |
 | Secrets / `.env` | ✅ no `.env` changes in any repo working tree |
 | `docker-socket-proxy` (+ healer) | ✅ healthy (socket access mediated, not raw) |
@@ -236,7 +236,7 @@ MC writes to the **same** `yhtmuibgdnxhbgboajhc` project as the Course, so its h
 
 1. ✅ ~~Remove the orphan Redis (`admiring_perlman`)~~ — **DONE** (see Cleanup Log).
 2. ✅ ~~Reconcile the two Ollama runners~~ — **DONE** (`model-runner` + `ollama-models` volume removed; canonical intact).
-3. **(Optional, 1-click) Enable Supabase leaked-password protection** — only remaining item; flips one of the 2 advisors green, taking the advisor count to 1 (the intentional `claim_level_reward`).
+3. ⏸️ **Enable Supabase leaked-password protection — DEFERRED (needs Pro plan)** — corrected: this is **not** a free toggle, it requires the **Supabase Pro plan** (~$25/mo). Deferred until funds are available (Bro's call, 2026-06-08). When upgraded, enable it in Dashboard → Authentication → Policies/Password security; that takes the advisor count from 2 → 1 (leaving only the intentional `claim_level_reward`). **No free action remaining — the stack is otherwise fully green.**
 
 ---
 
