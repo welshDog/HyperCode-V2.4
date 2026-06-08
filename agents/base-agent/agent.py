@@ -35,18 +35,52 @@ try:
 except ImportError:
     HyperAlert = None
 
-# AI Client \u2014 try anthropic first, fallback to openai
-try:
-    from anthropic import AsyncAnthropic as AIClient
-    ai_backend = "anthropic"
-except ImportError:
-    try:
-        from openai import AsyncOpenAI as AIClient
-        ai_backend = "openai"
-    except ImportError:
-        AIClient = None
-        ai_backend = None
-        print("\u26a0\ufe0f No AI client found (anthropic or openai). Running in limited mode.")
+# \u2500\u2500\u2500 LLM helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class _OllamaAdapter:
+    """Thin Anthropic-interface wrapper over the Ollama OpenAI-compat endpoint."""
+    def __init__(self, model: str, base_url: str, api_key: str):
+        from openai import AsyncOpenAI
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
+        self.messages = self  # so client.messages.create() works
+
+    async def create(self, model=None, max_tokens=1000, messages=None, system=None, **kwargs):
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.extend(messages or [])
+
+        class _Msg:
+            def __init__(self, text):
+                self.text = text
+
+        class _Resp:
+            def __init__(self, text):
+                self.content = [_Msg(text)]
+
+        resp = await self._client.chat.completions.create(
+            model=model or self._model,
+            max_tokens=max_tokens,
+            messages=msgs,
+        )
+        return _Resp(resp.choices[0].message.content or "")
+
+
+def _build_llm_client():
+    """
+    Anthropic \u2192 Ollama fallback chain, mirrors crew-orchestrator/_get_llm().
+    Returns an object exposing .messages.create() in the Anthropic SDK style.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if api_key:
+        from anthropic import AsyncAnthropic
+        return AsyncAnthropic(api_key=api_key)
+    return _OllamaAdapter(
+        model=os.getenv("LLM_MODEL", "llama3.2"),
+        base_url=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
+        api_key=os.getenv("LLM_API_KEY", "NA"),
+    )
 
 def _resolve_secret(var: str) -> Optional[str]:
     """Return env ``var``, or the content of ``<var>_FILE`` if set (Docker secrets)."""
@@ -65,13 +99,8 @@ class AgentConfig:
     def __init__(self):
         self.name = os.getenv("AGENT_NAME", "base-agent")
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
-        self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
+        self.model = os.getenv("AGENT_MODEL", "claude-sonnet-4-6")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.api_key = (
-            _resolve_secret("ANTHROPIC_API_KEY")
-            or _resolve_secret("PERPLEXITY_API_KEY")
-            or _resolve_secret("OPENAI_API_KEY")
-        )
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
         self.hypercode_api_key = _resolve_secret("HYPERCODE_API_KEY")
@@ -148,9 +177,8 @@ class BaseAgent:
         else:
             raise RuntimeError("Could not connect to Redis after 5 attempts")
         
-        # Initialize AI Client
-        if AIClient and self.config.api_key:
-            self.client = AIClient(api_key=self.config.api_key)
+        # Initialize AI Client (Anthropic → Ollama fallback)
+        self.client = _build_llm_client()
         
         # Initialize Shared Systems
         try:
