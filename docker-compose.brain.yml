@@ -199,6 +199,7 @@ services:
       - REDIS_URL=redis://redis:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
+      - MCP_BRIDGE_URL=http://agent-mcp-bridge:3302
     volumes:
       - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
@@ -208,6 +209,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      agent-mcp-bridge:
+        condition: service_started
     restart: unless-stopped
     cap_drop:
       - ALL
