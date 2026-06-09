@@ -58,8 +58,8 @@ services:
   agent-hyper-brain-core:
     profiles: ["brain-agents"]
     build:
-      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/hyper-brain-core
-      dockerfile: Dockerfile
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
+      dockerfile: .agents/hyper-brain-core/Dockerfile
     container_name: agent-hyper-brain-core
     environment:
       - AGENT_ID=hyper-brain-core
