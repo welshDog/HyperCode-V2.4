@@ -228,7 +228,7 @@ Hyper-Vibe-Coding-Course/
   rewrites/                     — session snapshots + handovers
 
 BROski-Obsidian-Brain.../
-  cluster.json + .agents/       — BROski Brain 4-agent cluster spec
+  cluster.json + .agents/       — BROski Brain 4-agent cluster (3 LIVE: :3301/:3302/:3303 — profile brain-agents)
 ```
 
 ---
@@ -257,7 +257,13 @@ cd H:\Hyper-Vibe-Coding-Course && npm run dev:frontend    # NOT npm run dev
 npx tsc --noEmit && npx eslint . && npm run build         # pre-commit loop
 npm run test:e2e                                           # Playwright
 
-# Brain:
+# Brain agents (profile: brain-agents — 3 live, morning-briefing gated by profile brain-briefing):
+docker compose --profile brain-agents up -d
+curl http://localhost:3301/health                 # agent-hyper-brain-core
+curl http://localhost:3302/health                 # agent-mcp-bridge
+curl http://localhost:3303/health                 # agent-focus-tracker
+
+# Brain vault sync:
 python scripts/github_to_obsidian.py
 ```
 
