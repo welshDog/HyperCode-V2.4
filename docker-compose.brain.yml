@@ -112,8 +112,8 @@ services:
       - REDIS_URL=redis://redis:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
-      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://hypercode-ollama:11434}
+      - OLLAMA_MODEL=${BRAIN_OLLAMA_MODEL:-tinyllama:latest}
     volumes:
       - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
