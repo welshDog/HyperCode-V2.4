@@ -55,6 +55,183 @@ services:
       - "com.hyperfocuszone.tier=brain"
       - "com.hyperfocuszone.version=3.0.0"
 
+  agent-hyper-brain-core:
+    profiles: ["brain-agents"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/hyper-brain-core
+      dockerfile: Dockerfile
+    container_name: agent-hyper-brain-core
+    environment:
+      - AGENT_ID=hyper-brain-core
+      - PORT=3301
+      - REDIS_URL=redis://redis:6379/4
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
+      - OBSIDIAN_VAULT_PATH=/vault
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
+    ports:
+      - "127.0.0.1:3301:3301"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=agent-hyper-brain-core"
+      - "com.hyperfocuszone.tier=brain-agent"
+      - "com.hyperfocuszone.version=1.0.0"
+
+  agent-mcp-bridge:
+    profiles: ["brain-agents"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/mcp-bridge
+      dockerfile: Dockerfile
+    container_name: agent-mcp-bridge
+    environment:
+      - AGENT_ID=mcp-bridge
+      - PORT=3302
+      - REDIS_URL=redis://redis:6379/4
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
+      - OBSIDIAN_VAULT_PATH=/vault
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://localhost:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
+    ports:
+      - "127.0.0.1:3302:3302"
+    networks:
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=agent-mcp-bridge"
+      - "com.hyperfocuszone.tier=brain-agent"
+      - "com.hyperfocuszone.version=1.0.0"
+
+  agent-focus-tracker:
+    profiles: ["brain-agents"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/focus-tracker
+      dockerfile: Dockerfile
+    container_name: agent-focus-tracker
+    environment:
+      - AGENT_ID=focus-tracker
+      - PORT=3303
+      - DATABASE_URL=postgresql://postgres:hypercode@postgres:5432/hypercode
+      - OBSIDIAN_VAULT_PATH=/vault
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
+    ports:
+      - "127.0.0.1:3303:3303"
+    networks:
+      - agents-net
+      - data-net
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=agent-focus-tracker"
+      - "com.hyperfocuszone.tier=brain-agent"
+      - "com.hyperfocuszone.version=1.0.0"
+
+  # Level 13 — NOT YET LIVE. Start explicitly: docker compose --profile brain-briefing up -d agent-morning-briefing
+  agent-morning-briefing:
+    profiles: ["brain-briefing"]
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/morning-briefing
+      dockerfile: Dockerfile
+    container_name: agent-morning-briefing
+    environment:
+      - AGENT_ID=morning-briefing
+      - PORT=3304
+      - REDIS_URL=redis://redis:6379/4
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
+      - OBSIDIAN_VAULT_PATH=/vault
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
+    ports:
+      - "127.0.0.1:3304:3304"
+    networks:
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "com.hyperfocuszone.service=agent-morning-briefing"
+      - "com.hyperfocuszone.tier=brain-agent"
+      - "com.hyperfocuszone.version=0.1.0"
+
   github-sync-brain:
     profiles: ["brain"]
     build:
