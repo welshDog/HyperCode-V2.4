@@ -288,13 +288,15 @@ services:
 
   github-sync:
     build:
-      context: .
-      dockerfile: Dockerfile.github-sync
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
+      dockerfile: docker/Dockerfile.github-sync
     container_name: github-sync
     restart: unless-stopped
     environment:
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PAT=${GITHUB_PAT}
+      - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
     volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
       - github-sync-logs:/var/log
     networks:
       - agents-net
