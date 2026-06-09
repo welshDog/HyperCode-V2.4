@@ -187,9 +187,8 @@ services:
       - "com.hyperfocuszone.tier=brain-agent"
       - "com.hyperfocuszone.version=1.0.0"
 
-  # Level 13 — NOT YET LIVE. Start explicitly: docker compose --profile brain-briefing up -d agent-morning-briefing
   agent-morning-briefing:
-    profiles: ["brain-briefing"]
+    profiles: ["brain-agents"]
     build:
       context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne/.agents/morning-briefing
       dockerfile: Dockerfile
@@ -230,7 +229,7 @@ services:
     labels:
       - "com.hyperfocuszone.service=agent-morning-briefing"
       - "com.hyperfocuszone.tier=brain-agent"
-      - "com.hyperfocuszone.version=0.1.0"
+      - "com.hyperfocuszone.version=1.0.0"
 
   github-sync-brain:
     profiles: ["brain"]

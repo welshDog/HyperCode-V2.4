@@ -56,6 +56,7 @@ COGS = [
     "cogs.ban_veto",
     "cogs.ops_alerts",
     "cogs.briefing",
+    "cogs.brain_briefing",
 ]
 
 
