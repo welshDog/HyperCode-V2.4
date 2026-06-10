@@ -1,10 +1,16 @@
 # docker-compose.observability.yml — Observability stack
 # Services: prometheus, grafana, loki, tempo, promtail, node-exporter, cadvisor, alertmanager, minio, chroma, celery-exporter
+#
+# RAM-saver (8GB box): monitoring services are gated behind --profile observability.
+# minio + chroma are NOT gated — they are app dependencies (HyperSync backchannel, vector memory).
+#   docker compose up -d                            → stack WITHOUT monitoring
+#   docker compose --profile observability up -d    → stack WITH monitoring
 
 services:
   prometheus:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus
+    profiles: ["observability"]
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
@@ -51,6 +57,7 @@ services:
   grafana:
     image: ${GRAFANA_IMAGE:-grafana/grafana:13.0.1}
     container_name: grafana
+    profiles: ["observability"]
     environment:
       - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-}
@@ -93,6 +100,7 @@ services:
   loki:
     image: ${LOKI_IMAGE:-grafana/loki:3.5.7}
     container_name: loki
+    profiles: ["observability"]
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/loki-config.yml
@@ -126,6 +134,7 @@ services:
   tempo:
     image: grafana/tempo:2.4.2
     container_name: tempo
+    profiles: ["observability"]
     command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./monitoring/tempo/tempo.yaml:/etc/tempo.yaml
@@ -162,6 +171,7 @@ services:
   pyroscope:
     image: grafana/pyroscope:2.0.2
     container_name: pyroscope
+    profiles: ["observability"]
     command: ["-config.file=/etc/pyroscope/config.yaml"]
     volumes:
       - ./monitoring/pyroscope/config.yaml:/etc/pyroscope/config.yaml
@@ -191,6 +201,7 @@ services:
   promtail:
     image: ${PROMTAIL_IMAGE:-grafana/promtail:3.5.7}
     container_name: promtail
+    profiles: ["observability"]
     volumes:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
@@ -226,6 +237,7 @@ services:
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.1}
     container_name: node-exporter
+    profiles: ["observability"]
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
@@ -269,6 +281,7 @@ services:
   cadvisor:
     image: ${CADVISOR_IMAGE:-gcr.io/cadvisor/cadvisor:v0.47.2}
     container_name: cadvisor
+    profiles: ["observability"]
     cap_add:
       - SYS_ADMIN
     command:
@@ -307,6 +320,7 @@ services:
   alertmanager:
     image: ${ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}
     container_name: alertmanager
+    profiles: ["observability"]
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:9093/-/healthy"]
       interval: 30s
@@ -412,6 +426,7 @@ services:
   celery-exporter:
     image: ${CELERY_EXPORTER_IMAGE:-danihodovic/celery-exporter:latest}
     container_name: celery-exporter
+    profiles: ["observability"]
     command: --broker-url=redis://redis:6379/0
     ports:
       - "127.0.0.1:9808:9808"
