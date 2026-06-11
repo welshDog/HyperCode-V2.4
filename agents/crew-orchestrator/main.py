@@ -416,6 +416,40 @@ async def request_approval(
     return status
 
 
+async def _fetch_routed_skills(description: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Graph-aware skill routing — ask the Brain bridge which HYPER-SILLs fit
+    this task. Deterministic graph walk on :3302, no LLM call. Fail-open:
+    bridge down = empty list, agents run without routed skills."""
+    route_url = os.getenv("GRAPH_ROUTE_URL", "http://agent-mcp-bridge:3302/route")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                route_url, params={"query": description, "limit": limit}
+            )
+            if resp.status_code == 200:
+                return resp.json().get("skills") or []
+    except Exception as exc:
+        logger.warning(
+            json.dumps({"event": "skill_routing_failed", "reason": str(exc)})
+        )
+    return []
+
+
+def _routed_skills_block(skills: List[Dict[str, Any]]) -> str:
+    """Render routed skills as a prompt block agents can act on."""
+    if not skills:
+        return ""
+    lines = "\n".join(
+        f"- {s.get('emoji') or '🦸'} {s.get('title')} ({s.get('id')}): "
+        f"{s.get('description')} — vault: HYPER-SILLs/{s.get('path')}"
+        for s in skills
+    )
+    return (
+        "\n\n[Routed skills — graph-picked from HYPER-SILLs for this task; "
+        "apply their patterns]\n" + lines
+    )
+
+
 def _route_agent_for_task_type(task_type: str) -> Optional[str]:
     normalized = (task_type or "").strip().lower()
     if normalized == "code_generation":
@@ -516,16 +550,39 @@ async def execute_task(
             json.dumps({"event": "rag_query_failed", "reason": str(rag_exc)})
         )
 
-    # 3. Plan Generation — build execution plan enriched by RAG context
+    # 2b. Graph skill routing — Brain picks the HYPER-SILLs for this task
+    routed_skills = await _fetch_routed_skills(task.description)
+    if routed_skills:
+        logger.info(
+            json.dumps(
+                {
+                    "event": "skill_routing",
+                    "task_id": task.id,
+                    "skills": [s.get("id") for s in routed_skills],
+                }
+            )
+        )
+        await log_event(
+            "orchestrator", "info",
+            f"Routed skills: {', '.join(s.get('title') or s.get('id', '?') for s in routed_skills)}",
+        )
+        if redis_client:
+            task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
+            task_data["routed_skills"] = [s.get("id") for s in routed_skills]
+            await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+
+    # 3. Plan Generation — build execution plan enriched by RAG context + skills
     plan_description = task.description
     if rag_context:
         plan_description = f"{task.description}\n\n[Context]\n{rag_context[:500]}"
+    plan_description += _routed_skills_block(routed_skills)
     logger.info(
         json.dumps(
             {
                 "event": "plan_generated",
                 "task_id": task.id,
                 "has_rag_context": bool(rag_context),
+                "routed_skill_count": len(routed_skills),
             }
         )
     )
@@ -1007,6 +1064,18 @@ async def respond_to_approval(
     )
 
     return {"status": "response_recorded"}
+
+
+@app.get("/route/preview")
+async def route_preview(q: str, api_key: str = Depends(require_api_key)):
+    """Dry-run of graph skill routing — shows exactly what /execute would
+    inject into the agent prompt for this task. No LLM call, no agents run."""
+    skills = await _fetch_routed_skills(q)
+    return {
+        "query": q,
+        "skills": skills,
+        "prompt_block": _routed_skills_block(skills),
+    }
 
 
 @app.get("/system/health")

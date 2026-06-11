@@ -925,8 +925,11 @@ services:
   crew-orchestrator:
     profiles: ["agents"]
     build:
-      context: .
-      dockerfile: agents/crew-orchestrator/Dockerfile
+      # context MUST be the agent folder, not repo root: root context ships
+      # ~3.85GB to buildkit AND grabs the wrong requirements.txt/main.py
+      # (repo root has no main.py — the image would crash on boot)
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
     container_name: crew-orchestrator
     environment:
       - CORE_URL=http://hypercode-core:8000
