@@ -57,6 +57,7 @@ COGS = [
     "cogs.ops_alerts",
     "cogs.briefing",
     "cogs.brain_briefing",
+    "cogs.pets",
 ]
 
 
