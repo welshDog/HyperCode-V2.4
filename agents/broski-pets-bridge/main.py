@@ -851,6 +851,81 @@ async def pet_feed(discord_id: str, body: FeedRequest | None = None) -> dict[str
     }
 
 
+# ── Brain graph feed — dNFT graph-centrality angle ─────────────────────────
+# "Most-connected note feeds your pet": XP scales with the top note's live
+# edge degree in the BROski Brain graph (:3302/graph). One feed per graph
+# refresh (dedup on meta.updated) — write notes, link thoughts, pet evolves.
+
+
+def _brain_graph_url() -> str:
+    return os.getenv("BRAIN_GRAPH_URL", "http://agent-mcp-bridge:3302/graph").rstrip("/")
+
+
+@app.post("/pet/{discord_id}/brain-feed")
+async def pet_brain_feed(discord_id: str) -> dict[str, object]:
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(_brain_graph_url())
+            resp.raise_for_status()
+            graph = resp.json()
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Brain graph unavailable: {type(exc).__name__}")
+
+    nodes = graph.get("nodes") or []
+    edges = graph.get("edges") or []
+    note_ids = {n.get("id") for n in nodes if isinstance(n, dict) and n.get("layer") == "note"}
+    degree: dict[str, int] = {}
+    for e in edges:
+        if not isinstance(e, dict):
+            continue
+        for nid in (e.get("from"), e.get("to")):
+            if nid in note_ids:
+                degree[nid] = degree.get(nid, 0) + 1
+    if not degree:
+        raise HTTPException(status_code=503, detail="Brain graph has no connected notes")
+
+    top_id, top_degree = max(degree.items(), key=lambda kv: kv[1])
+    top_node = next((n for n in nodes if isinstance(n, dict) and n.get("id") == top_id), {})
+    top_path = str(top_node.get("path") or top_id)
+
+    meta = graph.get("meta") or {}
+    updated = str(meta.get("updated") or datetime.now(timezone.utc).date().isoformat())
+    dedup_key = f"petwebhook:brainfeed:{discord_id}:{updated}"
+    r = _redis()
+    if not r.set(dedup_key, "1", nx=True, ex=60 * 60 * 24 * 14):
+        return {
+            "fed": False,
+            "duplicate": True,
+            "graph_updated": updated,
+            "message": "Your Brain hasn't grown since the last feed — write a note, link a thought 🧠",
+        }
+
+    xp = min(150, max(10, top_degree * 5))
+    res = _award_xp_to_pet(
+        discord_id, xp, f"Brain feed: {top_path} ({top_degree} links)", "brain_graph"
+    )
+
+    pet = _load_pet(discord_id)
+    pet["happiness"] = min(100, int(pet.get("happiness", 0)) + 10)
+    pet["hunger"] = min(100, int(pet.get("hunger", 0)) + 10)
+    pet["last_brain_feed_at"] = _now_iso()
+    pet["updated_at"] = _now_iso()
+    _save_pet(discord_id, pet)
+
+    return {
+        "fed": True,
+        "xp_awarded": xp,
+        "fed_by": {"note": top_path, "id": top_id, "links": top_degree},
+        "graph": {"nodes": len(nodes), "edges": len(edges), "updated": updated},
+        "result": res.model_dump(),
+        "message": f"🧠 {top_path} ({top_degree} links) fed {pet.get('name', 'your pet')} +{xp} XP!",
+    }
+
+
 @app.get("/pet/{discord_id}/powers")
 async def pet_powers(discord_id: str) -> dict[str, object]:
     pet = _load_pet(discord_id)
