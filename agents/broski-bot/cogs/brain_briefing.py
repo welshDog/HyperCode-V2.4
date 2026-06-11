@@ -45,7 +45,9 @@ def _briefing_channel_id() -> int:
 async def _fetch_briefing() -> dict | None:
     """Call the brain agent and return the briefing dict, or None on failure."""
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
+        # graph-aware RAG on CPU Ollama — cold model load can push past 90s,
+        # agent's own bridge budget is 240s
+        async with httpx.AsyncClient(timeout=270.0) as client:
             resp = await client.post(f"{_AGENT_URL}/generate", json={})
             resp.raise_for_status()
             return resp.json().get("briefing")
@@ -118,6 +120,22 @@ def _build_embed(briefing: dict) -> discord.Embed:
             ),
             inline=False,
         )
+
+    # Brain citations — notes + skills the AI prioritization was grounded in
+    ai = briefing.get("ai_suggestions") or {}
+    cited = ai.get("sources") or []
+    skills = ai.get("skills") or []
+    if cited or skills:
+        lines = []
+        if cited:
+            lines.append("📎 " + " · ".join(
+                f"`{os.path.splitext(os.path.basename(p))[0]}`" for p in cited[:3]
+            ))
+        if skills:
+            lines.append("🦸 " + " · ".join(
+                f"`{s.removeprefix('skill:')}`" for s in skills[:4]
+            ))
+        embed.add_field(name="🧠 Brain Citations", value="\n".join(lines)[:1024], inline=False)
 
     # GitHub issues
     issues = briefing.get("github_issues") or []
