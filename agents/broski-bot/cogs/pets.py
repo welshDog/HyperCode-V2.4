@@ -12,15 +12,29 @@ from __future__ import annotations
 
 import logging
 import os
+from datetime import datetime, timezone
 
 import discord
 import httpx
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 logger = logging.getLogger(__name__)
 
 _BRIDGE_URL = os.getenv("PETS_BRIDGE_URL", "http://broski-pets-bridge:8098").rstrip("/")
+_AUTOFEED_HOUR = int(os.getenv("PETS_AUTOFEED_HOUR_UTC", "7"))
+
+
+def _autofeed_enabled() -> bool:
+    return os.getenv("PETS_AUTOFEED_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _owner_id() -> int:
+    raw = os.getenv("DIGEST_DM_USER_ID") or os.getenv("DISCORD_USER_ID") or "0"
+    try:
+        return int(raw)
+    except ValueError:
+        return 0
 
 _RARITY_COLORS = {
     "Common": 0x888888,
@@ -105,6 +119,40 @@ def _status_embed(pet: dict) -> discord.Embed:
     if fed_at:
         embed.add_field(name="🧠 Last brain feed", value=str(fed_at)[:16], inline=False)
     embed.set_footer(text="BROskiPets · your Brain feeds your pet")
+    return embed
+
+
+def _feed_embed(payload: dict, *, title: str = "🧠➜🐾 Brain feed!") -> discord.Embed:
+    fed_by = payload.get("fed_by") or {}
+    graph = payload.get("graph") or {}
+    result = payload.get("result") or {}
+    embed = discord.Embed(
+        title=title,
+        description=payload.get("message", "Your Brain fed your pet!"),
+        color=0xF59E0B,
+    )
+    embed.add_field(
+        name="📎 Fed by",
+        value=f"`{fed_by.get('note', '?')}` · {fed_by.get('links', '?')} links",
+        inline=False,
+    )
+    embed.add_field(
+        name="⚡ XP",
+        value=f"+{payload.get('xp_awarded', 0)} → {result.get('new_xp', '?')} total",
+        inline=True,
+    )
+    embed.add_field(
+        name="🕸️ Graph",
+        value=f"{graph.get('nodes', '?')} nodes · {graph.get('edges', '?')} edges",
+        inline=True,
+    )
+    if result.get("evolved"):
+        embed.add_field(
+            name="🎉 EVOLVED!",
+            value=result.get("evolution_message", "New stage unlocked!"),
+            inline=False,
+        )
+    embed.set_footer(text="BROskiPets · write notes, link thoughts, evolve")
     return embed
 
 
@@ -199,33 +247,67 @@ class Pets(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
             return
 
-        fed_by = payload.get("fed_by") or {}
-        graph = payload.get("graph") or {}
-        result = payload.get("result") or {}
-        embed = discord.Embed(
-            title="🧠➜🐾 Brain feed!",
-            description=payload.get("message", "Your Brain fed your pet!"),
-            color=0xF59E0B,
-        )
-        embed.add_field(
-            name="📎 Fed by",
-            value=f"`{fed_by.get('note', '?')}` · {fed_by.get('links', '?')} links",
-            inline=False,
-        )
-        embed.add_field(name="⚡ XP", value=f"+{payload.get('xp_awarded', 0)} → {result.get('new_xp', '?')} total", inline=True)
-        embed.add_field(
-            name="🕸️ Graph",
-            value=f"{graph.get('nodes', '?')} nodes · {graph.get('edges', '?')} edges",
-            inline=True,
-        )
-        if result.get("evolved"):
-            embed.add_field(
-                name="🎉 EVOLVED!",
-                value=result.get("evolution_message", "New stage unlocked!"),
-                inline=False,
+        await interaction.followup.send(embed=_feed_embed(payload))
+
+    # ── Daily auto brain-feed ────────────────────────────────────────────
+    # Feeds every pet on the roster once a day at PETS_AUTOFEED_HOUR_UTC.
+    # Bridge-side dedup (one feed per graph refresh) makes retries harmless.
+    # DM goes to the owner only, and only when the pet was actually fed.
+
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+        self._last_autofeed_date: str | None = None
+
+    async def cog_load(self):
+        if _autofeed_enabled():
+            self.autofeed_loop.start()
+
+    async def cog_unload(self):
+        self.autofeed_loop.cancel()
+
+    @tasks.loop(hours=1)
+    async def autofeed_loop(self):
+        now = datetime.now(timezone.utc)
+        if now.hour != _AUTOFEED_HOUR:
+            return
+        today = now.strftime("%Y-%m-%d")
+        if self._last_autofeed_date == today:
+            return
+
+        status, board = await _bridge("GET", "/leaderboard")
+        if status != 200 or not isinstance(board, list):
+            logger.warning("autofeed: pets bridge roster unavailable (%s)", status)
+            return  # bridge down — hourly loop retries while still in the hour
+        self._last_autofeed_date = today
+
+        owner = _owner_id()
+        for row in board:
+            discord_id = str(row.get("discord_id", "")).strip()
+            if not discord_id:
+                continue
+            st, payload = await _bridge("POST", f"/pet/{discord_id}/brain-feed")
+            fed = bool(payload.get("fed")) if st == 200 else False
+            # print, not logger.info — the bot has no logging config, INFO is dropped
+            print(
+                f"🧠 autofeed: pet={row.get('name', discord_id)} status={st} "
+                f"fed={fed} duplicate={bool(payload.get('duplicate'))}"
             )
-        embed.set_footer(text="BROskiPets · write notes, link thoughts, evolve")
-        await interaction.followup.send(embed=embed)
+            if not (fed and owner and discord_id == str(owner)):
+                continue
+            user = self.bot.get_user(owner)
+            if user is None:
+                try:
+                    user = await self.bot.fetch_user(owner)
+                except discord.HTTPException:
+                    continue
+            try:
+                await user.send(embed=_feed_embed(payload, title="🌅🧠 Daily brain feed"))
+            except (discord.Forbidden, discord.HTTPException):
+                pass
+
+    @autofeed_loop.before_loop
+    async def _before_autofeed(self):
+        await self.bot.wait_until_ready()
 
 
 async def setup(bot: commands.Bot):

@@ -275,6 +275,8 @@ services:
       # which expands from the same ${API_KEY} (the per-agent _FILE secret
       # is dead config: the bridge code never reads _FILE variants)
       PETS_BRIDGE_API_KEY: ${API_KEY:-dev-master-key}
+      PETS_AUTOFEED_ENABLED: ${PETS_AUTOFEED_ENABLED:-true}
+      PETS_AUTOFEED_HOUR_UTC: ${PETS_AUTOFEED_HOUR_UTC:-7}
       NEMOCLAW_PULSE_HOURS: ${NEMOCLAW_PULSE_HOURS:-24}
       CODE_HEALTH_CHANNEL_ID: ${CODE_HEALTH_CHANNEL_ID:-}
       AUTO_ROLE_NAME: ${AUTO_ROLE_NAME:-BROski}
