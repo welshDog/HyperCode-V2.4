@@ -490,7 +490,11 @@ def _award_xp_to_pet(discord_id: str, amount: int, reason: str, source: str) -> 
     webhook = os.getenv("EVOLVE_WEBHOOK_URL", "").strip()
     if evolved and token_id and webhook:
         try:
-            with httpx.Client(timeout=3.0) as client:
+            headers = {}
+            shared = (os.getenv("HYPERCODE_API_KEY") or "").strip()
+            if shared:
+                headers["X-API-Key"] = shared
+            with httpx.Client(timeout=3.0, headers=headers) as client:
                 client.post(webhook, json={
                     "token_id": int(token_id),
                     "new_stage": min(int(new_level), 6),

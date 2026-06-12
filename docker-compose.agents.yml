@@ -1144,6 +1144,7 @@ services:
     environment:
       - PORT=8098
       - PETS_ENABLED=${BROSKIE_PETS_ENABLED:-false}
+      - EVOLVE_WEBHOOK_URL=${EVOLVE_WEBHOOK_URL:-http://evolve-relay:8097/evolve}
       - REDIS_URL=redis://redis:6379/3
       - OLLAMA_URL=http://hypercode-ollama:11434
       - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
