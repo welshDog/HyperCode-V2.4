@@ -307,6 +307,18 @@ async def _publish_heal_event(
     except Exception as e:
         logger.warning(f"EventBus publish failed (non-fatal): {e}")
 
+    # Phase 10E: also mirror into core's event stream, authed as US
+    try:
+        from core_events import publish_core_event
+        await publish_core_event(
+            "completed" if status == "recovered" else "failed",
+            f"heal-{healed_agent}",
+            {"healed_agent": healed_agent, "pattern": heal_pattern,
+             "status": status, "error": error_msg},
+        )
+    except Exception as e:
+        logger.warning(f"Core event mirror failed (non-fatal): {e}")
+
 
 # ── Heartbeat + heals_today ───────────────────────────────────────────────────────────────────────
 

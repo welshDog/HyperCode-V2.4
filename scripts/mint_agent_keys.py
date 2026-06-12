@@ -8,14 +8,21 @@ pipe it into psql:
 
     python scripts/mint_agent_keys.py | docker exec -i postgres psql -U postgres -d hypercode
 
+⚠️  No args = mints (ROTATES!) every agent in AGENTS. Pass agent names to
+mint only those:
+
+    python scripts/mint_agent_keys.py healer-agent | docker exec -i postgres psql -U postgres -d hypercode
+
 Raw keys land ONLY in the gitignored secrets/ dir, never on stdout.
 """
 import hashlib
 import secrets
+import sys
 from pathlib import Path
 
 AGENTS = [
     "crew-orchestrator",
+    "healer-agent",
     "coder-agent",
     "broski-pets-bridge",
     "nemoclaw-agent",
@@ -35,8 +42,12 @@ SECRETS_DIR = Path(__file__).resolve().parent.parent / "secrets"
 
 
 def main() -> None:
+    targets = sys.argv[1:] or AGENTS
+    unknown = [t for t in targets if t not in AGENTS]
+    if unknown:
+        raise SystemExit(f"Unknown agent(s): {unknown} — add to AGENTS first")
     rows = []
-    for name in AGENTS:
+    for name in targets:
         raw = "hc_" + secrets.token_urlsafe(32)
         (SECRETS_DIR / f"agent_api_key_{name}.txt").write_text(raw, encoding="ascii")
         rows.append((name, raw[:10], hashlib.sha256(raw.encode()).hexdigest()))

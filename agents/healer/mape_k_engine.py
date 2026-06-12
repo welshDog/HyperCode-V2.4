@@ -367,6 +367,20 @@ async def execute(
         mttr_seconds=mttr,
     )
     kb.record_heal(event)
+
+    # Phase 10E: mirror MAPE-K heals into core's event stream, authed as US
+    if action != HealAction.NO_ACTION:
+        try:
+            from core_events import publish_core_event
+            await publish_core_event(
+                "completed" if success else "failed",
+                f"mapek-{service.name}",
+                {"service": service.name, "action": action.value,
+                 "reason": reason, "mttr_seconds": mttr},
+            )
+        except Exception as exc:
+            logger.warning("Core event mirror failed (non-fatal): %s", exc)
+
     return event
 
 
