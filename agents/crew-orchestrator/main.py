@@ -416,6 +416,54 @@ async def request_approval(
     return status
 
 
+def _agent_self_key() -> str:
+    """This orchestrator's OWN identity key for agent->core calls (Phase 10E).
+    Registered in core's agent_api_keys table — env first, Docker secret file
+    fallback. Empty string = feature off (event mirroring silently skipped)."""
+    key = os.getenv("HYPERCODE_AGENT_KEY", "").strip()
+    if key:
+        return key
+    path = os.getenv(
+        "HYPERCODE_AGENT_KEY_FILE", "/run/secrets/agent_api_key_crew-orchestrator"
+    )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+async def _publish_core_event(
+    channel: str, task_id: str, event_status: str, payload: Optional[Dict[str, Any]] = None
+) -> bool:
+    """Mirror a lifecycle event to core's POST /api/v1/events, authenticated
+    as crew-orchestrator via X-Agent-Key (per-agent identity + rate limit).
+    Fail-open: core down or key missing must never block dispatch."""
+    key = _agent_self_key()
+    if not key:
+        return False
+    core_url = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                f"{core_url}/api/v1/events",
+                headers={"X-Agent-Key": key},
+                json={
+                    "channel": channel,
+                    "agentId": "crew-orchestrator",
+                    "taskId": task_id,
+                    "status": event_status,
+                    "payload": payload or {},
+                },
+            )
+            return resp.status_code == 200
+    except Exception as exc:
+        logger.warning(
+            json.dumps({"event": "core_event_publish_failed", "reason": str(exc)})
+        )
+        return False
+
+
 async def _fetch_routed_skills(description: str, limit: int = 5) -> List[Dict[str, Any]]:
     """Graph-aware skill routing — ask the Brain bridge which HYPER-SILLs fit
     this task. Deterministic graph walk on :3302, no LLM call. Fail-open:
@@ -706,6 +754,13 @@ async def execute_task(
             json.dumps({"event": "broski_event_published", "task_id": task.id})
         )
 
+    # Phase 10E: mirror workflow completion into core's event stream
+    await _publish_core_event(
+        "task", task.id, "completed",
+        {"agents": list(results.keys()),
+         "routed_skills": [s.get("id") for s in routed_skills]},
+    )
+
     # ── Post-run: write results to ./results (obsidian-watcher pushes them) ────
     _duration = perf_counter() - _t_start
     obsidian_sync_info: dict = {"status": "skipped"}
@@ -808,6 +863,11 @@ async def dispatch_task(
                 )
             )
             raise HTTPException(status_code=502, detail="Agent execution failed")
+        # Phase 10E: mirror completion into core's event stream, authed as US
+        await _publish_core_event(
+            "task", task_id, "completed",
+            {"agent": agent_name, "routed_skills": [s.get("id") for s in routed_skills]},
+        )
         return {
             "status": "completed",
             "task_id": task_id,
