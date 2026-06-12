@@ -483,6 +483,24 @@ def _award_xp_to_pet(discord_id: str, amount: int, reason: str, source: str) -> 
 
     _save_pet(discord_id, pet)
 
+    # dNFT hookup: a bound on-chain twin + an evolve webhook = notify the
+    # executor (evolve_token.py / evolver agent). Fail-open, dormant when
+    # EVOLVE_WEBHOOK_URL is unset.
+    token_id = pet.get("token_id")
+    webhook = os.getenv("EVOLVE_WEBHOOK_URL", "").strip()
+    if evolved and token_id and webhook:
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                client.post(webhook, json={
+                    "token_id": int(token_id),
+                    "new_stage": min(int(new_level), 6),
+                    "xp": new_xp,
+                    "happiness": int(pet.get("happiness", 70)),
+                    "pet_name": pet.get("name"),
+                })
+        except Exception:
+            pass  # on-chain mirror is async garnish — never block the award
+
     return XpAwardResponse(
         new_xp=new_xp,
         new_level=new_level,
@@ -535,6 +553,24 @@ async def provision(body: ProvisionRequest) -> ProvisionResponse:
 @app.post("/xp/award", response_model=XpAwardResponse)
 async def award_xp(body: XpAwardRequest) -> XpAwardResponse:
     return _award_xp_to_pet(body.discord_id, body.amount, body.reason, body.source)
+
+
+class BindTokenRequest(BaseModel):
+    token_id: int = Field(..., ge=1, le=78)
+
+
+@app.post("/pet/{discord_id}/bind-token")
+async def bind_token(discord_id: str, body: BindTokenRequest) -> dict[str, object]:
+    """Bind a Redis pet to its on-chain EEPVengers twin (token 1-78).
+    The dNFT hookup: once bound, evolutions mirror on-chain via the
+    evolve webhook / evolve_token.py executor."""
+    pet = _load_pet(discord_id)
+    if not pet:
+        raise HTTPException(status_code=404, detail="No pet found for this discord_id")
+    pet["token_id"] = body.token_id
+    pet["updated_at"] = _now_iso()
+    _save_pet(discord_id, pet)
+    return {"bound": True, "token_id": body.token_id, "pet": pet.get("name")}
 
 
 @app.get("/pet/{discord_id}/status")
