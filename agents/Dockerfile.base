@@ -1,4 +1,9 @@
 # Shared base layer for all Python agents (FastAPI + docker CLI + dependencies)
+#
+# This image is NOT built by compose — children (agents/coder/Dockerfile) do
+# FROM agent-base:latest and fail with "pull access denied" if it's missing
+# (e.g. after a docker prune). Rebuild it with:
+#   docker build -t agent-base:latest -f agents/Dockerfile.base agents/
 FROM python:3.12-slim AS agent-base
 
 WORKDIR /app
