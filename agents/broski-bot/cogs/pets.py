@@ -45,17 +45,9 @@ _RARITY_COLORS = {
 
 
 def _bridge_key() -> str:
-    key = os.getenv("PETS_BRIDGE_API_KEY", "").strip()
-    if key:
-        return key
-    path = os.getenv(
-        "PETS_BRIDGE_API_KEY_FILE", "/run/secrets/agent_api_key_broski-pets-bridge"
-    )
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    except OSError:
-        return ""
+    # shared ${API_KEY} via compose — the bridge compares against the same
+    # expansion (per-agent _FILE keys were removed as dead config 2026-06-12)
+    return os.getenv("PETS_BRIDGE_API_KEY", "").strip()
 
 
 async def _bridge(method: str, path: str, json_body: dict | None = None) -> tuple[int, dict]:

@@ -12,7 +12,10 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     env_file:
-      - ../.env
+      # HperCore root .env doesn't exist on this box — optional so the file
+      # is used if present but its absence doesn't break compose validation
+      - path: ../.env
+        required: false
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
