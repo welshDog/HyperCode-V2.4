@@ -851,6 +851,46 @@ async def pet_feed(discord_id: str, body: FeedRequest | None = None) -> dict[str
     }
 
 
+def _self_agent_key() -> str:
+    """OWN identity for agent->core calls (Phase 10E) — env first, then the
+    registered Docker secret. Empty = event mirroring silently off."""
+    key = (os.getenv("HYPERCODE_AGENT_KEY") or "").strip()
+    if key:
+        return key
+    path = os.getenv(
+        "HYPERCODE_AGENT_KEY_FILE", "/run/secrets/agent_api_key_broski-pets-bridge"
+    )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+async def _publish_core_event(event_status: str, task_id: str, payload: dict) -> None:
+    """Mirror a pet event to core POST /api/v1/events as broski-pets-bridge.
+    Fail-open — core down or key missing never affects the pet response."""
+    key = _self_agent_key()
+    if not key:
+        return
+    core_url = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{core_url}/api/v1/events",
+                headers={"X-Agent-Key": key},
+                json={
+                    "channel": "pets",
+                    "agentId": "broski-pets-bridge",
+                    "taskId": task_id,
+                    "status": event_status,
+                    "payload": payload,
+                },
+            )
+    except Exception:
+        pass  # event mirror is garnish — never block pet flows
+
+
 # ── Brain graph feed — dNFT graph-centrality angle ─────────────────────────
 # "Most-connected note feeds your pet": XP scales with the top note's live
 # edge degree in the BROski Brain graph (:3302/graph). One feed per graph
@@ -915,6 +955,14 @@ async def pet_brain_feed(discord_id: str) -> dict[str, object]:
     pet["last_brain_feed_at"] = _now_iso()
     pet["updated_at"] = _now_iso()
     _save_pet(discord_id, pet)
+
+    # Phase 10E: mirror the feed into core's event stream, authed as US
+    await _publish_core_event(
+        "completed",
+        f"brainfeed-{updated}",
+        {"pet": pet.get("name"), "note": top_path, "links": top_degree,
+         "xp": xp, "evolved": res.evolved, "new_level": res.new_level},
+    )
 
     return {
         "fed": True,

@@ -16,6 +16,7 @@ import os
 import uuid
 from secrets import compare_digest
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -63,6 +64,41 @@ def _expected_api_key() -> str:
     return (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
 
 
+def _self_agent_key() -> str:
+    """OWN identity for agent->core calls (Phase 10E) — env first, then the
+    registered Docker secret. Empty = event mirroring silently off."""
+    key = (os.getenv("HYPERCODE_AGENT_KEY") or "").strip()
+    if key:
+        return key
+    return _read_secret_file(
+        os.getenv("HYPERCODE_AGENT_KEY_FILE", "/run/secrets/agent_api_key_nemoclaw-agent")
+    )
+
+
+async def _publish_core_event(event_status: str, payload: dict) -> None:
+    """Mirror a scan event to core POST /api/v1/events as nemoclaw-agent.
+    Fail-open — core down or key missing never affects the scan response."""
+    key = _self_agent_key()
+    if not key:
+        return
+    core_url = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{core_url}/api/v1/events",
+                headers={"X-Agent-Key": key},
+                json={
+                    "channel": "health",
+                    "agentId": "nemoclaw-agent",
+                    "taskId": str(payload.get("scan_id", "")),
+                    "status": event_status,
+                    "payload": payload,
+                },
+            )
+    except Exception as exc:
+        logger.warning("core event publish failed: %s", exc)
+
+
 def _workspace() -> str:
     return os.getenv("WORKSPACE_PATH", "/workspace")
 
@@ -94,6 +130,13 @@ async def scan(body: ScanRequest | None = None) -> dict[str, object]:
         counts=result.counts,
         total_files=result.total_files,
         top_issues=result.top_issues,
+    )
+
+    # Phase 10E: mirror the scan into core's event stream, authed as US
+    await _publish_core_event(
+        "completed",
+        {"scan_id": scan_id, "score": result.score, "grade": result.grade,
+         "total_files": result.total_files},
     )
 
     return {
