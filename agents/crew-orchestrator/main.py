@@ -766,9 +766,23 @@ async def dispatch_task(
             detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
         )
 
+    # Graph skill routing — same Brain assist as /execute (fail-open)
+    routed_skills = await _fetch_routed_skills(task_text)
+    if routed_skills:
+        logger.info(
+            json.dumps(
+                {
+                    "event": "skill_routing",
+                    "task_id": task_id,
+                    "endpoint": "/task",
+                    "skills": [s.get("id") for s in routed_skills],
+                }
+            )
+        )
+
     payload = {
         "id": task_id,
-        "task": task_text,
+        "task": task_text + _routed_skills_block(routed_skills),
         "type": task_type,
         "context": request.context or {},
         "requires_approval": False,
@@ -798,6 +812,7 @@ async def dispatch_task(
             "status": "completed",
             "task_id": task_id,
             "agent": agent_name,
+            "routed_skills": [s.get("id") for s in routed_skills],
             "result": resp.json(),
         }
     except HTTPException:
