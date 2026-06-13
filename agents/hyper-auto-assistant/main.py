@@ -1,50 +1,66 @@
-"""Hyper Auto Assistant - Intelligent Task Router for HyperCode V2.0."""
+"""Hyper Auto Assistant - Intelligent Task Router for HyperCode V2.4.
+
+Routes free-text tasks to super-hyper-broski-agent actions based on
+keyword intent detection. Single FastAPI app, Prometheus metrics at
+/metrics, JSON structured logging.
+"""
 
 from __future__ import annotations
+
 import json
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
+
 import httpx
-from fastapi import FastAPI
-from metrics import init_metrics  # 👈 import
-
-app = FastAPI()
-init_metrics(app)  # 👈 auto-exposes /metrics endpoint
-
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+
+from metrics import (
+    downstream_errors_total,
+    init_metrics,
+    route_duration_seconds,
+    route_requests_total,
+)
+
 
 class JSONFormatter(logging.Formatter):
     def format(self, record):
-        return json.dumps({"timestamp": datetime.utcnow().isoformat(),
-            "level": record.levelname, "component": "hyper-auto-assistant",
-            "message": record.getMessage()})
+        return json.dumps({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": record.levelname,
+            "component": "hyper-auto-assistant",
+            "message": record.getMessage(),
+        })
+
 
 logger = logging.getLogger("hyper-auto-assistant")
 logger.setLevel(logging.INFO)
-h = logging.StreamHandler()
-h.setFormatter(JSONFormatter())
-logger.addHandler(h)
+_handler = logging.StreamHandler()
+_handler.setFormatter(JSONFormatter())
+logger.addHandler(_handler)
 logger.propagate = False
 
-BROSKI_URL = os.getenv("BROSKI_AGENT_URL", "http://localhost:8015")
+BROSKI_URL = os.getenv("BROSKI_AGENT_URL", "http://super-hyper-broski-agent:8015")
 START_TIME = time.time()
 
 INTENT_MAP: dict[str, list[str]] = {
-    "deploy":    ["deploy","launch","release","ship","go live","publish","prod","moon"],
-    "debug":     ["debug","fix","bug","error","broken","crash","exception","issue","problem"],
-    "code":      ["code","build","write","create","implement","develop","feature","script"],
-    "rest":      ["rest","sleep","recharge","break","pause","chill","relax","recover"],
-    "celebrate": ["celebrate","done","finished","complete","win","success","shipped","awesome","nailed"],
+    "deploy":    ["deploy", "launch", "release", "ship", "go live", "publish", "prod", "moon"],
+    "debug":     ["debug", "fix", "bug", "error", "broken", "crash", "exception", "issue", "problem"],
+    "code":      ["code", "build", "write", "create", "implement", "develop", "feature", "script"],
+    "rest":      ["rest", "sleep", "recharge", "break", "pause", "chill", "relax", "recover"],
+    "celebrate": ["celebrate", "done", "finished", "complete", "win", "success", "shipped", "awesome", "nailed"],
 }
-ULTRA_KEYWORDS = ["urgent","critical","asap","emergency","ultra","immediately"]
+ULTRA_KEYWORDS = ["urgent", "critical", "asap", "emergency", "ultra", "immediately"]
+
 
 class TaskRequest(BaseModel):
     task: str
     context: str = ""
     priority: str = "normal"
+
 
 class TaskResponse(BaseModel):
     task: str
@@ -56,6 +72,7 @@ class TaskResponse(BaseModel):
     energy: int
     processing_ms: float
 
+
 def detect_intent(task: str, priority: str) -> tuple[str, bool]:
     task_lower = task.lower()
     is_ultra = priority == "ultra" or any(kw in task_lower for kw in ULTRA_KEYWORDS)
@@ -64,21 +81,27 @@ def detect_intent(task: str, priority: str) -> tuple[str, bool]:
     best = max(scores, key=lambda k: scores[k])
     return (best if scores[best] > 0 else "celebrate"), is_ultra
 
-app = FastAPI(title="Hyper Auto Assistant", version="1.0.0")
+
+app = FastAPI(title="Hyper Auto Assistant", version="1.1.0")
+init_metrics(app)
+
 
 @app.get("/")
 async def root() -> dict[str, Any]:
     return {"agent": "Hyper Auto Assistant", "status": "🦅 ROUTING ENGINE ACTIVE",
             "tip": "POST to /route with a task string!"}
 
+
 @app.get("/health")
 async def health() -> dict[str, Any]:
     return {"status": "healthy", "uptime_seconds": time.time() - START_TIME,
             "message": "🦅 Ready to route!"}
 
+
 @app.get("/intents")
 async def list_intents() -> dict[str, Any]:
     return {"intents": INTENT_MAP, "ultra_triggers": ULTRA_KEYWORDS}
+
 
 @app.get("/status")
 async def status() -> dict[str, Any]:
@@ -91,8 +114,9 @@ async def status() -> dict[str, Any]:
         pass
     uptime = time.time() - START_TIME
     return {"status": "🚀 OPERATIONAL",
-            "uptime": f"{int(uptime//3600)}h {int((uptime%3600)//60)}m {int(uptime%60)}s",
+            "uptime": f"{int(uptime // 3600)}h {int((uptime % 3600) // 60)}m {int(uptime % 60)}s",
             "downstream": {"super-hyper-broski-agent": broski_ok}}
+
 
 @app.post("/route")
 async def route_task(req: TaskRequest) -> TaskResponse:
@@ -111,9 +135,18 @@ async def route_task(req: TaskRequest) -> TaskResponse:
             result_data = r.json()
         except httpx.RequestError as e:
             logger.error(f"Downstream dead: {e}")
+            downstream_errors_total.labels(kind="unreachable").inc()
+            route_requests_total.labels(intent=action, outcome="error").inc()
             raise HTTPException(status_code=502, detail="Downstream unavailable")
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Downstream error: {e}")
+            downstream_errors_total.labels(kind="http_status").inc()
+            route_requests_total.labels(intent=action, outcome="error").inc()
+            raise HTTPException(status_code=502, detail=f"Downstream returned {e.response.status_code}")
         except (ValueError, json.JSONDecodeError) as e:
             logger.error(f"Bad JSON: {e}")
+            downstream_errors_total.labels(kind="bad_json").inc()
+            route_requests_total.labels(intent=action, outcome="error").inc()
             raise HTTPException(status_code=502, detail="Invalid downstream response")
 
     vibe, energy = 100, 100
@@ -124,10 +157,16 @@ async def route_task(req: TaskRequest) -> TaskResponse:
     except Exception:
         pass
 
+    elapsed = time.time() - start
+    route_duration_seconds.observe(elapsed)
+    route_requests_total.labels(intent=action, outcome="ok").inc()
+
     return TaskResponse(task=req.task, detected_intent=action,
-        routed_to="super-hyper-broski-agent", action_fired=action,
-        result=result_data.get("result", "✅ Routed!"),
-        vibe=vibe, energy=energy, processing_ms=round((time.time()-start)*1000, 2))
+                        routed_to="super-hyper-broski-agent", action_fired=action,
+                        result=result_data.get("result", "✅ Routed!"),
+                        vibe=vibe, energy=energy,
+                        processing_ms=round(elapsed * 1000, 2))
+
 
 if __name__ == "__main__":
     import uvicorn

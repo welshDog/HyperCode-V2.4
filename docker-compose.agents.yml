@@ -10,14 +10,15 @@
 #   agents        → coder-agent, mcp-gateway, broski-pets-bridge,
 #                   crew-orchestrator, goal-keeper, project-strategist,
 #                   frontend-specialist, backend-specialist, database-architect,
-#                   qa-engineer, devops-engineer, super-hyper-broski-agent,
-#                   security-engineer, system-architect, test-agent,
-#                   throttle-agent, tips-tricks-writer
+#                   qa-engineer, devops-engineer
+#   (super-hyper-broski-agent, security-engineer, system-architect,
+#    test-agent, throttle-agent, tips-tricks-writer live ONLY in
+#    docker-compose.agents-full.yml — not in this file)
 #   discord       → broski-bot
 #   mission       → hyper-mission-api, hyper-mission-ui
 #   hyper         → hyper-architect, hyper-observer, hyper-worker,
-#                   hyper-split-agent, session-snapshot, agent-x,
-#                   docker-socket-proxy-build (also ops/health)
+#                   agent-x, docker-socket-proxy-build (also ops/health)
+#   (hyper-split-agent, session-snapshot live ONLY in agents-full.yml)
 #   health        → hyperhealth-api, hyperhealth-worker, auto-prune,
 #                   security-scanner, docker-socket-proxy-build
 #   ops           → auto-prune, security-scanner, docker-socket-proxy-build
@@ -1356,6 +1357,7 @@ services:
       context: ./agents/01-frontend-specialist
       dockerfile: Dockerfile
     container_name: frontend-specialist
+    restart: unless-stopped
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=frontend-specialist
@@ -1370,6 +1372,7 @@ services:
       - agent_memory:/app/memory
     networks:
       - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8012:8012"
     depends_on:
@@ -1402,6 +1405,7 @@ services:
       context: ./agents/02-backend-specialist
       dockerfile: Dockerfile
     container_name: backend-specialist
+    restart: unless-stopped
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=backend-specialist
@@ -1416,6 +1420,7 @@ services:
       - agent_memory:/app/memory
     networks:
       - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8003:8003"
     depends_on:
@@ -1448,6 +1453,7 @@ services:
       context: ./agents/03-database-architect
       dockerfile: Dockerfile
     container_name: database-architect
+    restart: unless-stopped
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=database-architect
@@ -1462,6 +1468,7 @@ services:
       - agent_memory:/app/memory
     networks:
       - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8004:8004"
     depends_on:
@@ -1497,6 +1504,7 @@ services:
       context: ./agents/04-qa-engineer
       dockerfile: Dockerfile
     container_name: qa-engineer
+    restart: unless-stopped
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=qa-engineer
@@ -1511,6 +1519,7 @@ services:
       - agent_memory:/app/memory
     networks:
       - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8005:8005"
     depends_on:
@@ -1545,6 +1554,7 @@ services:
       context: ./agents/05-devops-engineer
       dockerfile: Dockerfile
     container_name: devops-engineer
+    restart: unless-stopped
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=devops-engineer
@@ -1559,6 +1569,7 @@ services:
       - agent_memory:/app/memory
     networks:
       - agents-net
+      - data-net
     ports:
       - "127.0.0.1:8006:8006"
     depends_on:
