@@ -1,6 +1,6 @@
 # 🧠 HYPERFOCUS z0ne — Ecosystem Constitution (root CLAUDE.md)
 > **For ANY AI assistant — Claude, Perplexity, GPT, Gemini — read this first.**
-> Last updated: **June 9, 2026**
+> Last updated: **June 15, 2026**
 > Lean rewrite: status, tasks, roadmap, achievements moved to `docs/` (see §0 for links).
 
 ---
@@ -239,10 +239,18 @@ BROski-Obsidian-Brain.../
 # Env preflight — ALWAYS before docker compose up:
 python scripts/env_check.py --core --secrets --profile discord
 
-# Start full stack:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml -f docker-compose.brain.yml --profile discord up -d
-# Core only:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+# ✅ CANONICAL COMPOSE WRAPPER (use this, not raw docker compose):
+.\hyperlaunch.ps1 up -d                           # always-on services
+.\hyperlaunch.ps1 --profile agents up -d          # + agents (crew, mcp-server, etc.)
+.\hyperlaunch.ps1 --profile discord up -d         # + discord bot
+.\hyperlaunch.ps1 --profile brain-agents up -d    # + brain agents
+.\hyperlaunch.ps1 up -d hypercode-core            # single service
+.\hyperlaunch.ps1 ps                              # status
+.\hyperlaunch.ps1 logs -f hypercode-mcp-server    # logs
+# ⚠️ Raw docker compose MUST use all 4 files — use hyperlaunch.ps1 instead:
+# docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+#   -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml ...
+# ⚠️ NEVER pass -f docker-compose.agents.yml explicitly — already include:d by root
 
 pytest backend/tests/ -q                          # run tests
 curl http://localhost:8000/health                 # core
