@@ -247,5 +247,33 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "hypercode"
-  ]
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_start.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session start..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_end.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session end..."
+          }
+        ]
+      }
+    ]
+  }
 }
