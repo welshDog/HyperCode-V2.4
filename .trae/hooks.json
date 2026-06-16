@@ -14,6 +14,19 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/env_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostFileSave": [
       {
         "matcher": "**/*.py",
