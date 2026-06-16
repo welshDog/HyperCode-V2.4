@@ -42,13 +42,18 @@ def validate(compose_path):
         return errors, warnings
 
     in_healthcheck = False
+    healthcheck_indent = 0
 
     for i, raw in enumerate(compose_path.read_text(encoding="utf-8").splitlines(), start=1):
         stripped = raw.strip()
+        if not stripped:
+            continue
+        indent = len(raw) - len(raw.lstrip())
 
-        if _HEALTHCHECK_RE.search(stripped):
+        if _HEALTHCHECK_RE.search(stripped) and stripped.rstrip(":") == "healthcheck":
             in_healthcheck = True
-        elif stripped and not raw[0:1] in (" ", "\t"):
+            healthcheck_indent = indent
+        elif in_healthcheck and indent <= healthcheck_indent and stripped != "healthcheck:":
             in_healthcheck = False
 
         for prefix in _BANNED_IMAGE_PREFIXES:
