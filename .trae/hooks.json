@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_start.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostFileSave": [
+      {
+        "matcher": "**/*.py",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/lint_on_save.py ${file}",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "agent_task_complete",
+        "loop_limit": 3,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/update_handover.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
