@@ -249,6 +249,21 @@
     "hypercode"
   ],
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(docker compose*)",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/env_guard.py\"; exit 0",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "Checking env vars..."
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
