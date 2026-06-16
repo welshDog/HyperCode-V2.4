@@ -20,20 +20,20 @@ from typing import Optional
 WORKSPACE = Path(r"H:\HYPERFOCUSZONE\HperCore")
 
 REPOS = [
-    {"name": "HyperCode-V2.4",                    "hook_prefix": "hc",    "canonical": True},
-    {"name": "THE-HYPERCODE",                       "hook_prefix": "thc",   "canonical": False, "note": "V3 experimental"},
-    {"name": "Hyper-Vibe-Coding-Course",            "hook_prefix": "hvc",   "canonical": True},
-    {"name": "HyperAgent-SDK",                      "hook_prefix": "sdk",   "canonical": True},
-    {"name": "BROskiPets-LLM-dNFT",                "hook_prefix": "pet",   "canonical": True},
-    {"name": "BROski-Obsidian-Brain-for-HyperFocus-z0ne", "hook_prefix": "hfz", "canonical": True},
-    {"name": "hyper-agents-ide",                    "hook_prefix": "ide",   "canonical": True},
-    {"name": "showcase-web",                        "hook_prefix": "sw",    "canonical": True},
-    {"name": "HYPER-SILLs-By-WelshDog",            "hook_prefix": "sill",  "canonical": True},
-    {"name": "Hyper-Docker",                        "hook_prefix": "hd",    "canonical": True},
-    {"name": "WelshDog-Mission-Control",            "hook_prefix": "mc",    "canonical": True},
-    {"name": "welshdog-designs-web3-shop",          "hook_prefix": "shop",  "canonical": True},
-    {"name": "hyperfocuszone.com-Support-Hub-",     "hook_prefix": "hub",   "canonical": True},
-    {"name": "trae-ide",                            "hook_prefix": "trae",  "canonical": False, "note": "local IDE state"},
+    {"name": "HyperCode-V2.4",                                "canonical": True},
+    {"name": "THE-HYPERCODE",                                  "canonical": False, "note": "V3 experimental"},
+    {"name": "Hyper-Vibe-Coding-Course",                       "canonical": True},
+    {"name": "HyperAgent-SDK",                                 "canonical": True},
+    {"name": "BROskiPets-LLM-dNFT",                           "canonical": True},
+    {"name": "BROski-Obsidian-Brain-for-HyperFocus-z0ne",      "canonical": True},
+    {"name": "hyper-agents-ide",                               "canonical": True},
+    {"name": "showcase-web",                                   "canonical": True},
+    {"name": "HYPER-SILLs-By-WelshDog",                       "canonical": True},
+    {"name": "Hyper-Docker",                                   "canonical": True},
+    {"name": "WelshDog-Mission-Control",                       "canonical": True},
+    {"name": "welshdog-designs-web3-shop",                     "canonical": True},
+    {"name": "hyperfocuszone.com-Support-Hub-",                "canonical": True},
+    {"name": "trae-ide",                                       "canonical": False, "note": "local IDE state"},
 ]
 
 GREEN  = "\033[92m"
@@ -44,15 +44,19 @@ BOLD   = "\033[1m"
 RESET  = "\033[0m"
 
 
+def find_hook(hooks_dir: Path, pattern: str) -> Optional[Path]:
+    """Glob for a hook script matching pattern. Returns first match or None."""
+    matches = list(hooks_dir.glob(f"*{pattern}*.py"))
+    return matches[0] if matches else None
+
+
 def run_script(script_path: Path, timeout: int = 15) -> tuple[bool, str]:
     """Run a hook script. Returns (success, output)."""
-    if not script_path.exists():
-        return False, f"script not found: {script_path.name}"
     try:
         result = subprocess.run(
             [sys.executable, str(script_path)],
             capture_output=True, text=True, timeout=timeout,
-            cwd=script_path.parent.parent  # repo root
+            cwd=script_path.parent.parent.parent  # repo root (hooks/ -> .claude/ -> root)
         )
         output = (result.stdout + result.stderr).strip()
         return result.returncode == 0, output
@@ -64,7 +68,6 @@ def run_script(script_path: Path, timeout: int = 15) -> tuple[bool, str]:
 
 def check_repo(repo: dict, env_only: bool = False) -> dict:
     repo_path = WORKSPACE / repo["name"]
-    prefix = repo["hook_prefix"]
     hooks_dir = repo_path / ".claude" / "hooks"
 
     result = {
@@ -73,58 +76,70 @@ def check_repo(repo: dict, env_only: bool = False) -> dict:
         "is_git": (repo_path / ".git").exists(),
         "canonical": repo.get("canonical", True),
         "note": repo.get("note", ""),
+        "hooks_exist": hooks_dir.exists(),
         "session_start": None,
         "env_guard": None,
         "session_start_out": "",
         "env_guard_out": "",
     }
 
-    if not result["exists"]:
+    if not result["exists"] or not result["hooks_exist"]:
         return result
 
-    if not env_only:
-        session_script = hooks_dir / f"{prefix}_session_start.py"
-        ok, out = run_script(session_script)
-        result["session_start"] = ok
-        result["session_start_out"] = out[:200] if out else ""
+    # Auto-discover by glob — no hard-coded prefixes
+    env_script     = find_hook(hooks_dir, "env_guard")
+    session_script = find_hook(hooks_dir, "session_start")
 
-    env_script = hooks_dir / f"{prefix}_env_guard.py"
-    ok, out = run_script(env_script)
-    result["env_guard"] = ok
-    result["env_guard_out"] = out[:200] if out else ""
+    if env_script:
+        ok, out = run_script(env_script)
+        result["env_guard"] = ok
+        result["env_guard_out"] = out[:200]
+    else:
+        result["env_guard"] = False
+        result["env_guard_out"] = f"no *env_guard*.py found in {hooks_dir}"
+
+    if not env_only:
+        if session_script:
+            ok, out = run_script(session_script)
+            result["session_start"] = ok
+            result["session_start_out"] = out[:200]
+        else:
+            result["session_start"] = False
+            result["session_start_out"] = f"no *session_start*.py found in {hooks_dir}"
 
     return result
 
 
-def status_icon(value: Optional[bool], exists: bool) -> str:
+def status_icon(value: Optional[bool], exists: bool, hooks_exist: bool) -> str:
     if not exists:
-        return f"{DIM}━━ MISSING{RESET}"
+        return f"{DIM}\u2501\u2501 MISSING{RESET}"
+    if not hooks_exist:
+        return f"{YELLOW}\u26a0\ufe0f NO HOOKS{RESET}"
     if value is None:
-        return f"{DIM}-- SKIP{RESET}  "
-    return f"{GREEN}✅ OK    {RESET}" if value else f"{RED}❌ FAIL  {RESET}"
+        return f"{DIM}-- SKIP  {RESET}"
+    return f"{GREEN}\u2705 OK    {RESET}" if value else f"{RED}\u274c FAIL  {RESET}"
 
 
 def print_board(results: list, elapsed: float, env_only: bool):
-    width = 56
+    width = 62
     print()
     print(f"{BOLD}{'=' * width}{RESET}")
-    print(f"{BOLD}  🐾 HyperFocus Z0ne — Ecosystem Health Board{RESET}")
-    print(f"{DIM}  {time.strftime('%Y-%m-%d %H:%M:%S')} · {elapsed:.1f}s{RESET}")
+    print(f"{BOLD}  \U0001f43e HyperFocus Z0ne \u2014 Ecosystem Health Board{RESET}")
+    print(f"{DIM}  {time.strftime('%Y-%m-%d %H:%M:%S')} \u00b7 {elapsed:.1f}s{RESET}")
     print(f"{'=' * width}{RESET}")
 
-    col_session = "" if env_only else " SESSION "
-    print(f"  {'REPO':<42} {'ENV':^8}{col_session:^9}")
-    print(f"  {'-' * 42} {'--------'} {'--------'}")
+    col_session = " SESSION " if not env_only else ""
+    print(f"  {'REPO':<42} {'ENV':^9}{col_session:^9}")
+    print(f"  {'-' * 42} {'---------'} {'---------'}")
 
     total_ok = 0
     total_checks = 0
 
     for r in results:
         tag = f" {DIM}[{r['note']}]{RESET}" if r["note"] else ""
-        name = r["name"][:38]
-        env_s  = status_icon(r["env_guard"],    r["exists"])
-        sess_s = status_icon(r["session_start"], r["exists"]) if not env_only else ""
-
+        name = r["name"][:40]
+        env_s  = status_icon(r["env_guard"],    r["exists"], r["hooks_exist"])
+        sess_s = status_icon(r["session_start"], r["exists"], r["hooks_exist"]) if not env_only else ""
         print(f"  {name:<42} {env_s} {sess_s}{tag}")
 
         for check in [r["env_guard"], r["session_start"]]:
@@ -137,17 +152,19 @@ def print_board(results: list, elapsed: float, env_only: bool):
     score_color = GREEN if total_ok == total_checks else (YELLOW if total_ok >= total_checks * 0.8 else RED)
     print(f"{score_color}{BOLD}  Score: {total_ok}/{total_checks} checks passed{RESET}")
 
-    # Surface failures
-    failures = [r for r in results if r["env_guard"] is False or r["session_start"] is False]
+    failures = [
+        r for r in results
+        if r["env_guard"] is False or r["session_start"] is False
+    ]
     if failures:
         print(f"\n{RED}{BOLD}  Failures:{RESET}")
         for r in failures:
             if r["env_guard"] is False:
-                print(f"  {RED}•{RESET} {r['name']} env_guard: {DIM}{r['env_guard_out'][:120]}{RESET}")
+                print(f"  {RED}\u2022{RESET} {r['name']} env_guard: {DIM}{r['env_guard_out'][:120]}{RESET}")
             if r["session_start"] is False:
-                print(f"  {RED}•{RESET} {r['name']} session_start: {DIM}{r['session_start_out'][:120]}{RESET}")
+                print(f"  {RED}\u2022{RESET} {r['name']} session_start: {DIM}{r['session_start_out'][:120]}{RESET}")
     else:
-        print(f"{GREEN}  All checks passed 🚀{RESET}")
+        print(f"{GREEN}  All checks passed \U0001f680{RESET}")
 
     print(f"{'=' * width}")
     print()
@@ -155,8 +172,8 @@ def print_board(results: list, elapsed: float, env_only: bool):
 
 def main():
     parser = argparse.ArgumentParser(description="HyperFocus Z0ne Ecosystem Health Board")
-    parser.add_argument("--env-only",  action="store_true", help="Run env_guard only (faster)")
-    parser.add_argument("--repo",      type=str,            help="Check a single repo by name")
+    parser.add_argument("--env-only", action="store_true", help="Run env_guard only (faster)")
+    parser.add_argument("--repo",     type=str,            help="Check a single repo by name")
     args = parser.parse_args()
 
     repos_to_check = REPOS
