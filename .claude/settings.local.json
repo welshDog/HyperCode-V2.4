@@ -249,6 +249,20 @@
     "hypercode"
   ],
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$j = $input | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match 'docker-compose.*\\.yml') { python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/compose_validator.py\" $f }",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Validating compose file..."
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
