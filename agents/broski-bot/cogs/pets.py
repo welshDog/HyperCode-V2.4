@@ -24,6 +24,15 @@ logger = logging.getLogger(__name__)
 _BRIDGE_URL = os.getenv("PETS_BRIDGE_URL", "http://broski-pets-bridge:8098").rstrip("/")
 _AUTOFEED_HOUR = int(os.getenv("PETS_AUTOFEED_HOUR_UTC", "7"))
 
+# ── Supabase REST (Course pets — public.pets table) ──────────────────────────
+# Prefers service_role key for direct table reads; falls back to anon key
+# when only anon is available (anon key + SECURITY DEFINER RPCs = same effect).
+_SUPA_URL = os.getenv("SUPABASE_URL", "").rstrip("/")
+_SUPA_KEY = (
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+    or os.getenv("SUPABASE_ANON_KEY", "")
+)
+
 
 def _autofeed_enabled() -> bool:
     return os.getenv("PETS_AUTOFEED_ENABLED", "true").strip().lower() in {"1", "true", "yes", "on"}
@@ -43,11 +52,63 @@ _RARITY_COLORS = {
     "Legendary": 0xF59E0B,
 }
 
+_STAGE_LABELS = {
+    "baby":           "🐣 Baby",
+    "learner":        "📚 Learner",
+    "builder":        "🛠️ Builder",
+    "shipper":        "🚀 Shipper",
+    "hyperfocus_god": "⚡ HyperFocus God",
+    "legend":         "👑 Legend",
+}
+
 
 def _bridge_key() -> str:
     # shared ${API_KEY} via compose — the bridge compares against the same
     # expansion (per-agent _FILE keys were removed as dead config 2026-06-12)
     return os.getenv("PETS_BRIDGE_API_KEY", "").strip()
+
+
+async def _supa_get(path: str, params: dict | None = None) -> tuple[int, list | dict]:
+    """Call the Supabase REST API with the service_role key. Returns (status, payload)."""
+    if not _SUPA_URL or not _SUPA_KEY:
+        return 0, {}
+    headers = {
+        "apikey": _SUPA_KEY,
+        "Authorization": f"Bearer {_SUPA_KEY}",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
+            resp = await client.get(f"{_SUPA_URL}/rest/v1{path}", params=params)
+            try:
+                payload = resp.json()
+            except Exception:
+                payload = {}
+            return resp.status_code, payload
+    except Exception as exc:
+        logger.warning("Supabase unreachable: %s", exc)
+        return 0, {}
+
+
+async def _supa_rpc(fn: str, body: dict) -> tuple[int, list | dict]:
+    """POST to a Supabase SECURITY DEFINER RPC. Returns (status, payload)."""
+    if not _SUPA_URL or not _SUPA_KEY:
+        return 0, {}
+    headers = {
+        "apikey": _SUPA_KEY,
+        "Authorization": f"Bearer {_SUPA_KEY}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0, headers=headers) as client:
+            resp = await client.post(f"{_SUPA_URL}/rest/v1/rpc/{fn}", json=body)
+            try:
+                payload = resp.json()
+            except Exception:
+                payload = {}
+            return resp.status_code, payload
+    except Exception as exc:
+        logger.warning("Supabase RPC %s unreachable: %s", fn, exc)
+        return 0, {}
 
 
 async def _bridge(method: str, path: str, json_body: dict | None = None) -> tuple[int, dict]:
@@ -240,6 +301,89 @@ class Pets(commands.Cog):
             return
 
         await interaction.followup.send(embed=_feed_embed(payload))
+
+    # ── /mypets — Supabase-persisted collection (Course mints) ──────────
+    @app_commands.command(
+        name="mypets",
+        description="🐾 Your BROskiPet collection minted on Base",
+    )
+    async def mypets(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        discord_id = str(interaction.user.id)
+
+        # pets_by_discord is SECURITY DEFINER — joins discord_links → pets in one call
+        st, pets_rows = await _supa_rpc("pets_by_discord", {"p_discord_id": discord_id})
+        if st == 0:
+            await interaction.followup.send(
+                "⚠️ Couldn't load your pets — try again in a moment.", ephemeral=True
+            )
+            return
+        if not pets_rows:
+            embed = discord.Embed(
+                title="🐾 No pets yet",
+                description="Head to **hyper-vibe-coding-course.vercel.app/pets** to mint your first BROskiPet on Base.",
+                color=0x888888,
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title=f"🐾 Your BROskiPets ({len(pets_rows)})",
+            color=0xA855F7,
+        )
+        for pet in pets_rows[:6]:
+            rarity = str(pet.get("rarity", "common")).title()
+            stage  = _STAGE_LABELS.get(pet.get("stage", "baby"), str(pet.get("stage", "?")))
+            species = str(pet.get("species_id", "?")).replace("_", " ").title()
+            evo    = int(pet.get("evolution_count", 0))
+            embed.add_field(
+                name=f"{pet.get('pet_name', '?')} · {species}",
+                value=f"{stage} · {rarity}\n{evo}× evolved",
+                inline=True,
+            )
+        if len(pets_rows) > 6:
+            embed.set_footer(text=f"Showing 6 of {len(pets_rows)} pets · evolve at hyper-vibe-coding-course.vercel.app/pets")
+        else:
+            embed.set_footer(text="Evolve your pet at hyper-vibe-coding-course.vercel.app/pets")
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    # ── /top-pets — public squad leaderboard (most evolved) ─────────────
+    @app_commands.command(
+        name="top-pets",
+        description="🏆 Most-evolved BROskiPets across the squad",
+    )
+    async def top_pets_cmd(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        st, rows = await _supa_get("/top_pets", params={"select": "*"})
+        if st == 0 or not isinstance(rows, list):
+            await interaction.followup.send(
+                "⚠️ Couldn't load the leaderboard — try again in a moment."
+            )
+            return
+        if not rows:
+            await interaction.followup.send(
+                "No pets have been minted yet — be the first at hyper-vibe-coding-course.vercel.app/pets!"
+            )
+            return
+
+        medals = ["🥇", "🥈", "🥉"]
+        lines = []
+        for i, row in enumerate(rows[:10]):
+            medal   = medals[i] if i < 3 else f"`#{i + 1}`"
+            stage   = _STAGE_LABELS.get(row.get("stage", "baby"), str(row.get("stage", "?")))
+            species = str(row.get("species_id", "?")).replace("_", " ").title()
+            evo     = int(row.get("evolution_count", 0))
+            lines.append(
+                f"{medal} **{row.get('pet_name', '?')}** · {species}\n"
+                f"  {stage} · {evo}× evolved"
+            )
+        embed = discord.Embed(
+            title="🏆 BROskiPets — Top Evolvers",
+            description="\n".join(lines),
+            color=0xF59E0B,
+        )
+        embed.set_footer(text="Earn XP → evolve at hyper-vibe-coding-course.vercel.app/pets")
+        await interaction.followup.send(embed=embed)
 
     # ── Daily auto brain-feed ────────────────────────────────────────────
     # Feeds every pet on the roster once a day at PETS_AUTOFEED_HOUR_UTC.
