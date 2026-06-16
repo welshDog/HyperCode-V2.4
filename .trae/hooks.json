@@ -38,6 +38,17 @@
             "timeout": 20
           }
         ]
+      },
+      {
+        "matcher": "**/docker-compose*.yml",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/compose_validator.py ${file}",
+            "timeout": 15
+          }
+        ]
       }
     ],
     "PostToolUse": [
