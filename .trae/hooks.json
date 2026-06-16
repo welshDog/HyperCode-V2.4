@@ -51,6 +51,17 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "agent_task_complete",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/broski_xp_reward.py",
+            "timeout": 10
+          }
+        ]
       }
     ]
   }
