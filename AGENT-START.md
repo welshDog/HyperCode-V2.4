@@ -1,7 +1,7 @@
 # 🚀 AGENT-START.md — HyperFocus Z0ne MASTER Boot File
 > **For ANY AI, agent, or human joining the full HyperFocus Z0ne ecosystem.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **v3.1 (upgraded 2026-06-07)** · supersedes v3.0 (2026-06-01)
+> Built by @welshDog — **v3.2 (upgraded 2026-06-16)** · supersedes v3.1 (2026-06-07)
 
 > 📌 **Live truth ALWAYS wins:** Read the newest `DASHBOARD_STATUS_YYYY-MM-DD.md` + newest `NEXT_SESSION_HANDOVER_*.md` BEFORE anything else. **This file is the constitution, not the news.**
 
@@ -36,7 +36,8 @@ Workspace root: H:\HYPERFOCUSZONE\HperCore   (NOT a git repo — workspace only)
 
 | Repo | What it is | Stack | First doc |
 |---|---|---|---|
-| `HyperCode-V2.4` | 🧠 Core platform — **~30 containers running** (profile-dependent across 20+ compose files; 80+ services defined) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
+| `HyperCode-V2.4` | 🧠 Core platform — **CANONICAL PRODUCTION** (~30 containers running, 80+ services defined across 20+ compose files) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
+| `THE-HYPERCODE` | 🔬 **Next-gen / V3 EXPERIMENTAL** — successor to HyperCode-V2.4. NOT production, NOT canonical. Cold agents: use V2.4 as source of truth. | Python + Docker (evolving) | `README.md` |
 | `hyper-agents-ide` | 🎛️ Control room UI — agents, chat, skills dashboard | FastAPI + Vite/React | `README.md` |
 | `Hyper-Vibe-Coding-Course` | 🎓 ND-first AI education platform — Course + HyperLabs funnel | Vite + Supabase + Stripe | `CLAUDE.md` |
 | `HyperAgent-SDK` | 📦 npm agent orchestration package `@w3lshdog/hyper-agent` | Node/JS | `README.md` |
@@ -52,6 +53,8 @@ Workspace root: H:\HYPERFOCUSZONE\HperCore   (NOT a git repo — workspace only)
 | `trae-ide` | 🗃️ Local Trae IDE state/data | SQLite | `data/` |
 
 > ⚠️ `HC` / `HperCore` is a **workspace hub only** — commit inside the repo you changed, never at HperCore root. This `AGENT-START.md` lives at the root and is NOT git-tracked here; mirror copies in sub-repos drift.
+
+> 🔬 **THE-HYPERCODE vs HyperCode-V2.4:** V2.4 is the running production system. THE-HYPERCODE is the V3 experimental successor — treat it as a lab, not as core infra.
 
 ---
 
@@ -86,6 +89,7 @@ Showcase ──▶ pulls status from ecosystem (public registry)
 | `WelshDog-Mission-Control` | **`WHATS_DONE.md` + `CHANGELOG.md`** — **no CLAUDE.md exists** | If a brief says "read CLAUDE.md" for this repo, the brief is wrong |
 | `HYPER-SILLs-By-WelshDog` | `WHATS_DONE.md` + `vault-index.md` + `NEXT_SESSION_HANDOVER_*` | No CLAUDE.md here either |
 | `BROskiPets-LLM-dNFT` | `README.md` + repo-specific snapshots | — |
+| `THE-HYPERCODE` | `README.md` | V3 experimental — read before touching |
 | Everything else | `README.md` first | — |
 
 ---
