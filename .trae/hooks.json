@@ -63,6 +63,19 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_end.py",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }
