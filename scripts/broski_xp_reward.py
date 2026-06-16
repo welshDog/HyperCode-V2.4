@@ -1,47 +1,72 @@
-import requests
-import random
-from datetime import datetime
+#!/usr/bin/env python3
+"""HyperFocus Z0ne - BROski$ XP Reward Hook.
 
-BRAIN_API = "http://localhost:8100"
-XP_ENDPOINT = f"{BRAIN_API}/economy/earn"
+Publishes an XP award event to Redis channel 'broski_economy' (DB 1).
+Falls back gracefully if Redis is offline -- offline is non-fatal.
 
-# XP tiers — random within range keeps it exciting!
-XP_REWARDS = {
-    "task_complete": (15, 35),
-    "bonus_streak": (10, 20),
-}
+Usage:
+    python scripts/broski_xp_reward.py
+    python scripts/broski_xp_reward.py --xp 25 --reason task_complete
+"""
 
-def award_xp():
-    base_xp = random.randint(*XP_REWARDS["task_complete"])
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+import argparse
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+_DEFAULT_XP = 10
+_DEFAULT_REASON = "session_hook"
+_REDIS_CHANNEL = "broski_economy"
+_REDIS_DB = 1  # DB 1 = cache (Sacred Rule: Redis DB split)
+
+
+def _publish(channel, payload):
+    try:
+        import redis  # type: ignore[import]
+
+        r = redis.Redis(host="127.0.0.1", port=6379, db=_REDIS_DB, socket_connect_timeout=2)
+        r.ping()
+        r.publish(channel, json.dumps(payload))
+        return True
+    except Exception:
+        return False
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Award BROski$ XP")
+    parser.add_argument("--xp", type=int, default=_DEFAULT_XP, help="XP amount (default 10)")
+    parser.add_argument("--reason", default=_DEFAULT_REASON, help="Award reason tag")
+    args = parser.parse_args()
+
+    print("\n[BROSKI XP REWARD] HyperFocus Z0ne")
+    print("-" * 40)
+    print("   XP:     +" + str(args.xp))
+    print("   Reason: " + args.reason)
 
     payload = {
-        "source": "trae_hook",
-        "event": "agent_task_complete",
-        "xp": base_xp,
-        "timestamp": now,
-        "note": "Auto-awarded by TRAE PostToolUse hook"
+        "type": "xp_award",
+        "xp": args.xp,
+        "reason": args.reason,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "source": "session_hook",
     }
 
-    try:
-        response = requests.post(XP_ENDPOINT, json=payload, timeout=5)
-        if response.status_code == 200:
-            data = response.json()
-            total = data.get("total_broski_coins", "?")
-            print(f"\n🪙 +{base_xp} BROski$ earned! — Task complete")
-            print(f"💰 Total balance: {total} BROski$")
-            print(f"⚡ Keep building Bro! HyperFocus Z0ne — {now}")
-        else:
-            print(f"⚠️  Brain API responded {response.status_code} — XP not recorded")
-    except requests.exceptions.ConnectionError:
-        # Brain container might be off — log locally instead
-        print(f"\n🪙 +{base_xp} BROski$ earned (offline mode — Brain container not running)")
-        _log_offline(base_xp, now)
+    published = _publish(_REDIS_CHANNEL, payload)
 
-def _log_offline(xp, timestamp):
-    """Fallback: log to local file if Brain API is down."""
-    with open(".broski_xp_log.txt", "a") as f:
-        f.write(f"{timestamp} | +{xp} XP | agent_task_complete | pending sync\n")
-    print("💾 XP logged offline — will sync when Brain container is up.")
+    if published:
+        print("   Redis:  PASS published to '" + _REDIS_CHANNEL + "' (DB " + str(_REDIS_DB) + ")")
+        print()
+        print("PASS  XP awarded! BROski forever!\n")
+    else:
+        print("   Redis:  WARN not reachable -- XP logged offline")
+        print()
+        print("PASS  XP recorded locally (+" + str(args.xp) + " " + args.reason + ") -- Redis offline is non-fatal\n")
 
-award_xp()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

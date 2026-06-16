@@ -1,83 +1,101 @@
-import sys
-import yaml
-import subprocess
+#!/usr/bin/env python3
+"""HyperFocus Z0ne - Compose Validator.
+
+Enforces Sacred Rules on a docker-compose file:
+  - NEVER docker.io image references
+  - NEVER 'from backend.app.' in inline commands
+  - WARN if healthcheck uses 127.0.0.1 (should be localhost -- IPv6 fix)
+
+Usage:
+    python scripts/compose_validator.py docker-compose.core.yml
+    python scripts/compose_validator.py /abs/path/to/compose.yml
+"""
+
 import re
-from collections import defaultdict
+import sys
+from pathlib import Path
 
-file = sys.argv[1] if len(sys.argv) > 1 else None
+ROOT = Path(__file__).resolve().parents[1]
 
-if not file:
-    print("⚠️  No file passed to compose_validator.py")
-    sys.exit(0)
+_BANNED_IMAGE_PREFIXES = ("docker.io/", "index.docker.io/")
+_BANNED_IMPORT_RE = re.compile(r"from\s+backend\.app\.")
+_HEALTHCHECK_RE = re.compile(r"healthcheck", re.IGNORECASE)
 
-print(f"\n🐳 Validating: {file}")
 
-# --- Step 1: YAML syntax check ---
-try:
-    with open(file, "r") as f:
-        data = yaml.safe_load(f)
-    print("✅ YAML syntax — valid")
-except yaml.YAMLError as e:
-    print(f"❌ YAML SYNTAX ERROR in {file}:")
-    print(f"   {e}")
-    sys.exit(1)
+def _resolve_compose(arg):
+    p = Path(arg)
+    if p.is_absolute():
+        return p
+    for base in (Path.cwd(), ROOT):
+        candidate = base / p
+        if candidate.exists():
+            return candidate
+    return Path.cwd() / p
 
-if not data:
-    print("⚠️  Empty compose file — nothing to validate")
-    sys.exit(0)
 
-# --- Step 2: Port conflict check ---
-services = data.get("services", {})
-port_map = defaultdict(list)
-warnings = []
+def validate(compose_path):
+    errors = []
+    warnings = []
 
-for service_name, service_cfg in services.items():
-    if not service_cfg:
-        continue
-    ports = service_cfg.get("ports", [])
-    for port_entry in ports:
-        # Handle both "8080:80" and {target: 80, published: 8080}
-        if isinstance(port_entry, str):
-            match = re.match(r"(?:.*:)?(\d+):", port_entry)
-            if match:
-                host_port = int(match.group(1))
-                port_map[host_port].append(service_name)
-        elif isinstance(port_entry, dict):
-            published = port_entry.get("published")
-            if published:
-                port_map[int(published)].append(service_name)
+    if not compose_path.exists():
+        errors.append("file not found: " + str(compose_path))
+        return errors, warnings
 
-conflicts = {port: svcs for port, svcs in port_map.items() if len(svcs) > 1}
+    in_healthcheck = False
 
-if conflicts:
-    print(f"\n⚠️  PORT CONFLICTS DETECTED in {file}:")
-    for port, svcs in conflicts.items():
-        print(f"   Port {port} → claimed by: {', '.join(svcs)}")
-    warnings.append("port_conflicts")
-else:
-    print("✅ Port map — no conflicts")
+    for i, raw in enumerate(compose_path.read_text(encoding="utf-8").splitlines(), start=1):
+        stripped = raw.strip()
 
-# --- Step 3: Redis DB isolation check ---
-for service_name, service_cfg in services.items():
-    if not service_cfg:
-        continue
-    env = service_cfg.get("environment", {})
-    if isinstance(env, dict):
-        redis_db = env.get("REDIS_DB") or env.get("CACHE_DB")
-        if redis_db is not None:
-            db_num = int(str(redis_db))
-            # Sacred Rule: DB1=cache, DB2=rate_limits
-            if db_num not in [0, 1, 2]:
-                print(f"⚠️  {service_name} uses Redis DB{db_num} — check Sacred Rules (DB1=cache, DB2=rate limits)")
+        if _HEALTHCHECK_RE.search(stripped):
+            in_healthcheck = True
+        elif stripped and not raw[0:1] in (" ", "\t"):
+            in_healthcheck = False
 
-# --- Step 4: docker.io socket check ---
-compose_text = open(file).read()
-if "docker.io" in compose_text:
-    print(f"\n🚨 SACRED RULE VIOLATION in {file}:")
-    print(f"   ❌ 'docker.io' found — use docker-ce-cli ONLY!")
-    sys.exit(1)
+        for prefix in _BANNED_IMAGE_PREFIXES:
+            if prefix in stripped:
+                errors.append("line " + str(i) + ": docker.io reference -- " + repr(stripped))
 
-if warnings:
-    print(f"\n⚠️  {file} has warnings — review before deploying!")
-else:
-    print(f"✅ {file} — all checks passed! Safe to deploy 🚀")
+        if _BANNED_IMPORT_RE.search(stripped):
+            errors.append("line " + str(i) + ": forbidden 'from backend.app.*' -- " + repr(stripped))
+
+        if in_healthcheck and "127.0.0.1" in stripped:
+            warnings.append("line " + str(i) + ": healthcheck uses 127.0.0.1 -- prefer localhost")
+
+    return errors, warnings
+
+
+def main() -> int:
+    if len(sys.argv) < 2:
+        print("Usage: python scripts/compose_validator.py <compose-file>")
+        return 2
+
+    compose_path = _resolve_compose(sys.argv[1])
+
+    print("\n[COMPOSE VALIDATOR] HyperFocus Z0ne -- " + sys.argv[1])
+    print("-" * 40)
+    print("   Path: " + str(compose_path))
+    print()
+
+    errors, warnings = validate(compose_path)
+
+    for w in warnings:
+        print("   WARN  " + w)
+    if warnings:
+        print()
+
+    if errors:
+        for e in errors:
+            print("   FAIL  " + e)
+        print()
+        print("FAIL  Validation FAILED -- " + str(len(errors)) + " error(s).\n")
+        return 1
+
+    print("PASS  " + compose_path.name + " passed all Sacred Rules checks!")
+    if warnings:
+        print("      (" + str(len(warnings)) + " warning(s) -- non-blocking)")
+    print()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

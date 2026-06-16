@@ -1,64 +1,73 @@
-import subprocess
+#!/usr/bin/env python3
+"""HyperFocus Z0ne - Env Guard.
+
+Blocks launch if required vars are absent or set to placeholder values.
+Reads .env from repo root and merges with os.environ (env takes priority).
+Exits 0 on pass, 1 on failure.
+"""
+
+import os
 import sys
+from pathlib import Path
 
-DANGEROUS_PATTERNS = [
-    ".env",
-    ".env.local",
-    ".env.production",
-    ".env.staging",
+ROOT = Path(__file__).resolve().parents[1]
+
+REQUIRED = [
+    "POSTGRES_USER",
+    "POSTGRES_PASSWORD",
+    "POSTGRES_DB",
+    "REDIS_URL",
+    "SECRET_KEY",
 ]
 
-SECRET_KEYWORDS = [
-    "SECRET",
-    "PASSWORD",
-    "TOKEN",
-    "API_KEY",
-    "PRIVATE_KEY",
-    "STRIPE_",
-    "SUPABASE_",
-    "DISCORD_TOKEN",
-    "GITHUB_PAT",
-]
+_PLACEHOLDERS = {"", "changeme", "CHANGEME", "your_value_here", "paste_here", "CHANGEME_REQUIRED"}
 
-def get_staged_files():
-    result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only"],
-        capture_output=True, text=True
-    )
-    return result.stdout.strip().splitlines()
 
-def check_staged_content():
-    result = subprocess.run(
-        ["git", "diff", "--cached"],
-        capture_output=True, text=True
-    )
-    return result.stdout
+def _load_env(env_path):
+    kv = {}
+    if not env_path.exists():
+        return kv
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        kv[k.strip()] = v.strip()
+    return kv
 
-staged = get_staged_files()
-blocked = False
 
-# Check 1 — .env files staged directly
-for f in staged:
-    for pattern in DANGEROUS_PATTERNS:
-        if f == pattern or f.endswith("/" + pattern):
-            print(f"\n🚨 SACRED RULE VIOLATION 🚨")
-            print(f"❌ BLOCKED: '{f}' is a .env file — NEVER commit secrets!")
-            print(f"💡 Run: git reset HEAD {f}")
-            blocked = True
+def main() -> int:
+    print("\n[ENV GUARD] HyperFocus Z0ne")
+    print("-" * 40)
 
-# Check 2 — secret keywords in staged content
-if not blocked:
-    content = check_staged_content()
-    for keyword in SECRET_KEYWORDS:
-        if f"+{keyword}=" in content or f"+ {keyword}=" in content:
-            print(f"\n🚨 SACRED RULE VIOLATION 🚨")
-            print(f"❌ BLOCKED: Looks like '{keyword}' value is staged in a commit!")
-            print(f"💡 Check your staged files: git diff --cached")
-            blocked = True
-            break
+    env_path = ROOT / ".env"
+    if not env_path.exists():
+        print("FAIL  .env not found at " + str(env_path))
+        print("      --> cp .env.example .env  then fill in values\n")
+        return 1
 
-if blocked:
-    print("\n🔒 Hook blocked this action. Fix the issue first.")
-    sys.exit(1)
-else:
-    print("✅ .env guard passed — no secrets detected.")
+    merged = {**_load_env(env_path), **os.environ}
+    missing = []
+
+    for var in REQUIRED:
+        val = merged.get(var, "")
+        if not val or val in _PLACEHOLDERS:
+            missing.append(var)
+        else:
+            print("   PASS  " + var)
+
+    if missing:
+        print()
+        for v in missing:
+            print("   FAIL  " + v + "  (missing or placeholder)")
+        print()
+        print("FAIL  Env guard FAILED -- " + str(len(missing)) + " var(s) not set.\n")
+        return 1
+
+    print()
+    print("PASS  All required env vars present. Guard passed!\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

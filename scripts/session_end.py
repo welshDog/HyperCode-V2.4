@@ -1,75 +1,58 @@
-import subprocess
+#!/usr/bin/env python3
+"""HyperFocus Z0ne - Session End Hook.
+
+Reads the .focus_session_start marker written by session_start.py,
+computes duration, appends a JSONL record to logs/sessions.jsonl,
+and removes the marker.  Always exits 0.
+"""
+
+import json
+import sys
 from datetime import datetime
-import os
+from pathlib import Path
+from typing import Optional
 
-WHATS_DONE = "WHATS_DONE.md"
-date = datetime.now().strftime("%Y-%m-%d")
-time_str = datetime.now().strftime("%H:%M")
+ROOT = Path(__file__).resolve().parents[1]
+SESSION_FILE = ROOT / ".focus_session_start"
+SESSION_LOG = ROOT / "logs" / "sessions.jsonl"
 
-def get_todays_commits():
-    """Grab today's commit messages to auto-populate WHATS_DONE."""
-    result = subprocess.run(
-        ["git", "log", "--oneline", "--since=midnight"],
-        capture_output=True, text=True
-    )
-    lines = result.stdout.strip().splitlines()
-    return lines if lines else ["No commits today"]
 
-def get_changed_files():
-    """Get files changed in this session."""
-    result = subprocess.run(
-        ["git", "diff", "HEAD~1", "--name-only"],
-        capture_output=True, text=True
-    )
-    return result.stdout.strip().splitlines()
+def _read_start() -> Optional[datetime]:
+    if not SESSION_FILE.exists():
+        return None
+    try:
+        return datetime.fromisoformat(SESSION_FILE.read_text().strip())
+    except ValueError:
+        return None
 
-print(f"\n\ud83c� Session ending — {date} {time_str}")
-print("\ud83d� Auto-updating WHATS_DONE.md...")
 
-commits = get_todays_commits()
-files = get_changed_files()
+def main() -> int:
+    now = datetime.now()
+    print("\n[SESSION END] HyperFocus Z0ne")
+    print("-" * 40)
+    print("   Time: " + now.strftime("%Y-%m-%d %H:%M:%S"))
 
-# Build new entry
-entry_lines = [
-    f"\n---\n",
-    f"## Session — {date} {time_str}\n",
-    f"### ✅ Commits Today\n",
-]
-for c in commits:
-    entry_lines.append(f"- {c}\n")
+    start = _read_start()
+    if start:
+        mins = int((now - start).total_seconds() // 60)
+        print("   Duration: " + str(mins) + "m")
+        SESSION_FILE.unlink()
+    else:
+        print("   Duration: unknown (session_start was not run this session)")
 
-if files:
-    entry_lines.append(f"\n### 📂 Files Changed\n")
-    for f in files[:20]:  # cap at 20 so it doesn't go huge
-        entry_lines.append(f"- `{f}`\n")
+    SESSION_LOG.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "start": start.isoformat() if start else None,
+        "end": now.isoformat(),
+    }
+    with SESSION_LOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(record) + "\n")
 
-entry_lines.append(f"\n### 💡 Notes\n")
-entry_lines.append(f"_Auto-captured by TRAE SessionEnd hook at {time_str}_\n")
+    print("   Log:  logs/sessions.jsonl")
+    print()
+    print("PASS  Session ended. Great work BROski forever!\n")
+    return 0
 
-new_entry = "".join(entry_lines)
 
-# Append to WHATS_DONE.md
-if os.path.exists(WHATS_DONE):
-    with open(WHATS_DONE, "a") as f:
-        f.write(new_entry)
-    print(f"✅ WHATS_DONE.md updated with today's session")
-else:
-    with open(WHATS_DONE, "w") as f:
-        f.write(f"# WHATS_DONE\n")
-        f.write(new_entry)
-    print(f"✅ WHATS_DONE.md created fresh")
-
-# Commit and push
-subprocess.run(["git", "add", WHATS_DONE])
-result = subprocess.run(
-    ["git", "commit", "-m", f"chore: auto-session-log {date} {time_str}"],
-    capture_output=True, text=True
-)
-
-if "nothing to commit" in result.stdout:
-    print("💬 No new changes to log")
-else:
-    subprocess.run(["git", "push"])
-    print(f"🚀 WHATS_DONE.md committed and pushed!")
-
-print(f"\n🦙 BROski Z0ne closed. See you next session Bro! 🤙")
+if __name__ == "__main__":
+    sys.exit(main())
