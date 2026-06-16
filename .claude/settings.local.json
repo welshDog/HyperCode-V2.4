@@ -271,6 +271,13 @@
             "shell": "powershell",
             "timeout": 30,
             "statusMessage": "HyperFocus Z0ne session end..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/broski_xp_reward.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Awarding BROski$ XP..."
           }
         ]
       }
