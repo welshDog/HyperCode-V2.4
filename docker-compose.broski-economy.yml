@@ -1,0 +1,48 @@
+# HyperFocus Z0ne -- BROski$ economy consumer (always-on sidecar)
+# Persists XP from the 'broski_economy' redis channel into durable keys so the
+# 14 repos' broski_xp_reward.py awards never evaporate. Joins the existing
+# internal data-net (where redis lives, alias 'redis') -- no port exposure.
+#
+# Opt-in -- ALWAYS pass `-p broski-economy` so it runs as its OWN compose project,
+# isolated from the main hypercode-v24 stack. (V2.4's .env sets
+# COMPOSE_PROJECT_NAME=hypercode-v24, which overrides the `name:` below -- the -p
+# flag is what guarantees isolation, so --remove-orphans can never touch the main
+# stack.)  Bring up:
+#   docker compose -p broski-economy -f docker-compose.broski-economy.yml --profile broski-economy up -d --build
+# Stop:
+#   docker compose -p broski-economy -f docker-compose.broski-economy.yml down
+# Inspect:
+#   docker logs -f broski-economy-consumer
+#   python scripts/broski_economy_consumer.py --stats
+name: broski-economy
+
+services:
+  broski-economy-consumer:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.broski-economy
+    image: hypercode-v24-broski-economy-consumer:latest
+    container_name: broski-economy-consumer
+    restart: unless-stopped
+    profiles: ["broski-economy"]
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    networks:
+      - data-net
+    healthcheck:
+      # healthy only while actually subscribed to broski_economy (python, not curl/pgrep)
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,redis,sys; r=redis.Redis(host=os.environ.get('REDIS_HOST','redis'),port=int(os.environ.get('REDIS_PORT','6379')),db=1,socket_connect_timeout=3); sys.exit(0 if int(r.execute_command('PUBSUB','NUMSUB','broski_economy')[1])>=1 else 1)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+networks:
+  data-net:
+    external: true
+    name: hypercode_data_net

@@ -71,9 +71,12 @@ class TcpBackend:
     name = "tcp"
 
     def __init__(self):
+        import os
         import redis  # type: ignore[import]
+        host = os.environ.get("REDIS_HOST", "127.0.0.1")  # 'redis' inside the data-net container
+        port = int(os.environ.get("REDIS_PORT", "6379"))
         self.r = redis.Redis(
-            host="127.0.0.1", port=6379, db=_DB,
+            host=host, port=port, db=_DB,
             socket_connect_timeout=2, decode_responses=True,
         )
         self.r.ping()

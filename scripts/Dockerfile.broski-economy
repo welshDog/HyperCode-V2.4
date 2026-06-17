@@ -1,0 +1,15 @@
+# HyperFocus Z0ne -- BROski$ economy consumer (always-on sidecar)
+# Tiny image: python + redis client only. Deps are baked at build time because
+# the runtime data-net is internal (no internet at runtime -- Sacred Rule).
+FROM python:3.11-slim
+
+RUN pip install --no-cache-dir "redis>=5,<6"
+
+WORKDIR /app
+COPY broski_economy_consumer.py /app/broski_economy_consumer.py
+
+# unbuffered -> `docker logs` shows the live XP feed immediately
+ENV PYTHONUNBUFFERED=1
+
+# listen forever (no --seconds), persist every xp_award into durable redis keys
+CMD ["python", "/app/broski_economy_consumer.py", "--no-color"]
