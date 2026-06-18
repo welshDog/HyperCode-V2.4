@@ -70,7 +70,26 @@ _BROSKI_ECONOMY_DB = 1  # Sacred Rule: DB 1 = cache
 _REDIS_CONTAINERS = ("redis", "hypercode-redis")  # internal redis -- 6379 not published to host
 
 
-def _publish_broski_economy(xp: int, reason: str, source: str) -> str | None:
+def _patch_id() -> str:
+    """Stable-across-rebase commit identity: same diff -> same id, so a rebase
+    replay dedups against the original award. Falls back to HEAD sha."""
+    try:
+        diff = subprocess.run(["git", "diff-tree", "-p", "--root", "HEAD"],
+                              capture_output=True, text=True, timeout=8)
+        pid = subprocess.run(["git", "patch-id", "--stable"],
+                             input=diff.stdout, capture_output=True, text=True, timeout=8)
+        tok = pid.stdout.strip().split()
+        if tok:
+            return tok[0]
+    except Exception:
+        pass
+    try:
+        return _git(["rev-parse", "HEAD"])
+    except Exception:
+        return "unknown"
+
+
+def _publish_broski_economy(xp: int, reason: str, source: str, source_id: str) -> str | None:
     """Publish an xp_award to the broski_economy channel so the always-on
     consumer banks it (redis tally + durable postgres wallet via
     /api/v1/economy/award-dev-xp). Redis is on an internal docker net (6379
@@ -80,6 +99,7 @@ def _publish_broski_economy(xp: int, reason: str, source: str) -> str | None:
         "xp": xp,
         "reason": reason,
         "source": source,
+        "source_id": source_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
     try:
@@ -127,7 +147,8 @@ def main() -> None:
     # This is the primary, reliable path (owner attribution lives on the consumer,
     # so it sidesteps the discord_id lookups the course/pets paths below need).
     repo_name = os.path.basename(repo_root) if repo_root else "unknown"
-    broski_published = _publish_broski_economy(award_amount, reason, f"git:{repo_name}")
+    source_id = f"git:{repo_name}:{_patch_id()}"
+    broski_published = _publish_broski_economy(award_amount, reason, f"git:{repo_name}", source_id)
     if broski_published:
         sys.stderr.write(
             f"[broski_economy] +{award_amount} XP  git:{repo_name}  ({reason})  -> {broski_published}\n"

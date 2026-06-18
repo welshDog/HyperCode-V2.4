@@ -49,6 +49,8 @@ K_BY_SOURCE = "broski:xp:by_source"
 K_BY_REASON = "broski:xp:by_reason"
 K_LAST = "broski:xp:last"
 K_LOG = "broski:xp:log"
+K_SEEN = "broski:xp:seen:"   # + source_id -> idempotency marker (dedup rebase replays)
+_SEEN_TTL = 7776000         # 90d -- bound growth; old commits past this could re-award
 
 # Durable postgres sink -- POST each award to hypercode-core, which routes it
 # through broski_service.award_xp into broski_wallets/broski_transactions (the
@@ -198,7 +200,9 @@ def _parse_award(raw):
     source = str(d.get("source", "unknown"))
     reason = str(d.get("reason", "unspecified"))
     ts = str(d.get("timestamp", datetime.now().isoformat()))
-    return xp, source, reason, ts
+    source_id = d.get("source_id")
+    source_id = str(source_id) if source_id else None
+    return xp, source, reason, ts, source_id
 
 
 def _persist(be, xp, source, reason, ts):
@@ -211,7 +215,7 @@ def _persist(be, xp, source, reason, ts):
              "xp", xp, "source", source, "reason", reason, "ts", ts)
 
 
-def _post_to_core(xp, source, reason):
+def _post_to_core(xp, source, reason, source_id=None):
     """Best-effort durable sink. Returns True (banked), an Exception (failed),
     or None (sink not configured). Never raises -- redis stays the buffer."""
     if not (_CORE_API_KEY and _DEV_XP_DISCORD_ID):
@@ -221,6 +225,7 @@ def _post_to_core(xp, source, reason):
         "xp": xp,
         "source": source,
         "reason": reason,
+        "source_id": source_id,
     }).encode()
     req = urllib.request.Request(
         _CORE_URL + "/api/v1/economy/award-dev-xp",
@@ -246,9 +251,17 @@ def _listen(be, seconds):
             award = _parse_award(raw)
             if award is None:
                 continue
-            xp, source, reason, ts = award
+            xp, source, reason, ts, source_id = award
+            # Idempotency gate: a stable source_id (git:<repo>:<patch-id>) means a
+            # rebase replay / re-run is the SAME award -- skip it so neither the
+            # redis tally nor the pg wallet double-counts.
+            if source_id and be.write("SETNX", K_SEEN + source_id, "1") in (0, "0"):
+                print("  " + C.DIM + "dup    skipped  " + source_id + C.RESET)
+                continue
+            if source_id:
+                be.write("EXPIRE", K_SEEN + source_id, _SEEN_TTL)
             _persist(be, xp, source, reason, ts)
-            sink = _post_to_core(xp, source, reason)
+            sink = _post_to_core(xp, source, reason, source_id)
             if sink is True:
                 tag = C.CYAN + "  ->pg" + C.RESET
             elif sink is None:

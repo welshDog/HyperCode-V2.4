@@ -15,6 +15,7 @@ from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -234,6 +235,11 @@ class DevXpAwardRequest(BaseModel):
     reason: str = Field(default="dev action", max_length=255)
     source: str = Field(default="unknown", max_length=128, description="Repo/hook that emitted the award")
     full_name: str = Field(default="HyperFocus Dev", max_length=255)
+    source_id: Optional[str] = Field(
+        default=None, max_length=128,
+        description="Idempotency key — e.g. git:<repo>:<patch-id>. Stable across rebases, so a "
+                    "replayed commit isn't awarded twice. Stored in tx meta; re-award is a no-op.",
+    )
 
 
 class DevXpAwardResponse(BaseModel):
@@ -288,12 +294,33 @@ def award_dev_xp(
     _: None = Depends(_verify_api_key),
 ) -> Any:
     user = _get_or_create_user_by_discord(payload.discord_id, payload.full_name, db)
+
+    # Idempotency: the transaction log IS the dedup record. If this source_id was
+    # already awarded (e.g. a rebase replayed the commit), no-op and return the
+    # current balance. meta is JSON, so meta->>'source_id' reads the stored key.
+    if payload.source_id:
+        already = db.execute(
+            text("SELECT 1 FROM broski_transactions WHERE meta->>'source_id' = :sid LIMIT 1"),
+            {"sid": payload.source_id},
+        ).first()
+        if already:
+            wallet = broski_service.get_wallet(user.id, db)
+            logger.info("⏭️ dev-xp dedup: source_id=%s already awarded — no double", payload.source_id)
+            return DevXpAwardResponse(
+                awarded=False,
+                user_id=user.id,
+                xp_balance=wallet.xp,
+                level=wallet.level,
+                level_name=wallet.level_name,
+                level_up=None,
+            )
+
     wallet, level_up = broski_service.award_xp(
         user_id=user.id,
         amount=payload.xp,
         reason=payload.reason,
         db=db,
-        meta={"source": payload.source, "stream": "dev-action"},
+        meta={"source": payload.source, "stream": "dev-action", "source_id": payload.source_id},
     )
     logger.info(
         "⚡ dev-xp: +%d xp to user %s (discord=%s, source=%s, reason=%s)",
