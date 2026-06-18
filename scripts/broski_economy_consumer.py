@@ -31,9 +31,11 @@ Usage:
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
+import urllib.request
 from datetime import datetime
 
 _CHANNEL = "broski_economy"
@@ -47,6 +49,16 @@ K_BY_SOURCE = "broski:xp:by_source"
 K_BY_REASON = "broski:xp:by_reason"
 K_LAST = "broski:xp:last"
 K_LOG = "broski:xp:log"
+
+# Durable postgres sink -- POST each award to hypercode-core, which routes it
+# through broski_service.award_xp into broski_wallets/broski_transactions (the
+# system of record). Redis stays the fast always-on path; postgres is the
+# survives-anything ledger. Opt-in: fires only when BOTH are set, so an
+# unconfigured deploy behaves exactly as before (redis-only).
+_CORE_URL = os.environ.get("HYPERCODE_API_URL", "http://hypercode-core:8000").rstrip("/")
+_CORE_API_KEY = os.environ.get("HYPERCODE_API_KEY", "")
+_DEV_XP_DISCORD_ID = os.environ.get("DEV_XP_DISCORD_ID", "")
+_CORE_TIMEOUT = 3
 
 
 class C:
@@ -199,6 +211,30 @@ def _persist(be, xp, source, reason, ts):
              "xp", xp, "source", source, "reason", reason, "ts", ts)
 
 
+def _post_to_core(xp, source, reason):
+    """Best-effort durable sink. Returns True (banked), an Exception (failed),
+    or None (sink not configured). Never raises -- redis stays the buffer."""
+    if not (_CORE_API_KEY and _DEV_XP_DISCORD_ID):
+        return None
+    body = json.dumps({
+        "discord_id": _DEV_XP_DISCORD_ID,
+        "xp": xp,
+        "source": source,
+        "reason": reason,
+    }).encode()
+    req = urllib.request.Request(
+        _CORE_URL + "/api/v1/economy/award-dev-xp",
+        data=body,
+        headers={"Content-Type": "application/json", "X-API-Key": _CORE_API_KEY},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_CORE_TIMEOUT) as resp:
+            return resp.status == 200
+    except Exception as e:  # noqa: BLE001 -- durability is best-effort by design
+        return e
+
+
 def _listen(be, seconds):
     deadline = (time.time() + seconds) if seconds else None
     print(C.BOLD + C.CYAN + "  BROSKI$ ECONOMY CONSUMER -- listening on '" + _CHANNEL + "'" + C.RESET)
@@ -212,10 +248,17 @@ def _listen(be, seconds):
                 continue
             xp, source, reason, ts = award
             _persist(be, xp, source, reason, ts)
+            sink = _post_to_core(xp, source, reason)
+            if sink is True:
+                tag = C.CYAN + "  ->pg" + C.RESET
+            elif sink is None:
+                tag = ""
+            else:
+                tag = C.YELLOW + "  ->pg FAILED (" + type(sink).__name__ + ")" + C.RESET
             processed += 1
             print("  " + C.GREEN + "+{:>4}".format(xp) + C.RESET
                   + "  " + C.BOLD + "{:<24}".format(source) + C.RESET
-                  + C.DIM + reason + C.RESET)
+                  + C.DIM + reason + C.RESET + tag)
             if deadline and time.time() >= deadline:
                 break
     except KeyboardInterrupt:

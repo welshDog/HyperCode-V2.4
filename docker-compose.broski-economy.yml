@@ -28,6 +28,13 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      # Durable postgres sink -> hypercode-core routes each award through
+      # broski_service.award_xp into broski_wallets/broski_transactions.
+      # Reachable over data-net (core is on it). Opt-in: needs BOTH the API key
+      # and the owner discord id, else the consumer stays redis-only.
+      HYPERCODE_API_URL: http://hypercode-core:8000
+      HYPERCODE_API_KEY: ${API_KEY:-}
+      DEV_XP_DISCORD_ID: ${DEV_XP_DISCORD_ID:-418075243404591106}
     networks:
       - data-net
     healthcheck:
