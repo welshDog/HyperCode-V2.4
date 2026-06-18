@@ -10,7 +10,9 @@ services:
   redis:
     image: redis:8-alpine
     container_name: redis
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --save 60 1000 --protected-mode no
+    # XP/economy durability: AOF is primary (≤1s loss), RDB save points are belt-and-braces.
+    # Old `--save 60 1000` alone lost low-volume XP awards on restart (never hit 1000-change threshold, AOF off).
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes --appendfsync everysec --save 900 1 --save 300 10 --save 60 100 --protected-mode no
     volumes:
       - redis-data:/data
     networks:
