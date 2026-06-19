@@ -207,6 +207,10 @@ class HyperFlowRunner:
             data = resp.json()
             if not isinstance(data, dict):
                 data = {"ok": True, "result": data}
+            # Respect the orchestrator's verdict — it returns HTTP 200 with
+            # status:"error" when a downstream agent fails. Don't mask it.
+            if data.get("status") == "error":
+                raise RuntimeError(f"orchestrator task error: {str(data.get('message'))[:200]}")
             data.setdefault("ok", True)
             return data
         except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadError, httpx.ReadTimeout) as exc:
