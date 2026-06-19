@@ -30,7 +30,7 @@
 | # | Task | Status |
 |---|---|---|
 | P1-1 | **BROski Identity Agent per user** — `broski_identity_agents` (mig 017) + `IdentityAgent` (award_tokens/check_permission/log_action) + `/api/v1/identity` + `X-BROSKI-IDENTITY` | ✅ Done 2026-06-19 |
-| P1-2 | **Governance Ledger** — `governance_ledger` table (mig 018); `IdentityAgent.log_action()` persists there; Grafana timeline | ⬜ Next |
+| P1-2 | **Governance Ledger** — `governance_ledger` (mig **018**, not 016 — head was 017); `IdentityAgent.log_action()` persists there (fail-soft); `GET /api/v1/governance/ledger`; Grafana Postgres datasource + timeline panel | ✅ Done 2026-06-19 |
 | P1-3 | Extract 37 CATALOGUED skills to HYPER-SILLs vault | ⬜ |
 | P1-4 | Fill 11 empty specialist HYPER-AGENT-BIBLEs | ⬜ |
 

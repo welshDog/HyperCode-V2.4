@@ -29,6 +29,7 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+from app.models.governance import GovernanceLedger
 from app.models.identity import BROskiIdentityAgent
 from app.models.models import User
 from app.services import broski_service
@@ -104,14 +105,30 @@ class IdentityAgent:
             return action in allow
         return True
 
-    def log_action(self, tool: str, payload: dict[str, Any], decision: str) -> dict[str, Any]:
-        """Record a high-impact action against this identity (call BEFORE executing)."""
+    def log_action(
+        self,
+        tool: str,
+        payload: dict[str, Any],
+        decision: str,
+        *,
+        action: Optional[str] = None,
+        agent_name: str = "identity_agent",
+        approved_by: str = "auto",
+    ) -> dict[str, Any]:
+        """Record a high-impact action against this identity (call BEFORE executing).
+
+        Writes to both the capped in-state ring (quick recent view) and the
+        durable governance_ledger audit table (P1-2). The ledger write is
+        best-effort so a missing table never blocks the action.
+        """
         entry = {
             "tool": tool,
+            "action": action or tool,
             "payload": payload,
             "decision": decision,
             "ts": datetime.now(timezone.utc).isoformat(),
         }
+        # 1. In-state ring — quick recent view on the identity.
         state = dict(self._record.state or {})
         ring = list(state.get("recent_actions", []))
         ring.append(entry)
@@ -120,9 +137,27 @@ class IdentityAgent:
         self._record.last_active = datetime.now(timezone.utc)
         self._db.commit()
         self._db.refresh(self._record)
-        logger.info(
-            "🪪 identity %s action=%s decision=%s", self.user_id, tool, decision
-        )
+
+        # 2. Durable governance ledger — the audit layer (best-effort).
+        try:
+            row = GovernanceLedger(
+                user_id=self.discord_id or str(self.user_id),
+                action=action or tool,
+                tool_used=tool,
+                payload=payload,
+                decision=decision,
+                agent_name=agent_name,
+                approved_by=approved_by,
+            )
+            self._db.add(row)
+            self._db.commit()
+            self._db.refresh(row)
+            entry["ledger_id"] = str(row.id)
+        except Exception:
+            self._db.rollback()
+            logger.warning("governance ledger insert failed for user %s", self.user_id, exc_info=True)
+
+        logger.info("🪪 identity %s action=%s decision=%s", self.user_id, action or tool, decision)
         return entry
 
     def touch(self) -> None:

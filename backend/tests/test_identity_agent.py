@@ -42,3 +42,32 @@ def test_state_is_a_copy():
     s = a.state
     s["tier"] = "pro"  # mutating the returned dict must not affect the record
     assert a.state["tier"] == "free"
+
+
+class _FakeDB:
+    """Minimal session stub — ring commits succeed; ledger add() raises."""
+
+    def __init__(self):
+        self.commits = 0
+
+    def commit(self):
+        self.commits += 1
+
+    def refresh(self, _obj):
+        pass
+
+    def add(self, _obj):
+        raise RuntimeError("no governance_ledger table here")
+
+    def rollback(self):
+        pass
+
+
+def test_log_action_is_fail_soft_when_ledger_unavailable():
+    rec = BROskiIdentityAgent(user_id=1, discord_id="123", state={})
+    agent = IdentityAgent(rec, _FakeDB())
+    entry = agent.log_action("award_tokens", {"amount": 10}, "ALLOW")
+    # Action still recorded in the in-state ring despite the ledger insert failing.
+    assert entry["decision"] == "ALLOW"
+    assert "ledger_id" not in entry
+    assert rec.state["recent_actions"][-1]["tool"] == "award_tokens"
