@@ -1,0 +1,252 @@
+{
+  "generated_at": "2026-06-19T23:52:34.872142+00:00",
+  "mode": "check",
+  "milestone_count": 26,
+  "dag": {
+    "nodes": 26,
+    "edges": 25
+  },
+  "summary": {
+    "total": 26,
+    "passed": 25,
+    "failed": 1,
+    "pass_rate": 0.962,
+    "green": false
+  },
+  "milestones": [
+    {
+      "phase": "0\u20139",
+      "name": "Identity, tokens, agents, shop, observability, security",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "10A\u201310P",
+      "name": "FastAPI, Stripe, courses, DB recovery, secrets",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "11A\u201311F",
+      "name": "Live HUD, Rift Events, Gamification schema, E2E",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "12A\u201312F",
+      "name": "Leaderboard, Quests, Admin Rift Panel, Migrations",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Gordon Tier 1\u20133",
+      "name": "Prometheus, Grafana, Celery, DB pool, queues",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Hyperfocus Features 1\u20135",
+      "name": "Git hook, HyperSplit, Snapshot, Briefing, Focus mode",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "BROskiPets Phase 0\u20131",
+      "name": "Bridge live, XP, leaderboard",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "BROski Brain Levels 9\u201312",
+      "name": "PARA vault, GitHub bridge, Obsidian Git, Dataview",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Edge Functions",
+      "name": "All 4 Supabase edge functions fixed + deployed",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Vercel Hardening",
+      "name": "Security headers, chunk split, env vars",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "BUSINESS_PLAN v1.1",
+      "name": "Sponsor-ready plan + pricing align",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "BROskiPets Web3 Mint",
+      "name": "RainbowKit + wagmi + Base Sepolia + mint UI",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "HyperAgent Graduate Build",
+      "name": "`graduate build` + `graduate trigger` CLI",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Brain Agent Cluster",
+      "name": "cluster.json + 4 agent manifests \u2192 Obsidian Brain repo",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Discord Bot Tier 1",
+      "name": "Economy + AI chat + Focus Tracker + Daily Missions",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "broski-bot Option A",
+      "name": "Profile-gated `agents/broski-bot/` + bind mounts",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Env Preflight Checker",
+      "name": "`scripts/env_check.py` + bash wrapper + tests",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "NemoClaw L1\u2013L3.5",
+      "name": "Heartbeat + Memory + Voice + Focus\u2192BROski$ loop",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Guardian P1\u2013P3b",
+      "name": "auto-role \u00b7 digest \u00b7 auto-mod \u00b7 raid-lock",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Guardian P3c Veto-ban",
+      "name": "3-strike \u2192 veto buttons, ban only on APPROVE",
+      "classification": "complete_pending",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Shop Fulfillment v2",
+      "name": "Delivery + buy-confirm + auto-refund + tier discounts",
+      "classification": "complete_pending",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "Course DB restructure",
+      "name": "hv_modules \u2192 May model + quizzes regenerated",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "HyperLabs funnel",
+      "name": "`/vibe-labs` hub + 5 levels + `claim_level_reward` RPC",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "HyperLabs Sprint 3",
+      "name": "a11y/perf \u2014 Lighthouse 100/100, 61 kB cold load",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "HyperLabs Sprint 4",
+      "name": "anon\u2192signup conversion",
+      "classification": "complete",
+      "own_pass": true,
+      "deps_pass": true,
+      "passed": true,
+      "reason": "ok"
+    },
+    {
+      "phase": "HyperLabs track",
+      "name": "rated 9.5/10 \u2014 backbone complete",
+      "classification": "unknown",
+      "own_pass": false,
+      "deps_pass": true,
+      "passed": false,
+      "reason": "status 'unknown'"
+    }
+  ]
+}

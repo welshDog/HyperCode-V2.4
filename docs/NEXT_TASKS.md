@@ -38,7 +38,7 @@
 | # | Task | Status |
 |---|---|---|
 | P2-3 | **Brain Levels 18 + 19** — L18 AI distraction monitor (3 signals → nudge) + L19 DifficultyDial dynamic XP (intensity × quality × HyperSplit chunk difficulty) | ✅ Done 2026-06-20 (in BROski-Obsidian-Brain, engine :8100, commit 10cee0e) |
-| P2-1 | Evo Harness — long-horizon agent regression test | ⬜ |
+| P2-1 | **Evo Harness** — `scripts/evo_harness.py` parses ROADMAP → milestone DAG → scores (cascading preconditions) → JSON report `docs/evo_reports/`; `--live` probes health/SLO/HyperFlow; CI workflow `evo-harness.yml` | ✅ Done 2026-06-20 |
 | P2-2 | **Brain Constellation (Level 20)** — graph (nodes/edges) + auto-generated Obsidian canvas + `/constellation/map` & `/constellation/refresh` | ✅ Done 2026-06-20 (BROski-Obsidian-Brain, commit ac972c3) |
 | P2-4 | Course "AI Agents 2.0" track (M11+) | ⬜ |
 | P1-3 | Extract CATALOGUED skills to HYPER-SILLs vault | ✅ Done 2026-06-19 (index was stale: 22/37 already on disk; 15 genuinely-missing written + web3/ created + vault-index reconciled — in HYPER-SILLs-By-WelshDog) |
