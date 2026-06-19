@@ -25,6 +25,6 @@
 | P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ✅ Done 2026-06-19 |
 | P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ⬜ Next |
 
-> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; wire HyperFlow `_dispatch` + orchestrator tool calls to consult `/evaluate` before dangerous actions (the intercept is built, not yet called); persist decisions/governance ledger (P1-2).
+> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; persist decisions/governance ledger (P1-2). ✅ HyperFlow dispatch now consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). Remaining intercept: wire the crew-orchestrator's own downstream tool calls (docker/http/file) through `/evaluate` too.
 
 > HyperFlow MVP follow-ups (deferred): crash-resume durability (Celery path), multi-worker `/resume` (currently in-core single-worker), concurrency caps.

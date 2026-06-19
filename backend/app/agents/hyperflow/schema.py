@@ -42,6 +42,19 @@ class LoopPolicy(BaseModel):
     max_iterations: int = Field(default=3, ge=1, description="Cap on back-edge traversals.")
 
 
+class SafetyHint(BaseModel):
+    """Declares the dangerous action a node represents, for Safety Shepherd.
+
+    When present, the HyperFlowRunner consults Safety Shepherd /evaluate before
+    dispatching the node (ALLOW proceeds, BLOCK fails it, ESCALATE waits for a
+    human approval). Absent → the node is treated as a benign 'generic' action.
+    """
+    category: str = "generic"  # docker | http_external | file_write | stripe | discord | generic
+    tool: Optional[str] = None
+    target: Optional[str] = None
+    domain: Optional[str] = None
+
+
 class FlowNode(BaseModel):
     id: str
     type: NodeType
@@ -51,6 +64,8 @@ class FlowNode(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
     # When set, the node result is "green" only if result[success_key] is truthy.
     success_key: str = "ok"
+    # Optional Safety Shepherd policy hint (see SafetyHint).
+    safety: Optional[SafetyHint] = None
 
     @model_validator(mode="after")
     def _check_ref(self) -> "FlowNode":

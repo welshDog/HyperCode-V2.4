@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -80,6 +81,30 @@ def _orchestrator_headers() -> dict[str, str]:
     if settings.ORCHESTRATOR_API_KEY:
         headers["X-API-Key"] = settings.ORCHESTRATOR_API_KEY
     return headers
+
+
+# ── Safety Shepherd integration (P0-2 ↔ P0-1) ─────────────────────────────────
+def _safety_mode() -> str:
+    """off → never consult · monitor → record decision, always proceed · enforce → gate."""
+    return os.getenv("SAFETY_SHEPHERD_MODE", "monitor").strip().lower()
+
+
+def _safety_url() -> str:
+    return os.getenv("SAFETY_SHEPHERD_URL", "http://safety-shepherd:8096").rstrip("/")
+
+
+def _safety_key() -> str:
+    key = settings.API_KEY or os.getenv("API_KEY") or ""
+    if key:
+        return key
+    for path in (os.getenv("API_KEY_FILE"), "/run/secrets/api_key"):
+        if path and os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read().strip()
+            except OSError:
+                pass
+    return "dev-master-key"
 
 
 class HyperFlowRunner:
@@ -175,7 +200,118 @@ class HyperFlowRunner:
     async def _do_node(self, node: FlowNode) -> dict[str, Any]:
         if node.type is NodeType.HUMAN_APPROVAL_GATE:
             return await self._await_approval(node)
+        # P0-2: consult Safety Shepherd before any agent/tool dispatch.
+        await self._safety_gate(node)
         return await self._dispatch(node)
+
+    # ── Safety Shepherd gate ─────────────────────────────────────────────────
+
+    def _safety_request(self, node: FlowNode) -> dict[str, Any]:
+        actor = node.agent or node.tool or node.id
+        hint = node.safety
+        ctx = {"flow": self.flow.name, "run_id": self.run_id, "node": node.id}
+        if hint is not None:
+            return {
+                "agent": actor,
+                "category": hint.category,
+                "tool": hint.tool,
+                "target": hint.target,
+                "domain": hint.domain,
+                "context": ctx,
+            }
+        return {"agent": actor, "category": "generic", "tool": None,
+                "target": None, "domain": None, "context": ctx}
+
+    async def _safety_evaluate(self, req: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """Call Safety Shepherd /evaluate. Returns None if unreachable (fail-open)."""
+        try:
+            # Short timeout — Safety Shepherd is in the agents profile (up whenever
+            # flows meaningfully dispatch); fail-open fast if it is unreachable.
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.post(
+                    f"{_safety_url()}/evaluate",
+                    headers={"X-Agent-Key": _safety_key(), "Content-Type": "application/json"},
+                    json=req,
+                )
+            if resp.status_code != 200:
+                logger.warning("safety evaluate %s for run %s", resp.status_code, self.run_id)
+                return None
+            data = resp.json()
+            return data if isinstance(data, dict) else None
+        except Exception:
+            logger.info("safety shepherd unreachable for run %s — failing open", self.run_id)
+            return None
+
+    async def _safety_gate(self, node: FlowNode) -> None:
+        """ALLOW → proceed · BLOCK → raise · ESCALATE → wait for human approval.
+
+        monitor mode records the decision but always proceeds; off mode skips
+        the call entirely; an unreachable Shepherd fails open (records + proceeds).
+        """
+        mode = _safety_mode()
+        if mode == "off":
+            return
+
+        data = await self._safety_evaluate(self._safety_request(node))
+        if data is None:
+            await self._emit(node, "safety_skipped", {"mode": mode}, HyperFlowRunStatus.RUNNING)
+            return
+
+        decision = str(data.get("decision", "ALLOW")).upper()
+        approval_id = data.get("approval_id")
+        await self._emit(
+            node, f"safety_{decision.lower()}",
+            {"reason": data.get("reason"), "rule": data.get("rule"),
+             "approval_id": approval_id, "mode": mode},
+            HyperFlowRunStatus.RUNNING,
+        )
+
+        if mode == "monitor":
+            return  # observe only
+
+        # enforce
+        if decision == "ALLOW":
+            return
+        if decision == "BLOCK":
+            raise RuntimeError(f"safety blocked: {data.get('reason')}")
+        if decision == "ESCALATE":
+            approved = await self._wait_safety_approval(node, approval_id)
+            if not approved:
+                raise RuntimeError(f"safety escalation denied: {data.get('reason')}")
+            return
+
+    async def _wait_safety_approval(
+        self,
+        node: FlowNode,
+        approval_id: Optional[str],
+        timeout: Optional[int] = None,
+    ) -> bool:
+        """Block until a human resolves the Shepherd-raised approval (redis), else deny on timeout."""
+        if not approval_id:
+            return False
+        timeout = timeout or int(os.getenv("SAFETY_APPROVAL_TIMEOUT", "300"))
+        await self._persist(HyperFlowRunStatus.AWAITING_APPROVAL, node.id)
+        deadline = time.time() + timeout
+        approved = False
+        try:
+            r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
+            try:
+                while time.time() < deadline:
+                    raw = await r.get(f"approval:{approval_id}:response")
+                    if raw:
+                        approved = str(json.loads(raw).get("status")) == "approved"
+                        break
+                    await asyncio.sleep(2)
+            finally:
+                await r.aclose()
+        except Exception:
+            logger.warning("safety approval wait failed for %s", approval_id, exc_info=True)
+        await self._emit(
+            node, "safety_resolved",
+            {"approved": approved, "approval_id": approval_id},
+            HyperFlowRunStatus.RUNNING,
+        )
+        return approved
 
     # ── node executors ───────────────────────────────────────────────────────
 

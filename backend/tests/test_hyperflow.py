@@ -16,6 +16,44 @@ from app.agents.hyperflow_runner import HyperFlowRunner
 from app.models.hyperflow import HyperFlowRunStatus
 
 
+@pytest.fixture(autouse=True)
+def _safety_off_by_default(monkeypatch):
+    """Default Safety Shepherd to off so tests never hit the network.
+    Safety-specific tests override SAFETY_SHEPHERD_MODE in their own body."""
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "off")
+
+
+def _one_node_flow(safety=None):
+    node = {"id": "act", "type": "agent_role", "agent": "qa_engineer", "params": {"task": "x"}}
+    if safety is not None:
+        node["safety"] = safety
+    return FlowDefinition.model_validate({"name": "sf", "entry": "act", "nodes": [node]})
+
+
+def _runner_with_io(flow, run_id, monkeypatch):
+    runner = HyperFlowRunner(flow, run_id)
+
+    async def _noop(*a, **k):
+        return None
+
+    monkeypatch.setattr(runner, "_persist", _noop)
+    monkeypatch.setattr(runner, "_publish", _noop)
+    monkeypatch.setattr(runner, "_publish_approval_request", _noop)
+
+    final = {}
+
+    async def _finish(status, error=None):
+        final["status"] = status
+        final["error"] = error
+
+    async def _green(node):
+        return {"ok": True, "green": True}
+
+    monkeypatch.setattr(runner, "_finish", _finish)
+    monkeypatch.setattr(runner, "_dispatch", _green)
+    return runner, final
+
+
 # ── schema ────────────────────────────────────────────────────────────────────
 
 def test_example_flow_validates():
@@ -138,6 +176,91 @@ def test_rejected_approval_fails_run(monkeypatch):
 
     asyncio.run(drive())
     assert final["status"] is HyperFlowRunStatus.FAILED
+
+
+def test_safety_block_enforce_fails_node(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "enforce")
+    runner, final = _runner_with_io(_one_node_flow({"category": "file_write", "target": "/etc/passwd"}), "sf-block", monkeypatch)
+
+    async def _block(req):
+        return {"decision": "BLOCK", "reason": "hard-blocked", "rule": "blocked_path"}
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _block)
+    asyncio.run(runner._run())
+    assert final["status"] is HyperFlowRunStatus.FAILED
+
+
+def test_safety_monitor_proceeds_despite_block(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "monitor")
+    runner, final = _runner_with_io(_one_node_flow({"category": "docker"}), "sf-monitor", monkeypatch)
+
+    async def _block(req):
+        return {"decision": "BLOCK", "reason": "x", "rule": "y"}
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _block)
+    asyncio.run(runner._run())
+    # monitor never blocks — the node still dispatched and the run completed.
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_safety_off_skips_call(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "off")
+    runner, final = _runner_with_io(_one_node_flow(), "sf-off", monkeypatch)
+    called = []
+
+    async def _spy(req):
+        called.append(req)
+        return {"decision": "BLOCK"}
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _spy)
+    asyncio.run(runner._run())
+    assert called == []  # never consulted
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_safety_escalate_enforce_approved_proceeds(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "enforce")
+    runner, final = _runner_with_io(_one_node_flow({"category": "docker"}), "sf-esc-ok", monkeypatch)
+
+    async def _escalate(req):
+        return {"decision": "ESCALATE", "approval_id": "appr-1", "reason": "needs ok"}
+
+    async def _approve(node, approval_id, timeout=None):
+        return True
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _escalate)
+    monkeypatch.setattr(runner, "_wait_safety_approval", _approve)
+    asyncio.run(runner._run())
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_safety_escalate_enforce_denied_fails(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "enforce")
+    runner, final = _runner_with_io(_one_node_flow({"category": "docker"}), "sf-esc-no", monkeypatch)
+
+    async def _escalate(req):
+        return {"decision": "ESCALATE", "approval_id": "appr-2", "reason": "needs ok"}
+
+    async def _deny(node, approval_id, timeout=None):
+        return False
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _escalate)
+    monkeypatch.setattr(runner, "_wait_safety_approval", _deny)
+    asyncio.run(runner._run())
+    assert final["status"] is HyperFlowRunStatus.FAILED
+
+
+def test_safety_fail_open_when_shepherd_unreachable(monkeypatch):
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "enforce")
+    runner, final = _runner_with_io(_one_node_flow({"category": "docker"}), "sf-open", monkeypatch)
+
+    async def _down(req):
+        return None  # unreachable
+
+    monkeypatch.setattr(runner, "_safety_evaluate", _down)
+    asyncio.run(runner._run())
+    # fail-open: an unreachable Shepherd must not break the flow.
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
 
 
 def test_loop_then_fallback_when_never_green(monkeypatch):

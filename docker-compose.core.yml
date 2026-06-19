@@ -105,6 +105,9 @@ services:
       - JWT_SECRET=${HYPERCODE_JWT_SECRET}
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      # P0-2: HyperFlow consults Safety Shepherd before dispatch (off|monitor|enforce)
+      - SAFETY_SHEPHERD_URL=${SAFETY_SHEPHERD_URL:-http://safety-shepherd:8096}
+      - SAFETY_SHEPHERD_MODE=${SAFETY_SHEPHERD_MODE:-monitor}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
       - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER:-}
