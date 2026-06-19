@@ -31,6 +31,15 @@ except Exception as _e:
     _log.getLogger(__name__).warning("HyperFlow endpoints unavailable (old image): %s", _e)
     _HAS_HYPERFLOW = False
 
+# P1-1 BROski Identity Agent (requires the identity model/migration)
+try:
+    from app.api.v1.endpoints import identity
+    _HAS_IDENTITY = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Identity endpoints unavailable (old image): %s", _e)
+    _HAS_IDENTITY = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -54,6 +63,8 @@ if _HAS_PETS:
     api_router.include_router(pets.router,     prefix="/pets",     tags=["pets"])      # BROskiPets bridge
 if _HAS_HYPERFLOW:
     api_router.include_router(flows.router,    prefix="/flows",    tags=["hyperflow"])  # P0-1: Mission Graphs
+if _HAS_IDENTITY:
+    api_router.include_router(identity.router, prefix="/identity", tags=["identity"])   # P1-1: Identity Agents
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics

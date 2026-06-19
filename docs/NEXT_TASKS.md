@@ -25,7 +25,16 @@
 | P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ✅ Done 2026-06-19 |
 | P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ✅ Done 2026-06-19 |
 
-> Next: `safety_decisions_total` Grafana panel (quick close-out), then **P1-1 BROski Identity Agent per user**.
+## 🟡 P1 — Identity + Governance
+
+| # | Task | Status |
+|---|---|---|
+| P1-1 | **BROski Identity Agent per user** — `broski_identity_agents` (mig 017) + `IdentityAgent` (award_tokens/check_permission/log_action) + `/api/v1/identity` + `X-BROSKI-IDENTITY` | ✅ Done 2026-06-19 |
+| P1-2 | **Governance Ledger** — `governance_ledger` table (mig 018); `IdentityAgent.log_action()` persists there; Grafana timeline | ⬜ Next |
+| P1-3 | Extract 37 CATALOGUED skills to HYPER-SILLs vault | ⬜ |
+| P1-4 | Fill 11 empty specialist HYPER-AGENT-BIBLEs | ⬜ |
+
+> ✅ `safety_decisions_total` Grafana panel done (commit 142e989). P1-1 follow-up: retrofit existing economy/shop/agent-dispatch call-sites to route through `IdentityAgent.log_action()` (the agent + table are built; central money path not yet retrofitted to avoid risk).
 
 > Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; persist decisions/governance ledger (P1-2). ✅ HyperFlow dispatch now consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). Remaining intercept: wire the crew-orchestrator's own downstream tool calls (docker/http/file) through `/evaluate` too.
 

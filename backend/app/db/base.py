@@ -11,6 +11,7 @@ from app.models.broski import (
 from app.models.agent_api_key import AgentApiKey  # Phase 10D
 from app.models.pets import PetProvisionEvent
 from app.models.hyperflow import HyperFlowRun  # P0-1: HyperFlow mission graphs
+from app.models.identity import BROskiIdentityAgent  # P1-1: resident agent per user
 
 __all__ = [
     "Base",
@@ -26,4 +27,5 @@ __all__ = [
     "AgentApiKey",
     "PetProvisionEvent",
     "HyperFlowRun",
+    "BROskiIdentityAgent",
 ]
