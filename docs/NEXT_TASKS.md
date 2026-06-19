@@ -23,7 +23,9 @@
 |---|---|---|
 | P0-1 | **HyperFlow** — declarative agent mission graphs (schema + runner + `hyperflow_runs` mig 016 + `/api/v1/flows` SSE + Prometheus metric + example flow) | ✅ Done 2026-06-19 |
 | P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ✅ Done 2026-06-19 |
-| P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ⬜ Next |
+| P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ✅ Done 2026-06-19 |
+
+> Next: `safety_decisions_total` Grafana panel (quick close-out), then **P1-1 BROski Identity Agent per user**.
 
 > Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; persist decisions/governance ledger (P1-2). ✅ HyperFlow dispatch now consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). Remaining intercept: wire the crew-orchestrator's own downstream tool calls (docker/http/file) through `/evaluate` too.
 

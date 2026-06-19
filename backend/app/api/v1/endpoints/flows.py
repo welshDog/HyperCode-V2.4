@@ -81,6 +81,23 @@ def _serialize_run(run: HyperFlowRun) -> dict[str, Any]:
     }
 
 
+@router.get("/active")
+def list_active_runs(limit: int = 10, db: Session = Depends(get_db)) -> Any:
+    """Active HyperFlow runs (running or awaiting approval), most-recent first.
+
+    Backs the Mission Graph dashboard panel (P0-3).
+    """
+    limit = max(1, min(50, limit))
+    runs = (
+        db.query(HyperFlowRun)
+        .filter(HyperFlowRun.status.in_(["running", "awaiting_approval"]))
+        .order_by(HyperFlowRun.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return {"count": len(runs), "runs": [_serialize_run(r) for r in runs]}
+
+
 @router.get("/runs/{run_id}")
 def get_run(run_id: str, db: Session = Depends(get_db)) -> Any:
     run = db.get(HyperFlowRun, run_id)
