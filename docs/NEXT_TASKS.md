@@ -31,8 +31,8 @@
 |---|---|---|
 | P1-1 | **BROski Identity Agent per user** — `broski_identity_agents` (mig 017) + `IdentityAgent` (award_tokens/check_permission/log_action) + `/api/v1/identity` + `X-BROSKI-IDENTITY` | ✅ Done 2026-06-19 |
 | P1-2 | **Governance Ledger** — `governance_ledger` (mig **018**, not 016 — head was 017); `IdentityAgent.log_action()` persists there (fail-soft); `GET /api/v1/governance/ledger`; Grafana Postgres datasource + timeline panel | ✅ Done 2026-06-19 |
-| P1-3 | Extract 37 CATALOGUED skills to HYPER-SILLs vault | ⬜ |
-| P1-4 | Fill 11 empty specialist HYPER-AGENT-BIBLEs | ⬜ |
+| P1-4 | Fill empty specialist HYPER-AGENT-BIBLEs | ✅ Done 2026-06-19 (10 filled; crew-orchestrator already existed) |
+| P1-3 | Extract 37 CATALOGUED skills to HYPER-SILLs vault (`HYPER-SILLs-By-WelshDog`, hypercode/ + web3/) | ⬜ Next |
 
 > ✅ `safety_decisions_total` Grafana panel done (commit 142e989). P1-1 follow-up: retrofit existing economy/shop/agent-dispatch call-sites to route through `IdentityAgent.log_action()` (the agent + table are built; central money path not yet retrofitted to avoid risk).
 
