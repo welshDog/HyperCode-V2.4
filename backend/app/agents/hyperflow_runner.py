@@ -180,7 +180,11 @@ class HyperFlowRunner:
     # ── node executors ───────────────────────────────────────────────────────
 
     async def _dispatch(self, node: FlowNode) -> dict[str, Any]:
+        # The crew-orchestrator /execute contract requires a top-level "task"
+        # description; the agent/tool/node fields are carried as context.
+        task = node.params.get("task") or f"{node.type.value} '{node.agent or node.tool or node.id}'"
         payload: dict[str, Any] = {
+            "task": task,
             "flow": self.flow.name,
             "run_id": self.run_id,
             "node": node.id,
