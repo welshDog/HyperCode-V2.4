@@ -32,6 +32,15 @@
 | P1-1 | **BROski Identity Agent per user** — `broski_identity_agents` (mig 017) + `IdentityAgent` (award_tokens/check_permission/log_action) + `/api/v1/identity` + `X-BROSKI-IDENTITY` | ✅ Done 2026-06-19 |
 | P1-2 | **Governance Ledger** — `governance_ledger` (mig **018**, not 016 — head was 017); `IdentityAgent.log_action()` persists there (fail-soft); `GET /api/v1/governance/ledger`; Grafana Postgres datasource + timeline panel | ✅ Done 2026-06-19 |
 | P1-4 | Fill empty specialist HYPER-AGENT-BIBLEs | ✅ Done 2026-06-19 (10 filled; crew-orchestrator already existed) |
+
+## 🟢 P2 — Continuous Evolution + Course
+
+| # | Task | Status |
+|---|---|---|
+| P2-3 | **Brain Levels 18 + 19** — L18 AI distraction monitor (3 signals → nudge) + L19 DifficultyDial dynamic XP (intensity × quality × HyperSplit chunk difficulty) | ✅ Done 2026-06-20 (in BROski-Obsidian-Brain, engine :8100, commit 10cee0e) |
+| P2-1 | Evo Harness — long-horizon agent regression test | ⬜ |
+| P2-2 | Brain Constellation (Level 20) | ⬜ |
+| P2-4 | Course "AI Agents 2.0" track (M11+) | ⬜ |
 | P1-3 | Extract CATALOGUED skills to HYPER-SILLs vault | ✅ Done 2026-06-19 (index was stale: 22/37 already on disk; 15 genuinely-missing written + web3/ created + vault-index reconciled — in HYPER-SILLs-By-WelshDog) |
 
 > ✅ `safety_decisions_total` Grafana panel done (commit 142e989). P1-1 follow-up: retrofit existing economy/shop/agent-dispatch call-sites to route through `IdentityAgent.log_action()` (the agent + table are built; central money path not yet retrofitted to avoid risk).
