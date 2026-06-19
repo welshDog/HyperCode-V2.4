@@ -10,6 +10,7 @@ from app.models.broski import (
 )
 from app.models.agent_api_key import AgentApiKey  # Phase 10D
 from app.models.pets import PetProvisionEvent
+from app.models.hyperflow import HyperFlowRun  # P0-1: HyperFlow mission graphs
 
 __all__ = [
     "Base",
@@ -24,4 +25,5 @@ __all__ = [
     "DailyMissionClaim",
     "AgentApiKey",
     "PetProvisionEvent",
+    "HyperFlowRun",
 ]

@@ -1,0 +1,64 @@
+# HyperFlow example — "implement a new agent from spec to health-check green"
+#
+# This is the canonical P0-1 demonstration flow. It models the real lifecycle:
+#   architect designs the agent spec  →  human approves  →  spawner scaffolds it
+#   →  health probe checks it  →  loop until green (bounded)  →  escalate on give-up.
+#
+# Run it:  POST /api/v1/flows/runs {"flow": "implement-new-agent"}
+# Watch it: GET  /api/v1/flows/runs/{id}/events   (SSE)
+# Approve:  POST /api/v1/flows/runs/{id}/resume   {"approved": true}
+
+name: implement-new-agent
+version: 1
+entry: design_spec
+
+nodes:
+  - id: design_spec
+    type: agent_role
+    agent: architect
+    params:
+      task: "Design a HyperCode agent spec from the provided requirements."
+
+  - id: approve_spec
+    type: human_approval_gate
+    params:
+      prompt: "Approve the proposed agent spec before scaffolding?"
+
+  - id: scaffold_agent
+    type: tool
+    tool: agent_spawner
+    params:
+      task: "Scaffold the agent service, Dockerfile, and registry entry from the approved spec."
+
+  - id: health_probe
+    type: tool
+    tool: health_probe
+    params:
+      task: "Probe the new agent's /health endpoint and report green/not-green."
+    success_key: green
+
+  - id: escalate
+    type: human_approval_gate
+    params:
+      prompt: "Health check never went green after retries — human intervention needed."
+
+edges:
+  - from: design_spec
+    to: approve_spec
+
+  - from: approve_spec
+    to: scaffold_agent
+
+  - from: scaffold_agent
+    to: health_probe
+    retry:
+      max: 2
+      backoff_seconds: 3.0
+
+  # Not green yet → loop back and re-probe (bounded), else fall through to escalate.
+  - from: health_probe
+    to: health_probe
+    condition: false
+    loop:
+      max_iterations: 3
+    fallback: escalate

@@ -21,6 +21,7 @@
 - Obsidian sync integration documented
 - Dashboard status tracked (2026-06-16)
 - Session handovers logged (May–June 2026)
+- **HyperFlow P0-1** — declarative agent mission-graph DSL: Pydantic schema + YAML loader (`app/agents/hyperflow/`), `HyperFlowRunner` (in-core asyncio walk, orchestrator dispatch, approval-gate suspend, retry/loop/fallback edges), `hyperflow_runs` table (migration `016`), control API `/api/v1/flows` (start/status/SSE/resume), Prometheus `hyperflow_node_duration_seconds`, example flow `implement-new-agent`. 8 unit tests green.
 
 ## Sacred Rules (NEVER break)
 

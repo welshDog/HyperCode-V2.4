@@ -22,6 +22,15 @@ except Exception as _e:
     _log.getLogger(__name__).warning("Pets endpoints unavailable (old image): %s", _e)
     _HAS_PETS = False
 
+# P0-1 HyperFlow — declarative mission graphs (requires the hyperflow model/migration)
+try:
+    from app.api.v1.endpoints import flows
+    _HAS_HYPERFLOW = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("HyperFlow endpoints unavailable (old image): %s", _e)
+    _HAS_HYPERFLOW = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -43,6 +52,8 @@ if _HAS_PHASE234:
     api_router.include_router(graduate.router, prefix="/graduate", tags=["graduate"])  # Phase 4: npm run graduate 🔥
 if _HAS_PETS:
     api_router.include_router(pets.router,     prefix="/pets",     tags=["pets"])      # BROskiPets bridge
+if _HAS_HYPERFLOW:
+    api_router.include_router(flows.router,    prefix="/flows",    tags=["hyperflow"])  # P0-1: Mission Graphs
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics
