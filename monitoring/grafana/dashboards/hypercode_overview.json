@@ -19,7 +19,6 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "links": [],
   "links": [
     {
       "type": "dashboards",
@@ -334,6 +333,116 @@
       ],
       "title": "Average Request Duration",
       "type": "timeseries"
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Governance Events Timeline (P1-2)",
+      "description": "High-impact actions logged to governance_ledger, grouped by decision.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "hypercode-postgres"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ALLOW"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "BLOCK"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ESCALATE"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "AUTO"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "calcs": [
+            "sum"
+          ],
+          "placement": "right"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "hypercode-postgres"
+          },
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT $__timeGroupAlias(timestamp, $__interval), decision AS metric, count(*) AS \"count\" FROM governance_ledger WHERE $__timeFilter(timestamp) GROUP BY 1, decision ORDER BY 1",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "5s",
@@ -350,6 +459,6 @@
   "timezone": "",
   "title": "HyperCode Overview",
   "uid": "hypercode-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
