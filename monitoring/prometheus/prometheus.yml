@@ -90,3 +90,9 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["broski-bot:8000"]
+
+  # P0-2 Safety Shepherd — safety_decisions_total (ALLOW/BLOCK/ESCALATE)
+  - job_name: "safety-shepherd"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["safety-shepherd:8096"]

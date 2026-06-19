@@ -1,0 +1,97 @@
+{
+  "title": "Safety Shepherd — Policy Decisions",
+  "uid": "safety-shepherd",
+  "tags": ["safety", "p0-2", "governance"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Decision rate by outcome",
+      "description": "ALLOW / BLOCK / ESCALATE per second (5m rate).",
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 0 },
+      "fieldConfig": {
+        "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 12, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ALLOW" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
+          { "matcher": { "id": "byName", "options": "BLOCK" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+          { "matcher": { "id": "byName", "options": "ESCALATE" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+          "expr": "sum(rate(safety_decisions_total[5m])) by (decision)",
+          "legendFormat": "{{decision}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "piechart",
+      "title": "Decisions (total share)",
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 0 },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ALLOW" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } } ] },
+          { "matcher": { "id": "byName", "options": "BLOCK" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] },
+          { "matcher": { "id": "byName", "options": "ESCALATE" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "yellow" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "pieType": "donut" },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+          "expr": "sum(safety_decisions_total) by (decision)",
+          "legendFormat": "{{decision}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Blocks & escalations by agent",
+      "description": "Agents whose actions are being gated (BLOCK/ESCALATE), 5m rate.",
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "bars", "fillOpacity": 40 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+          "expr": "sum(rate(safety_decisions_total{decision=~\"BLOCK|ESCALATE\"}[5m])) by (agent)",
+          "legendFormat": "{{agent}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Decisions by category",
+      "description": "docker / http_external / file_write / stripe / discord / generic (5m rate).",
+      "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "ops", "custom": { "drawStyle": "line", "fillOpacity": 12 } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "calcs": ["sum"], "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
+          "expr": "sum(rate(safety_decisions_total[5m])) by (category)",
+          "legendFormat": "{{category}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
