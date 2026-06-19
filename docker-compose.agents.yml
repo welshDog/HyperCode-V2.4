@@ -1251,6 +1251,53 @@ services:
     cap_drop:
       - ALL
 
+  # P0-2 — Safety Shepherd: runtime policy brain (ALLOW/BLOCK/ESCALATE).
+  # agents-net + data-net only (never app-net). No Docker socket at all (more
+  # restrictive than the brief's read-only rule — it never touches Docker).
+  safety-shepherd:
+    profiles: ["agents", "safety"]
+    build:
+      context: ./agents/safety-shepherd
+      dockerfile: Dockerfile.safety-shepherd
+    image: safety-shepherd:latest
+    container_name: safety-shepherd
+    environment:
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - REDIS_URL=redis://redis:6379/0
+      - SAFETY_RATE_WINDOW=${SAFETY_RATE_WINDOW:-3600}
+    ports:
+      - "127.0.0.1:8096:8096"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   goal-keeper:
     profiles: ["agents", "goal-keeper"]
     build:

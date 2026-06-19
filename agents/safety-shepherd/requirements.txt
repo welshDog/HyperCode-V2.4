@@ -1,0 +1,4 @@
+# Safety Shepherd extras on top of agent-base:latest
+# (agent-base already provides fastapi, uvicorn, redis, httpx, pydantic)
+structlog==24.1.0
+prometheus-client==0.20.0

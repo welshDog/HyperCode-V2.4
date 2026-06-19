@@ -22,7 +22,9 @@
 | # | Task | Status |
 |---|---|---|
 | P0-1 | **HyperFlow** — declarative agent mission graphs (schema + runner + `hyperflow_runs` mig 016 + `/api/v1/flows` SSE + Prometheus metric + example flow) | ✅ Done 2026-06-19 |
-| P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ⬜ Next |
-| P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ⬜ |
+| P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ✅ Done 2026-06-19 |
+| P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ⬜ Next |
+
+> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; wire HyperFlow `_dispatch` + orchestrator tool calls to consult `/evaluate` before dangerous actions (the intercept is built, not yet called); persist decisions/governance ledger (P1-2).
 
 > HyperFlow MVP follow-ups (deferred): crash-resume durability (Celery path), multi-worker `/resume` (currently in-core single-worker), concurrency caps.

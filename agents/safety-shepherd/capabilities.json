@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "description": "Safety Shepherd capabilities manifest — per-agent grants. Decision = ALLOW | BLOCK | ESCALATE. Edit grants here; no code change needed.",
+  "defaults": {
+    "unknown_agent_decision": "ESCALATE",
+    "max_actions": 100
+  },
+  "exempt_categories": ["stripe"],
+  "blocked_paths": [
+    "**/.env",
+    "**/.env.*",
+    "**/secrets/**",
+    "/run/secrets/**",
+    "**/*_key.txt",
+    "**/id_rsa*"
+  ],
+  "blocked_domains": [],
+  "agents": {
+    "backend_specialist": {
+      "tools": ["file_read", "file_write", "http_external", "git"],
+      "file_paths": ["/workspace/**", "backend/**", "agents/**"],
+      "domains": ["github.com", "pypi.org", "api.anthropic.com"],
+      "max_actions": 200
+    },
+    "frontend_specialist": {
+      "tools": ["file_read", "file_write", "http_external", "git"],
+      "file_paths": ["/workspace/**", "frontend/**", "hyper-agents-ide/**"],
+      "domains": ["github.com", "registry.npmjs.org"],
+      "max_actions": 200
+    },
+    "coder_agent": {
+      "tools": ["file_read", "file_write", "git"],
+      "file_paths": ["/workspace/**", "backend/**", "agents/**", "frontend/**"],
+      "domains": ["github.com"],
+      "max_actions": 300
+    },
+    "qa_engineer": {
+      "tools": ["file_read", "http_external"],
+      "file_paths": ["/workspace/**"],
+      "domains": ["github.com"],
+      "max_actions": 150
+    },
+    "devops_engineer": {
+      "tools": ["file_read", "file_write", "docker", "git"],
+      "file_paths": ["/workspace/**", "agents/**", "monitoring/**"],
+      "domains": ["github.com", "download.docker.com"],
+      "max_actions": 150
+    },
+    "database_architect": {
+      "tools": ["file_read", "file_write"],
+      "file_paths": ["/workspace/**", "backend/alembic/**", "supabase/**"],
+      "domains": [],
+      "max_actions": 100
+    },
+    "broski-bot": {
+      "tools": ["file_read", "discord", "http_external"],
+      "file_paths": [],
+      "domains": ["discord.com", "discordapp.com"],
+      "max_actions": 500
+    },
+    "*": {
+      "tools": ["file_read"],
+      "file_paths": ["/workspace/**"],
+      "domains": [],
+      "max_actions": 50
+    }
+  }
+}
