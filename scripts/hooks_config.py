@@ -22,3 +22,4 @@ SESSION_FAIL_IF_MISSING_COMPOSE = True
 # broski_xp_reward
 XP_CHANNEL = "broski_economy"
 XP_DB = 1
+XP_SOURCE = "session_hook"  # repo attribution in the XP payload

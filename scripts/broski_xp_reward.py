@@ -21,4 +21,5 @@ if __name__ == "__main__":
         argv=sys.argv[1:],
         channel=cfg.XP_CHANNEL,
         db=cfg.XP_DB,
+        source=cfg.XP_SOURCE,
     ))

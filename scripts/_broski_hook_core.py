@@ -257,7 +257,8 @@ def _publish_xp(channel: str, db: int, payload: dict) -> Optional[str]:
     return None
 
 
-def run_xp_reward(label: str, argv: Sequence[str], channel: str = "broski_economy", db: int = 1) -> int:
+def run_xp_reward(label: str, argv: Sequence[str], channel: str = "broski_economy", db: int = 1,
+                  source: str = "session_hook") -> int:
     parser = argparse.ArgumentParser(description="Award BROski$ XP")
     parser.add_argument("--xp", type=int, default=10, help="XP amount (default 10)")
     parser.add_argument("--reason", default="session_hook", help="Award reason tag")
@@ -268,12 +269,14 @@ def run_xp_reward(label: str, argv: Sequence[str], channel: str = "broski_econom
     print("   XP:     +" + str(args.xp))
     print("   Reason: " + args.reason)
 
+    # `source` is repo attribution (preserved per-repo via config); the consumer
+    # (broski_economy_consumer) keys on "type"/"event" == "xp_award" and stores source.
     payload = {
         "type": "xp_award",
         "xp": args.xp,
         "reason": args.reason,
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "source": "session_hook",
+        "source": source,
     }
     published = _publish_xp(channel, db, payload)
 
