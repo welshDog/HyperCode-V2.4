@@ -12,6 +12,7 @@
 | postgres | 5432 | docker exec postgres pg_isready | — |
 | ollama | 11434 | http://localhost:11434/api/tags | — |
 | celery-worker | — | celery inspect ping | redis |
+> ⚠️ celery-worker has been caught sitting in `Created` (never started). If a loop needs it, verify it's `Up`, not just present: `docker start celery-worker`.
 
 ## Agent Profile Services (--profile agents)
 
@@ -21,7 +22,16 @@
 | agent-dashboard | 8088 | Agent swarm overview |
 | 15x agents | various | See docker-compose.agents.yml |
 
-## Observability (--profile obs)
+## Safety / Governance / Registry
+
+| Service | Port | Profile | Notes |
+|---|---|---|---|
+| safety-shepherd | 8096 | safety | ALLOW/BLOCK/ESCALATE policy brain (agents-net + data-net) |
+| agent-registry | 8077 | registry | auto-restart + circuit breaker |
+| evolve-relay | 8097 | pets | dNFT evolve mint relay (Base Sepolia) |
+
+## Observability (--profile observability)
+> Canonical compose is `observability.yml`, NOT `monitoring.yml`/`obs`.
 
 | Service | Port |
 |---|---|

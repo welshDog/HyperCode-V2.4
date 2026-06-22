@@ -11,7 +11,7 @@
 - PostgreSQL, Prometheus, Grafana, Celery, Ollama, Chroma
 
 ## Container Count
-48 Docker containers across ~22 compose files
+~30–40 containers running (profile-dependent); 80+ services defined across 20+ compose files
 
 ## Key Ports
 | Service | Port |
@@ -21,20 +21,24 @@
 | Agent dashboard | 8088 |
 | Prometheus | 9090 |
 | Brain engine | 8100 |
+| Safety Shepherd | 8096 |
+| Agent Registry | 8077 |
+| Evolve relay (pets) | 8097 |
 
 ## Active Profiles
-`core` · `agents` · `pets` · `brain` · `discord` · `obs` · `health`
+`core` · `agents` · `pets` · `brain` · `brain-agents` · `discord` · `safety` · `registry` · `observability` · `health` · `vault-sync`
+> Canonical obs profile is `observability` (observability.yml), NOT `obs`/`monitoring.yml`.
 
 ## Health Score
-8.8/10 (last audit May 2026)
+🟢 Healthy (2026-06-22 live truth). AGENT-START roadmap P0-1 → P2-4 CLOSED; migrations advanced 015 → 018.
 
 ## Networks
 `backend-net` · `data-net` · `agents-net` · `obs-net` · `frontend-net`
 
 ## Key Files
 - `CLAUDE.md` — identity + sacred rules
-- `WHATSDONE.md` — never rebuild anything here
-- `CLAUDECONTEXT.md` — extended context
+- `WHATS_DONE.md` — never rebuild anything here
+- `CLAUDE_CONTEXT.md` — extended context
 
 ## Sacred Rules for This Repo
 - Always `docker-ce-cli` never `docker.io`

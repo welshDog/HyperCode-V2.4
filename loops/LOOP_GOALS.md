@@ -3,20 +3,31 @@
 
 ---
 
+> ⚠️ AGENT-START roadmap P0-1 → P2-4 is CLOSED (all 10 milestones built + pushed, 2026-06-22).
+> The old queue (Catch Stragglers, L18/19/20) is all DONE — see below. This is the live backlog.
+
 ## 🔥 Priority Queue
 
 | # | Goal | Success Test | Blocked? |
 |---|---|---|---|
-| 1 | Wire Catch Stragglers router into FastAPI main.py | `GET /catch-stragglers/health` returns 200 | No |
-| 2 | mc-events event sourcing migration | Events table seeded, listener confirmed | No |
-| 3 | Level 18 AI Distraction Filter — wire to session snapshot | Filter nudge fires on vault idle > 10min | No |
-| 4 | Level 19 DifficultyDial Dynamic XP | XP multiplier changes based on session quality score | No |
-| 5 | Level 20 Brain Constellation — start scaffold | Unified map renders all 5 repos as nodes | No |
+| 1 | Browser visual pass on dashboard `/ide` Files panel + `/docker-zone` + `/pricing` | All render clean, no console errors (Playwright/manual) | No |
+| 2 | Grafana loop-history dashboard (loops/day, success rate) | Panel renders from LOOP_REGISTRY data | No |
+| 3 | Wire Safety Shepherd intercept into HyperFlow/orchestrator | ESCALATE path fires on a guarded action | No |
+
+---
+
+## 🔒 Blocked on human gates (not code)
+
+| Gate | Owner | Unblocks |
+|---|---|---|
+| GitHub billing | Bro | graph-refresh Actions + per-repo CI (incl. evo-harness) |
+| Stripe LIVE | Bro | blocked on Companies House registration |
+| Base Sepolia top-up | Bro | further pet mints / evolutions |
 
 ---
 
 ## ✅ Done (do not rebuild)
-See WHATSDONE.md
+See `WHATS_DONE.md`. Roadmap milestones: HyperFlow · Safety Shepherd · Mission Graph panel · Identity Agent · Governance Ledger · HYPER-SILLs reconcile · Agent Bibles · Evo Harness · Brain Constellation L20 · Brain L18/19 · Course AI Agents 2.0 (M11–M13).
 
 ---
 
