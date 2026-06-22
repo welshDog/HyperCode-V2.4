@@ -339,6 +339,7 @@
       "type": "timeseries",
       "title": "Governance Events Timeline (P1-2)",
       "description": "High-impact actions logged to governance_ledger, grouped by decision.",
+      "timeFrom": "7d",
       "datasource": {
         "type": "postgres",
         "uid": "hypercode-postgres"
