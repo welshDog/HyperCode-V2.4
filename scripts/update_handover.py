@@ -2,7 +2,7 @@ import subprocess
 from datetime import datetime
 
 date = datetime.now().strftime("%Y-%m-%d")
-filename = f"NEXTSESSIONHANDOVER-{date}.md"
+filename = f"NEXT_SESSION_HANDOVER_{date}.md"
 
 content = f"""# Next Session Handover — {date}
 
