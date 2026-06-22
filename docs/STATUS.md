@@ -1,6 +1,6 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **May 19–June 7, 2026**
+> Last updated: **May 19–June 22, 2026**
 > For sacred rules + architecture → `CLAUDE.md`
 
 ---
@@ -22,6 +22,7 @@
 | Metric | Status |
 |---|---|
 | Containers | ~30 running ✅ (profile-dependent, 20 compose files) |
+| Dashboard (Jun 22) | celery-worker restored + `/docker`→`/docker-zone` & `/grafana`→`/pricing` 307 redirects + IDE Files panel fix (sandboxed-to-`/workspace`, honest errors) — all LIVE & verified ✅ |
 | Tests | 251 passed, 6 skipped ✅ (May 16) |
 | NemoClaw | L1–L3.5 LIVE 🧠 (port 8099) |
 | Server Guardian | P1–P3b LIVE · P3c BUILT (smoke pending) 🛡️ |
