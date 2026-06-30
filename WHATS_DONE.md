@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-06-17 22:50 BST by BROski AI ⚡
+> Last synced: 2026-06-30 09:43 BST by BROski AI ⚡
 
 ## Done & Locked — Do NOT re-suggest
 
@@ -30,6 +30,7 @@
 - **BROski Identity Agent P1-1** — resident agent object per user. `broski_identity_agents` table (mig `017`, FK users.id, JSONB state, last_active), `BROskiIdentityAgent` model, `IdentityAgent` class (`app/agents/identity_agent.py`): `get_or_create`, `award_tokens` (logs → wraps durable `broski_service.award_xp`), `check_permission`, `log_action` (capped ring). `/api/v1/identity/me` (+`/award`, `/actions`, `/check-permission`), `X-BROSKI-IDENTITY` header. 6 unit tests + live E2E proven (provision, award +75 XP durable 385→460, action logged). Retrofit of existing economy/shop/dispatch call-sites to IdentityAgent = follow-up.
 - **Mission Graph Dashboard Panel P0-3** — `GET /api/v1/flows/active` (active runs) + Next.js panel in hypercode-dashboard (`/flows` route, nav "🕸️ Flows"): `useMissionGraph` hook polls `/flows/active` + streams the run's transitions via SSE (EventSource direct to core); shows flow name, active node, per-node status, last-transition time; one flow at a time (ADHD); colour-coded (running=blue, completed=green, awaiting_approval=yellow, failed=red). Verified live via headless Chrome (rendered panel shows live awaiting_approval run; empty-state when idle).
 - **HyperFlow ↔ Safety Shepherd wiring** — `HyperFlowRunner._safety_gate` consults Safety Shepherd `/evaluate` before every agent/tool dispatch. `SAFETY_SHEPHERD_MODE` = `off` | `monitor` (record decision, never block) | `enforce` (BLOCK→fail node, ESCALATE→park `awaiting_approval` until human approves via dashboard, then proceed). Optional `safety:` hint on a flow node declares the dangerous category/target/domain. Fail-open (3s) if Shepherd unreachable. Decisions recorded in the run timeline + SSE. 6 new unit tests (14 total green); live enforce E2E proven via `safety-demo` flow (escalate→approve→completed).
+- **Hyper MCP Server v2** — FastAPI MCP server (`hyper-mcp-server/`) built on skills HS-081 PORTAL FORGE + HS-129 SKILLS-OVER-MCP. Exposes 3 agents as MCP tools (`broski_agent`, `brain_core_agent`, `hyper_skill_agent`) via `/tools/list` + `/tools/call`. SEP-2640 Resources surface (`/resources/list` + `/resources/read?uri=skill://HS-NNN`) for HYPER-SILLs discovery. Dockerfile + requirements.txt + `.env.example` included. Merged via PR #292 to main (2026-06-30). Smoke tested locally — all 3 endpoints confirmed live. **TRAE IDE integration**: single MCP server config pointing to Railway live URL `https://hyper-sills-by-welshdog-production.up.railway.app` (HTTP transport). TRAE free tier = 1 MCP server at a time. Railway service confirmed Online (1 replica, sfo, `python mcp_server.py --http`, healthcheck `/health`). Do NOT re-add localhost:8765 and Railway as two separate servers — TRAE only supports one.
 
 ## Sacred Rules (NEVER break)
 
@@ -39,3 +40,4 @@
 - Stripe webhook — rate-limit EXEMPT, always
 - Python indent — 4 spaces, NEVER 3, NEVER mixed
 - Redis DB 1=cache, DB 2=rate limits. NEVER mix.
+- TRAE IDE — 1 MCP server at a time (free tier). Use Railway URL, not localhost.
