@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["uvicorn", "hyper_mcp_server:app", "--host", "0.0.0.0", "--port", "8765"]
+# Railway injects $PORT; default 8765 for local/docker.
+ENV PORT=8765
+CMD ["sh", "-c", "uvicorn hyper_mcp_server:app --host 0.0.0.0 --port ${PORT}"]
