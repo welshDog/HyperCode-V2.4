@@ -246,7 +246,10 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "hypercode"
+    "hypercode",
+    "hyper-sills",
+    "github",
+    "filesystem"
   ],
   "hooks": {
     "PreToolUse": [
@@ -255,8 +258,8 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(docker compose*)",
             "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/env_guard.py\"; exit 0",
+            "if": "Bash(docker compose*)",
             "shell": "powershell",
             "timeout": 15,
             "statusMessage": "Checking env vars..."
