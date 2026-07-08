@@ -32,8 +32,9 @@ USER appuser
 
 EXPOSE 8094
 
+# stdlib-only healthcheck — python:slim has neither curl nor requests
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8094/health')"
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8094/health',timeout=5).status==200 else 1)"
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["python", "hypervisor_agent.py"]

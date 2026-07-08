@@ -177,10 +177,18 @@ services:
       DISK_THRESHOLD_WARN: "80"
       OOM_PREDICTION_WINDOW: "300"
       DISCORD_WEBHOOK: ${DISCORD_WEBHOOK:-}
+      # Safety: DRY-RUN by default. Set true only when you trust it to act.
+      ENFORCE_SCALING: ${HYPERVISOR_ENFORCE_SCALING:-false}
+      SUSTAINED_CRIT: "3"
+      CONTAINER_STATS_TTL: "12"
+      # Measure the host disk, not the container overlay (bind-mounted below).
+      DISK_PATH: /hostfs
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/hostfs:ro
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8094/health"]
+      # stdlib-only — python:slim has no curl
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8094/health',timeout=5).status==200 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -19,10 +19,12 @@ HyperVisor is an intelligent monitoring and auto-scaling agent that watches your
 - Multi-channel: Redis, Discord webhook, WebSocket stream
 - Alert levels: `info`, `warn`, `crit`
 
-### **Auto-Scaling Rules**
-- **Kill zombies**: Containers restarting 10+ times (failed rollout)
-- **Stop non-critical on memory pressure**: Pause Grafana/Prometheus/Loki when RAM > 90%
-- **Prevent cascading failures**: One failing container won't drag down the whole system
+### **Auto-Scaling Rules** (DRY-RUN by default)
+- **Safe by default**: actions are logged, not executed, until you set `ENFORCE_SCALING=true`
+- **Sustained-pressure gate**: only acts after `SUSTAINED_CRIT` (default 3) consecutive critical samples — no single-spike kills
+- **Kill zombies**: removes containers restarting 10+ times (failed rollout)
+- **Shed non-critical load**: stops Grafana/Prometheus/Loki/Promtail when RAM > 90%
+- **Heal-back**: automatically restarts what it stopped once RAM drops below the WARN threshold
 
 ### **Production-Grade**
 - Non-root user (security hardening)
@@ -96,12 +98,21 @@ RAM_THRESHOLD_WARN: "75"
 RAM_THRESHOLD_CRIT: "90"
 DISK_THRESHOLD_WARN: "80"
 
-# OOM prediction window (seconds)
+# OOM prediction window (samples of history)
 OOM_PREDICTION_WINDOW: "300"
+
+# Auto-scaling safety
+ENFORCE_SCALING: "false"      # false = DRY-RUN (log only). true = actually stop/remove.
+SUSTAINED_CRIT: "3"           # consecutive crit samples before acting
+CONTAINER_STATS_TTL: "12"     # seconds between (slow) per-container stats sweeps
+DISK_PATH: "/hostfs"          # bind-mount the host root here to measure the real disk
 
 # Discord alerts (optional)
 DISCORD_WEBHOOK: "https://discordapp.com/api/webhooks/..."
 ```
+
+> **Enable enforcement** without editing the compose file:
+> `HYPERVISOR_ENFORCE_SCALING=true docker compose ... up -d hypervisor-agent`
 
 ---
 
@@ -131,37 +142,50 @@ DISCORD_WEBHOOK: "https://discordapp.com/api/webhooks/..."
 
 HyperVisor uses **linear regression on RAM trend** to forecast OOM:
 
-1. Collects RAM usage every 5 seconds (300-point history)
-2. Fits a linear trend: `predicted_ram = slope × time + intercept`
-3. Predicts RAM % in 5 minutes
-4. If prediction ≥ 95%, raises `crit` alert
-5. Probability = `(predicted_ram - 90) × 2` (0-100%)
+1. Collects RAM usage each monitor tick (up to a 300-sample history)
+2. Fits a linear trend over *seconds-since-first-sample* (kept small for numerical stability)
+3. Only proceeds if the trend is **rising** (slope > 0)
+4. Predicts RAM % 5 minutes ahead; if ≥ `RAM_THRESHOLD_CRIT` (90%), raises a `crit` alert
+5. Probability = `severity × confidence`, where
+   `severity = clamp((predicted − 90) / (100 − 90) × 100, 0..100)` and
+   `confidence = |r|` (regression fit quality) — so a steep, well-fit climb can reach ~100%
 
 Example:
-- Current: 75% RAM
-- Trend: +0.2% per second
-- Prediction: 75 + (0.2 × 300) = **135%** → **OOM in 5 minutes!**
+- Current: 80% RAM, trend +0.3%/sec, tight fit
+- Predicted 5 min out: extrapolates well past 100% → severity clamps to 100
+- **Result: ~100% OOM probability → `crit` alert**
 
 ---
 
 ## 🔧 Auto-Scaling Rules
 
+> All rules run in **DRY-RUN** (log the intended action) unless `ENFORCE_SCALING=true`,
+> and only after `SUSTAINED_CRIT` consecutive critical samples.
+
 ### Rule 1: Kill Zombies
 Removes containers that are stuck restarting:
 ```
 if restart_count > 10 AND state != "running":
-    kill(container)
+    remove(container)   # force
 ```
 
 **Why?** Prevents cascading failures from bad deployments.
 
-### Rule 2: Stop Non-Critical on Memory Pressure
-When `ram_percent ≥ 90`:
+### Rule 2: Shed Non-Critical on Memory Pressure
+When `ram_percent ≥ RAM_THRESHOLD_CRIT` (sustained):
 ```
-stop(grafana, prometheus, loki, promtail)
+stop(grafana, prometheus, loki, promtail)   # remembered for heal-back
 ```
 
 **Why?** Monitoring stack is non-critical; core services survive.
+
+### Rule 3: Heal-Back
+When `ram_percent` drops below `RAM_THRESHOLD_WARN`:
+```
+start(everything this agent stopped)
+```
+
+**Why?** The stack shouldn't stay down after the pressure clears.
 
 ---
 
