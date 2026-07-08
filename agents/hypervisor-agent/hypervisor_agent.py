@@ -167,10 +167,12 @@ class HyperVisorAgent:
         self.metrics_history: deque = deque(maxlen=OOM_PREDICTION_WINDOW)
         self.container_history: Dict[str, deque] = {}
 
-        # Cached container metrics (stats calls are slow — sample on a TTL)
+        # Cached container metrics (stats calls are slow — sample on a TTL,
+        # always in the background so the monitor loop never blocks on them)
         self._container_cache: List[ContainerMetrics] = []
         self._container_cache_ts: float = 0.0
         self._stats_lock = asyncio.Lock()
+        self._refresh_task: Optional[asyncio.Task] = None
 
         # Alert tracking
         self.active_alerts: List[Alert] = []
@@ -294,21 +296,31 @@ class HyperVisorAgent:
 
         return container_metrics
 
-    async def get_container_metrics(self, force: bool = False) -> List[ContainerMetrics]:
-        """TTL-cached, non-blocking wrapper around the stats sweep."""
-        now = time.monotonic()
-        if not force and (now - self._container_cache_ts) < CONTAINER_STATS_TTL and self._container_cache:
-            return self._container_cache
+    def peek_container_metrics(self) -> List[ContainerMetrics]:
+        """Return the latest cached sweep immediately (may be empty on cold start)."""
+        return self._container_cache
 
+    def container_cache_age(self) -> float:
+        return time.monotonic() - self._container_cache_ts if self._container_cache else -1.0
+
+    def schedule_container_refresh(self) -> None:
+        """Kick off a background stats sweep if the cache is stale and none is running.
+
+        A full sweep of many containers is slow (~1s each), so it must never sit in
+        the monitor loop's critical path — protective scaling decisions rely only on
+        fast system metrics + containers.list().
+        """
+        if self._container_cache and self.container_cache_age() < CONTAINER_STATS_TTL:
+            return
+        if self._refresh_task and not self._refresh_task.done():
+            return
+        self._refresh_task = asyncio.create_task(self._refresh_container_cache())
+
+    async def _refresh_container_cache(self) -> None:
         async with self._stats_lock:
-            # Another coroutine may have refreshed while we waited on the lock.
-            now = time.monotonic()
-            if not force and (now - self._container_cache_ts) < CONTAINER_STATS_TTL and self._container_cache:
-                return self._container_cache
             metrics = await asyncio.to_thread(self._collect_container_metrics)
             self._container_cache = metrics
             self._container_cache_ts = time.monotonic()
-            return metrics
 
     # ── Prediction ───────────────────────────────────────────────────
     async def detect_oom_risk(self) -> Optional[Tuple[str, float]]:
@@ -544,14 +556,9 @@ async def monitor_loop():
     while True:
         try:
             system_metrics = hypervisor.get_system_metrics()
-            container_metrics = await hypervisor.get_container_metrics()
 
-            alerts = await hypervisor.generate_alerts(system_metrics, container_metrics)
-            for alert in alerts:
-                logger.info(alert.message)
-                await hypervisor.broadcast_alert(alert)
-
-            # Track sustained memory pressure before acting.
+            # ── Protective actions use ONLY fast system metrics — they must never
+            #    wait on the slow per-container stats sweep. ──
             if system_metrics.is_memory_critical:
                 hypervisor.critical_streak += 1
             else:
@@ -564,6 +571,16 @@ async def monitor_loop():
             # Heal-back when pressure clears.
             for action in await hypervisor.heal_back(system_metrics):
                 logger.info(action)
+
+            # ── Per-container metrics are best-effort: refresh in the background,
+            #    alert on whatever's currently cached. ──
+            hypervisor.schedule_container_refresh()
+            container_metrics = hypervisor.peek_container_metrics()
+
+            alerts = await hypervisor.generate_alerts(system_metrics, container_metrics)
+            for alert in alerts:
+                logger.info(alert.message)
+                await hypervisor.broadcast_alert(alert)
 
             # Cache latest snapshot in Redis (fail-soft).
             try:
@@ -615,10 +632,12 @@ async def health():
 @app.get("/metrics")
 async def get_metrics():
     system_metrics = hypervisor.get_system_metrics()
-    container_metrics = await hypervisor.get_container_metrics()
+    hypervisor.schedule_container_refresh()
+    container_metrics = hypervisor.peek_container_metrics()
     return {
         "system": _json_safe(asdict(system_metrics)),
         "containers": [_json_safe(asdict(cm)) for cm in container_metrics],
+        "container_stats_age_seconds": round(hypervisor.container_cache_age(), 1),
         "active_alerts": len(hypervisor.active_alerts),
         "enforce_scaling": ENFORCE_SCALING,
         "stopped_by_agent": sorted(hypervisor.stopped_by_agent),
@@ -648,7 +667,8 @@ async def websocket_metrics(websocket: WebSocket):
     try:
         while True:
             system_metrics = hypervisor.get_system_metrics()
-            container_metrics = await hypervisor.get_container_metrics()
+            hypervisor.schedule_container_refresh()
+            container_metrics = hypervisor.peek_container_metrics()
             alerts = await hypervisor.generate_alerts(system_metrics, container_metrics)
             for alert in alerts:
                 await hypervisor.broadcast_alert(alert)
