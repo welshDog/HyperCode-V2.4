@@ -32,6 +32,14 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 200M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
 
   alertmanager:
     image: ${ALERTMANAGER_IMAGE:-prom/alertmanager:v0.27.0}
@@ -46,6 +54,14 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   alert-webhook:
     build:
@@ -60,6 +76,14 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
   grafana:
     image: ${GRAFANA_IMAGE:-grafana/grafana:11.2.0}
@@ -79,6 +103,14 @@ services:
       prometheus:
         condition: service_started
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.75"
+          memory: 300M
+        reservations:
+          cpus: "0.25"
+          memory: 96M
 
   node-exporter:
     image: ${NODE_EXPORTER_IMAGE:-prom/node-exporter:v1.8.1}
@@ -97,6 +129,14 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+        reservations:
+          cpus: "0.05"
+          memory: 16M
 
   loki:
     image: ${LOKI_IMAGE:-grafana/loki:3.5.7}
@@ -109,6 +149,14 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 160M
+        reservations:
+          cpus: "0.1"
+          memory: 48M
 
   promtail:
     image: ${PROMTAIL_IMAGE:-grafana/promtail:3.5.7}
@@ -130,6 +178,14 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 32M
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.47.2
@@ -144,3 +200,11 @@ services:
     networks:
       - backend-net
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+        reservations:
+          cpus: "0.1"
+          memory: 32M
