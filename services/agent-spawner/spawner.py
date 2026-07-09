@@ -69,7 +69,11 @@ async def spawn_agent(agent_name: str) -> bool:
         logger.info(f"[{agent_name}] Executing: {' '.join(cmd)}")
         
         try:
-            result = subprocess.run(
+            # subprocess.run blocks for up to 30s. This process also holds a
+            # pub/sub connection whose read carries a 5s socket_timeout, so a
+            # blocked loop kills spawn_listener as well as stalling everything.
+            result = await asyncio.to_thread(
+                subprocess.run,
                 cmd,
                 cwd=COMPOSE_CWD,
                 capture_output=True,
@@ -114,9 +118,11 @@ async def shutdown_agent(agent_name: str) -> bool:
         # Try multiple naming conventions
         for name_variant in [agent_name, container_name]:
             try:
-                container = docker_client.containers.get(name_variant)
+                # docker-py is sync; stop(timeout=10) can hold the loop for 10s
+                # while spawn_listener's pub/sub read is waiting on a 5s timeout.
+                container = await asyncio.to_thread(docker_client.containers.get, name_variant)
                 if container.status == "running":
-                    container.stop(timeout=10)
+                    await asyncio.to_thread(container.stop, timeout=10)
                     logger.info(f"[{agent_name}] Shut down successfully")
                     agent_activity.pop(agent_name, None)
                     return True
@@ -184,7 +190,9 @@ async def spawn_listener(r: redis.Redis):
                     try:
                         for name_variant in [agent_name, f"{DOCKER_COMPOSE_PROJECT}_{agent_name}_1"]:
                             try:
-                                container = docker_client.containers.get(name_variant)
+                                container = await asyncio.to_thread(
+                                    docker_client.containers.get, name_variant
+                                )
                                 if container.status == "running":
                                     logger.info(f"[{agent_name}] Already running, updating activity")
                                     agent_activity[agent_name] = time.time()
