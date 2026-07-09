@@ -605,7 +605,15 @@ async def alert_listener():
             pubsub = redis_client.pubsub()
             await pubsub.subscribe("system_alert")
             logger.info("Alert listener (re)subscribed to system_alert channel")
-            async for message in pubsub.listen():
+            while True:
+                # get_message() returns None when the channel is simply idle.
+                # listen() would raise TimeoutError instead, and the handler
+                # below would treat "nothing happened" as a crash.
+                message = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=30.0
+                )
+                if message is None:
+                    continue
                 if message["type"] == "message":
                     logger.info(f"📢 Received alert: {message['data']}")
                     try:
@@ -617,7 +625,9 @@ async def alert_listener():
         finally:
             if pubsub:
                 try:
-                    await pubsub.unsubscribe("system_alert")
+                    # aclose() returns the connection to the pool.
+                    # unsubscribe() alone leaves it checked out forever.
+                    await pubsub.aclose()
                 except Exception:
                     pass
         await asyncio.sleep(5)  # backoff before reconnect
