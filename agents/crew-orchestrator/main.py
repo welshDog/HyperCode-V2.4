@@ -1095,6 +1095,8 @@ async def websocket_approvals(websocket: WebSocket):
         connected_dashboards.append(websocket)
     logger.info("Dashboard connected to approval stream")
 
+    pubsub_redis = None
+    pubsub = None
     try:
         # Create a new Redis connection for subscribing
         pubsub_redis = await redis.from_url(settings.redis_url, decode_responses=True)
@@ -1111,6 +1113,18 @@ async def websocket_approvals(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
+        # This handler owns a Redis client per connection — both it and the
+        # pubsub must be closed, or every dashboard connect leaks a pool.
+        if pubsub is not None:
+            try:
+                await pubsub.aclose()
+            except Exception:
+                pass
+        if pubsub_redis is not None:
+            try:
+                await pubsub_redis.aclose()
+            except Exception:
+                pass
         async with _dashboards_lock:
             try:
                 connected_dashboards.remove(websocket)

@@ -639,7 +639,8 @@ async def health():
     docker_ok = False
     if docker_adapter and docker_adapter.client:
         try:
-            docker_adapter.client.ping()
+            # Synchronous docker-py call — off the loop, /health is polled every 15s.
+            await asyncio.to_thread(docker_adapter.client.ping)
             docker_ok = True
         except Exception:
             pass
