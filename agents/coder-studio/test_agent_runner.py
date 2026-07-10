@@ -84,13 +84,18 @@ def test_agent_runs_inside_the_worktree(worktree):
     assert Path(options.cwd) == worktree.path
 
 
-def test_model_defaults_to_opus_and_is_overridable(worktree, monkeypatch):
+def test_model_defaults_to_sonnet_and_is_overridable(worktree, monkeypatch):
     monkeypatch.delenv("STUDIO_MODEL", raising=False)
     assert build_options(worktree, make_gate(shepherd_saying(ALLOW), worktree)).model == DEFAULT_MODEL
-    assert DEFAULT_MODEL == "claude-opus-4-8"
+    assert DEFAULT_MODEL == "claude-sonnet-5"
 
+    # Global override via env.
     monkeypatch.setenv("STUDIO_MODEL", "claude-haiku-4-5")
     assert build_options(worktree, make_gate(shepherd_saying(ALLOW), worktree)).model == "claude-haiku-4-5"
+
+    # Per-session override wins over env (this is what the UI picker sends).
+    picked = build_options(worktree, make_gate(shepherd_saying(ALLOW), worktree), model="claude-opus-4-8")
+    assert picked.model == "claude-opus-4-8"
 
 
 def test_the_sdk_itself_agrees_our_options_do_not_shadow_the_gate(worktree):

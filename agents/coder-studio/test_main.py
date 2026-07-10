@@ -111,6 +111,27 @@ def test_start_session_returns_immediately_without_a_worktree(client, repo, monk
     assert r.json()["diff"] is None
 
 
+async def test_drive_agent_cleans_up_if_discarded_mid_prepare(repo, monkeypatch):
+    """Discarding while the sandbox is being built must not leave an orphan
+    worktree — the background run cleans up after itself and never runs."""
+    monkeypatch.setenv("WORKSPACE_ROOT", str(repo))
+    ran = {"agent": False}
+
+    async def _spy(*a, **k):  # pragma: no cover - must never be reached
+        ran["agent"] = True
+        if False:
+            yield None
+
+    monkeypatch.setattr(main, "run_agent", _spy)
+    session = Session(id="cs_bail", prompt="x", worktree=None)
+    session.status = Status.DISCARDED  # user bailed before the run picked up
+
+    await main._drive_agent(session, model=None, slug="bail")
+
+    assert ran["agent"] is False  # agent never ran
+    assert git_out(repo, "worktree", "list").count("\n") == 0  # only the main tree
+
+
 async def test_drive_agent_records_decisions(repo, monkeypatch):
     monkeypatch.setattr(
         main,

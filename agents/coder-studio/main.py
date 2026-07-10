@@ -102,6 +102,13 @@ async def _drive_agent(session: Session, model: str | None, slug: str = "task") 
             session.add_event("status", {"status": "preparing sandbox"})
             session.worktree = await asyncio.to_thread(create_worktree, workspace_root(), slug)
 
+        # The user can discard while the sandbox is still being built. If they
+        # did, clean up the worktree we just made and stop — don't run the agent.
+        if session.status in (Status.DISCARDED, Status.MERGED):
+            with contextlib.suppress(WorktreeError):
+                await asyncio.to_thread(discard_worktree, session.worktree)
+            return
+
         session.set_status(Status.RUNNING)
         async for message in run_agent(
             session.worktree,

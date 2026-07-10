@@ -166,13 +166,14 @@ export function useStudioSession() {
     }
   }, [closeStream])
 
-  const start = useCallback(async (prompt: string, slug: string) => {
+  const start = useCallback(async (prompt: string, slug: string, model?: string) => {
     seqRef.current = 0
     idemRef.current = crypto.randomUUID()
     const res = await fetch('/api/studio/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, slug }),
+      // model omitted → the service default (Sonnet); set → per-session override.
+      body: JSON.stringify(model ? { prompt, slug, model } : { prompt, slug }),
     })
     if (!res.ok) {
       const detail = await res.json().catch(() => ({}))

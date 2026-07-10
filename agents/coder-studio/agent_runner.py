@@ -32,7 +32,10 @@ from claude_agent_sdk.types import _get_can_use_tool_shadowed_warning
 from shepherd import ALLOW, BLOCK, ESCALATE, ShepherdClient, check_tool_call
 from worktree import Worktree
 
-DEFAULT_MODEL = "claude-opus-4-8"
+# Sonnet 5 is the everyday default — near-Opus quality on coding at a fraction
+# of the cost. Override per-session (the UI model picker) or globally via
+# STUDIO_MODEL. Any valid model id is accepted; the UI offers the current set.
+DEFAULT_MODEL = "claude-sonnet-5"
 
 # Belt and braces. shepherd.py withholds bash and the manifest declines to grant
 # it; this stops the SDK from offering it in the first place.
