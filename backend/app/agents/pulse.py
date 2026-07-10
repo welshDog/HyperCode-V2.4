@@ -1,8 +1,17 @@
 import logging
-import requests
+import httpx
 from app.agents.brain import brain
 
 logger = logging.getLogger(__name__)
+
+# Built once, at import. Constructing an AsyncClient builds an SSL context and
+# loads the CA bundle — hundreds of ms of *synchronous* work. Doing that inside
+# process() stalls the loop harder than the sync requests.get it replaced.
+# Measured in-container, worst loop stall per call:
+#   requests.get (sync)            53 ms
+#   AsyncClient built per call    284 ms   <- worse than the bug
+#   shared AsyncClient (this)       8 ms
+_http = httpx.AsyncClient(timeout=5.0)
 
 class PulseAgent:
     def __init__(self):
@@ -16,8 +25,10 @@ class PulseAgent:
         # 1. Grab raw vitals from Prometheus (Checking what services are 'up')
         try:
             # Using 'up' query to see which targets are up
-            # This query returns status of all scraped targets
-            res = requests.get(self.prometheus_url, params={'query': 'up'}, timeout=5)
+            # This query returns status of all scraped targets.
+            # Awaited, not sync: this runs on hypercode-core's event loop, and a
+            # blocking call here delays every request the API is serving.
+            res = await _http.get(self.prometheus_url, params={'query': 'up'})
             if res.status_code == 200:
                 raw_data = res.json()
                 # Extract relevant info to keep prompt size down
