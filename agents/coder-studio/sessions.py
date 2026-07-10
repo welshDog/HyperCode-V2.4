@@ -45,7 +45,10 @@ class Event:
 class Session:
     id: str
     prompt: str
-    worktree: Worktree
+    # Created lazily by the background run — a fresh worktree on a big
+    # bind-mounted repo can take 10s+, far too long to block the POST that
+    # starts the session. Until then the session is PENDING with no worktree.
+    worktree: Optional[Worktree] = None
     status: Status = Status.PENDING
     events: list[Event] = field(default_factory=list)
     diff: Optional[str] = None
@@ -75,7 +78,7 @@ class SessionStore:
         self._sessions: dict[str, Session] = {}
         self._lock = threading.Lock()
 
-    def create(self, prompt: str, worktree: Worktree) -> Session:
+    def create(self, prompt: str, worktree: Optional[Worktree] = None) -> Session:
         session = Session(id=f"cs_{secrets.token_hex(6)}", prompt=prompt, worktree=worktree)
         with self._lock:
             self._sessions[session.id] = session

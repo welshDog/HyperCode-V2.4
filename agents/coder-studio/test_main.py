@@ -86,6 +86,31 @@ async def test_drive_agent_reaches_review_with_a_diff(repo, monkeypatch):
     assert "status" in kinds and "message" in kinds
 
 
+async def test_drive_agent_creates_the_worktree_when_none(repo, monkeypatch):
+    """The sandbox is built in the background run, not in the POST handler, so a
+    slow checkout never blocks session creation."""
+    monkeypatch.setenv("WORKSPACE_ROOT", str(repo))
+    monkeypatch.setattr(main, "run_agent", fake_run_agent({"made.py": "1\n"}))
+    session = Session(id="cs_lazy", prompt="build", worktree=None)  # no worktree yet
+
+    await main._drive_agent(session, model=None, slug="lazy")
+
+    assert session.worktree is not None  # created during the run
+    assert session.status == Status.REVIEW
+    kinds = [e.data.get("status") for e in session.events if e.kind == "status"]
+    assert "preparing sandbox" in kinds
+
+
+def test_start_session_returns_immediately_without_a_worktree(client, repo, monkeypatch):
+    """POST must not block on the worktree checkout — it returns pending at once."""
+    # run_agent is slow/never here; we only assert the POST itself is instant + pending.
+    monkeypatch.setattr(main, "run_agent", fake_run_agent({"x.py": "1\n"}))
+    r = client.post("/sessions", json={"prompt": "x", "slug": "instant"}, headers=auth())
+    assert r.status_code == 200
+    assert r.json()["status"] == Status.PENDING.value
+    assert r.json()["diff"] is None
+
+
 async def test_drive_agent_records_decisions(repo, monkeypatch):
     monkeypatch.setattr(
         main,

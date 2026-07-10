@@ -91,12 +91,18 @@ class SessionView(BaseModel):
 
 
 # ── the agent run ───────────────────────────────────────────────────────────
-async def _drive_agent(session: Session, model: str | None) -> None:
+async def _drive_agent(session: Session, model: str | None, slug: str = "task") -> None:
     """Run the agent, streaming events into the session. Never raises."""
     from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUseBlock
 
-    session.set_status(Status.RUNNING)
     try:
+        # Create the sandbox here, not in the POST handler — on a big repo the
+        # worktree checkout takes 10s+ and must not block session creation.
+        if session.worktree is None:
+            session.add_event("status", {"status": "preparing sandbox"})
+            session.worktree = await asyncio.to_thread(create_worktree, workspace_root(), slug)
+
+        session.set_status(Status.RUNNING)
         async for message in run_agent(
             session.worktree,
             shepherd(),
@@ -135,13 +141,10 @@ async def health() -> dict[str, Any]:
 
 @app.post("/sessions", response_model=SessionView, dependencies=[Depends(require_key)])
 async def start_session(body: StartRequest) -> SessionView:
-    try:
-        worktree = await asyncio.to_thread(create_worktree, workspace_root(), body.slug)
-    except WorktreeError as exc:
-        raise HTTPException(status_code=500, detail=f"could not create worktree: {exc}") from exc
-
-    session = store.create(body.prompt, worktree)
-    task = asyncio.create_task(_drive_agent(session, body.model))
+    # Return immediately. The worktree checkout (slow on a big repo) and the
+    # agent run happen in the background and stream over /events.
+    session = store.create(body.prompt)
+    task = asyncio.create_task(_drive_agent(session, body.model, body.slug))
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)
     return SessionView.of(session)
@@ -222,7 +225,9 @@ async def discard(session_id: str) -> SessionView:
     if session.status in (Status.MERGED, Status.DISCARDED):
         return SessionView.of(session)
 
-    with contextlib.suppress(WorktreeError):
-        await asyncio.to_thread(discard_worktree, session.worktree)
+    # A run can fail before its worktree exists (e.g. sandbox creation failed).
+    if session.worktree is not None:
+        with contextlib.suppress(WorktreeError):
+            await asyncio.to_thread(discard_worktree, session.worktree)
     session.set_status(Status.DISCARDED)
     return SessionView.of(session)

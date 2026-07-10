@@ -71,7 +71,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ path: stri
       headers,
       body: body || undefined,
       cache: 'no-store',
-      signal: AbortSignal.timeout(15_000),
+      // Session start returns immediately, but merge/discard do real git I/O on
+      // a big bind-mounted repo — give them room rather than a tight 15s.
+      signal: AbortSignal.timeout(60_000),
     })
     return NextResponse.json(await res.json(), { status: res.status })
   } catch (err) {

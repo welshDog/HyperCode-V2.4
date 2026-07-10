@@ -246,6 +246,11 @@ services:
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      # HyperStudio proxy → coder-studio. The key must match coder-studio's
+      # (both resolve from ${API_KEY}); without it the proxy forwards an empty
+      # X-Agent-Key and coder-studio rejects every request with 401.
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - STUDIO_AGENT_URL=http://coder-studio:8087
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
