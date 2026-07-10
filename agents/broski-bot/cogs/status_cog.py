@@ -10,6 +10,7 @@ Sacred Rules:
 - 4 spaces indent
 """
 
+import asyncio
 import discord
 from discord.ext import commands
 import subprocess
@@ -36,7 +37,10 @@ class StatusCog(commands.Cog):
         )
 
         try:
-            result = subprocess.run(
+            # subprocess.run blocks for up to 10s. On discord.py's loop that
+            # stalls the gateway heartbeat and every other command with it.
+            result = await asyncio.to_thread(
+                subprocess.run,
                 [
                     "docker", "ps",
                     "--format",
