@@ -19,7 +19,20 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY worktree.py shepherd.py agent_runner.py sessions.py main.py ./
 
-# The agent writes into worktrees under /workspace; appuser must own it.
+# The repo is bind-mounted from the host and owned by a different UID, so git's
+# "dubious ownership" guard would refuse every command. This is a sandboxed
+# single-purpose container operating on a mount we already trust. Set it in the
+# SYSTEM config as root (appuser has no home dir, so --global can't write) —
+# /etc/gitconfig applies to every user including appuser.
+RUN git config --system --add safe.directory '*'
+
+# Throwaway worktrees live here (STUDIO_WORKTREE_ROOT). Create it owned by
+# appuser in the image: a bare mkdir at container start fails ("/" is root-only),
+# and a named volume mounted here inherits this mountpoint's ownership, so the
+# volume comes up writable by appuser instead of root.
+RUN mkdir -p /studio-worktrees && chown appuser:appuser /studio-worktrees
+
+# appuser must own the app dir too.
 RUN chown -R appuser:appuser /app
 USER appuser
 
