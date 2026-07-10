@@ -62,9 +62,19 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+_redis_client: redis.Redis | None = None
+
+
 def _redis() -> redis.Redis:
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379/3")
-    return redis.from_url(redis_url, socket_timeout=2, decode_responses=True)
+    # One client, one pool, for the process. Building a client per call opened a
+    # fresh TCP connection on every request (measured: 32 new Redis connections
+    # for 30 requests; 3.50ms per call vs 0.21ms reused).
+    # redis-py's sync client is thread-safe, so asyncio.to_thread callers share it.
+    global _redis_client
+    if _redis_client is None:
+        redis_url = os.getenv("REDIS_URL", "redis://redis:6379/3")
+        _redis_client = redis.from_url(redis_url, socket_timeout=2, decode_responses=True)
+    return _redis_client
 
 
 def _get_env_required(name: str) -> str:
@@ -556,7 +566,12 @@ async def provision(body: ProvisionRequest) -> ProvisionResponse:
 
 @app.post("/xp/award", response_model=XpAwardResponse)
 async def award_xp(body: XpAwardRequest) -> XpAwardResponse:
-    return _award_xp_to_pet(body.discord_id, body.amount, body.reason, body.source)
+    # _award_xp_to_pet is sync: blocking redis plus a blocking httpx.Client POST to
+    # EVOLVE_WEBHOOK_URL (3s timeout). uvicorn runs one worker, so calling it
+    # directly would stall every other request on this loop.
+    return await asyncio.to_thread(
+        _award_xp_to_pet, body.discord_id, body.amount, body.reason, body.source
+    )
 
 
 class BindTokenRequest(BaseModel):
@@ -664,7 +679,9 @@ async def webhook_pytest_pass(
     r = _redis()
     if not r.set(key, "1", nx=True, ex=60 * 60 * 24 * 14):
         return {"awarded": False, "duplicate": True}
-    res = _award_xp_to_pet(body.discord_id, 50, "Pytest all green", "pytest_webhook")
+    res = await asyncio.to_thread(
+        _award_xp_to_pet, body.discord_id, 50, "Pytest all green", "pytest_webhook"
+    )
     return {"awarded": True, "result": res.model_dump()}
 
 
@@ -682,7 +699,9 @@ async def webhook_trivy_clean(
         return {"awarded": False, "duplicate": True}
     if body.critical_count != 0:
         return {"awarded": False, "critical_count": body.critical_count}
-    res = _award_xp_to_pet(body.discord_id, 100, "Trivy 0 CRITICAL", "trivy_webhook")
+    res = await asyncio.to_thread(
+        _award_xp_to_pet, body.discord_id, 100, "Trivy 0 CRITICAL", "trivy_webhook"
+    )
     return {"awarded": True, "result": res.model_dump()}
 
 
@@ -697,7 +716,9 @@ async def webhook_course_module_complete(
     if not r.set(key, "1", nx=True, ex=60 * 60 * 24 * 60):
         return {"awarded": False, "duplicate": True}
     slug = body.module_slug or "module_complete"
-    res = _award_xp_to_pet(body.discord_id, 150, f"Course module complete: {slug}", "course_webhook")
+    res = await asyncio.to_thread(
+        _award_xp_to_pet, body.discord_id, 150, f"Course module complete: {slug}", "course_webhook"
+    )
     return {"awarded": True, "result": res.model_dump()}
 
 
@@ -985,8 +1006,8 @@ async def pet_brain_feed(discord_id: str) -> dict[str, object]:
         }
 
     xp = min(150, max(10, top_degree * 5))
-    res = _award_xp_to_pet(
-        discord_id, xp, f"Brain feed: {top_path} ({top_degree} links)", "brain_graph"
+    res = await asyncio.to_thread(
+        _award_xp_to_pet, discord_id, xp, f"Brain feed: {top_path} ({top_degree} links)", "brain_graph"
     )
 
     pet = _load_pet(discord_id)
