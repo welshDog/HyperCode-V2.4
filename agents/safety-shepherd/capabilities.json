@@ -6,12 +6,18 @@
     "max_actions": 100
   },
   "exempt_categories": ["stripe"],
+  "_blocked_paths_comment": "fnmatch('**/.env', '.env') is False — a '**/' prefix still requires a slash. Every pattern therefore needs a root-level twin, or a secret sitting at the top of the tree slips through for any agent whose file_paths grant reaches the root.",
   "blocked_paths": [
+    ".env",
+    ".env.*",
     "**/.env",
     "**/.env.*",
+    "secrets/**",
     "**/secrets/**",
     "/run/secrets/**",
+    "*_key.txt",
     "**/*_key.txt",
+    "id_rsa*",
     "**/id_rsa*"
   ],
   "blocked_domains": [],
@@ -57,6 +63,13 @@
       "file_paths": [],
       "domains": ["discord.com", "discordapp.com"],
       "max_actions": 500
+    },
+    "coder_studio": {
+      "_comment": "HyperStudio write path. Targets arrive worktree-relative, so '**' means 'anywhere inside the throwaway worktree' — the boundary is enforced in coder-studio/shepherd.py before this manifest is consulted. blocked_paths still wins (rule 2 precedes rule 5). 'bash' is deliberately NOT granted: its target is a shell command, which the blocked_paths globs cannot read.",
+      "tools": ["file_read", "file_write", "git"],
+      "file_paths": ["**"],
+      "domains": [],
+      "max_actions": 300
     },
     "*": {
       "tools": ["file_read"],
