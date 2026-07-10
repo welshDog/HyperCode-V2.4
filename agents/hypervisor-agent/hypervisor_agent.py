@@ -435,6 +435,41 @@ class HyperVisorAgent:
         return False
 
     # ── Auto-scaling (guarded) ───────────────────────────────────────
+    def _auto_scale_sync(self, tag: str) -> List[str]:
+        """Blocking sweep + stop/remove. Call via asyncio.to_thread."""
+        actions: List[str] = []
+        containers = self.docker_client.containers.list(all=True)
+
+        # 1. Remove zombie containers (excessive restarts, not currently running)
+        for c in containers:
+            restart_count = c.attrs.get('RestartCount', 0)
+            if restart_count > 10 and c.status != "running":
+                msg = f"{tag}remove zombie {c.name} (restart_count={restart_count})"
+                if ENFORCE_SCALING:
+                    try:
+                        c.remove(force=True)
+                    except Exception as e:
+                        logger.error(f"Failed to remove {c.name}: {e}")
+                        continue
+                actions.append(msg)
+                logger.info(f"🗑️ {msg}")
+
+        # 2. Stop non-critical monitoring containers to free RAM
+        for c in containers:
+            if c.status == "running" and any(nc in c.name.lower() for nc in NON_CRITICAL):
+                msg = f"{tag}stop non-critical {c.name} (memory pressure)"
+                if ENFORCE_SCALING:
+                    try:
+                        c.stop(timeout=15)
+                        self.stopped_by_agent.add(c.name)
+                    except Exception as e:
+                        logger.error(f"Failed to stop {c.name}: {e}")
+                        continue
+                actions.append(msg)
+                logger.info(f"⏸️ {msg}")
+
+        return actions
+
     async def auto_scale_containers(self, metrics: SystemMetrics) -> List[str]:
         """
         Shed load under sustained memory pressure. DRY-RUN unless ENFORCE_SCALING.
@@ -447,40 +482,29 @@ class HyperVisorAgent:
         async with self.scale_lock:
             tag = "" if ENFORCE_SCALING else "[DRY-RUN] "
             try:
-                containers = self.docker_client.containers.list(all=True)
+                # docker-py is sync. list() + stop(timeout=15) per container is
+                # seconds of work; on the loop it stalls everything this process
+                # serves. Same reason _collect_container_metrics is threaded.
+                actions = await asyncio.to_thread(self._auto_scale_sync, tag)
             except Exception as e:
                 logger.error(f"Docker unreachable during auto-scale: {e}")
                 self._reset_docker()
-                return actions
+                return []
 
-            # 1. Remove zombie containers (excessive restarts, not currently running)
-            for c in containers:
-                restart_count = c.attrs.get('RestartCount', 0)
-                if restart_count > 10 and c.status != "running":
-                    msg = f"{tag}remove zombie {c.name} (restart_count={restart_count})"
-                    if ENFORCE_SCALING:
-                        try:
-                            c.remove(force=True)
-                        except Exception as e:
-                            logger.error(f"Failed to remove {c.name}: {e}")
-                            continue
-                    actions.append(msg)
-                    logger.info(f"🗑️ {msg}")
+        return actions
 
-            # 2. Stop non-critical monitoring containers to free RAM
-            for c in containers:
-                if c.status == "running" and any(nc in c.name.lower() for nc in NON_CRITICAL):
-                    msg = f"{tag}stop non-critical {c.name} (memory pressure)"
-                    if ENFORCE_SCALING:
-                        try:
-                            c.stop(timeout=15)
-                            self.stopped_by_agent.add(c.name)
-                        except Exception as e:
-                            logger.error(f"Failed to stop {c.name}: {e}")
-                            continue
-                    actions.append(msg)
-                    logger.info(f"⏸️ {msg}")
-
+    def _heal_back_sync(self, ram_percent: float) -> List[str]:
+        """Blocking get + start. Call via asyncio.to_thread."""
+        actions: List[str] = []
+        for name in list(self.stopped_by_agent):
+            try:
+                c = self.docker_client.containers.get(name)
+                c.start()
+                self.stopped_by_agent.discard(name)
+                actions.append(f"restarted {name} (pressure cleared)")
+                logger.info(f"♻️ Restarted {name} (RAM back to {ram_percent:.1f}%)")
+            except Exception as e:
+                logger.error(f"Failed to restart {name}: {e}")
         return actions
 
     async def heal_back(self, metrics: SystemMetrics) -> List[str]:
@@ -490,15 +514,7 @@ class HyperVisorAgent:
             return actions
 
         async with self.scale_lock:
-            for name in list(self.stopped_by_agent):
-                try:
-                    c = self.docker_client.containers.get(name)
-                    c.start()
-                    self.stopped_by_agent.discard(name)
-                    actions.append(f"restarted {name} (pressure cleared)")
-                    logger.info(f"♻️ Restarted {name} (RAM back to {metrics.ram_percent:.1f}%)")
-                except Exception as e:
-                    logger.error(f"Failed to restart {name}: {e}")
+            actions = await asyncio.to_thread(self._heal_back_sync, metrics.ram_percent)
         return actions
 
     # ── Broadcast ────────────────────────────────────────────────────
