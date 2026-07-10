@@ -1,0 +1,43 @@
+# coder-studio — HyperStudio write path (P-studio)
+# Agents get a throwaway git worktree; every tool call is gated by Safety
+# Shepherd (fail-closed). See agents/coder-studio/plan + tests.
+#
+# Base from the shared agent-base image (FastAPI + git + httpx + pydantic).
+# Build agent-base first if missing:
+#   docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+#
+# ⚠️ agent-base is python:3.12-slim (glibc). Do NOT rebase onto Alpine/musl:
+# claude-agent-sdk then resolves to the ancient 0.1.7 wheel with no bundled CLI.
+FROM agent-base:latest
+
+WORKDIR /app
+
+# The SDK wheel bundles a ~258 MB Claude Code CLI, so this layer is large and
+# slow — copy requirements first so it caches independently of app code.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY worktree.py shepherd.py agent_runner.py sessions.py main.py ./
+
+# The repo is bind-mounted from the host and owned by a different UID, so git's
+# "dubious ownership" guard would refuse every command. This is a sandboxed
+# single-purpose container operating on a mount we already trust. Set it in the
+# SYSTEM config as root (appuser has no home dir, so --global can't write) —
+# /etc/gitconfig applies to every user including appuser.
+RUN git config --system --add safe.directory '*'
+
+# Throwaway worktrees live here (STUDIO_WORKTREE_ROOT). Create it owned by
+# appuser in the image: a bare mkdir at container start fails ("/" is root-only),
+# and a named volume mounted here inherits this mountpoint's ownership, so the
+# volume comes up writable by appuser instead of root.
+RUN mkdir -p /studio-worktrees && chown appuser:appuser /studio-worktrees
+
+# appuser must own the app dir too.
+RUN chown -R appuser:appuser /app
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+    CMD curl -f http://localhost:8087/health || exit 1
+
+EXPOSE 8087
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8087"]

@@ -24,7 +24,7 @@ export function useShellContext(): ShellContextValue {
 
 const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/',        label: 'Hyper Station' },
-  { href: '/ide',     label: 'IDE' },
+  { href: '/ide',     label: '🏗️ Studio' },
   { href: '/agents',  label: 'Agents' },
   { href: '/mission', label: 'Mission' },
   { href: '/flows',   label: '🕸️ Flows' },
