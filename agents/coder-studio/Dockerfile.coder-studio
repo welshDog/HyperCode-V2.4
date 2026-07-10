@@ -1,0 +1,30 @@
+# coder-studio — HyperStudio write path (P-studio)
+# Agents get a throwaway git worktree; every tool call is gated by Safety
+# Shepherd (fail-closed). See agents/coder-studio/plan + tests.
+#
+# Base from the shared agent-base image (FastAPI + git + httpx + pydantic).
+# Build agent-base first if missing:
+#   docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+#
+# ⚠️ agent-base is python:3.12-slim (glibc). Do NOT rebase onto Alpine/musl:
+# claude-agent-sdk then resolves to the ancient 0.1.7 wheel with no bundled CLI.
+FROM agent-base:latest
+
+WORKDIR /app
+
+# The SDK wheel bundles a ~258 MB Claude Code CLI, so this layer is large and
+# slow — copy requirements first so it caches independently of app code.
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY worktree.py shepherd.py agent_runner.py sessions.py main.py ./
+
+# The agent writes into worktrees under /workspace; appuser must own it.
+RUN chown -R appuser:appuser /app
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
+    CMD curl -f http://localhost:8097/health || exit 1
+
+EXPOSE 8097
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8097"]

@@ -1298,6 +1298,62 @@ services:
     cap_drop:
       - ALL
 
+  # HyperStudio write path: agents edit code inside a throwaway git worktree,
+  # every tool call gated by safety-shepherd (fail-closed). Nothing lands on the
+  # working tree until a human merges. See agents/coder-studio/.
+  coder-studio:
+    profiles: ["agents", "studio"]
+    build:
+      context: ./agents/coder-studio
+      dockerfile: Dockerfile.coder-studio
+    image: coder-studio:latest
+    container_name: coder-studio
+    environment:
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      # The bundled Claude Code CLI reads ANTHROPIC_API_KEY from the environment.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - SAFETY_SHEPHERD_URL=http://safety-shepherd:8096
+      - STUDIO_MODEL=${STUDIO_MODEL:-claude-opus-4-8}
+      - STUDIO_MAX_TURNS=${STUDIO_MAX_TURNS:-30}
+      # Repo to operate on (read-write mount below); throwaway checkouts live on
+      # a named volume so they never touch the working tree or the image layer.
+      - WORKSPACE_ROOT=/workspace
+      - STUDIO_WORKTREE_ROOT=/studio-worktrees
+    volumes:
+      - .:/workspace
+      - studio-worktrees:/studio-worktrees
+    ports:
+      - "127.0.0.1:8097:8097"
+    networks:
+      - agents-net
+    depends_on:
+      safety-shepherd:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
   goal-keeper:
     profiles: ["agents", "goal-keeper"]
     build:
@@ -1647,6 +1703,9 @@ services:
 
 volumes:
   github-sync-logs:
+    driver: local
+  # Throwaway agent worktrees — never persisted, never on the working tree.
+  studio-worktrees:
     driver: local
 
 # ====================================================================
