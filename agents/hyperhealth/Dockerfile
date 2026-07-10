@@ -46,5 +46,8 @@ EXPOSE 8090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8090/health || exit 1
 
-# Run migrations on container start: upgrade head, fallback to stamp if needed
-CMD ["sh", "-c", "alembic upgrade head || alembic stamp 001 && exec uvicorn main:app --host 0.0.0.0 --port 8090 --workers 2"]
+# Migrate once, here, before uvicorn forks its workers. Never `|| alembic stamp`:
+# 001 is head, so stamping on failure marks an unmigrated DB as fully migrated and
+# every later `upgrade head` becomes a no-op. On failure we exit; compose has
+# restart: unless-stopped and waits for postgres to be healthy, so it retries.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8090 --workers 2"]
