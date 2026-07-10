@@ -75,7 +75,10 @@ class DockerAdapter:
 
         report = {}
         try:
-            containers = self.client.containers.list(all=True)
+            # docker-py is synchronous. Sweeping every container over the socket
+            # proxy takes seconds, and blocking the loop that long expires the
+            # 5s socket_timeout on any pub/sub connection this process holds.
+            containers = await asyncio.to_thread(self.client.containers.list, all=True)
             for container in containers:
                 name = container.name
                 state = container.attrs["State"]
@@ -233,8 +236,8 @@ class DockerAdapter:
 
         try:
             logger.info(f"Attempting to restart container: {name}")
-            container = self.client.containers.get(name)
-            container.restart()
+            container = await asyncio.to_thread(self.client.containers.get, name)
+            await asyncio.to_thread(container.restart)
 
             pipe = redis_client.pipeline()
             pipe.incr(key)
