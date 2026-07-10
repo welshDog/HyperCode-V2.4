@@ -15,6 +15,13 @@ Endpoints:
 
 Sacred rules honoured: Stripe is exempt (never gated); read-only Docker only;
 agents-net + data-net; non-root; 4-space indent.
+
+Redis connection pools:
+  Previously every helper opened and closed its own aioredis connection, costing
+  ~4 connections per /evaluate call. Under real agent load (30 turns × several
+  tool calls each) that exhausts Redis connection slots quickly. Three module-
+  level connection pools are now created at startup via the lifespan context and
+  closed cleanly on shutdown.
 """
 
 from __future__ import annotations
@@ -23,10 +30,11 @@ import json
 import os
 import time
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from secrets import compare_digest
-from typing import Any, Optional
+from typing import Any, AsyncIterator, Optional
 
 import redis.asyncio as aioredis
 import structlog
@@ -64,8 +72,6 @@ EVENTS_KEY = "safety:events"
 MAX_STORED_EVENTS = 500
 APPROVAL_CHANNEL = "approval_requests"
 
-app = FastAPI(title="safety-shepherd", version="0.1.0")
-
 _manifest: dict[str, Any] = {}
 _manifest_mtime: float = 0.0
 
@@ -77,9 +83,59 @@ def _swap_db(url: str, db: int) -> str:
     return f"{url.rstrip('/')}/{db}"
 
 
-# DB0 = shared approvals channel/keys · DB1 = cache (events) · DB2 = rate limits (sacred rule)
+# DB0 = shared approvals channel/keys · DB1 = cache (events) · DB2 = rate limits
 CACHE_URL = _swap_db(REDIS_URL, 1)
 RATELIMIT_URL = _swap_db(REDIS_URL, 2)
+
+# Module-level connection pools — created at startup, closed at shutdown.
+# Each pool is sized for burst traffic (10 connections); redis-py's pool blocks
+# rather than raises when exhausted, so peaks are buffered not dropped.
+_pool_approvals: Optional[aioredis.Redis] = None
+_pool_cache: Optional[aioredis.Redis] = None
+_pool_ratelimit: Optional[aioredis.Redis] = None
+
+
+def _make_pool(url: str) -> aioredis.Redis:
+    return aioredis.from_url(url, decode_responses=True, max_connections=10)
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Create Redis connection pools on startup; drain them on shutdown."""
+    global _pool_approvals, _pool_cache, _pool_ratelimit
+    _pool_approvals = _make_pool(REDIS_URL)
+    _pool_cache = _make_pool(CACHE_URL)
+    _pool_ratelimit = _make_pool(RATELIMIT_URL)
+    load_manifest(force=True)
+    log.info("safety_shepherd_started", port=8096, redis=REDIS_URL)
+    try:
+        yield
+    finally:
+        for pool in (_pool_approvals, _pool_cache, _pool_ratelimit):
+            if pool is not None:
+                await pool.aclose()
+        _pool_approvals = _pool_cache = _pool_ratelimit = None
+
+
+def _approvals_pool() -> aioredis.Redis:
+    if _pool_approvals is None:  # fallback for tests that bypass lifespan
+        return _make_pool(REDIS_URL)
+    return _pool_approvals
+
+
+def _cache_pool() -> aioredis.Redis:
+    if _pool_cache is None:
+        return _make_pool(CACHE_URL)
+    return _pool_cache
+
+
+def _ratelimit_pool() -> aioredis.Redis:
+    if _pool_ratelimit is None:
+        return _make_pool(RATELIMIT_URL)
+    return _pool_ratelimit
+
+
+app = FastAPI(title="safety-shepherd", version="0.1.0", lifespan=lifespan)
 
 
 def load_manifest(force: bool = False) -> dict[str, Any]:
@@ -141,17 +197,13 @@ class EvaluateRequest(BaseModel):
     context: dict[str, Any] = Field(default_factory=dict)
 
 
-# ── redis helpers ─────────────────────────────────────────────────────────────
+# ── redis helpers (now using module-level pools) ──────────────────────────────
 async def _action_count(agent: str) -> int:
     window = int(time.time()) // RATE_WINDOW_SECONDS
     key = f"safety:count:{agent}:{window}"
     try:
-        r = await aioredis.from_url(RATELIMIT_URL, decode_responses=True)
-        try:
-            val = await r.get(key)
-            return int(val) if val else 0
-        finally:
-            await r.aclose()
+        val = await _ratelimit_pool().get(key)
+        return int(val) if val else 0
     except Exception:
         return 0
 
@@ -160,29 +212,21 @@ async def _bump_action_count(agent: str) -> None:
     window = int(time.time()) // RATE_WINDOW_SECONDS
     key = f"safety:count:{agent}:{window}"
     try:
-        r = await aioredis.from_url(RATELIMIT_URL, decode_responses=True)
-        try:
-            async with r.pipeline(transaction=False) as pipe:
-                pipe.incr(key)
-                pipe.expire(key, RATE_WINDOW_SECONDS)
-                await pipe.execute()
-        finally:
-            await r.aclose()
+        async with _ratelimit_pool().pipeline(transaction=False) as pipe:
+            pipe.incr(key)
+            pipe.expire(key, RATE_WINDOW_SECONDS)
+            await pipe.execute()
     except Exception:
         log.warning("rate_count_failed", agent=agent)
 
 
 async def _record_event(event: dict[str, Any]) -> None:
     try:
-        r = await aioredis.from_url(CACHE_URL, decode_responses=True)
-        try:
-            payload = json.dumps(event)
-            async with r.pipeline(transaction=False) as pipe:
-                pipe.lpush(EVENTS_KEY, payload)
-                pipe.ltrim(EVENTS_KEY, 0, MAX_STORED_EVENTS - 1)
-                await pipe.execute()
-        finally:
-            await r.aclose()
+        payload = json.dumps(event)
+        async with _cache_pool().pipeline(transaction=False) as pipe:
+            pipe.lpush(EVENTS_KEY, payload)
+            pipe.ltrim(EVENTS_KEY, 0, MAX_STORED_EVENTS - 1)
+            await pipe.execute()
     except Exception:
         log.warning("event_record_failed")
 
@@ -200,13 +244,10 @@ async def _raise_approval(event: dict[str, Any]) -> str:
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
-        r = await aioredis.from_url(REDIS_URL, decode_responses=True)
-        try:
-            await r.set(f"approval:{approval_id}", json.dumps(request), ex=900)
-            await r.sadd("approval:pending", approval_id)
-            await r.publish(APPROVAL_CHANNEL, json.dumps(request))
-        finally:
-            await r.aclose()
+        r = _approvals_pool()
+        await r.set(f"approval:{approval_id}", json.dumps(request), ex=900)
+        await r.sadd("approval:pending", approval_id)
+        await r.publish(APPROVAL_CHANNEL, json.dumps(request))
     except Exception:
         log.warning("approval_publish_failed", approval_id=approval_id)
     return approval_id
@@ -262,12 +303,8 @@ async def safety_events(limit: int = 50) -> dict[str, Any]:
     limit = max(1, min(MAX_STORED_EVENTS, limit))
     events: list[dict[str, Any]] = []
     try:
-        r = await aioredis.from_url(CACHE_URL, decode_responses=True)
-        try:
-            raw = await r.lrange(EVENTS_KEY, 0, limit - 1)
-            events = [json.loads(x) for x in raw]
-        finally:
-            await r.aclose()
+        raw = await _cache_pool().lrange(EVENTS_KEY, 0, limit - 1)
+        events = [json.loads(x) for x in raw]
     except Exception:
         log.warning("events_read_failed")
     return {"count": len(events), "events": events}
@@ -288,9 +325,3 @@ async def health() -> dict[str, Any]:
         "api_key_configured": bool(_expected_api_key()),
         "rate_window_seconds": RATE_WINDOW_SECONDS,
     }
-
-
-@app.on_event("startup")
-async def _startup() -> None:
-    load_manifest(force=True)
-    log.info("safety_shepherd_started", port=8096, redis=REDIS_URL)

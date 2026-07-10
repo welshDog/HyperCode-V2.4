@@ -6,6 +6,12 @@ abandons in-flight worktrees, which ``prune_orphans`` sweeps on boot.
 
 The store is deliberately tiny and synchronous; the FastAPI layer owns the async
 work (running the agent, merging) and only mutates sessions through here.
+
+Memory ceiling:
+  ``SessionStore(max_sessions=N, ttl=T)`` enforces a hard cap. When the store
+  reaches capacity, _evict() removes expired terminal sessions first, then prunes
+  by status priority (safest first) to make room for the next create(). RUNNING
+  sessions are only evicted as a last resort — they have live worktrees.
 """
 
 from __future__ import annotations
@@ -31,6 +37,16 @@ class Status(str, Enum):
 
 # The human may only act on a session that is sitting in REVIEW.
 _MERGEABLE = {Status.REVIEW}
+
+# Eviction priority: safest (no live worktree, terminal) to riskiest (live).
+_EVICTION_ORDER = [
+    Status.DISCARDED,
+    Status.MERGED,
+    Status.FAILED,
+    Status.REVIEW,
+    Status.PENDING,
+    Status.RUNNING,  # last resort — has a live worktree
+]
 
 
 @dataclass
@@ -60,7 +76,7 @@ class Session:
 
     def add_event(self, kind: str, data: dict[str, Any]) -> Event:
         self._seq += 1
-        event = Event(seq=self._seq, kind=kind, data=data)
+        event = Event(seq=self._seq, kind=kind, data=data.copy())
         self.events.append(event)
         return event
 
@@ -74,13 +90,53 @@ class Session:
 
 
 class SessionStore:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        max_sessions: int = 200,
+        ttl: int = 24 * 3600,
+    ) -> None:
         self._sessions: dict[str, Session] = {}
         self._lock = threading.Lock()
+        self._max = max_sessions
+        self._ttl = ttl
+
+    def _evict(self) -> None:
+        """Remove old/terminal sessions when the store is at or above capacity.
+
+        Must be called with self._lock held.
+        """
+        now = time.time()
+        cutoff = now - self._ttl
+
+        # 1. Always sweep TTL-expired terminal sessions — they cost memory but
+        #    can never be acted on by the user.
+        expired = [
+            sid for sid, s in self._sessions.items()
+            if s.created_at < cutoff
+            and s.status in (Status.MERGED, Status.DISCARDED, Status.FAILED)
+        ]
+        for sid in expired:
+            del self._sessions[sid]
+
+        # 2. If still at the hard cap, evict by status priority oldest-first.
+        if len(self._sessions) >= self._max:
+            by_status: dict[Status, list[tuple[str, Session]]] = {s: [] for s in Status}
+            for sid, s in self._sessions.items():
+                by_status[s.status].append((sid, s))
+
+            for status in _EVICTION_ORDER:
+                if len(self._sessions) < self._max:
+                    break
+                candidates = sorted(by_status[status], key=lambda x: x[1].created_at)
+                for sid, _ in candidates:
+                    if len(self._sessions) < self._max:
+                        break
+                    del self._sessions[sid]
 
     def create(self, prompt: str, worktree: Optional[Worktree] = None) -> Session:
         session = Session(id=f"cs_{secrets.token_hex(6)}", prompt=prompt, worktree=worktree)
         with self._lock:
+            self._evict()
             self._sessions[session.id] = session
         return session
 

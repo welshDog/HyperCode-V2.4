@@ -19,6 +19,7 @@ import asyncio
 import contextlib
 import json
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, AsyncIterator
 
@@ -39,6 +40,19 @@ from worktree import (
 
 SHEPHERD_URL = os.getenv("SAFETY_SHEPHERD_URL", "http://safety-shepherd:8096")
 
+# Sessions older than this (seconds) are eligible for eviction. Keeps memory
+# bounded on a long-lived container. Merged/discarded sessions are cheapest
+# to evict; failed/pending follow.
+SESSION_TTL_SECONDS = int(os.getenv("STUDIO_SESSION_TTL", str(24 * 3600)))  # 24 h
+
+# Hard ceiling on in-memory sessions. Oldest terminal sessions are evicted
+# before a new one is created once this is reached.
+MAX_SESSIONS = int(os.getenv("STUDIO_MAX_SESSIONS", "200"))
+
+# Per-session agent run timeout (seconds). Prevents a hung SDK call or a
+# misbehaving model from wedging an asyncio Task forever.
+AGENT_TIMEOUT_SECONDS = int(os.getenv("STUDIO_AGENT_TIMEOUT", str(20 * 60)))  # 20 min
+
 
 def workspace_root() -> Path:
     """The repo the studio operates on. Read at call time, not import time, so
@@ -46,15 +60,35 @@ def workspace_root() -> Path:
     return Path(os.getenv("WORKSPACE_ROOT", "/workspace"))
 
 
-app = FastAPI(title="coder-studio", version="0.1.0")
-store = SessionStore()
 _shepherd: ShepherdClient | None = None
 _tasks: set[asyncio.Task] = set()
 
 
+@asynccontextmanager
+async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    """Boot the shared ShepherdClient on startup; close it cleanly on shutdown.
+
+    Using the lifespan context (rather than a bare global) means the httpx
+    client's connection pool is always drained before the process exits, which
+    avoids ResourceWarning noise and ensures in-flight requests complete.
+    """
+    global _shepherd
+    _shepherd = ShepherdClient(SHEPHERD_URL, _api_key())
+    try:
+        yield
+    finally:
+        if _shepherd is not None:
+            await _shepherd.aclose()
+            _shepherd = None
+
+
+app = FastAPI(title="coder-studio", version="0.1.0", lifespan=lifespan)
+store = SessionStore(max_sessions=MAX_SESSIONS, ttl=SESSION_TTL_SECONDS)
+
+
 def shepherd() -> ShepherdClient:
     global _shepherd
-    if _shepherd is None:
+    if _shepherd is None:  # fallback for tests that bypass lifespan
         _shepherd = ShepherdClient(SHEPHERD_URL, _api_key())
     return _shepherd
 
@@ -91,6 +125,31 @@ class SessionView(BaseModel):
 
 
 # ── the agent run ───────────────────────────────────────────────────────────
+async def _run_agent_with_timeout(
+    worktree,
+    shep: ShepherdClient,
+    prompt: str,
+    *,
+    model: str | None,
+    on_decision,
+) -> AsyncIterator[Any]:
+    """Wrap run_agent with a per-session wall-clock timeout.
+
+    asyncio.timeout (3.11+) cancels the coroutine with TimeoutError after
+    AGENT_TIMEOUT_SECONDS, which surfaces as a normal exception in _drive_agent
+    and sets the session to FAILED rather than leaving it stuck in RUNNING.
+    """
+    async with asyncio.timeout(AGENT_TIMEOUT_SECONDS):
+        async for message in run_agent(
+            worktree,
+            shep,
+            prompt,
+            model=model,
+            on_decision=on_decision,
+        ):
+            yield message
+
+
 async def _drive_agent(session: Session, model: str | None, slug: str = "task") -> None:
     """Run the agent, streaming events into the session. Never raises."""
     from claude_agent_sdk import AssistantMessage, ResultMessage, TextBlock, ToolUseBlock
@@ -110,7 +169,7 @@ async def _drive_agent(session: Session, model: str | None, slug: str = "task") 
             return
 
         session.set_status(Status.RUNNING)
-        async for message in run_agent(
+        async for message in _run_agent_with_timeout(
             session.worktree,
             shepherd(),
             session.prompt,
@@ -135,6 +194,9 @@ async def _drive_agent(session: Session, model: str | None, slug: str = "task") 
     except GateShadowedError as exc:
         session.add_event("error", {"error": f"refused to run ungated agent: {exc}"})
         session.set_status(Status.FAILED)
+    except TimeoutError:
+        session.add_event("error", {"error": f"agent timed out after {AGENT_TIMEOUT_SECONDS}s"})
+        session.set_status(Status.FAILED)
     except Exception as exc:  # noqa: BLE001 — a crashed run must not wedge the service
         session.add_event("error", {"error": str(exc)})
         session.set_status(Status.FAILED)
@@ -143,7 +205,14 @@ async def _drive_agent(session: Session, model: str | None, slug: str = "task") 
 # ── routes ──────────────────────────────────────────────────────────────────
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    return {"status": "ok", "service": "coder-studio", "model": os.getenv("STUDIO_MODEL", DEFAULT_MODEL)}
+    """Liveness probe. Also reports the active model and session count."""
+    return {
+        "status": "ok",
+        "service": "coder-studio",
+        "model": os.getenv("STUDIO_MODEL", DEFAULT_MODEL),
+        "sessions": len(store.all()),
+        "max_sessions": MAX_SESSIONS,
+    }
 
 
 @app.post("/sessions", response_model=SessionView, dependencies=[Depends(require_key)])
