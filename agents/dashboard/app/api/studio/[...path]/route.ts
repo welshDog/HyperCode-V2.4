@@ -1,12 +1,12 @@
 // 🏗️ HyperStudio — coder-studio API proxy
-// Forwards /api/studio/* → http://coder-studio:8097/*
+// Forwards /api/studio/* → http://coder-studio:8087/*
 // Runs server-side so the X-Agent-Key never reaches the browser and there is
 // no CORS hop. The /events path streams Server-Sent Events straight through;
 // everything else is JSON.
 
 import { NextRequest, NextResponse } from 'next/server'
 
-const STUDIO_URL = process.env.STUDIO_AGENT_URL ?? 'http://coder-studio:8097'
+const STUDIO_URL = process.env.STUDIO_AGENT_URL ?? 'http://coder-studio:8087'
 const STUDIO_KEY = process.env.HYPERCODE_API_KEY ?? process.env.API_KEY ?? ''
 
 function authHeaders(extra: Record<string, string> = {}): Record<string, string> {

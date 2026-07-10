@@ -1323,14 +1323,15 @@ services:
       - .:/workspace
       - studio-worktrees:/studio-worktrees
     ports:
-      - "127.0.0.1:8097:8097"
+      # 8087 — 8097 is taken by evolve-relay (bropets).
+      - "127.0.0.1:8087:8087"
     networks:
       - agents-net
     depends_on:
       safety-shepherd:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
       interval: 30s
       timeout: 10s
       retries: 3

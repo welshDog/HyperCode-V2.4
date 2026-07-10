@@ -1,4 +1,4 @@
-"""coder-studio — the HyperStudio write path (port 8097).
+"""coder-studio — the HyperStudio write path (port 8087).
 
 A human hands the studio a task. The service:
 

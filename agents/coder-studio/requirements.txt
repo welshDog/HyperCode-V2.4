@@ -1,4 +1,4 @@
-# coder-studio — HyperStudio write path (port 8097)
+# coder-studio — HyperStudio write path (port 8087)
 # agent-base already provides fastapi, uvicorn, httpx, pydantic, git.
 #
 # claude-agent-sdk ships a bundled Claude Code CLI binary INSIDE the
