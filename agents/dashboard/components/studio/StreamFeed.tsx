@@ -9,7 +9,7 @@ const VERDICT: Record<Decision, { color: string; glyph: string }> = {
   ESCALATE: { color: 'var(--accent-amber)', glyph: '⚠' }, // ⚠
 }
 
-function Row({ item }: { item: StreamItem }): React.JSX.Element {
+function Row({ item }: { item: StreamItem }): React.JSX.Element | null {
   if (item.kind === 'decision') {
     const v = VERDICT[item.decision]
     return (
@@ -39,6 +39,12 @@ function Row({ item }: { item: StreamItem }): React.JSX.Element {
         <span aria-hidden>{'›'}</span> {item.status}
       </div>
     )
+  }
+
+  if (item.kind === 'approval_request' || item.kind === 'approval_resolved') {
+    // Surfaced as an actionable approval card in the Task pane, not in the log
+    // feed. The preceding ESCALATE `decision` line already marks it here.
+    return null
   }
 
   // message
