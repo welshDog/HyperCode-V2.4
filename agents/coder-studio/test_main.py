@@ -377,6 +377,19 @@ def test_unknown_session_is_404(client):
     assert res.status_code == 404
 
 
+def test_endpoint_returns_200_when_lost_to_discarded(client):
+    session, ap = _seed_session_with_pending(main.store, "ap_lost")
+    # Simulate a concurrent discard settling the approval first. The entry is
+    # NOT popped (only the resolver's finally pops; it isn't running here), so
+    # the endpoint still finds it and must return 200 with the settled status,
+    # NOT 409 — the click lost to a non-human settlement.
+    asyncio.run(ap.settle(ApprovalState.DISCARDED))
+    res = client.post(f"/sessions/{session.id}/approvals/ap_lost",
+                      json={"decision": "approved"}, headers=auth())
+    assert res.status_code == 200
+    assert res.json()["status"] == "discarded"
+
+
 async def test_discard_settles_pending_approvals():
     session, ap = _seed_session_with_pending(main.store, "ap_disc")
     # No live task registered -> discard just settles + cleans. discard() reads
@@ -392,9 +405,12 @@ async def test_discard_and_approve_race_has_one_winner(monkeypatch):
     resolve = main._make_escalation_resolver(session)
     from shepherd import Verdict
 
+    captured = []
+
     async def racer():
         await asyncio.sleep(0.01)
         ap = next(iter(session.pending_approvals.values()))
+        captured.append(ap)
         # discard and approve land together
         await asyncio.gather(ap.settle(ApprovalState.DISCARDED),
                              ap.settle(ApprovalState.APPROVED))
@@ -403,8 +419,13 @@ async def test_discard_and_approve_race_has_one_winner(monkeypatch):
         resolve("Write", {"file_path": "app.py"}, Verdict("ESCALATE", "r", "unknown_tool")),
         racer(),
     )
-    # Exactly one terminal status won; no hang; registry emptied.
-    assert granted in (True, False)
+    # Exactly one of the two competing settles actually won.
+    settled = captured[0]
+    assert settled.status in (ApprovalState.APPROVED, ApprovalState.DISCARDED)
+    # The resolver's boolean must agree with the approval's real terminal status —
+    # this is winner-consistency, and it can genuinely fail if settle() ever let
+    # both racers "win" (e.g. lost its lock and granted True against a discard).
+    assert granted == (settled.status is ApprovalState.APPROVED)
     assert session.pending_approvals == {}
 
 
