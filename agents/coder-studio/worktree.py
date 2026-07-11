@@ -114,11 +114,38 @@ def create_worktree(repo: Path, slug: str) -> Worktree:
 def capture_diff(worktree: Worktree) -> str:
     """Unified diff of everything the agent changed. Has no side effects.
 
-    ``add -N`` records intent-to-add so untracked files show up as additions
-    without staging their content or moving the branch tip.
+    Two cases:
+
+    1. Agent only wrote files (normal path): changes are uncommitted.
+       ``add -N`` records intent-to-add so new files show up as additions,
+       then ``git diff`` shows the unstaged delta.
+
+    2. Agent committed to the branch but the ff-only merge failed (collision
+       path): the working tree is clean, but the branch HEAD is ahead of base.
+       ``git diff <base>`` shows the full delta between the branch tip and the
+       base branch so the human can still review the work before discarding.
     """
+    # Check for uncommitted changes first (the normal agent-run path).
     _git(worktree.path, "add", "-A", "-N")
-    return _git(worktree.path, "diff")
+    uncommitted = _git(worktree.path, "diff")
+    if uncommitted:
+        return uncommitted
+
+    # No uncommitted delta — check whether the branch is ahead of its base
+    # (collision path: committed but ff-only merge failed).
+    ahead = subprocess.run(
+        ["git", "rev-list", "--count", f"{worktree.base}..HEAD"],
+        cwd=worktree.path,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if ahead.returncode == 0 and ahead.stdout.strip() not in ("", "0"):
+        # Branch has commits not yet on base — show the full diff.
+        return _git(worktree.path, "diff", worktree.base)
+
+    return uncommitted  # empty string — agent changed nothing
 
 
 def merge_worktree(worktree: Worktree, message: str) -> str | None:
