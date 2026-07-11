@@ -4,6 +4,16 @@
 
 ---
 
+## 🏗️ LATEST — HyperStudio: the agent write path (2026-07-10)
+> The newest thing built. Full detail in `WHATS_DONE.md` + memory `[[hyperstudio-worktree-sandbox]]`.
+
+- **What it is:** a place in the dashboard (`/ide`) where you hand an AI agent a coding task, it works in a **throwaway git worktree**, every action is gated by **Safety Shepherd** (fail-CLOSED), you review a **diff**, and **nothing lands until you click merge**. Closes the gap that agents could *talk about* code but never *write* it.
+- **Where:** new service `agents/coder-studio/` (FastAPI **:8087**, profiles `agents`/`studio`) built on the **Claude Agent SDK** (`ClaudeSDKClient`, default `claude-sonnet-5`, model picker). Merged to `main` via **PR #315**, HEAD `ee229ef`.
+- **Proven:** 121 coder-studio + 26 shepherd tests green; adversarial E2E (path-escape + `.env` read BLOCKED, legit edit ALLOWED, working tree stayed clean); live browser-verified on Bro's own repo. Also closed a platform-wide `.env`/secrets glob hole for **all** agents.
+- **🎯 Next move:** interactive **ESCALATE approval** in the UI (today an ESCALATE is denied), then light up the **specialist agents** roster. See `docs/NEXT_TASKS.md` → "HyperStudio".
+
+---
+
 ## Who You're Talking To
 - **Lyndz** aka BROski♾️ (GitHub: @welshDog, npm: @w3lshdog) — South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁿
 - Autistic + dyslexic + ADHD — chunked output, quick wins first, no waffle

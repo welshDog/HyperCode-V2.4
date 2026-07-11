@@ -1,6 +1,6 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **May 19–June 22, 2026**
+> Last updated: **July 10, 2026**
 > For sacred rules + architecture → `CLAUDE.md`
 
 ---
@@ -22,6 +22,7 @@
 | Metric | Status |
 |---|---|
 | Containers | ~30 running ✅ (profile-dependent, 20 compose files) |
+| **HyperStudio (Jul 10)** | **agent write path LIVE** 🏗️ — `coder-studio` :8087 (profiles `agents`/`studio`) + Studio UI at `/ide`. Hand a task → agent works in a throwaway git worktree → Safety Shepherd gates every tool call (fail-CLOSED) → review diff → merge (nothing lands till you click). Sonnet default + model picker. 121+26 tests green. Live browser-verified on Bro's repo ✅ |
 | Dashboard (Jun 22) | celery-worker restored + `/docker`→`/docker-zone` & `/grafana`→`/pricing` 307 redirects + IDE Files panel fix (sandboxed-to-`/workspace`, honest errors) — all LIVE & verified ✅ |
 | Tests | 251 passed, 6 skipped ✅ (May 16) |
 | NemoClaw | L1–L3.5 LIVE 🧠 (port 8099) |
