@@ -16,6 +16,7 @@ Memory ceiling:
 
 from __future__ import annotations
 
+import asyncio
 import secrets
 import threading
 import time
@@ -37,6 +38,41 @@ class Status(str, Enum):
 
 # The human may only act on a session that is sitting in REVIEW.
 _MERGEABLE = {Status.REVIEW}
+
+
+class ApprovalState(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    DENIED = "denied"
+    TIMED_OUT = "timed_out"
+    DISCARDED = "discarded"
+
+
+@dataclass
+class Approval:
+    """One escalated tool call awaiting a human decision.
+
+    settle() is the single mutation path: the first PENDING -> terminal
+    transition wins and sets the event exactly once. Later callers read the
+    settled status back without overwriting it. The lock makes concurrent
+    clicks / timeout / discard safe on the one event loop this runs on.
+    """
+    id: str
+    tool_name: str
+    target: str
+    rule: str
+    reason: str
+    expires_at: str
+    event: asyncio.Event = field(default_factory=asyncio.Event)
+    _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+    status: ApprovalState = ApprovalState.PENDING
+
+    async def settle(self, decision: ApprovalState) -> ApprovalState:
+        async with self._lock:
+            if self.status is ApprovalState.PENDING:
+                self.status = decision
+                self.event.set()
+            return self.status
 
 # Eviction priority: safest (no live worktree, terminal) to riskiest (live).
 _EVICTION_ORDER = [
@@ -69,6 +105,7 @@ class Session:
     events: list[Event] = field(default_factory=list)
     diff: Optional[str] = None
     merge_sha: Optional[str] = None
+    pending_approvals: dict[str, "Approval"] = field(default_factory=dict)
     # Stable per-session token so a replayed merge is a no-op, not a double-apply.
     idempotency_key: str = field(default_factory=lambda: secrets.token_hex(8))
     created_at: float = field(default_factory=time.time)
