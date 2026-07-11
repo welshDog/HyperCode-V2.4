@@ -13,6 +13,7 @@ The live agent path is proven separately by smoke_gate.py.
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 from pathlib import Path
 
@@ -20,7 +21,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
-from sessions import Session, SessionStore, Status
+from sessions import Approval, ApprovalState, Session, SessionStore, Status
 from worktree import Worktree, create_worktree
 
 KEY = "test-key"
@@ -58,7 +59,10 @@ def _assistant_text(text: str):
 
 
 def fake_run_agent(writes=None, *, decisions=None, fail=None):
-    async def _run(worktree, shepherd, prompt, *, model=None, env=None, on_decision=None):
+    async def _run(
+        worktree, shepherd, prompt, *,
+        model=None, env=None, on_decision=None, resolve_escalation=None,
+    ):
         for d in decisions or []:
             if on_decision:
                 on_decision(d)
@@ -248,3 +252,85 @@ def test_missing_session_is_404(client):
     assert client.get("/sessions/cs_nope", headers=auth()).status_code == 404
     assert client.post("/sessions/cs_nope/merge", headers=auth()).status_code == 404
     assert client.post("/sessions/cs_nope/discard", headers=auth()).status_code == 404
+
+
+# ── 4. _make_escalation_resolver: the human-approval wait closure ───────────
+def _seed_session_with_pending(store, approval_id="ap_1"):
+    session = store.create("do a thing")
+    ap = Approval(id=approval_id, tool_name="Write", target="app.py",
+                  rule="unknown_tool", reason="needs a human",
+                  expires_at="2026-07-11T09:35:00Z")
+    session.pending_approvals[approval_id] = ap
+    return session, ap
+
+
+async def test_resolver_returns_true_when_approved(monkeypatch):
+    monkeypatch.setenv("STUDIO_APPROVAL_TIMEOUT", "5")
+    session = main.store.create("t")
+    resolve = main._make_escalation_resolver(session)
+
+    from shepherd import Verdict
+    verdict = Verdict("ESCALATE", "tool not granted", "unknown_tool")
+
+    async def approve_soon():
+        await asyncio.sleep(0.01)
+        # exactly one approval was registered
+        ap = next(iter(session.pending_approvals.values()))
+        await ap.settle(ApprovalState.APPROVED)
+
+    granted, _ = await asyncio.gather(
+        resolve("Write", {"file_path": "app.py"}, verdict),
+        approve_soon(),
+    )
+    assert granted is True
+    # cleaned up after resolution
+    assert session.pending_approvals == {}
+    # SSE trail: an approval_request then an approval_resolved(approved)
+    kinds = [(e.kind, e.data.get("status")) for e in session.events]
+    assert ("approval_request", None) in kinds
+    assert ("approval_resolved", "approved") in kinds
+
+
+async def test_resolver_denies_on_timeout(monkeypatch):
+    monkeypatch.setenv("STUDIO_APPROVAL_TIMEOUT", "0")   # expire immediately
+    session = main.store.create("t")
+    resolve = main._make_escalation_resolver(session)
+
+    from shepherd import Verdict
+    granted = await resolve("Write", {"file_path": "app.py"},
+                            Verdict("ESCALATE", "r", "unknown_tool"))
+
+    assert granted is False
+    assert session.pending_approvals == {}
+    assert any(e.kind == "approval_resolved" and e.data["status"] == "timed_out"
+               for e in session.events)
+
+
+async def test_resolver_registers_before_emitting_sse(monkeypatch):
+    """A fast UI must never see approval_request before the entry exists."""
+    monkeypatch.setenv("STUDIO_APPROVAL_TIMEOUT", "5")
+    session = main.store.create("t")
+    order = []
+    real_add = session.add_event
+
+    def spy(kind, data):
+        if kind == "approval_request":
+            # registry must already hold the approval at emit time
+            order.append(("registered", len(session.pending_approvals) == 1))
+        return real_add(kind, data)
+
+    session.add_event = spy   # type: ignore[method-assign]
+    resolve = main._make_escalation_resolver(session)
+
+    from shepherd import Verdict
+
+    async def approve_soon():
+        await asyncio.sleep(0.01)
+        ap = next(iter(session.pending_approvals.values()))
+        await ap.settle(ApprovalState.APPROVED)
+
+    await asyncio.gather(
+        resolve("Write", {"file_path": "app.py"}, Verdict("ESCALATE", "r", "unknown_tool")),
+        approve_soon(),
+    )
+    assert order == [("registered", True)]

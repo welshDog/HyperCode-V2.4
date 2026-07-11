@@ -19,7 +19,9 @@ import asyncio
 import contextlib
 import json
 import os
+import uuid
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, AsyncIterator
 
@@ -28,7 +30,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from agent_runner import DEFAULT_MODEL, GateShadowedError, run_agent
-from sessions import Session, SessionStore, Status
+from sessions import Approval, ApprovalState, Session, SessionStore, Status
 from shepherd import ShepherdClient
 from worktree import (
     BaseMovedError,
@@ -53,6 +55,9 @@ MAX_SESSIONS = int(os.getenv("STUDIO_MAX_SESSIONS", "200"))
 # Per-session agent run timeout (seconds). Prevents a hung SDK call or a
 # misbehaving model from wedging an asyncio Task forever.
 AGENT_TIMEOUT_SECONDS = int(os.getenv("STUDIO_AGENT_TIMEOUT", str(20 * 60)))  # 20 min
+
+# Seconds the gate waits for a human before failing closed on an escalation.
+STUDIO_APPROVAL_TIMEOUT = int(os.getenv("STUDIO_APPROVAL_TIMEOUT", "300"))
 
 
 def workspace_root() -> Path:
@@ -142,6 +147,66 @@ class SessionView(BaseModel):
 
 
 # ── the agent run ───────────────────────────────────────────────────────────
+def _describe_target(tool_name: str, tool_input: dict[str, Any]) -> str:
+    """A short, human-readable subject for the approval card."""
+    for key in ("file_path", "notebook_path", "path"):
+        value = tool_input.get(key)
+        if value:
+            return str(value)
+    if tool_name == "Bash":
+        return str(tool_input.get("command", ""))
+    if tool_name in ("WebFetch", "WebSearch"):
+        return str(tool_input.get("url", ""))
+    return tool_name
+
+
+def _make_escalation_resolver(session: Session):
+    """Build the resolve_escalation callback bound to one session.
+
+    Registers the approval BEFORE emitting SSE (so a fast click can't beat the
+    entry into existence), awaits a human up to STUDIO_APPROVAL_TIMEOUT, then
+    always removes the entry. Returns True only for an explicit approval.
+    """
+    async def resolve(tool_name: str, tool_input: dict[str, Any], verdict) -> bool:
+        # Read fresh each call (not the frozen module default) so the timeout
+        # is genuinely env-tunable without a process restart, and so tests can
+        # monkeypatch it per-case.
+        timeout = int(os.getenv("STUDIO_APPROVAL_TIMEOUT", str(STUDIO_APPROVAL_TIMEOUT)))
+        approval_id = f"ap_{uuid.uuid4().hex[:12]}"
+        expires_at = (datetime.now(timezone.utc) + timedelta(seconds=timeout)).isoformat()
+        approval = Approval(
+            id=approval_id,
+            tool_name=tool_name,
+            target=_describe_target(tool_name, tool_input),
+            rule=getattr(verdict, "rule", ""),
+            reason=getattr(verdict, "reason", ""),
+            expires_at=expires_at,
+        )
+        session.pending_approvals[approval_id] = approval          # (1) register first
+        session.add_event("approval_request", {                    # (2) then emit
+            "approval_id": approval_id,
+            "tool_name": approval.tool_name,
+            "target": approval.target,
+            "rule": approval.rule,
+            "reason": approval.reason,
+            "expires_at": approval.expires_at,
+        })
+        try:
+            try:
+                await asyncio.wait_for(approval.event.wait(), timeout=timeout)
+                status = approval.status
+            except asyncio.TimeoutError:
+                status = await approval.settle(ApprovalState.TIMED_OUT)
+            session.add_event("approval_resolved", {
+                "approval_id": approval_id, "status": status.value,
+            })
+            return status is ApprovalState.APPROVED
+        finally:
+            session.pending_approvals.pop(approval_id, None)       # (7) always clean up
+
+    return resolve
+
+
 async def _run_agent_with_timeout(
     worktree,
     shep: ShepherdClient,
@@ -149,6 +214,7 @@ async def _run_agent_with_timeout(
     *,
     model: str | None,
     on_decision,
+    resolve_escalation=None,
 ) -> AsyncIterator[Any]:
     """Wrap run_agent with a per-session wall-clock timeout.
 
@@ -163,6 +229,7 @@ async def _run_agent_with_timeout(
             prompt,
             model=model,
             on_decision=on_decision,
+            resolve_escalation=resolve_escalation,
         ):
             yield message
 
@@ -192,6 +259,7 @@ async def _drive_agent(session: Session, model: str | None, slug: str = "task") 
             session.prompt,
             model=model,
             on_decision=lambda d: session.add_event("decision", d),
+            resolve_escalation=_make_escalation_resolver(session),
         ):
             if isinstance(message, AssistantMessage):
                 for block in message.content:
