@@ -5,7 +5,7 @@ import { Pane } from '@/components/shell/Pane'
 import { StreamFeed } from '@/components/studio/StreamFeed'
 import { DiffPanel } from '@/components/studio/DiffPanel'
 import { useToast } from '@/components/ui/ToastProvider'
-import { useStudioSession, type StudioStatus } from '@/hooks/useStudioSession'
+import { useStudioSession, pendingApprovals, type StudioStatus, type StreamItem } from '@/hooks/useStudioSession'
 
 const STATUS_META: Record<StudioStatus, { label: string; color: string; live: boolean }> = {
   idle: { label: 'ready', color: 'var(--text-secondary)', live: false },
@@ -41,10 +41,7 @@ export function StudioView(): React.JSX.Element {
 
   const meta = STATUS_META[s.status]
   const running = s.status === 'running' || s.status === 'pending'
-  const escalations = useMemo(
-    () => s.stream.filter((i) => i.kind === 'decision' && i.decision === 'ESCALATE'),
-    [s.stream],
-  )
+  const pending = useMemo(() => pendingApprovals(s.stream), [s.stream])
 
   const gridTemplate = focus
     ? `"${focus} ${focus} ${focus}" 1fr / 1fr 1fr 1fr`
@@ -153,16 +150,28 @@ export function StudioView(): React.JSX.Element {
             <span style={{ color: 'var(--text-secondary)', fontSize: 10, opacity: 0.6 }}>⌘⏎</span>
           </div>
 
-          {escalations.length > 0 && (
-            <div className="studio-banner" style={{ borderColor: 'rgba(255,170,0,0.35)', background: 'rgba(255,170,0,0.08)' }}>
-              <span style={{ color: 'var(--accent-amber)' }}>
-                ⚠ {escalations.length} action{escalations.length > 1 ? 's' : ''} needed approval and {escalations.length > 1 ? 'were' : 'was'} held.
-              </span>
-              <div style={{ color: 'var(--text-secondary)', fontSize: 10, marginTop: 4 }}>
-                Interactive approval arrives in a later phase — for now these are denied so nothing risky slips through.
-              </div>
-            </div>
-          )}
+          {pending.map((ap) => (
+            <ApprovalCard
+              key={ap.approvalId}
+              approval={ap}
+              onRespond={async (id, decision) => {
+                const ok = await s.respondApproval(id, decision)
+                if (ok) {
+                  toast({
+                    variant: decision === 'approved' ? 'success' : 'info',
+                    title: decision === 'approved' ? 'Approved' : 'Denied',
+                    message: decision === 'approved' ? 'Letting the agent continue.' : 'Action blocked.',
+                  })
+                } else {
+                  toast({
+                    variant: 'error',
+                    title: "Couldn't send",
+                    message: "Your response didn't reach the studio — the request is still waiting. Try again.",
+                  })
+                }
+              }}
+            />
+          ))}
 
           {s.error && (
             <div className="studio-banner" style={{ borderColor: 'rgba(255,68,102,0.35)', background: 'rgba(255,68,102,0.08)' }}>
@@ -203,6 +212,39 @@ export function StudioView(): React.JSX.Element {
           busy={merging}
         />
       </Pane>
+    </div>
+  )
+}
+
+type ApprovalItem = Extract<StreamItem, { kind: 'approval_request' }>
+
+export function ApprovalCard({
+  approval,
+  onRespond,
+}: {
+  approval: ApprovalItem
+  onRespond: (approvalId: string, decision: 'approved' | 'denied') => void | Promise<void>
+}): React.JSX.Element {
+  return (
+    <div
+      className="studio-banner"
+      role="group"
+      aria-label="Action needs your approval"
+      style={{ borderColor: 'rgba(255,170,0,0.35)', background: 'rgba(255,170,0,0.08)' }}
+    >
+      <span style={{ color: 'var(--accent-amber)' }}>⚠ Approval needed</span>
+      <div style={{ color: 'var(--text-secondary)', fontSize: 10, marginTop: 4, fontFamily: 'var(--font-mono)' }}>
+        <div><strong style={{ color: 'var(--text-primary)' }}>{approval.toolName}</strong> → {approval.target}</div>
+        <div style={{ opacity: 0.8 }}>{approval.rule}: {approval.reason}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <button className="btn" type="button" onClick={() => onRespond(approval.approvalId, 'denied')}>
+          Deny
+        </button>
+        <button className="btn studio-build" type="button" onClick={() => onRespond(approval.approvalId, 'approved')}>
+          Approve
+        </button>
+      </div>
     </div>
   )
 }

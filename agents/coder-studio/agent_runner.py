@@ -18,7 +18,7 @@ So ``allowed_tools`` stays empty, ``setting_sources`` stays empty, and
 from __future__ import annotations
 
 import os
-from typing import Any, AsyncIterator, Callable, Optional
+from typing import Any, AsyncIterator, Awaitable, Callable, Optional
 
 from claude_agent_sdk import (
     ClaudeAgentOptions,
@@ -42,6 +42,7 @@ DEFAULT_MODEL = "claude-sonnet-5"
 DISALLOWED_TOOLS = ["Bash", "WebFetch", "WebSearch", "Task", "KillShell"]
 
 DecisionSink = Callable[[dict[str, Any]], None]
+EscalationResolver = Callable[[str, dict[str, Any], Any], Awaitable[bool]]
 
 
 class GateShadowedError(RuntimeError):
@@ -72,6 +73,7 @@ def make_gate(
     shepherd: ShepherdClient,
     worktree: Worktree,
     on_decision: Optional[DecisionSink] = None,
+    resolve_escalation: Optional[EscalationResolver] = None,
 ):
     """Build the ``can_use_tool`` callback. Denies on anything but a clear ALLOW."""
 
@@ -99,10 +101,15 @@ def make_gate(
             return PermissionResultAllow()
 
         if verdict.decision == ESCALATE:
-            # No approval UI yet. An escalation must never fall through to allow.
-            return PermissionResultDeny(
-                message=f"Needs human approval ({verdict.rule}): {verdict.reason}"
-            )
+            if resolve_escalation is None:
+                # Preserved safe default: no approval wired -> fail closed.
+                return PermissionResultDeny(
+                    message=f"Needs human approval ({verdict.rule}): {verdict.reason}"
+                )
+            approved = await resolve_escalation(tool_name, tool_input, verdict)
+            if approved:
+                return PermissionResultAllow()
+            return PermissionResultDeny(message="Denied by human review (or timed out)")
 
         assert verdict.decision == BLOCK
         return PermissionResultDeny(message=f"Blocked by Safety Shepherd: {verdict.reason}")
@@ -134,6 +141,7 @@ async def run_agent(
     model: Optional[str] = None,
     env: Optional[dict[str, str]] = None,
     on_decision: Optional[DecisionSink] = None,
+    resolve_escalation: Optional[EscalationResolver] = None,
 ) -> AsyncIterator[Any]:
     """Run one task inside the worktree, yielding SDK messages as they arrive.
 
@@ -144,7 +152,7 @@ async def run_agent(
     consulted and every tool call fails. The client keeps the control protocol
     open for the life of the turn.
     """
-    gate = make_gate(shepherd, worktree, on_decision=on_decision)
+    gate = make_gate(shepherd, worktree, on_decision=on_decision, resolve_escalation=resolve_escalation)
     options = build_options(worktree, gate, model=model)
     if env:
         options.env = env

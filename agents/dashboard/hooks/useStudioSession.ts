@@ -19,6 +19,8 @@ export type StreamItem =
   | { kind: 'decision'; tool: string; decision: Decision; reason: string; rule: string; seq: number }
   | { kind: 'status'; status: string; seq: number }
   | { kind: 'error'; error: string; seq: number }
+  | { kind: 'approval_request'; approvalId: string; toolName: string; target: string; rule: string; reason: string; expiresAt: string; seq: number }
+  | { kind: 'approval_resolved'; approvalId: string; status: string; seq: number }
 
 interface State {
   sessionId: string | null
@@ -76,8 +78,20 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+export function pendingApprovals(
+  stream: StreamItem[],
+): Extract<StreamItem, { kind: 'approval_request' }>[] {
+  const resolved = new Set(
+    stream.filter((i) => i.kind === 'approval_resolved').map((i) => (i as Extract<StreamItem, { kind: 'approval_resolved' }>).approvalId),
+  )
+  return stream.filter(
+    (i): i is Extract<StreamItem, { kind: 'approval_request' }> =>
+      i.kind === 'approval_request' && !resolved.has(i.approvalId),
+  )
+}
+
 const TERMINAL: StudioStatus[] = ['review', 'merged', 'discarded', 'failed']
-const KINDS = ['message', 'decision', 'status', 'error', 'end'] as const
+const KINDS = ['message', 'decision', 'status', 'error', 'approval_request', 'approval_resolved', 'end'] as const
 
 /**
  * Drives one coder-studio session: POST to start, stream events over SSE,
@@ -148,6 +162,25 @@ export function useStudioSession() {
           })
         } else if (kind === 'error') {
           dispatch({ type: 'item', item: { kind: 'error', error: String(data.error ?? 'unknown error'), seq } })
+        } else if (kind === 'approval_request') {
+          dispatch({
+            type: 'item',
+            item: {
+              kind: 'approval_request',
+              approvalId: String(data.approval_id ?? ''),
+              toolName: String(data.tool_name ?? ''),
+              target: String(data.target ?? ''),
+              rule: String(data.rule ?? ''),
+              reason: String(data.reason ?? ''),
+              expiresAt: String(data.expires_at ?? ''),
+              seq,
+            },
+          })
+        } else if (kind === 'approval_resolved') {
+          dispatch({
+            type: 'item',
+            item: { kind: 'approval_resolved', approvalId: String(data.approval_id ?? ''), status: String(data.status ?? ''), seq },
+          })
         } else {
           dispatch({
             type: 'item',
@@ -213,5 +246,27 @@ export function useStudioSession() {
     dispatch({ type: 'reset' })
   }, [closeStream])
 
-  return { ...state, start, merge, discard, reset }
+  const respondApproval = useCallback(
+    async (approvalId: string, decision: 'approved' | 'denied'): Promise<boolean> => {
+      if (!state.sessionId) return false
+      try {
+        const res = await fetch(`/api/studio/sessions/${state.sessionId}/approvals/${approvalId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision }),
+        })
+        if (!res.ok) return false
+        const body = await res.json().catch(() => ({} as { status?: string }))
+        // The endpoint returns 200 even when a click loses to a timeout/discard
+        // settlement (body.status = timed_out|discarded). Only report success
+        // when the server actually settled on the decision we asked for.
+        return body.status === decision
+      } catch {
+        return false
+      }
+    },
+    [state.sessionId],
+  )
+
+  return { ...state, start, merge, discard, reset, respondApproval }
 }

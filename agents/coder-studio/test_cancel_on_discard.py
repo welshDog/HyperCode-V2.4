@@ -50,7 +50,8 @@ def _blocking_agent(started: asyncio.Event, finished: asyncio.Event):
     can catch the session mid-run and cancel it. Sets `finished` only if it is
     allowed to run to completion (it must NOT be, once cancelled)."""
 
-    async def _run(worktree, shepherd, prompt, *, model=None, env=None, on_decision=None):
+    async def _run(worktree, shepherd, prompt, *, model=None, env=None, on_decision=None,
+                   resolve_escalation=None):
         started.set()
         try:
             await asyncio.sleep(3600)  # never completes on its own

@@ -187,3 +187,46 @@ async def test_each_decision_is_recorded(worktree):
     assert record["tool"] == "Write"
     assert record["decision"] == BLOCK
     assert record["tool_use_id"] == "toolu_1"
+
+
+# --- ESCALATE with optional approval callback ---
+
+
+async def test_escalate_with_approval_granted_becomes_allow(worktree):
+    async def approve(tool_name, tool_input, verdict):
+        return True
+
+    gate = make_gate(shepherd_saying(ESCALATE, reason="tool not granted"), worktree,
+                     resolve_escalation=approve)
+
+    result = await gate("Write", {"file_path": "app.py"}, ctx())
+
+    assert isinstance(result, PermissionResultAllow)
+
+
+async def test_escalate_with_approval_denied_becomes_deny(worktree):
+    async def deny(tool_name, tool_input, verdict):
+        return False
+
+    gate = make_gate(shepherd_saying(ESCALATE, reason="tool not granted"), worktree,
+                     resolve_escalation=deny)
+
+    result = await gate("Write", {"file_path": "app.py"}, ctx())
+
+    assert isinstance(result, PermissionResultDeny)
+
+
+async def test_escalate_receives_the_tool_and_verdict(worktree):
+    seen = {}
+
+    async def capture(tool_name, tool_input, verdict):
+        seen["tool"] = tool_name
+        seen["rule"] = verdict.rule
+        return True
+
+    gate = make_gate(shepherd_saying(ESCALATE, rule="unknown_tool"), worktree,
+                     resolve_escalation=capture)
+
+    await gate("Write", {"file_path": "app.py"}, ctx())
+
+    assert seen == {"tool": "Write", "rule": "unknown_tool"}
