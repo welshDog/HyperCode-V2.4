@@ -247,13 +247,18 @@ export function useStudioSession() {
   }, [closeStream])
 
   const respondApproval = useCallback(
-    async (approvalId: string, decision: 'approved' | 'denied') => {
-      if (!state.sessionId) return
-      await fetch(`/api/studio/sessions/${state.sessionId}/approvals/${approvalId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
-      })
+    async (approvalId: string, decision: 'approved' | 'denied'): Promise<boolean> => {
+      if (!state.sessionId) return false
+      try {
+        const res = await fetch(`/api/studio/sessions/${state.sessionId}/approvals/${approvalId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ decision }),
+        })
+        return res.ok
+      } catch {
+        return false
+      }
     },
     [state.sessionId],
   )

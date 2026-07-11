@@ -154,13 +154,21 @@ export function StudioView(): React.JSX.Element {
             <ApprovalCard
               key={ap.approvalId}
               approval={ap}
-              onRespond={(id, decision) => {
-                void s.respondApproval(id, decision)
-                toast({
-                  variant: decision === 'approved' ? 'success' : 'info',
-                  title: decision === 'approved' ? 'Approved' : 'Denied',
-                  message: decision === 'approved' ? 'Letting the agent continue.' : 'Action blocked.',
-                })
+              onRespond={async (id, decision) => {
+                const ok = await s.respondApproval(id, decision)
+                if (ok) {
+                  toast({
+                    variant: decision === 'approved' ? 'success' : 'info',
+                    title: decision === 'approved' ? 'Approved' : 'Denied',
+                    message: decision === 'approved' ? 'Letting the agent continue.' : 'Action blocked.',
+                  })
+                } else {
+                  toast({
+                    variant: 'error',
+                    title: "Couldn't send",
+                    message: "Your response didn't reach the studio — the request is still waiting. Try again.",
+                  })
+                }
               }}
             />
           ))}
@@ -215,7 +223,7 @@ export function ApprovalCard({
   onRespond,
 }: {
   approval: ApprovalItem
-  onRespond: (approvalId: string, decision: 'approved' | 'denied') => void
+  onRespond: (approvalId: string, decision: 'approved' | 'denied') => void | Promise<void>
 }): React.JSX.Element {
   return (
     <div
