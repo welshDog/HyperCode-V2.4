@@ -255,7 +255,12 @@ export function useStudioSession() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ decision }),
         })
-        return res.ok
+        if (!res.ok) return false
+        const body = await res.json().catch(() => ({} as { status?: string }))
+        // The endpoint returns 200 even when a click loses to a timeout/discard
+        // settlement (body.status = timed_out|discarded). Only report success
+        // when the server actually settled on the decision we asked for.
+        return body.status === decision
       } catch {
         return false
       }

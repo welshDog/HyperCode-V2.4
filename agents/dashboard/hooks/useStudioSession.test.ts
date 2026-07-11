@@ -59,7 +59,10 @@ describe('respondApproval', () => {
     })
     expect(result.current.sessionId).toBe('cs_test')
 
-    global.fetch = vi.fn().mockResolvedValue({ ok: true }) as unknown as typeof fetch
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'approved' }),
+    }) as unknown as typeof fetch
     let approved: boolean | undefined
     await act(async () => {
       approved = await result.current.respondApproval('ap_1', 'approved')
@@ -72,6 +75,35 @@ describe('respondApproval', () => {
       denied = await result.current.respondApproval('ap_1', 'denied')
     })
     expect(denied).toBe(false)
+  })
+
+  it('reports failure when a click loses to a non-human settlement (200 OK, mismatched status)', async () => {
+    // @ts-expect-error -- test stub, not a full EventSource implementation
+    global.EventSource = NoopEventSource
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'cs_test' }),
+    }) as unknown as typeof fetch
+
+    const { result } = renderHook(() => useStudioSession())
+
+    await act(async () => {
+      await result.current.start('do a thing', 'do-a-thing')
+    })
+    expect(result.current.sessionId).toBe('cs_test')
+
+    // The endpoint can return HTTP 200 even when the human's click lost the
+    // race to a timeout/discard settlement. body.status must be checked —
+    // res.ok alone is not enough, or this would falsely report success.
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'discarded' }),
+    }) as unknown as typeof fetch
+    let approved: boolean | undefined
+    await act(async () => {
+      approved = await result.current.respondApproval('ap_1', 'approved')
+    })
+    expect(approved).toBe(false)
   })
 
   it('returns false with no active session, without calling fetch', async () => {
