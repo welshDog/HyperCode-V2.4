@@ -31,6 +31,7 @@ from agent_runner import DEFAULT_MODEL, GateShadowedError, run_agent
 from sessions import Session, SessionStore, Status
 from shepherd import ShepherdClient
 from worktree import (
+    BaseMovedError,
     WorktreeError,
     capture_diff,
     create_worktree,
@@ -298,6 +299,17 @@ async def merge(session_id: str, idempotency_key: str | None = Header(default=No
     message = f"feat(studio): {session.prompt[:60]}"
     try:
         sha = await asyncio.to_thread(merge_worktree, session.worktree, message)
+    except BaseMovedError as exc:
+        # The base moved while this task ran — the loser stays in review, so the
+        # human can start a fresh task or discard. Speak plainly, not in git.
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"'{session.worktree.base}' has moved on since this task started, so its "
+                "changes can't be merged cleanly. Start a fresh task to build on the "
+                "latest code — this run stays here for you to review or discard."
+            ),
+        ) from exc
     except WorktreeError as exc:
         raise HTTPException(status_code=409, detail=f"merge failed: {exc}") from exc
 

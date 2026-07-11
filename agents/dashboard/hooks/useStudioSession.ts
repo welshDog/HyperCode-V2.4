@@ -186,14 +186,19 @@ export function useStudioSession() {
     openStream(data.id)
   }, [openStream])
 
-  const merge = useCallback(async () => {
-    if (!state.sessionId) return
+  const merge = useCallback(async (): Promise<{ ok: boolean; detail?: string }> => {
+    if (!state.sessionId) return { ok: false, detail: 'no active session' }
     const res = await fetch(`/api/studio/sessions/${state.sessionId}/merge`, {
       method: 'POST',
       headers: { 'Idempotency-Key': idemRef.current },
     })
     const data = await res.json().catch(() => ({}))
-    if (res.ok) dispatch({ type: 'merged', sha: data.merge_sha ?? null })
+    if (res.ok) {
+      dispatch({ type: 'merged', sha: data.merge_sha ?? null })
+      return { ok: true }
+    }
+    // Surface the service's human-readable reason (e.g. a merge collision).
+    return { ok: false, detail: data.detail ?? data.error ?? `merge failed (${res.status})` }
   }, [state.sessionId])
 
   const discard = useCallback(async () => {

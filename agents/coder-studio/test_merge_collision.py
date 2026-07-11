@@ -165,6 +165,20 @@ def test_second_merge_returns_409(client, repo):
     assert r_b.status_code == 409
 
 
+def test_collision_409_message_is_human_readable(client, repo):
+    """The loser gets a message a person can act on — not raw git stderr."""
+    s_a = seed_session(repo, "a.py", "# a\n", "task-a")
+    s_b = seed_session(repo, "b.py", "# b\n", "task-b")
+
+    client.post(f"/sessions/{s_a.id}/merge", headers=auth())
+    detail = client.post(f"/sessions/{s_b.id}/merge", headers=auth()).json()["detail"].lower()
+
+    # Human hint present, raw git noise absent.
+    assert "moved" in detail
+    assert "fresh task" in detail or "start a new" in detail
+    assert "fatal:" not in detail and "git " not in detail
+
+
 def test_losing_session_stays_in_review_after_409(client, repo):
     """A failed merge must leave the session in REVIEW so the human can retry
     or discard — not flip it to FAILED, which would make it un-discardable."""

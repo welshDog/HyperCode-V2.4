@@ -35,6 +35,11 @@ class WorktreeEscapeError(WorktreeError):
     """A path resolved outside its worktree. Never let this through."""
 
 
+class BaseMovedError(WorktreeError):
+    """The base branch advanced, so a fast-forward merge is no longer possible
+    (two tasks landed close together). The caller should offer a fresh start."""
+
+
 @dataclass(frozen=True)
 class Worktree:
     repo: Path
@@ -166,9 +171,15 @@ def merge_worktree(worktree: Worktree, message: str) -> str | None:
     _git(worktree.path, "commit", "-m", message)
     sha = _git(worktree.path, "rev-parse", "HEAD")
 
-    # ff-only: if the base moved under us, fail loudly rather than
-    # inventing a merge commit the human never reviewed.
-    _git(worktree.repo, "merge", "--ff-only", worktree.branch)
+    # ff-only: if the base moved under us, fail rather than inventing a merge
+    # commit the human never reviewed. Raise a typed error so the API can offer
+    # a clean "start a fresh task" instead of surfacing raw git output.
+    try:
+        _git(worktree.repo, "merge", "--ff-only", worktree.branch)
+    except WorktreeError as exc:
+        raise BaseMovedError(
+            f"cannot fast-forward {worktree.base}: it moved since this run started"
+        ) from exc
     return sha
 
 

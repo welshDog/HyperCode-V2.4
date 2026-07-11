@@ -60,8 +60,13 @@ export function StudioView(): React.JSX.Element {
   const merge = async () => {
     setMerging(true)
     try {
-      await s.merge()
-      toast({ variant: 'success', title: 'Merged', message: 'The change landed on the branch. Nice one!' })
+      const result = await s.merge()
+      if (result.ok) {
+        toast({ variant: 'success', title: 'Merged', message: 'The change landed on the branch. Nice one!' })
+      } else {
+        // e.g. a merge collision — show the service's plain-language reason.
+        toast({ variant: 'error', title: "Couldn't merge", message: result.detail ?? 'Merge failed.' })
+      }
     } finally {
       setMerging(false)
     }
