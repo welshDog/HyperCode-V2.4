@@ -334,3 +334,92 @@ async def test_resolver_registers_before_emitting_sse(monkeypatch):
         approve_soon(),
     )
     assert order == [("registered", True)]
+
+
+# ── 5. POST /sessions/{id}/approvals/{id}: the human decision endpoint ──────
+def test_approve_endpoint_settles_the_approval(client):
+    session, ap = _seed_session_with_pending(main.store, "ap_ok")
+    res = client.post(f"/sessions/{session.id}/approvals/ap_ok",
+                      json={"decision": "approved"}, headers=auth())
+    assert res.status_code == 200
+    assert res.json()["status"] == "approved"
+    assert ap.status is ApprovalState.APPROVED
+    assert ap.event.is_set()
+
+
+def test_approve_endpoint_is_idempotent_for_the_same_decision(client):
+    session, ap = _seed_session_with_pending(main.store, "ap_same")
+    body = {"decision": "approved"}
+    first = client.post(f"/sessions/{session.id}/approvals/ap_same", json=body, headers=auth())
+    second = client.post(f"/sessions/{session.id}/approvals/ap_same", json=body, headers=auth())
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["status"] == "approved"
+
+
+def test_opposite_decision_after_settlement_conflicts(client):
+    session, ap = _seed_session_with_pending(main.store, "ap_conf")
+    client.post(f"/sessions/{session.id}/approvals/ap_conf", json={"decision": "approved"}, headers=auth())
+    res = client.post(f"/sessions/{session.id}/approvals/ap_conf", json={"decision": "denied"}, headers=auth())
+    assert res.status_code == 409
+
+
+def test_unknown_approval_is_404(client):
+    session = main.store.create("t")
+    res = client.post(f"/sessions/{session.id}/approvals/nope",
+                      json={"decision": "approved"}, headers=auth())
+    assert res.status_code == 404
+
+
+def test_unknown_session_is_404(client):
+    res = client.post("/sessions/cs_missing/approvals/ap",
+                      json={"decision": "approved"}, headers=auth())
+    assert res.status_code == 404
+
+
+async def test_discard_settles_pending_approvals():
+    session, ap = _seed_session_with_pending(main.store, "ap_disc")
+    # No live task registered -> discard just settles + cleans. discard() reads
+    # the module-global store, which _seed_session_with_pending wrote to.
+    await main.discard(session.id)
+    assert ap.status is ApprovalState.DISCARDED
+    assert ap.event.is_set()
+
+
+async def test_discard_and_approve_race_has_one_winner(monkeypatch):
+    monkeypatch.setenv("STUDIO_APPROVAL_TIMEOUT", "5")
+    session = main.store.create("t")
+    resolve = main._make_escalation_resolver(session)
+    from shepherd import Verdict
+
+    async def racer():
+        await asyncio.sleep(0.01)
+        ap = next(iter(session.pending_approvals.values()))
+        # discard and approve land together
+        await asyncio.gather(ap.settle(ApprovalState.DISCARDED),
+                             ap.settle(ApprovalState.APPROVED))
+
+    granted, _ = await asyncio.gather(
+        resolve("Write", {"file_path": "app.py"}, Verdict("ESCALATE", "r", "unknown_tool")),
+        racer(),
+    )
+    # Exactly one terminal status won; no hang; registry emptied.
+    assert granted in (True, False)
+    assert session.pending_approvals == {}
+
+
+async def test_resolver_cleans_up_even_when_the_agent_task_is_cancelled(monkeypatch):
+    monkeypatch.setenv("STUDIO_APPROVAL_TIMEOUT", "30")
+    session = main.store.create("t")
+    resolve = main._make_escalation_resolver(session)
+    from shepherd import Verdict
+
+    task = asyncio.create_task(
+        resolve("Write", {"file_path": "app.py"}, Verdict("ESCALATE", "r", "unknown_tool"))
+    )
+    await asyncio.sleep(0.02)              # let it register + start awaiting
+    assert len(session.pending_approvals) == 1
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert session.pending_approvals == {}   # finally cleared it

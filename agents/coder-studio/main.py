@@ -134,6 +134,10 @@ class StartRequest(BaseModel):
     model: str | None = None
 
 
+class ApprovalDecision(BaseModel):
+    decision: str = Field(..., pattern="^(approved|denied)$")
+
+
 class SessionView(BaseModel):
     id: str
     status: str
@@ -388,6 +392,28 @@ async def merge(session_id: str, idempotency_key: str | None = Header(default=No
     return SessionView.of(session)
 
 
+@app.post("/sessions/{session_id}/approvals/{approval_id}", dependencies=[Depends(require_key)])
+async def resolve_approval(session_id: str, approval_id: str, body: ApprovalDecision) -> dict[str, Any]:
+    session = store.get(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="no such session")
+    approval = session.pending_approvals.get(approval_id)
+    # Absent means it never existed OR already resolved + cleaned. Either way
+    # 404 — the UI learns "already done" from the approval_resolved SSE event.
+    if approval is None:
+        raise HTTPException(status_code=404, detail="no such approval (never existed or already resolved)")
+
+    requested = ApprovalState(body.decision)          # approved | denied (validated)
+    final = await approval.settle(requested)
+    if final is requested:
+        return {"approval_id": approval_id, "status": final.value}
+    if final in (ApprovalState.APPROVED, ApprovalState.DENIED):
+        # A human decision already stands and this asks for the opposite.
+        raise HTTPException(status_code=409, detail=f"already {final.value}")
+    # Lost to timed_out / discarded — action was not allowed either way.
+    return {"approval_id": approval_id, "status": final.value}
+
+
 @app.post("/sessions/{session_id}/discard", response_model=SessionView, dependencies=[Depends(require_key)])
 async def discard(session_id: str) -> SessionView:
     session = store.get(session_id)
@@ -400,6 +426,12 @@ async def discard(session_id: str) -> SessionView:
     # self-cleans; then cancel the live task so the agent actually stops
     # spending instead of running on to a crash against the removed worktree.
     session.set_status(Status.DISCARDED)
+
+    # Unblock any gate awaiting a human before we tear the task down, so it
+    # exits its await normally rather than dying mid-flight.
+    for approval in list(session.pending_approvals.values()):
+        await approval.settle(ApprovalState.DISCARDED)
+
     task = _session_tasks.pop(session_id, None)
     if task is not None and not task.done():
         task.cancel()
