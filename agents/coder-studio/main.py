@@ -62,6 +62,22 @@ def workspace_root() -> Path:
 
 _shepherd: ShepherdClient | None = None
 _tasks: set[asyncio.Task] = set()
+# Live background runs keyed by session id, so discard can cancel the one in
+# flight — otherwise the agent keeps running (and spending) after the user bails.
+_session_tasks: dict[str, asyncio.Task] = {}
+
+
+def register_task(session_id: str, task: asyncio.Task) -> None:
+    """Track a session's background run so discard can cancel it."""
+    _tasks.add(task)
+    _session_tasks[session_id] = task
+
+    def _cleanup(t: asyncio.Task) -> None:
+        _tasks.discard(t)
+        if _session_tasks.get(session_id) is t:
+            del _session_tasks[session_id]
+
+    task.add_done_callback(_cleanup)
 
 
 @asynccontextmanager
@@ -221,8 +237,7 @@ async def start_session(body: StartRequest) -> SessionView:
     # agent run happen in the background and stream over /events.
     session = store.create(body.prompt)
     task = asyncio.create_task(_drive_agent(session, body.model, body.slug))
-    _tasks.add(task)
-    task.add_done_callback(_tasks.discard)
+    register_task(session.id, task)
     return SessionView.of(session)
 
 
@@ -301,9 +316,18 @@ async def discard(session_id: str) -> SessionView:
     if session.status in (Status.MERGED, Status.DISCARDED):
         return SessionView.of(session)
 
+    # Mark discarded first, so a run still in "preparing sandbox" sees it and
+    # self-cleans; then cancel the live task so the agent actually stops
+    # spending instead of running on to a crash against the removed worktree.
+    session.set_status(Status.DISCARDED)
+    task = _session_tasks.pop(session_id, None)
+    if task is not None and not task.done():
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError, Exception):
+            await task
+
     # A run can fail before its worktree exists (e.g. sandbox creation failed).
     if session.worktree is not None:
         with contextlib.suppress(WorktreeError):
             await asyncio.to_thread(discard_worktree, session.worktree)
-    session.set_status(Status.DISCARDED)
     return SessionView.of(session)
