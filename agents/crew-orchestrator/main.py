@@ -56,6 +56,12 @@ try:
 except ImportError:
     from result_writer import write_and_sync
 
+# Safety Shepherd gate for downstream dispatch (P0-2 remaining intercept)
+try:
+    from . import safety_gate
+except ImportError:
+    import safety_gate
+
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
@@ -151,6 +157,8 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
+
+    await safety_gate.aclose()
 
     if redis_client:
         await redis_client.close()
@@ -498,6 +506,45 @@ def _routed_skills_block(skills: List[Dict[str, Any]]) -> str:
     )
 
 
+async def _safety_check_dispatch(
+    agent_name: str, task_type: Optional[str], task_id: str, description: str
+) -> Optional[Dict[str, Any]]:
+    """Consult Safety Shepherd before dispatching to an agent (P0-2).
+
+    Returns None to proceed. In enforce mode a BLOCK returns a terminal result
+    dict and an ESCALATE waits on the Shepherd-raised approval (denied/timeout
+    ⇒ terminal result). monitor mode records the verdict but always proceeds.
+    """
+    verdict = await safety_gate.evaluate_dispatch(agent_name, task_type, task_id, description)
+    decision = verdict.get("decision")
+    if decision != safety_gate.ALLOW and not verdict.get("skipped"):
+        await log_event(
+            "orchestrator",
+            "warn",
+            f"Safety Shepherd {decision} for {agent_name}: {verdict.get('reason') or ''}",
+        )
+    if not safety_gate.is_enforced(verdict):
+        return None
+    if decision == safety_gate.BLOCK:
+        return {
+            "status": "blocked",
+            "agent": agent_name,
+            "reason": verdict.get("reason"),
+            "rule": verdict.get("rule"),
+        }
+    if decision == safety_gate.ESCALATE:
+        approved = await safety_gate.wait_for_shepherd_approval(
+            redis_client, verdict.get("approval_id")
+        )
+        if approved:
+            await log_event(
+                "orchestrator", "success", f"Safety escalation approved for {agent_name}"
+            )
+            return None
+        return {"status": "rejected", "agent": agent_name, "reason": verdict.get("reason")}
+    return None
+
+
 def _route_agent_for_task_type(task_type: str) -> Optional[str]:
     normalized = (task_type or "").strip().lower()
     if normalized == "code_generation":
@@ -692,6 +739,13 @@ async def execute_task(
                 detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
             )
 
+        # P0-2: consult Safety Shepherd before dispatching to the agent
+        safety_stop = await _safety_check_dispatch(
+            agent_name, task.type, task.id, task.description
+        )
+        if safety_stop:
+            return safety_stop
+
         # Call the agent
         try:
             async with httpx.AsyncClient(timeout=120.0, headers=_agent_auth_headers()) as client:
@@ -820,6 +874,11 @@ async def dispatch_task(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
         )
+
+    # P0-2: consult Safety Shepherd before dispatching to the agent
+    safety_stop = await _safety_check_dispatch(agent_name, task_type, task_id, task_text)
+    if safety_stop:
+        return safety_stop
 
     # Graph skill routing — same Brain assist as /execute (fail-open)
     routed_skills = await _fetch_routed_skills(task_text)

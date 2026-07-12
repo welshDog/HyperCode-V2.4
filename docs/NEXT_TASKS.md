@@ -23,8 +23,8 @@
 |---|---|---|
 | HS-P1 | **Phase 1: the write path** — `coder-studio` :8087 (git-worktree sandbox + Claude Agent SDK) gated by Safety Shepherd (fail-CLOSED), Studio UI at `/ide` (task input · live stream · diff review · merge/discard), Sonnet default + model picker, cancel-on-discard, merge-collision friendly-409, `.env`/secrets glob hole closed | ✅ **Done 2026-07-10** (PR #315, HEAD `ee229ef`) |
 | HS-P2a | **Interactive ESCALATE approval** — today an ESCALATE is denied in the UI so nothing risky slips through; add an in-dashboard approve/deny gate (reuse `ApprovalModal.tsx` + Shepherd's `approval_requests` Redis channel) | ⬜ NEXT |
-| HS-P2b | **Light up the specialist agents** — the roster (frontend/backend/db/qa/etc.) was never healthy (no restart policy / stale images); give them a real runtime so Studio can route tasks by role | ⬜ NEXT |
-| HS-P2c | **Governance-ledger write of each verdict** — add the internal agent-key-authed write path so every Shepherd ALLOW/BLOCK/ESCALATE lands in `governance_ledger` (fail-soft) | ⬜ Later |
+| HS-P2b | **Light up the specialist agents** — 2026-07-12 audit: 5 specialists (frontend/backend/db/qa/devops) + crew-orchestrator + goal-keeper are UP & HEALTHY (`restart: unless-stopped` already on all 25 services); still missing containers: security-engineer, system-architect, tips-tricks-writer (RAM-gated on the 7.8GB box — bring up one at a time); project-strategist Exited 137 = on-demand by design, leave it | 🟡 Mostly live |
+| HS-P2c | **Governance-ledger write of each verdict** — `POST /api/v1/governance/ledger` on core (X-Agent-Key authed) + fail-soft fire-and-forget push from Shepherd `/evaluate` (module-level httpx client, `safety_ledger_pushes_total` metric, `ledger_push_enabled` in /health). Tests green (3 backend + 3 shepherd). **Deploy pending:** mint key (`scripts/mint_agent_keys.py`) → set `SAFETY_CORE_AGENT_KEY` in .env → rebuild shepherd image at next stack-down window (sacred: never build while stack is up) | ✅ Code done 2026-07-12 |
 
 > Studio memory brief: `[[hyperstudio-worktree-sandbox]]`. Out of scope for Phase 1 (tracked, not done): Monaco editor, routing the orphaned `HyperCanvas`, a real PTY terminal, token-streaming chat, the stale `claude-sonnet-4-6` model-ID sweep.
 
@@ -63,6 +63,6 @@
 
 > ✅ `safety_decisions_total` Grafana panel done (commit 142e989). P1-1 follow-up: retrofit existing economy/shop/agent-dispatch call-sites to route through `IdentityAgent.log_action()` (the agent + table are built; central money path not yet retrofitted to avoid risk).
 
-> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`; persist decisions/governance ledger (P1-2). ✅ HyperFlow dispatch now consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). Remaining intercept: wire the crew-orchestrator's own downstream tool calls (docker/http/file) through `/evaluate` too.
+> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`. ✅ HyperFlow dispatch consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). ✅ 2026-07-12: crew-orchestrator dispatch now gated too (`agents/crew-orchestrator/safety_gate.py`, both `/execute` + `/task`, ESCALATE waits on the Shepherd-raised approval; LIVE in monitor mode via bind-mount restart). ✅ 2026-07-12: verdicts → governance ledger (HS-P2c, deploy pending key mint).
 
 > HyperFlow MVP follow-ups (deferred): crash-resume durability (Celery path), multi-worker `/resume` (currently in-core single-worker), concurrency caps.

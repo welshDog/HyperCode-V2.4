@@ -237,3 +237,58 @@ def test_metrics_counter_increments(monkeypatch):
     # The counter must have moved — exact value depends on test ordering,
     # so we just assert the metric line exists and is not zero.
     assert 'safety_decisions_total' in after
+
+
+# ── HS-P2c governance-ledger push ─────────────────────────────────────────────
+
+
+def test_push_ledger_noop_without_client():
+    """No CORE_AGENT_KEY → _core_client is None → push is a silent no-op."""
+    assert ss._core_client is None
+    asyncio.run(ss._push_ledger({"id": "evt-1", "decision": "ALLOW"}))
+    ss._spawn_ledger_push({"id": "evt-1"})
+    assert not ss._ledger_tasks
+
+
+def test_push_ledger_posts_verdict_shape(monkeypatch):
+    """Push must POST the ledger body core expects, with the event as payload."""
+    sent = {}
+
+    class FakeResponse:
+        status_code = 201
+
+    class FakeClient:
+        async def post(self, path, json=None):
+            sent["path"] = path
+            sent["json"] = json
+            return FakeResponse()
+
+    monkeypatch.setattr(ss, "_core_client", FakeClient())
+    event = {
+        "id": "evt-2",
+        "agent": "coder_studio",
+        "category": "docker",
+        "tool": "container_restart",
+        "decision": "BLOCK",
+        "reason": "docker writes denied",
+    }
+    asyncio.run(ss._push_ledger(event))
+
+    assert sent["path"] == ss.LEDGER_PATH
+    assert sent["json"]["agent"] == "coder_studio"
+    assert sent["json"]["action"] == "safety.docker"
+    assert sent["json"]["decision"] == "BLOCK"
+    assert sent["json"]["tool"] == "container_restart"
+    assert sent["json"]["payload"] == event
+    assert sent["json"]["user_id"] == "system"
+
+
+def test_push_ledger_swallows_errors(monkeypatch):
+    """A dead core must never raise out of the push (fail-soft)."""
+
+    class ExplodingClient:
+        async def post(self, path, json=None):
+            raise RuntimeError("core is down")
+
+    monkeypatch.setattr(ss, "_core_client", ExplodingClient())
+    asyncio.run(ss._push_ledger({"id": "evt-3", "decision": "ALLOW"}))  # must not raise

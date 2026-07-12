@@ -26,6 +26,7 @@ Redis connection pools:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import time
@@ -36,6 +37,7 @@ from pathlib import Path
 from secrets import compare_digest
 from typing import Any, AsyncIterator, Optional
 
+import httpx
 import redis.asyncio as aioredis
 import structlog
 from fastapi import FastAPI, Request
@@ -63,6 +65,11 @@ safety_decisions_total = Counter(
     "Safety Shepherd decisions",
     ["decision", "category", "agent"],
 )
+safety_ledger_pushes_total = Counter(
+    "safety_ledger_pushes_total",
+    "Governance-ledger verdict pushes (HS-P2c)",
+    ["status"],
+)
 
 # ── config ────────────────────────────────────────────────────────────────────
 MANIFEST_PATH = os.getenv("SAFETY_MANIFEST", str(Path(__file__).parent / "capabilities.json"))
@@ -71,6 +78,11 @@ RATE_WINDOW_SECONDS = int(os.getenv("SAFETY_RATE_WINDOW", "3600"))
 EVENTS_KEY = "safety:events"
 MAX_STORED_EVENTS = 500
 APPROVAL_CHANNEL = "approval_requests"
+
+# HS-P2c — governance-ledger write path (core POST /api/v1/governance/ledger).
+# Disabled unless a core agent key is provisioned (mint via scripts/mint_agent_keys.py).
+CORE_URL = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+LEDGER_PATH = "/api/v1/governance/ledger"
 
 _manifest: dict[str, Any] = {}
 _manifest_mtime: float = 0.0
@@ -94,23 +106,51 @@ _pool_approvals: Optional[aioredis.Redis] = None
 _pool_cache: Optional[aioredis.Redis] = None
 _pool_ratelimit: Optional[aioredis.Redis] = None
 
+# Module-level HTTP client for ledger pushes — one client for the process
+# lifetime (a per-call AsyncClient costs ~280 ms in TLS/pool setup alone).
+_core_client: Optional[httpx.AsyncClient] = None
+_ledger_tasks: set[asyncio.Task] = set()
+
 
 def _make_pool(url: str) -> aioredis.Redis:
     return aioredis.from_url(url, decode_responses=True, max_connections=10)
 
 
+def _core_agent_key() -> str:
+    """Key the Shepherd presents to core (X-Agent-Key, hc_-prefixed)."""
+    file_path = os.getenv("CORE_AGENT_KEY_FILE", "")
+    if file_path:
+        from_file = _read_secret_file(file_path)
+        if from_file:
+            return from_file
+    return (os.getenv("CORE_AGENT_KEY") or "").strip()
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     """Create Redis connection pools on startup; drain them on shutdown."""
-    global _pool_approvals, _pool_cache, _pool_ratelimit
+    global _pool_approvals, _pool_cache, _pool_ratelimit, _core_client
     _pool_approvals = _make_pool(REDIS_URL)
     _pool_cache = _make_pool(CACHE_URL)
     _pool_ratelimit = _make_pool(RATELIMIT_URL)
+    ledger_key = _core_agent_key()
+    if ledger_key:
+        _core_client = httpx.AsyncClient(
+            base_url=CORE_URL, timeout=3.0, headers={"X-Agent-Key": ledger_key}
+        )
+        log.info("ledger_push_enabled", core=CORE_URL)
+    else:
+        log.info("ledger_push_disabled", reason="no CORE_AGENT_KEY(_FILE) configured")
     load_manifest(force=True)
     log.info("safety_shepherd_started", port=8096, redis=REDIS_URL)
     try:
         yield
     finally:
+        for task in list(_ledger_tasks):
+            task.cancel()
+        if _core_client is not None:
+            await _core_client.aclose()
+            _core_client = None
         for pool in (_pool_approvals, _pool_cache, _pool_ratelimit):
             if pool is not None:
                 await pool.aclose()
@@ -231,6 +271,44 @@ async def _record_event(event: dict[str, Any]) -> None:
         log.warning("event_record_failed")
 
 
+async def _push_ledger(event: dict[str, Any]) -> None:
+    """Mirror one verdict into core's governance ledger (HS-P2c, fail-soft).
+
+    Never raises; a down core or rejected write costs one warning + a metric
+    tick and the decision flow is already complete by the time this runs.
+    """
+    client = _core_client
+    if client is None:
+        return
+    body = {
+        "agent": event.get("agent") or "unknown",
+        "action": f"safety.{event.get('category') or 'generic'}",
+        "decision": event.get("decision"),
+        "tool": event.get("tool"),
+        "payload": event,
+        "user_id": "system",
+    }
+    try:
+        resp = await client.post(LEDGER_PATH, json=body)
+        if resp.status_code >= 400:
+            safety_ledger_pushes_total.labels(status="rejected").inc()
+            log.warning("ledger_push_rejected", status=resp.status_code, event_id=event.get("id"))
+        else:
+            safety_ledger_pushes_total.labels(status="ok").inc()
+    except Exception:
+        safety_ledger_pushes_total.labels(status="error").inc()
+        log.warning("ledger_push_failed", event_id=event.get("id"))
+
+
+def _spawn_ledger_push(event: dict[str, Any]) -> None:
+    """Fire-and-forget ledger push so /evaluate latency stays flat."""
+    if _core_client is None:
+        return
+    task = asyncio.create_task(_push_ledger(event))
+    _ledger_tasks.add(task)
+    task.add_done_callback(_ledger_tasks.discard)
+
+
 async def _raise_approval(event: dict[str, Any]) -> str:
     """Create a human approval request on the shared channel (dashboard streams it)."""
     approval_id = str(uuid.uuid4())
@@ -284,6 +362,7 @@ async def evaluate_action(body: EvaluateRequest) -> dict[str, Any]:
         decision=decision.decision, category=body.category, agent=body.agent
     ).inc()
     await _record_event(event)
+    _spawn_ledger_push(event)
     log.info("decision", **event)
 
     result = decision.as_dict()
@@ -323,5 +402,6 @@ async def health() -> dict[str, Any]:
         "service": "safety-shepherd",
         "manifest_agents": len(manifest.get("agents", {})),
         "api_key_configured": bool(_expected_api_key()),
+        "ledger_push_enabled": _core_client is not None,
         "rate_window_seconds": RATE_WINDOW_SECONDS,
     }

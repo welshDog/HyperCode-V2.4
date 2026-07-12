@@ -951,6 +951,9 @@ services:
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
       - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-}
+      # P0-2 remaining intercept — downstream dispatch gated by Safety Shepherd
+      - SAFETY_SHEPHERD_URL=${SAFETY_SHEPHERD_URL:-http://safety-shepherd:8096}
+      - SAFETY_SHEPHERD_MODE=${SAFETY_SHEPHERD_MODE:-monitor}
     volumes:
       - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1270,6 +1273,9 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - REDIS_URL=redis://redis:6379/0
       - SAFETY_RATE_WINDOW=${SAFETY_RATE_WINDOW:-3600}
+      # HS-P2c — verdicts → governance ledger; empty key = push disabled
+      - CORE_URL=${CORE_URL:-http://hypercode-core:8000}
+      - CORE_AGENT_KEY=${SAFETY_CORE_AGENT_KEY:-}
     ports:
       - "127.0.0.1:8096:8096"
     networks:
