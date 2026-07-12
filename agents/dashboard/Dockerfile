@@ -17,6 +17,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ARG NEXT_PUBLIC_HYPER_BRAIN_URL
 ENV NEXT_PUBLIC_HYPER_BRAIN_URL=$NEXT_PUBLIC_HYPER_BRAIN_URL
+# Optional override; the component falls back to the public Vercel URL.
+ARG NEXT_PUBLIC_UNIVERSE_URL
+ENV NEXT_PUBLIC_UNIVERSE_URL=$NEXT_PUBLIC_UNIVERSE_URL
+
+# Cap the build heap. HYPERFOCUSzone has 7.8GB PHYSICAL RAM and WSL is capped at
+# 4GB; an uncapped Node will happily reach for more than the VM has, and WSL kills
+# the whole Docker engine when it does. That is exactly how this build died on
+# 2026-07-12: `next build` reached the optimize phase at ~215s and the engine's
+# pipe closed (EOF). 1.5GB is ample for this app and leaves the VM room to live.
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
 # Build Next.js app
 RUN npm run build
