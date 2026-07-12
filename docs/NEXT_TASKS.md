@@ -21,9 +21,12 @@
 
 | Step | Action |
 |---|---|
-| 1 | `python scripts/mint_agent_keys.py` → drop `SAFETY_CORE_AGENT_KEY=hc_…` in `.env` |
-| 2 | Rebuild shepherd image → governance-ledger writes go live (HS-P2c) |
-| 3 | Rebuild dashboard image → `/control` Mission Control goes live |
+| 1 | **Bro runs** (permission-gated for Claude): `python scripts/mint_agent_keys.py safety-shepherd \| docker exec -i postgres psql -U postgres -d hypercode` — script already knows `safety-shepherd`; raw key lands in `secrets/agent_api_key_safety-shepherd.txt` |
+| 2 | Tell Claude "key minted" → wires `docker-compose.secrets.yml` (CORE_AGENT_KEY_FILE convention, same as crew-orchestrator) — NOT wired yet on purpose: compose fails if the secret file doesn't exist |
+| 3 | Rebuild shepherd image → governance-ledger writes go live (HS-P2c) |
+| 4 | Rebuild dashboard image → `/control` Mission Control goes live (image on disk is from BEFORE the /control code — that's why it 404s) |
+
+> 🔎 2026-07-12 late check: safety-shepherd had been **OOM-dead (exit 137) for 8h** — silently, because every gate fails open. Restarted + healthy. The `/control` safety feed makes this visible in future.
 
 > ⚠️ Sacred rule: never rebuild images when <1GB RAM free. Check with `wsl -e free -m` first.
 

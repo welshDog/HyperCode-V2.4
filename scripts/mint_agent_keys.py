@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 AGENTS = [
+    "safety-shepherd",
     "crew-orchestrator",
     "healer-agent",
     "coder-agent",
