@@ -43,6 +43,12 @@ function getHyperBrainUrl(): string {
   return 'http://localhost:8100/ui'
 }
 
+// The Living Hub is hosted, not a container — so unlike Hyper Brain there is no
+// localhost fallback to reach for. Env override stays, for a future custom domain.
+function getUniverseUrl(): string {
+  return process.env.NEXT_PUBLIC_UNIVERSE_URL || 'https://hyperfocus-universe-the-living-hub.vercel.app'
+}
+
 const INITIAL_LAST_SEEN_TIMESTAMP = Date.now()
 
 export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
@@ -113,6 +119,7 @@ function AppShellInner({
   const panelRef = useRef<HTMLDivElement | null>(null)
   const closeRef = useRef<HTMLButtonElement | null>(null)
   const hyperBrainUrl = useMemo(() => getHyperBrainUrl(), [])
+  const universeUrl = useMemo(() => getUniverseUrl(), [])
 
   const isMission = pathname === '/mission'
   
@@ -162,6 +169,16 @@ function AppShellInner({
         <div className="hc-topbar-right">
           <a className="btn" href={hyperBrainUrl} target="_blank" rel="noreferrer">
             🧠 Hyper Brain
+          </a>
+          <a
+            className="btn"
+            href={universeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Every repo as a world — see what's burning bright and what quest is waiting"
+          >
+            🌌 Universe
+            <span className="sr-only"> (opens the Living Hub in a new tab)</span>
           </a>
           <div className="hc-notify">
             <button
