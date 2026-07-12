@@ -11,9 +11,21 @@
 | 3 | **Discord Bot Tier 2** — Pets, XP Leaderboard, Morning Briefing, Health Alerts | 🟢 Background |
 | 4 | **HyperLabs human gates** — Vercel Speed Insights CWV · `/pets` wallet smoke · post-login reconcile | 🟢 Human gate |
 | 5 | **`/welcome` auth-gate decision** — make public? Sponsors hit login wall from BUSINESS_PLAN | 🟡 |
-| 6 | ~~**Wire BROski$ XP to postgres**~~ ✅ **DONE 2026-06-18** — `broski_economy_consumer.py` now dual-sinks: redis (fast) + best-effort POST to `hypercode-core` `POST /api/v1/economy/award-dev-xp`, which routes through `broski_service.award_xp` into durable `broski_wallets`/`broski_transactions`. Owner = discord `418075243404591106` (auto-provisioned user). Proven E2E (redis publish → pg row). Redis AOF (commit a87c81a) kept as the fast-path stopgap; postgres is now the system of record. | ✅ Done |
+| 6 | ~~**Wire BROski$ XP to postgres**~~ ✅ **DONE 2026-06-18** | ✅ Done |
 
-> ✅ Done this session: Course module pages, Shop Fulfillment v2 E2E, SDK npm publish `@w3lshdog/hyper-agent@0.4.0`, Guardian P3c smoke test (8/8)
+> ✅ Done this session (2026-07-12): **Crew-orchestrator safety intercept** (25/25 tests, monitor mode live, flip `SAFETY_SHEPHERD_MODE=enforce` when ready) · **Mission Control `/control` first screen** (fleet grid + safety feed, 6 vitest green — needs next build image rebuild at stack-down window) · **PITCH-KIT.md** (LinkedIn headline + freelance pitch + CV bullets + proof links in `HperCore/docs/`)
+
+---
+
+## ⏳ Stack-Down Window Queue (~15 min when RAM allows)
+
+| Step | Action |
+|---|---|
+| 1 | `python scripts/mint_agent_keys.py` → drop `SAFETY_CORE_AGENT_KEY=hc_…` in `.env` |
+| 2 | Rebuild shepherd image → governance-ledger writes go live (HS-P2c) |
+| 3 | Rebuild dashboard image → `/control` Mission Control goes live |
+
+> ⚠️ Sacred rule: never rebuild images when <1GB RAM free. Check with `wsl -e free -m` first.
 
 ---
 
@@ -21,48 +33,52 @@
 
 | # | Task | Status |
 |---|---|---|
-| HS-P1 | **Phase 1: the write path** — `coder-studio` :8087 (git-worktree sandbox + Claude Agent SDK) gated by Safety Shepherd (fail-CLOSED), Studio UI at `/ide` (task input · live stream · diff review · merge/discard), Sonnet default + model picker, cancel-on-discard, merge-collision friendly-409, `.env`/secrets glob hole closed | ✅ **Done 2026-07-10** (PR #315, HEAD `ee229ef`) |
-| HS-P2a | **Interactive ESCALATE approval** — today an ESCALATE is denied in the UI so nothing risky slips through; add an in-dashboard approve/deny gate (reuse `ApprovalModal.tsx` + Shepherd's `approval_requests` Redis channel) | ⬜ NEXT |
-| HS-P2b | **Light up the specialist agents** — 2026-07-12 audit: 5 specialists (frontend/backend/db/qa/devops) + crew-orchestrator + goal-keeper are UP & HEALTHY (`restart: unless-stopped` already on all 25 services); still missing containers: security-engineer, system-architect, tips-tricks-writer (RAM-gated on the 7.8GB box — bring up one at a time); project-strategist Exited 137 = on-demand by design, leave it | 🟡 Mostly live |
-| HS-P2c | **Governance-ledger write of each verdict** — `POST /api/v1/governance/ledger` on core (X-Agent-Key authed) + fail-soft fire-and-forget push from Shepherd `/evaluate` (module-level httpx client, `safety_ledger_pushes_total` metric, `ledger_push_enabled` in /health). Tests green (3 backend + 3 shepherd). **Deploy pending:** mint key (`scripts/mint_agent_keys.py`) → set `SAFETY_CORE_AGENT_KEY` in .env → rebuild shepherd image at next stack-down window (sacred: never build while stack is up) | ✅ Code done 2026-07-12 |
+| HS-P1 | **Phase 1: the write path** — coder-studio :8087, Studio UI at `/ide`, model picker, merge-collision 409 | ✅ **Done 2026-07-10** (PR #315) |
+| HS-P2a | **Interactive ESCALATE approval** — approve/deny gate, ApprovalModal + Redis channel | ✅ **Done 2026-07-11** (PR #316) |
+| HS-P2b | **Specialist agents roster** — 8 already UP & healthy 7h+; security-engineer worth adding (RAM permitting) | ✅ **Mostly alive** (brief was stale) |
+| HS-P2c | **Governance-ledger write of each verdict** — 32/32 tests green | ✅ **Done 2026-07-12** (awaiting deploy) |
+| HS-P3 | **Crew-orchestrator → Shepherd intercept** — `safety_gate.py`, 25/25 tests, monitor mode live | ✅ **Done 2026-07-12** |
+| HS-P4 | **Mission Control `/control` screen** — fleet grid (42 agents), safety feed, ApprovalModal | ✅ **Done 2026-07-12** (awaiting image rebuild) |
 
-> Studio memory brief: `[[hyperstudio-worktree-sandbox]]`. Out of scope for Phase 1 (tracked, not done): Monaco editor, routing the orphaned `HyperCanvas`, a real PTY terminal, token-streaming chat, the stale `claude-sonnet-4-6` model-ID sweep.
+> 🏁 **Full safety loop CLOSED.** HyperFlow ✅ Studio ✅ Crew-orchestrator ✅
 
 ---
 
-## 🔴 P0 — Control Plane (AGENT-START.md roadmap)
+## 🔴 P0 — Control Plane
 
 | # | Task | Status |
 |---|---|---|
-| P0-1 | **HyperFlow** — declarative agent mission graphs (schema + runner + `hyperflow_runs` mig 016 + `/api/v1/flows` SSE + Prometheus metric + example flow) | ✅ Done 2026-06-19 |
-| P0-2 | **Safety Shepherd Agent** — runtime policy brain (ALLOW/BLOCK/ESCALATE) on port 8096 | ✅ Done 2026-06-19 |
-| P0-3 | **Mission Graph Dashboard Panel** — visualise active HyperFlow runs (`GET /flows/active` + SSE) | ✅ Done 2026-06-19 |
+| P0-1 | HyperFlow | ✅ Done 2026-06-19 |
+| P0-2 | Safety Shepherd Agent | ✅ Done 2026-06-19 |
+| P0-3 | Mission Graph Dashboard Panel | ✅ Done 2026-06-19 |
 
 ## 🟡 P1 — Identity + Governance
 
 | # | Task | Status |
 |---|---|---|
-| P1-1 | **BROski Identity Agent per user** — `broski_identity_agents` (mig 017) + `IdentityAgent` (award_tokens/check_permission/log_action) + `/api/v1/identity` + `X-BROSKI-IDENTITY` | ✅ Done 2026-06-19 |
-| P1-2 | **Governance Ledger** — `governance_ledger` (mig **018**, not 016 — head was 017); `IdentityAgent.log_action()` persists there (fail-soft); `GET /api/v1/governance/ledger`; Grafana Postgres datasource + timeline panel | ✅ Done 2026-06-19 |
-| P1-4 | Fill empty specialist HYPER-AGENT-BIBLEs | ✅ Done 2026-06-19 (10 filled; crew-orchestrator already existed) |
+| P1-1 | BROski Identity Agent | ✅ Done 2026-06-19 |
+| P1-2 | Governance Ledger | ✅ Done 2026-06-19 |
+| P1-3 | Extract skills to HYPER-SILLs vault | ✅ Done 2026-06-19 |
+| P1-4 | Fill specialist HYPER-AGENT-BIBLEs | ✅ Done 2026-06-19 |
 
 ## 🟢 P2 — Continuous Evolution + Course
 
 | # | Task | Status |
 |---|---|---|
-| P2-3 | **Brain Levels 18 + 19** — L18 AI distraction monitor (3 signals → nudge) + L19 DifficultyDial dynamic XP (intensity × quality × HyperSplit chunk difficulty) | ✅ Done 2026-06-20 (in BROski-Obsidian-Brain, engine :8100, commit 10cee0e) |
-| P2-1 | **Evo Harness** — `scripts/evo_harness.py` parses ROADMAP → milestone DAG → scores (cascading preconditions) → JSON report `docs/evo_reports/`; `--live` probes health/SLO/HyperFlow; CI workflow `evo-harness.yml` | ✅ Done 2026-06-20 |
-| P2-2 | **Brain Constellation (Level 20)** — graph (nodes/edges) + auto-generated Obsidian canvas + `/constellation/map` & `/constellation/refresh` | ✅ Done 2026-06-20 (BROski-Obsidian-Brain, commit ac972c3) |
-| P2-4 | Course "AI Agents 2.0" track (M11+) | ⬜ **NEXT — fresh session** (closes the entire AGENT-START roadmap) |
+| P2-1 | Evo Harness | ✅ Done 2026-06-20 |
+| P2-2 | Brain Constellation Level 20 | ✅ Done 2026-06-20 |
+| P2-3 | Brain Levels 18 + 19 | ✅ Done 2026-06-20 |
+| P2-4 | **Course "AI Agents 2.0" track (M11+)** | ⬜ **NEXT — fresh session** |
 
-> 🏁 **AGENT-START roadmap: P0-1/2/3 · P1-1/2/3/4 · P2-1/2/3 all SHIPPED.** Only P2-4 remains
-> — a content/course build in `Hyper-Vibe-Coding-Course` (M11+, THE HYPERFOCUS WAY: STOP → WHY →
-> HOW → WIN → NEXT → HELP → REWARD). Deserves a dedicated session, not a tail-end one.
-> Session snapshot: `docs/SESSION_SNAPSHOT_2026-06-20.md`.
-| P1-3 | Extract CATALOGUED skills to HYPER-SILLs vault | ✅ Done 2026-06-19 (index was stale: 22/37 already on disk; 15 genuinely-missing written + web3/ created + vault-index reconciled — in HYPER-SILLs-By-WelshDog) |
+> 🏁 AGENT-START roadmap: P0 · P1 · P2-1/2/3 all SHIPPED. P2-4 is the final piece.
 
-> ✅ `safety_decisions_total` Grafana panel done (commit 142e989). P1-1 follow-up: retrofit existing economy/shop/agent-dispatch call-sites to route through `IdentityAgent.log_action()` (the agent + table are built; central money path not yet retrofitted to avoid risk).
+---
 
-> Safety Shepherd follow-ups (deferred): Grafana panel for `safety_decisions_total` / `/safety/events`. ✅ HyperFlow dispatch consults `/evaluate` (`SAFETY_SHEPHERD_MODE` off|monitor|enforce, default monitor). ✅ 2026-07-12: crew-orchestrator dispatch now gated too (`agents/crew-orchestrator/safety_gate.py`, both `/execute` + `/task`, ESCALATE waits on the Shepherd-raised approval; LIVE in monitor mode via bind-mount restart). ✅ 2026-07-12: verdicts → governance ledger (HS-P2c, deploy pending key mint).
+## 💼 Job / Revenue (zero-cost actions)
 
-> HyperFlow MVP follow-ups (deferred): crash-resume durability (Celery path), multi-worker `/resume` (currently in-core single-worker), concurrency caps.
+| Action | Status |
+|---|---|
+| Paste LinkedIn headline from PITCH-KIT.md | ⬜ Do tonight (10 min) |
+| Pin HyperCode-V2.4, welshdog.shop, MIND VAULT on GitHub profile | ⬜ Do tonight (5 min) |
+| Companies House registration (£50, ~24h, SIC 62012) | ⬜ Human gate → unlocks Stripe LIVE |
+| T&Cs + privacy + refund pages on welshdog.shop | ⬜ Code-ready when Companies House lands |
