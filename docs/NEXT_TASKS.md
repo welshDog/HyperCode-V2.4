@@ -26,17 +26,17 @@
 
 ---
 
-## ⏳ 3-Step Finish Line (next stack-down window, ~15 min)
+## ✅ Deploy Window COMPLETE — 2026-07-13 ~00:15
 
-> ⚠️ Check RAM first: `wsl -e free -m` — need >1GB free. NEVER rebuild while stack is running.
+| Step | Result |
+|---|---|
+| Key minted + `docker-compose.secrets.yml` wired (CORE_AGENT_KEY_FILE convention) | ✅ |
+| Rebuilt **3** images: safety-shepherd, dashboard, **hypercode-core** (core was the missed one — the POST /governance/ledger endpoint ships in the core image; core has NO app bind-mount) | ✅ |
+| Stack restored: 38 containers, core recreated on new image, all healthy | ✅ |
+| **E2E PROVEN**: `/evaluate` → `governance_ledger` rows (`safety.file_read ALLOW` + `safety.generic ESCALATE`, `approved_by=safety-shepherd`) + `safety_ledger_pushes_total{status="ok"}` | ✅ |
+| `/control` Mission Control | ✅ **HTTP 200 — LIVE** at localhost:8088/control |
 
-| Step | Who | Action |
-|---|---|---|
-| 1 | **Bro** | `python scripts/mint_agent_keys.py safety-shepherd \| docker exec -i postgres psql -U postgres -d hypercode` → raw key lands in `secrets/agent_api_key_safety-shepherd.txt` |
-| 2 | **Bro tells Claude "key minted"** | Claude wires `docker-compose.secrets.yml` (NOT pre-wired — compose hard-fails if secret file doesn't exist) |
-| 3 | **Bro** | Stack down → rebuild `safety-shepherd` + `dashboard` images → stack up. **Both go live in one window.** |
-
-**Result:** governance-ledger writes live ✅ + `/control` Mission Control live ✅
+> 🪤 Lesson: cold-start bring-up OOM-killed hypercode-core once (exit 137) — staged restart fixed it. First ledger push against a cold core timed out (3s) → counted `status="error"`, fail-soft worked as designed.
 
 ---
 
