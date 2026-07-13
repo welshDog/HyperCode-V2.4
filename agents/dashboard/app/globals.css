@@ -1,3 +1,8 @@
+/* Tailwind v4 — theme + utilities ONLY (no preflight: the hand-written
+   .hyper-* CSS below owns the base styles; preflight would reset them). */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
 /* ====================================================
    HyperCode V2.0 — Global Styles
    ND-First: WCAG 2.1 AA, Dyslexia fonts, Reduced Motion

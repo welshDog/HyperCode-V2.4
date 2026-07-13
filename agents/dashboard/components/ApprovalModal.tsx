@@ -22,17 +22,34 @@ export function ApprovalModal() {
   const { toast } = useToast();
   
   useEffect(() => {
-    const wsUrl = getApprovalsWebSocketUrl();
-    
     let socket: WebSocket | null = null;
     let retryTimeout: NodeJS.Timeout;
+    let destroyed = false;
 
-    const connect = () => {
+    // Core's /ws/approvals requires ?token=<JWT>; without one the handshake
+    // is rejected (HTTP 403). No login UI yet, so fetch the service token.
+    const resolveWsUrl = async (): Promise<string> => {
+        let url = getApprovalsWebSocketUrl();
+        if (!url.includes('token=')) {
+            try {
+                const res = await fetch('/api/ws-token', { cache: 'no-store' });
+                const { token } = await res.json();
+                if (token) url = getApprovalsWebSocketUrl(token);
+            } catch {
+                // fall through — connect attempt will fail and retry
+            }
+        }
+        return url;
+    };
+
+    const connect = async () => {
         // Prevent multiple connections
-        if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        if (destroyed || (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING))) {
             return;
         }
 
+        const wsUrl = await resolveWsUrl();
+        if (destroyed) return;
         socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
@@ -72,6 +89,7 @@ export function ApprovalModal() {
     connect();
 
     return () => {
+        destroyed = true;
         if (socket) socket.close();
         clearTimeout(retryTimeout);
     };

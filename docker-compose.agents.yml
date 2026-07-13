@@ -242,6 +242,9 @@ services:
     environment:
       - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      # Service identity for tasks/planning/DLQ proxies (no login UI yet).
+      # Empty = proxies forward the browser header only, as before.
+      - DASHBOARD_SERVICE_JWT=${DASHBOARD_SERVICE_JWT:-}
       - NEXT_PUBLIC_CORE_WS_HOST=localhost
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080

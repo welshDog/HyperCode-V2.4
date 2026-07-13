@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { serviceAuthHeader } from '@/lib/server-auth'
 
 const CORE_URL_CANDIDATES = [
   process.env.HYPERCODE_CORE_URL,
@@ -23,7 +24,7 @@ async function fetchFromCore(path: string, init?: RequestInit) {
 
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get('authorization') ?? ''
+    const token = req.headers.get('authorization') || serviceAuthHeader()
     const res = await fetchFromCore('/api/v1/tasks', {
       headers: { Authorization: token, Accept: 'application/json' },
     })
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const token = req.headers.get('authorization') ?? ''
+    const token = req.headers.get('authorization') || serviceAuthHeader()
     const body = await req.json()
     const res = await fetchFromCore('/api/v1/tasks', {
       method: 'POST',

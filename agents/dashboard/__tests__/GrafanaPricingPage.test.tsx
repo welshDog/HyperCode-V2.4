@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import PricingPage from '../app/pricing/page'
+import PricingPage from '../app/grafana/page'
 
-describe('/pricing embeds Grafana', () => {
+describe('/grafana embeds Grafana', () => {
   const prev = process.env.NEXT_PUBLIC_GRAFANA_URL
 
   beforeEach(() => {

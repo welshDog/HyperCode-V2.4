@@ -35,12 +35,16 @@ class DashboardTask(Base):
     id:          Mapped[int]           = mapped_column(Integer, primary_key=True, index=True)
     title:       Mapped[str]           = mapped_column(String, index=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # values_callable: the live pg enums hold the lowercase VALUES ("todo");
+    # without it SQLAlchemy sends member NAMES ("TODO") → InvalidTextRepresentation.
     status:      Mapped[DashboardTaskStatus] = mapped_column(
-        Enum(DashboardTaskStatus), default=DashboardTaskStatus.TODO
+        Enum(DashboardTaskStatus, values_callable=lambda e: [m.value for m in e]),
+        default=DashboardTaskStatus.TODO,
     )
     priority:    Mapped[str]           = mapped_column(String, default="medium")
     source:      Mapped[DashboardTaskSource] = mapped_column(
-        Enum(DashboardTaskSource), default=DashboardTaskSource.MANUAL
+        Enum(DashboardTaskSource, values_callable=lambda e: [m.value for m in e]),
+        default=DashboardTaskSource.MANUAL,
     )
     created_at:  Mapped[datetime]      = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at:  Mapped[Optional[datetime]] = mapped_column(

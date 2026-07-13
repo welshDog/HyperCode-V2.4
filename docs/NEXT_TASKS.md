@@ -13,6 +13,8 @@
 | 5 | **`/welcome` auth-gate decision** — make public? Sponsors hit login wall from BUSINESS_PLAN | 🟡 |
 
 > ✅ Done 2026-07-12/13: Crew-orchestrator safety intercept · Mission Control `/control` · HS-P2c governance-ledger write · PITCH-KIT.md · **Full deploy window: ALL LIVE + E2E PROVEN at 00:30 BST**
+> ✅ **2026-07-13 ~09:45: ALL 8 PLAYTEST FIXES SHIPPED + VERIFIED LIVE** — Tailwind imported (`/control` styled) · agents roster truthful · service-JWT auth (task CREATE works E2E; core enum drift fixed with `values_callable`) · approvals WS "Connected" · focus mode isolates cleanly · `/control` in nav · health row honest · `/grafana` route (+ `/pricing` redirect). Report: `HperCore/docs/PLAYTEST-2026-07-13-mythos.md`
+> ⬜ Residual (Bro's call): DLQ panel is superuser-gated and user 1 is `is_superuser=false`. To enable: `docker exec postgres psql -U postgres -d hypercode -c "UPDATE users SET is_superuser=true WHERE id=1"`
 
 ---
 

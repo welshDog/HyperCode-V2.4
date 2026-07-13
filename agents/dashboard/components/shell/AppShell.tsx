@@ -27,11 +27,12 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/ide',     label: '🏗️ Studio' },
   { href: '/agents',  label: 'Agents' },
   { href: '/mission', label: 'Mission' },
+  { href: '/control', label: '🎛️ Mission Control' },
   { href: '/flows',   label: '🕸️ Flows' },
   { href: '/mcp',     label: 'MCP' },
   { href: '/docker-zone', label: 'Docker Zone' },
   { href: '/health',  label: 'Health' },
-  { href: '/pricing', label: '📈 Grafana' },
+  { href: '/grafana', label: '📈 Grafana' },
 ]
 
 function getHyperBrainUrl(): string {
