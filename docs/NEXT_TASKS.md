@@ -14,7 +14,17 @@
 
 > ✅ Done 2026-07-12/13: Crew-orchestrator safety intercept · Mission Control `/control` · HS-P2c governance-ledger write · PITCH-KIT.md · **Full deploy window: ALL LIVE + E2E PROVEN at 00:30 BST**
 > ✅ **2026-07-13 ~09:45: ALL 8 PLAYTEST FIXES SHIPPED + VERIFIED LIVE** — Tailwind imported (`/control` styled) · agents roster truthful · service-JWT auth (task CREATE works E2E; core enum drift fixed with `values_callable`) · approvals WS "Connected" · focus mode isolates cleanly · `/control` in nav · health row honest · `/grafana` route (+ `/pricing` redirect). Report: `HperCore/docs/PLAYTEST-2026-07-13-mythos.md`
-> ⬜ Residual (Bro's call): DLQ panel is superuser-gated and user 1 is `is_superuser=false`. To enable: `docker exec postgres psql -U postgres -d hypercode -c "UPDATE users SET is_superuser=true WHERE id=1"`
+> ✅ **PLAYTEST CLOSED GREEN 2026-07-13 ~09:15** — final smoke 9/9, zero 4xx/5xx. Postmortem: `HperCore/docs/POSTMORTEM-2026-07-13.md`
+
+## 🔵 Follow-ups (non-blocking, from playtest close-out)
+
+| Follow-up | Detail |
+|---|---|
+| Optimistic task UI | Created task appears on next poll, not instantly — toast or optimistic insert |
+| Latent enum twin | `models.py` `TaskStatus` NAMES-vs-VALUES — same `values_callable` fix as dashboard_task when touched |
+| ⏰ Service JWT expiry | `DASHBOARD_SERVICE_JWT` expires **2027-07-13** — re-mint via core `create_access_token(1, timedelta(days=365))`, symptom = 401s return |
+| Metrics error-rate cosmetics | "Error Rate ~54%" perma-red (orphan counting) — fix when touching metrics |
+| DLQ gate (BY CHOICE — leave) | Superuser-gated, Bro chose to keep it. Enable: `UPDATE users SET is_superuser=true WHERE id=1` |
 
 ---
 
