@@ -3,6 +3,10 @@ name: Evo Harness — Long-Horizon Regression
 # P2-1 — keeps HyperCode GREEN across multi-phase changes (separate from Trivy).
 # CI-safe: parses docs/ROADMAP.md → milestone DAG → scores. No stack, no rollback.
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [main]

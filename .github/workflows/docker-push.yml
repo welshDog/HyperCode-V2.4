@@ -1,5 +1,9 @@
 name: Docker Push to Registry
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [ main ]

@@ -1,5 +1,9 @@
 name: Playwright Dashboard E2E
 
+permissions:
+  contents: read
+on:
+  read
 on:
   workflow_dispatch:
   push:

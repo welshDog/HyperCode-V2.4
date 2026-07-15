@@ -1,5 +1,9 @@
 name: Hyper Agents CI
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches:

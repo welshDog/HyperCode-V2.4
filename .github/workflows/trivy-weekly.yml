@@ -1,5 +1,9 @@
 name: 🔒 Weekly Fleet Security Scan
 
+permissions:
+  contents: read
+on:
+  read
 on:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday 06:00 UTC

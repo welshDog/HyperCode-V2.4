@@ -1,0 +1,868 @@
+warning: CRLF will be replaced by LF in .agents/AGENTS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .agents/skills/mint-pet-confirm/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .ci-smoke-check.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/.github/workflows/ci-cd.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/CONTRIBUTING.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/LICENSE.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/SKILL_PROMPT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/examples/basic_bot.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/examples/ml_moderation.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/examples/redis_caching.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/broski-discord-bot-skill/skill-config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-agent-consciousness/PROTOCOL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-agent-consciousness/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-agent-spawner/AGENT_TEAMS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-agent-spawner/SAFETY.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-agent-spawner/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-brain/PATTERNS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-brain/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-broski-discord-bot/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-broski-economy/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-code-review/PATTERNS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-code-review/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-docker-ops/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-frontend/PATTERNS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-frontend/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-hypersync/EVALS.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-hypersync/PATTERNS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-mcp-gateway/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-mcp-gateway/TOOLS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-new-agent-onboarding/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-redis-pubsub/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-security/CHECKLIST.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-security/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-self-improver/EVAL_EXAMPLES.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/hypercode-self-improver/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/agent-orchestration.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/data-architecture.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/docker-mastery.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/fastapi-async-patterns.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/observability-guide.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .claude/skills/technical-skills-audit/security-guide.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .devcontainer/devcontainer.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .gitattributes.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/CONTRIBUTING.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/FUNDING.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/ISSUE_TEMPLATE/hyper-agent-bug-report.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/PULL_REQUEST_TEMPLATE/hyper-agents-pr.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/dependabot.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/prom-baseline.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/scripts/executive_summary.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/scripts/prom-regression.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/accessibility.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-cd.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-integration.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-js.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-python.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-security.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci-unit.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/ci.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/codeql.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/docker.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/docs-check.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/docs-lint.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/health-check.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/health.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/hyper-agents-ci.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/hyper-agents-gate2-e2e.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/iac-scan.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/lean-review.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/no-legacy-paths.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/performance.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/promote-dashboards.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/prune_audit.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/quality-gate.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/secret-redaction-guard.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/security-comprehensive.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/sse-tests.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/swarm-pipeline.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/tests.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .github/workflows/trivy-scan.yml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .gitignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .gitmessage.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .husky/pre-commit.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .mailmap.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .mcp.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/broski-economy.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/broski-pets.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/docker-devops.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/hyper-agent-sdk.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/hyper-vibe-course.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .perplexity/skills/hyperfocus-home.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .pylintrc.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/agents.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Activate Coder Agent & Enable Prometheus Vision.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Build the Hyperfocus Configuration Kit.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Docker Setup Completion & Verification Suite.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Documentation Index and Maintenance.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Execute Comprehensive Deployment Testing.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Execute Comprehensive Project Health Assessment.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Execute Phase 2B_ Demo Prep & Frontend Pivot.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Execute Pre-Development Checklist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Fix Grafana Explore Traces Plugin Error.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Fix OpenTelemetry Instrumentation.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Generate Project Status Report.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Hyper Agent Hyper Ultra Brain - Development Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/HyperCode DSL Specification.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/HyperCode MCP Integration Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/HyperCode Project Inventory and Audit.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Implement Context Manager (Memory) Logic.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Implement Execution Engine (Interpreter) Logic.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Implement Trae Skills Structure in Project Root.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Implementing CI_CD and Observability Stack.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Jaeger Troubleshooting Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Option B_ Swarm Showcase Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Option C_ Feature Focus Implementation Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Phase 2 Go-Live_ Infrastructure, Testing & Agent Genesis.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Phase 2.2_ Agent Swarm Implementation Plan.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Production-Grade Infrastructure Upgrade.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Repair WebSocket & Secure Core API.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/Status Reporting Template.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/The HyperCode Genesis Roadmap.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/archive.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260205_214849.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260205_221102.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_003024.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_012403.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_105656.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_120947.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_131254.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_135554.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_144337.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_172910.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/documents/plan_20260206_210613.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/hooks.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/skills/generate-api-docs/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/skills/generate-unit-tests/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/skills/refactor-performance/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in .trae/skills/security-audit/SKILL.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in AGENT-START-HYPERCODE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in AGENT-START.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in CLAUDE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in CLAUDE_CONTEXT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in CLAUDE_START.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in CODE_OF_CONDUCT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in CONTRIBUTING.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/.wslconfig.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/01_Frontend_Specialist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/02_Backend_Specialist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/03_Database_Architect.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/04_QA_Engineer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/05_DevOps_Engineer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/06_Security_Engineer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/07_System_Architect.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/08_Project_Strategist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/09_Hyper_Narrator.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/10_Hyper_Research.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/11_Hyper_UX_Flow.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/12_LOD_Prototyper.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/13_Hyper_Flow_Dimmer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/14_Idea_Alchemist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/15_Doc_Syncer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/16_Manifest_Enforcer.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/17_Hyperfocus_Catalyst.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/18_HELIX_Bio_Architect.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/19_BROski_Orchestrator.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/Agent_Skills_Library.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/CONFIGURATION_PROCESS_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/COPY_PASTE_SKILLS.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/README_Setup_Guide.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/TEAM_SIMULATION_LOG.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/Team_Memory_Standards.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Configuration_Kit/mission_template.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in DASHBOARD_STATUS_2026-06-16.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Dockerfile.agents-test.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Dockerfile.builder.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Dockerfile.production.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in FULL_STACK_MAP.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HYPER-UPDATES/BROSKI-MODE-SYSTEM.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HYPER-UPDATES/README.md.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in HYPERFOCUS-COMPLETE.ps1.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HYPERFOCUS_FEATURES_PLAN.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HYPERFOCUS_Z0NE_OVERVIEW.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Hyper-Agents-Box/hyper-agents-box/docker/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Hyper-Agents-Box/hyper-agents-box/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Hyper-Agents-Box/hyper-agents-box/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/00-START-HERE-Audit-Index.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/Audit_Methodology_Checklist.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/GitHub_Analysis_Guide.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/HyperCode-Audit-Readiness.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/HyperCode-Specific-Audit-Framework.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/Project_Audit_Template.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in HyperFocus_Audit_Methodology/QUICK_START_GUIDE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in LICENSE.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Makefile.observability.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in NEXT_SESSION_HANDOVER_2026-06-03.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in NEXT_SESSION_HANDOVER_2026-06-06.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in Postmortem — Dashboard Playtest & Fix Sprint.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in QUICKSTART.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in RAILWAY_VARS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in ROADMAP.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in SECURITY.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in SESSION_SNAPSHOT_2026-05-21.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in SPONSORS.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in STATUS_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in STRIPE_SMOKE_TEST_RUNBOOK_2026-06-06.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in TOKEN_SAVE.md.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in Test-StripeE2E.ps1.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in The Full BROski Ecosystem Build List.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in WHATS_DONE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/01-frontend-specialist/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/01-frontend-specialist/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/01-frontend-specialist/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/01-frontend-specialist/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/01-frontend-specialist/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/02-backend-specialist/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/02-backend-specialist/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/02-backend-specialist/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/02-backend-specialist/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/02-backend-specialist/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/03-database-architect/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/03-database-architect/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/03-database-architect/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/03-database-architect/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/03-database-architect/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/04-qa-engineer/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/04-qa-engineer/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/04-qa-engineer/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/04-qa-engineer/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/04-qa-engineer/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/05-devops-engineer/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/05-devops-engineer/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/05-devops-engineer/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/05-devops-engineer/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/05-devops-engineer/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/06-security-engineer/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/07-system-architect/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/08-project-strategist/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/08-project-strategist/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/08-project-strategist/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/08-project-strategist/config.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/08-project-strategist/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/09-tips-tricks-writer/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/09-tips-tricks-writer/base_agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/09-tips-tricks-writer/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/HYPER-AGENT-BIBLE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-factory/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-factory/spawn_agent.sh.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-factory/tests/test_main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/__init__.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/designer.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/docker_ops.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/pipeline.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/agent-x/test_agent_x.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/package-lock.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/package.json.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/src/app.controller.ts.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/src/app.module.ts.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/src/index.spec.ts.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/src/index.ts.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/architect/src/main.ts.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/base-agent/.dockerignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/base-agent/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/base-agent/agent.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/base-agent/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/.gitignore.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/DEPLOYMENT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/PROJECT_STRUCTURE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/QUICKSTART.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/ai_code_analyzer_implementation.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/ai_contribution_classifier.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/bot.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_database.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_economy_cog.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_exceptions.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_logging.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_models.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_repositories.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_services.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_settings.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/broski_tests.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/community_token_services.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/deployment_scripts.sh.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/focus_engine.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/Python files/mintme_integration_dashboard.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/bot_legacy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/economy_broken.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/economy_legacy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/focus_engine.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/index.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_archive/quick_fix.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/HEAD.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/config.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/description.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/applypatch-msg.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/commit-msg.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/fsmonitor-watchman.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/post-update.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-applypatch.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-commit.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-merge-commit.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-push.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-rebase.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/pre-receive.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/prepare-commit-msg.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/push-to-checkout.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/sendemail-validate.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/hooks/update.sample.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/info/exclude.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/packed-refs.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/refs/heads/main.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/_git_backup_internal/refs/remotes/origin/HEAD.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic.ini.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic/env.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic/script.py.mako.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic/versions/aa4cb7aa3ba2_add_transactions_and_achievements.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic/versions/bb5dc8bb4cb3_expand_quest_and_achievements.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/alembic/versions/d3f8669e746a_initial_schema.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/broski-nemoclaw-agent/README.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/broski-nemoclaw-agent/analyzer.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/cogs/bot.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/cogs/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/cogs/leaderboard.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/cogs/status_cog.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/cogs/welcome.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/core_client.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/BROSKI_HYPERCODE_INTEGRATION_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/BROski Hyperfocus Spec.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/BROski Token Analysis Summary.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/BROski_Bot_Qwen_3.5_Integration_Feasibility_Analysis.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/FRONTEND_INTEGRATION.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/MERGE_READINESS_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/MIGRATION_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/QUEST_STATE_GUIDE.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/RELEASE_NOTES_v1.0.0.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/SPRINT_3_REPORT.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_docker.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_migration_guide (1).txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_migration_guide.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_pyproject.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_readme.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_refactor_plan.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/broski_token_analysis.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/community_system_architecture.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/comprehensive_implementation_guide.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/🎯 BROski-Bot Implementation Roadmap.md.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/docs/🚀 ENTERPRISE PRODUCTION ROADMAP COMPLETE, BROSKI!.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/env.example.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/poetry.lock.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/pyproject.toml.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/requirements.txt.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/scripts/deploy_legacy.sh.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/agents/classifier.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/agents/code_analyzer.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/api/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/api/routes/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/bot.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/admin.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/ai_relay.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/community.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/focus.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/health_check.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/hypercode_sync.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/life_engine.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/mystery_box.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/ops_alerts.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/pets.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/profile.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/profile_system.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/quest_orchestrator.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/quest_system.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/shop_system.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/cogs/slash_ask.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/config/logging.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/core/exceptions.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/core/quest_engine.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/core/schemas.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/integrations/mintme.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/models/__init__.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/repositories/__init__.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/repositories/achievement.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/repositories/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/repositories/quest.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/__init__.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/achievement.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/ai/adapter.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/ai/analytics.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/ai/generator.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/community.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/economy.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/services/quest.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/shared/__init__.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/shared/memstream_client.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/src/utils/rbac.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/supabase_schema.sql.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/integration/test_agent_handoff.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/integration/test_economy_api.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/integration/test_economy_service.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/integration/test_migrations.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/test_enterprise.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/unit/cogs/test_focus.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/unit/core/test_database.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/unit/core/test_quest_engine.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/unit/services/test_expanded_services.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-bot/tests/unit/utils/test_rbac.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-pets-bridge/Dockerfile.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-pets-bridge/main.py.
+The file will have its original line endings in your working directory
+warning: CRLF will be replaced by LF in agents/broski-pets-bridge/requirements.txt.
+The file will have its original line endings in your working directory

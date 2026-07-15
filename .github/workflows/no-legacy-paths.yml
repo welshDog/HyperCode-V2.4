@@ -1,4 +1,9 @@
 name: No Legacy Paths Guard
+
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches:

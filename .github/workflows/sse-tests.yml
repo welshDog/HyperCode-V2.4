@@ -1,5 +1,9 @@
 name: Fast SSE Tests
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     paths:
