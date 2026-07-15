@@ -27,6 +27,11 @@ from app.api import deps
 router = APIRouter()
 
 
+@router.get("/pulse")
+def broski_pulse() -> Any:
+    return {"status": "ok"}
+
+
 @router.get("/wallet", response_model=WalletResponse)
 def get_my_wallet(
     db: Session = Depends(get_db),

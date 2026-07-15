@@ -1,0 +1,26 @@
+# HyperFlow smoke flow — deterministic, no external dependencies.
+#
+# Pure human_approval_gate path used to verify the control plane end-to-end
+# (start -> SSE -> awaiting_approval -> resume -> completed) without depending on
+# the crew-orchestrator or an LLM. Used by the live E2E and as a CI smoke target.
+#
+# Run it:  POST /api/v1/flows/runs {"flow": "hyperflow-smoke"}
+
+name: hyperflow-smoke
+version: 1
+entry: ready
+
+nodes:
+  - id: ready
+    type: human_approval_gate
+    params:
+      prompt: "Smoke: approve to proceed?"
+
+  - id: finish
+    type: human_approval_gate
+    params:
+      prompt: "Smoke: final approval to complete?"
+
+edges:
+  - from: ready
+    to: finish

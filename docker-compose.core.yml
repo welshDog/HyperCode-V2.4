@@ -1,0 +1,419 @@
+# docker-compose.core.yml — Core infrastructure + hypercode-core
+# Services: hypercode-core, redis, postgres, hypercode-ollama, celery-worker
+# Discord bot: broski-bot (profile: discord) — the ONE TRUE BOT for HYPERFOCUS z0ne
+#
+# Run core only:        docker compose up -d
+# Run with bot:         docker compose --profile discord up -d
+# Run legacy lite bot:  docker compose --profile discord-lite up -d discord-bot
+
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    # XP/economy durability: AOF is primary (≤1s loss), RDB save points are belt-and-braces.
+    # Old `--save 60 1000` alone lost low-volume XP awards on restart (never hit 1000-change threshold, AOF off).
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes --appendfsync everysec --save 900 1 --save 300 10 --save 60 100 --protected-mode no
+    volumes:
+      - redis-data:/data
+    networks:
+      - data-net
+      - agents-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hypercode}
+      POSTGRES_DB: ${POSTGRES_DB:-hypercode}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - data-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 2G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  hypercode-core:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ${HYPERCODE_CORE_IMAGE:-hypercode-core:latest}
+    container_name: hypercode-core
+    environment:
+      - ENVIRONMENT=development
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      # P0-2: HyperFlow consults Safety Shepherd before dispatch (off|monitor|enforce)
+      - SAFETY_SHEPHERD_URL=${SAFETY_SHEPHERD_URL:-http://safety-shepherd:8096}
+      - SAFETY_SHEPHERD_MODE=${SAFETY_SHEPHERD_MODE:-monitor}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER:-}
+      - STRIPE_PRICE_BUILDER=${STRIPE_PRICE_BUILDER:-}
+      - STRIPE_PRICE_HYPER=${STRIPE_PRICE_HYPER:-}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY:-}
+      - STRIPE_PRICE_PRO_YEARLY=${STRIPE_PRICE_PRO_YEARLY:-}
+      - STRIPE_PRICE_HYPER_MONTHLY=${STRIPE_PRICE_HYPER_MONTHLY:-}
+      - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY:-}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - DEFAULT_LLM_MODEL=auto
+      - OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+      - OLLAMA_MAX_MODEL_SIZE_MB=2500
+      - OLLAMA_MODEL_REFRESH_SECONDS=300
+      - OLLAMA_TEMPERATURE=0.3
+      - OLLAMA_TOP_P=0.9
+      - OLLAMA_TOP_K=40
+      - OLLAMA_REPEAT_PENALTY=1.1
+      - OLLAMA_NUM_CTX=2048
+      - OLLAMA_NUM_PREDICT=256
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=http://tempo:4317
+      - PROMETHEUS_METRICS_DISABLED=false
+      - DB_AUTO_CREATE=true
+      - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000}
+      - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
+      - SHOP_SYNC_SECRET=${SHOP_SYNC_SECRET:-}
+      - MISSION_CONTROL_URL=${MISSION_CONTROL_URL:-}
+    env_file:
+      - .env
+    volumes:
+      - ./backend/alembic:/app/alembic:ro
+      - ./backend/alembic.ini:/app/alembic.ini:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    ports:
+      - "0.0.0.0:8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1.5G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  hypercode-ollama:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    container_name: hypercode-ollama
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "0.0.0.0:11434:11434"
+    networks:
+      - agents-net
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "-Q", "main-queue"]
+    dns:
+      - 8.8.8.8
+    volumes:
+      - ./backend:/app
+      - ./docs/outputs:/app/outputs
+    environment:
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
+      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_REDIS_URL: redis://redis:6379/0
+      HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
+    healthcheck:
+      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]
+      interval: 30s
+      timeout: 30s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - agents-net
+      - data-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1.5G
+        reservations:
+          cpus: "0.25"
+          memory: 384M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 🤖 BROSKI-BOT — THE ONE TRUE BOT for HYPERFOCUS z0ne
+  # Profile-gated: won't start unless --profile discord is passed.
+  # Core stack boots clean without any Discord secrets set.
+  # Run: docker compose --profile discord up -d
+  # ───────────────────────────────────────────────────────────────────────────
+  broski-bot:
+    profiles: ["discord"]
+    build:
+      context: ./agents/broski-bot
+      dockerfile: Dockerfile
+    container_name: broski-bot
+    environment:
+      HYPERCODE_API_URL: http://hypercode-core:8000
+      NEMOCLAW_URL: http://nemoclaw-agent:8099
+      # pets cog auth — the bridge compares against ITS HYPERCODE_API_KEY,
+      # which expands from the same ${API_KEY} (the per-agent _FILE secret
+      # is dead config: the bridge code never reads _FILE variants)
+      PETS_BRIDGE_API_KEY: ${API_KEY:-dev-master-key}
+      PETS_AUTOFEED_ENABLED: ${PETS_AUTOFEED_ENABLED:-true}
+      PETS_AUTOFEED_HOUR_UTC: ${PETS_AUTOFEED_HOUR_UTC:-7}
+      NEMOCLAW_PULSE_HOURS: ${NEMOCLAW_PULSE_HOURS:-24}
+      CODE_HEALTH_CHANNEL_ID: ${CODE_HEALTH_CHANNEL_ID:-}
+      AUTO_ROLE_NAME: ${AUTO_ROLE_NAME:-BROski}
+      DIGEST_DM_USER_ID: ${DIGEST_DM_USER_ID:-}
+      DIGEST_WEEKDAY: ${DIGEST_WEEKDAY:-0}
+      MOD_LOG_CHANNEL_ID: ${MOD_LOG_CHANNEL_ID:-}
+      MOD_BLOCKLIST: ${MOD_BLOCKLIST:-}
+      MOD_SPAM_MSGS: ${MOD_SPAM_MSGS:-6}
+      MOD_SPAM_WINDOW: ${MOD_SPAM_WINDOW:-8}
+      MOD_MENTION_LIMIT: ${MOD_MENTION_LIMIT:-6}
+      MOD_DUPLICATE_LIMIT: ${MOD_DUPLICATE_LIMIT:-4}
+      RAID_JOIN_THRESHOLD: ${RAID_JOIN_THRESHOLD:-5}
+      RAID_WINDOW_SECONDS: ${RAID_WINDOW_SECONDS:-10}
+    env_file:
+      - ./agents/broski-bot/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - data-net      # Postgres access
+      - agents-net    # Redis + FastAPI + other agents
+    volumes:
+      - broski-bot-db:/opt/hypercode/data/broski-bot/db
+      - broski-bot-logs:/opt/hypercode/data/broski-bot/logs
+      - broski-bot-backups:/opt/hypercode/data/broski-bot/backups
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cogs/bot.py') else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # 📜 DISCORD-BOT — Lightweight legacy bot (discord-bot/ folder)
+  # Reprofiled to discord-lite so it NEVER runs unless explicitly requested.
+  # Superseded by broski-bot. Kept for reference / fallback only.
+  # Run: docker compose --profile discord-lite up -d discord-bot
+  # ───────────────────────────────────────────────────────────────────────────
+  discord-bot:
+    profiles: ["discord-lite"]
+    build:
+      context: ./discord-bot
+      dockerfile: Dockerfile
+    env_file:
+      - ./discord-bot/.env
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - agents-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  redis-data:
+  postgres-data:
+  trivy-cache:
+  ollama-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/ollama
+  agent_memory:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT}/agent_memory
+  # 🤖 broski-bot persistence — economy + logs + backups survive rebuilds
+  broski-bot-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT:-/opt/hypercode/data}/broski-bot/db
+  broski-bot-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT:-/opt/hypercode/data}/broski-bot/logs
+  broski-bot-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HC_DATA_ROOT:-/opt/hypercode/data}/broski-bot/backups
+
+networks:
+  backend-net:
+    driver: bridge
+    name: hypercode_backend_net
+
+  data-net:
+    driver: bridge
+    name: hypercode_data_net
+    internal: true
+
+  agents-net:
+    driver: bridge
+    name: hypercode_agents_net

@@ -15,7 +15,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("agent", nargs="?", help="Agent service name (docker-compose profile service)")
     p.add_argument("--list", action="store_true", help="List available agents in the compose profile")
     p.add_argument("--profile", default="agents", help="Compose profile to target (default: agents)")
-    p.add_argument("--compose", default="docker-compose.yml", help="Compose filename (default: docker-compose.yml)")
+    p.add_argument(
+        "--compose",
+        default="docker-compose.agents.yml",
+        help="Compose filename (default: docker-compose.agents.yml)",
+    )
     p.add_argument("--dry-run", action="store_true", help="Print the docker command without executing it")
     return p
 
@@ -49,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     if args.dry_run:
-        cmd = ["docker", "compose", "--profile", spawner.profile, "up", "-d", agent]
+        cmd = ["docker", "compose", "-f", str(spawner.compose_file), "--profile", spawner.profile, "up", "-d", agent]
         print(" ".join(cmd))
     else:
         print(state)
@@ -58,4 +62,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

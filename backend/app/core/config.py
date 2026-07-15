@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     
     # Auth
     API_KEY: Optional[str] = None
+    BOT_API_KEY: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("BOT_API_KEY", "HYPERCODE_BOT_API_KEY"),
+    )
     JWT_SECRET: str = "dev-secret-key"
     HYPERCODE_JWT_SECRET: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
@@ -27,6 +31,12 @@ class Settings(BaseSettings):
     # Database & Redis
     HYPERCODE_DB_URL: str = "postgresql://postgres:postgres@postgres:5432/hypercode"
     HYPERCODE_REDIS_URL: str = "redis://redis:6379/0"
+
+    # DB connection pool — read by app.db.session for both sync and async engines
+    DB_POOL_SIZE: int = 25
+    DB_POOL_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE_TIMEOUT: int = 3600
 
     ORCHESTRATOR_URL: str = "http://crew-orchestrator:8080"
     ORCHESTRATOR_API_KEY: Optional[str] = None
@@ -44,7 +54,7 @@ class Settings(BaseSettings):
     MISSION_CONTROL_URL: str = "http://localhost:8088"  # URL sent to students in DM
     
     # AI
-    PERPLEXITY_API_KEY: Optional[str] = None
+    ANTHROPIC_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"
@@ -59,9 +69,30 @@ class Settings(BaseSettings):
     OLLAMA_NUM_CTX: int = 2048
     OLLAMA_NUM_PREDICT: int = 256
     OLLAMA_SEED: Optional[int] = None
-    PERPLEXITY_SESSION_AUTH: bool = False
-
     PETS_BRIDGE_URL: str = "http://broski-pets-bridge:8098"
+
+    NEMOCLAW_URL: str = "http://nemoclaw-agent:8099"
+    NEMOCLAW_TIMEOUT_SECONDS: float = 90.0
+
+    FOCUS_MIN_MINUTES: int = 5
+
+    # Layer 3 Voice — auto-post a code-health pulse only when the grade changes
+    # or the score moves by at least this many points.
+    CODE_HEALTH_PULSE_THRESHOLD: int = 5
+
+    # Server Guardian Phase 3a — reversible auto-mod only (never ban/kick here).
+    MOD_DEFAULT_TIMEOUT_SECONDS: int = 600
+
+    # Server Guardian Phase 3b — raid auto-lockdown (reversible).
+    RAID_LOCKDOWN_MINUTES: int = 10
+
+    # Server Guardian Phase 3c — veto-gated ban (SPEC LOCKED, binding).
+    # SAFETY INVARIANT: a ban NEVER happens except on explicit APPROVE click.
+    # Silence / window-expiry = downgrade to a long timeout, never a ban.
+    GUARDIAN_ESCALATION_STRIKES: int = 3
+    GUARDIAN_ESCALATION_WINDOW_DAYS: int = 7
+    GUARDIAN_VETO_WINDOW_MINUTES: int = 60
+    GUARDIAN_DOWNGRADE_TIMEOUT_SECONDS: int = 604800  # 7 days, reversible
 
     # Brain / memory (privacy defaults)
     # If enabled, Brain.recall_context may read recent files from object storage when RAG is unavailable.

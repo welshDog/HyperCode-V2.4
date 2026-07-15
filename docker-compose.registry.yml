@@ -1,0 +1,134 @@
+# docker-compose.registry.yml — Agent Registry + newly finished agents
+#
+# Run alongside the main stack:
+#   docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+#     -f docker-compose.agents.yml -f docker-compose.registry.yml up -d agent-registry
+#
+# Services:
+#   agent-registry        (always-on)      — fleet tracker, /agents/status, auto-restart
+#   agent-factory         (profile agents) — REST spawn/wake for profile-gated agents
+#   hyper-auto-assistant  (profile hyper)  — intent router → super-hyper-broski-agent
+
+services:
+  agent-registry:
+    build:
+      context: ./agents/agent-registry
+      dockerfile: Dockerfile
+    container_name: agent-registry
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8077:8077"
+    environment:
+      - DOCKER_READ_HOST=http://docker-socket-proxy:2375
+      - DOCKER_WRITE_HOST=http://docker-socket-proxy-healer:2375
+      - REDIS_URL=redis://redis:6379
+      - POLL_INTERVAL_SECONDS=30
+      - CRASH_WINDOW_SECONDS=600
+      - CRASH_THRESHOLD=3
+      - RESTART_COOLDOWN_SECONDS=60
+      - CIRCUIT_BREAK_SECONDS=600
+      - AUTO_RESTART_ENABLED=true
+      - DISCORD_WEBHOOK_URL=${REGISTRY_DISCORD_WEBHOOK_URL:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8077/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  agent-factory:
+    profiles: ["agents"]
+    build:
+      context: ./agents/agent-factory
+      dockerfile: Dockerfile
+    container_name: agent-factory
+    restart: unless-stopped
+    networks:
+      - agents-net
+    ports:
+      - "127.0.0.1:9000:9000"
+    environment:
+      - SPAWN_MODE=docker
+      - DOCKER_READ_HOST=http://docker-socket-proxy:2375
+      - DOCKER_WRITE_HOST=http://docker-socket-proxy-healer:2375
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  hyper-auto-assistant:
+    profiles: ["hyper"]
+    build:
+      context: ./agents/hyper-auto-assistant
+      dockerfile: Dockerfile
+    container_name: hyper-auto-assistant
+    restart: unless-stopped
+    networks:
+      - agents-net
+    ports:
+      - "127.0.0.1:8016:8016"
+    environment:
+      - BROSKI_AGENT_URL=http://super-hyper-broski-agent:8015
+      - PORT=8016
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8016/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  agents-net:
+    external: true
+  data-net:
+    external: true

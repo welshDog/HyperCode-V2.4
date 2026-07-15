@@ -1,0 +1,48 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Single-click launchpad for the HyperCode ecosystem: dashboards, logs, traces, profiling, and alerts.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "code": { "language": "plaintext", "showLineNumbers": false, "showMiniMap": false },
+        "content": "<div style=\"padding: 18px 18px 6px 18px;\">\n  <div style=\"display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;\">\n    <h1 style=\"margin:0;color:#00d3ff;\">🌐 HyperCode Ecosystem Launchpad</h1>\n    <div style=\"opacity:.85\">Grafana • Prometheus • Loki • Tempo • Pyroscope • k6</div>\n  </div>\n  <div style=\"margin-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;\">\n    <div style=\"border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;\">\n      <div style=\"font-weight:600;margin-bottom:8px;\">🚀 Ops Dashboards</div>\n      <ul style=\"margin:0;padding-left:18px;line-height:1.7;\">\n        <li><a href=\"/d/hypercode-mission-control\" target=\"_self\">HyperCode Mission Control</a></li>\n        <li><a href=\"/d/hypercode-tier3-pools-queues\" target=\"_self\">Tier 3 — Pools & Queues</a></li>\n        <li><a href=\"/d/throttle-healer\" target=\"_self\">Throttle + Healer (Autopilot)</a></li>\n        <li><a href=\"/d/hypercode-life-plans\" target=\"_self\">Life Plans & Agent Health</a></li>\n        <li><a href=\"/d/hyperswarm-hud\" target=\"_self\">HyperSwarm Mission Dashboard</a></li>\n        <li><a href=\"/d/broski-agents\" target=\"_self\">BROski Agent Intelligence</a></li>\n        <li><a href=\"/d/test-agent-observability\" target=\"_self\">Test-Agent Observability</a></li>\n        <li><a href=\"/d/smoke-metrics\" target=\"_self\">Smoke Metrics (Crew Orchestrator)</a></li>\n      </ul>\n    </div>\n    <div style=\"border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;\">\n      <div style=\"font-weight:600;margin-bottom:8px;\">🔎 Investigate</div>\n      <ul style=\"margin:0;padding-left:18px;line-height:1.7;\">\n        <li><a href=\"/explore\" target=\"_self\">Explore (logs / metrics / traces)</a></li>\n        <li><a href=\"/alerting/list\" target=\"_self\">Alerting → Alert rules</a></li>\n        <li><a href=\"http://localhost:4040\" target=\"_blank\" rel=\"noreferrer\">Pyroscope UI (:4040)</a></li>\n      </ul>\n      <div style=\"margin-top:10px;opacity:.9;font-size:12px;\">Tip: Loki has trace linking wired (derivedFields) so clicking TraceID jumps to Tempo.</div>\n    </div>\n    <div style=\"border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;\">\n      <div style=\"font-weight:600;margin-bottom:8px;\">🧪 Load Testing</div>\n      <div style=\"font-size:13px;opacity:.95;line-height:1.5;\">\n        <div>k6 is wired via Docker, reports into <code>reports/</code> in the repo.</div>\n        <div style=\"margin-top:8px;\">\n          <code>./tests/performance/run-k6-health.ps1</code>\n        </div>\n      </div>\n    </div>\n  </div>\n</div>",
+        "mode": "html"
+      },
+      "pluginVersion": "13.0.1",
+      "transparent": true,
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["hypercode", "mission-control", "ecosystem"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "🌐 HyperCode Ecosystem Launchpad",
+  "uid": "hypercode-ecosystem-launchpad",
+  "version": 1,
+  "weekStart": ""
+}

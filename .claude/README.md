@@ -6,6 +6,7 @@ This folder contains Claude's local project configuration and reusable skill mod
 
 - Project intelligence: [CLAUDE.md](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/CLAUDE.md)
 - Claude permissions + MCP config: [settings.local.json](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/.claude/settings.local.json)
+- Skills index (human-friendly): [SKILLS.md](file:///H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/.claude/SKILLS.md)
 - Claude skill modules (auto-discovered): [skills/](file:///h:/HyperStation%20zone/HyperCode/HyperCode-V2.4/.claude/skills/)
 
 ## Skill Discovery Rules

@@ -1,0 +1,263 @@
+# WelshDog HyperCode IDE — Full 9-Page Founder Report
+**Date:** Friday 10 July 2026 | **Location:** Llanelli, Wales | **Build:** WelshDog HyperCode IDE
+
+***
+
+## Page-by-Page Audit
+
+***
+
+### Page 1 — Hyper Station (Home)
+**Status: Partially Live** [127.0.0](http://127.0.0.1:8088/)
+
+The home screen is your mission control dashboard. It loads cleanly and shows the right structure: Metrics Home, Agents, Services, Tasks, and BROski Pulse panels all present.
+
+**What's working:**
+- Dashboard renders correctly with all panels visible
+- Navigation across all 9 sections works cleanly
+- BROski Pulse panel is present with correct layout
+- Tasks panel has a live input field for submitting new tasks
+
+**What needs attention:**
+- Metrics Home shows a loading spinner — metrics are not populating on fresh page load; likely a slow API or polling issue
+- Agents panel is loading/skeleton state — no agents visible on home even after restart
+- Services shows "System Health" but no live service data rendered
+- BROski$ and Total XP both show 0 — economy layer not yet connected
+- Healthy shows 0/0 — agent health feed is not connecting to the home panel
+- Bottom of page shows a raw unicode character `\u23F3` rendering as text instead of a spinner emoji — minor frontend bug
+
+***
+
+### Page 2 — IDE
+**Status: Working — Core Features Confirmed** [127.0.0](http://127.0.0.1:8088/ide)
+
+This is the strongest interactive page in the platform. Three-panel layout: File Browser, Editor, BROski Metrics.
+
+**What's working:**
+- File browser is fully live — navigated into `/workspace/backend` and it loaded 25 entries correctly
+- Directory events fire in real time: "Directory loaded", "Loading directory", "Changed directory" all appeared in the event stream
+- Terminal Orchestrator Task Runner accepts input and sends tasks — confirmed by seeing `> run health check on all services` appear in the terminal output
+- File selection highlights correctly and updates the Editor panel header
+- BROski Metrics sidebar shows live updating numbers: API Requests/min moved from 99 → 107, Avg Response moved from 350ms → 294ms
+- Notification badge updated from 4 to 7 and then 9+ during testing — showing real-time activity
+- Focus mode buttons on all three panels work
+- Theme modes in top bar (Default, Dyslexia, High-C, Focus) all visible and accessible — strong ND-first design
+
+**What needs attention:**
+- `metrics.py` file click returned `"File not found" (404)` in the editor — the file exists in the directory listing but the file read API cannot find it. Path resolution issue between the file tree and the read endpoint
+- Terminal task "run health check on all services" was sent and shown in the output area but no result or response came back — the task dispatch works but agent pickup is not confirmed
+- BROski$ = 0, Total XP = 0, Healthy = 0/0, Top Agent = — across all metrics sidebar economy data
+
+***
+
+### Page 3 — Agents
+**Status: Not Registering** [127.0.0](http://127.0.0.1:8088/agents)
+
+Clean, minimal page with the right structure — but completely empty.
+
+**What's working:**
+- Agents Status Board renders correctly
+- Status filter tabs present (red/yellow/green/grey with counts)
+- Refresh button present and clickable
+- All status counts show 0
+
+**What needs attention:**
+- "No agents reporting — Start the agents profile and wait for heartbeats" is the core message
+- The Docker Zone confirms 13 agents are "covered" and health page shows some Docker containers running — so the agents exist in compose but are not sending heartbeats to this UI
+- This is the single biggest gap: **the agent layer exists at infra level but is not communicating with the dashboard**
+- Fix path: start the agents Docker compose profile, wait 30–60s, then hard refresh this page
+
+***
+
+### Page 4 — Mission
+**Status: Best Page — Most Data Live** [127.0.0](http://127.0.0.1:8088/mission)
+
+The Mission page is the most feature-complete and data-rich page in the platform right now.
+
+**What's working:**
+- Agent Swarm panel present (same 0-agent issue, but the panel structure is correct)
+- Event Timeline is **live and streaming real events** — confirmed two real entries: `06:35:30 PM STARTED #mapek-Mission Control` and `06:38:42 PM STARTED #mapek-Ollama LLM` — these are genuine system events
+- System Logs panel is live and connected — "Live logs connected" toast appeared at bottom right
+- Logs panel has filter controls: Level (Any), Source (All), Scan and Copy buttons
+- Tasks panel is fully functional with all state counters: total, queued, running, failed, complete, dead — all 0 but the structure is wired
+- New task input field is present and accepts text
+- Plan Generator is a standout feature — paste a PRD or design doc, select mode (Generic), hit Generate Plan — this is a real AI planning tool embedded in the dashboard
+- Metrics panel showing: 60 API req/min, 243ms avg response, 0 heals, 42.86% error rate
+- BROski Pulse panel visible
+- Grid / Focus / Present view mode switcher in top bar — unique ND-first feature, well done
+- Notification badge active
+
+**What needs attention:**
+- Error rate of 42.86% is significant — needs investigation. This is likely the agent heartbeat misses and file-not-found errors accumulating
+- 0 heals today despite healer-agent being in the compose file — healer is not running or not picking up failures
+- Tasks all at 0 — no tasks flowing through the system yet
+
+***
+
+### Page 5 — Flows
+**Status: Waiting for First Flow** [127.0.0](http://127.0.0.1:8088/flows)
+
+Simple, clean page. The right empty state for a live stream visualiser.
+
+**What's working:**
+- "Mission Graph — Active HyperFlow" renders correctly
+- Empty state message is clear and developer-friendly: "Start one: POST /api/v1/flows/runs · then it streams here live"
+- Spider web graphic for empty state is a nice ND-first touch — not a boring error box
+
+**What needs attention:**
+- No flows have been triggered yet so nothing to display — this is expected
+- Worth firing a test flow via the API to confirm the stream renders: `POST /api/v1/flows/runs` with a minimal payload
+- No visual loading state or "waiting for stream" indicator — could confuse new users who don't know whether the page is broken or just empty
+
+***
+
+### Page 6 — MCP
+**Status: Live and OK** [127.0.0](http://127.0.0.1:8088/mcp)
+
+Short and simple but confirmed working.
+
+**What's working:**
+- "HyperCode MCP Server: ok" — clean confirmation the MCP gateway is responding
+- SSE endpoint correctly advertised: `http://localhost:8823/sse`
+- The page gives a clear instruction for MCP-capable clients to connect
+
+**What needs attention:**
+- No version number shown — worth adding the current skill version (should be v1.1.2) so you can instantly tell whether the running MCP matches the expected build without digging into logs
+- No list of loaded skills visible in the UI — a "Skills loaded: 120" count or a skill browser would make this page much more useful
+- No health timestamps — when was MCP last pinged? What was the last skill loaded?
+
+***
+
+### Page 7 — Docker Zone
+**Status: Strongest Infrastructure Page** [127.0.0](http://127.0.0.1:8088/docker-zone)
+
+This page is exceptional — it reads like a real DevOps command centre.
+
+**What's working:**
+- Hot-reload: LIVE — develop.watch active, ~1s code-to-container latency
+- 13 agents covered (10 specialist + 3 core)
+- 13+ compose files across agents, hyper, mcp, health profiles
+- 4 Hyper-Agents confirmed: architect, observer, worker, X
+- 2 Security tools active: Trivy + Semgrep — confirmed done
+- Docker updates panel clearly shows what's new, what's done, and what's recommended
+- develop.watch hot-reload confirmed done and active
+- Docker Scout / Security already in place
+- .dockerignore optimised — no build bloat
+- Security recommendation noted: upgrade from ENV-based API keys to Docker `--mount=type=secret`
+
+**What needs attention:**
+- The security upgrade to `--mount=type=secret` for API key management is flagged as a recommendation but not yet done — this is the most important remaining security hardening item
+- `docker debug` mentioned as a recommendation for easier container shell access — worth adding to your workflow
+- No live container status table on this page — the Docker Command Centre shows config facts but not runtime status. That lives in Health instead. Could be worth a minimal "containers running now" live table here too
+
+***
+
+### Page 8 — Health
+**Status: Structurally Good — Many Services UNKNOWN** [127.0.0](http://127.0.0.1:8088/health)
+
+The most honest page in the platform. It shows exactly what is and isn't working at service level.
+
+**Confirmed HEALTHY services:**
+Redis, Postgres, hypercode-ollama, MinIO, Chroma, hypercode-core, hypercode-dashboard, healer-agent, hypercode-mcp-server, Prometheus, Grafana, docker-socket-proxy, docker-socket-proxy-healer, mcp-gateway, broski-pets-bridge, broski-bot, hyperhealth-api, hyperhealth-worker
+
+That is 18 services confirmed healthy. Your core data layer, AI layer, observability stack, and gateway are all up.
+
+**Confirmed UNKNOWN (not reachable by health poller):**
+celery-worker, celery-exporter, ai-backend, loki, tempo, alertmanager, node-exporter, cadvisor, promtail, docker-socket-proxy-build, crew-orchestrator, coder-agent, project-strategist, frontend-specialist, backend-specialist, database-architect, qa-engineer, devops-engineer, security-engineer, system-architect, test-agent, throttle-agent, tips-tricks-writer, goal-keeper, super-hyper-broski-agent, hyper-architect, hyper-observer, hyper-worker, hyper-split-agent, session-snapshot, agent-x, hyper-mission-api, hyper-mission-ui
+
+That is 33 services showing UNKNOWN — and 21 specifically flagged as offline agents (compose vs live mismatch).
+
+**Crew Orchestrator and Healer show UNKNOWN/DEGRADED** — these are your two most important recovery services and neither is confirmed reachable.
+
+**What needs attention:**
+- The agents compose profile is likely not started — this would explain why all specialist agents show UNKNOWN
+- Start the agents profile: `docker compose --profile agents up -d`
+- Celery worker and exporter being UNKNOWN explains the task queue showing 0 — tasks cannot be processed without Celery
+- Loki, Tempo, and alertmanager being UNKNOWN means your log aggregation and alerting are not running — Grafana will be empty as a result
+- Crew Orchestrator unreachable — confirmed in the "Unreachable — start crew-orchestrator" message on Health header
+
+***
+
+### Page 9 — Grafana
+**Status: Embedded but Blank — Root Cause Found** [127.0.0](http://127.0.0.1:8088/pricing)
+
+The Grafana page loads the embed shell correctly. The navigation tabs (Launchpad, Dashboards, Explore, Alerting) are present and the path `/d/hypercode-mission-control` is set.
+
+**What's working:**
+- The Grafana embed wrapper renders
+- Navigation tabs are present
+- "Pop out" button works to open Grafana directly
+- The path points to a real dashboard: hypercode-mission-control
+
+**What needs attention:**
+- The iframe content is blank — because Loki, Tempo, alertmanager, node-exporter, cadvisor, and promtail are all UNKNOWN on the Health page. Grafana has no data sources feeding it
+- Once the observability stack is running (start the monitoring compose profile), this page will populate automatically — it is not a Grafana config issue, it is a missing data source issue
+- Worth checking whether Grafana is configured to allow iframe embedding (`allow_embedding = true` in grafana.ini) as some builds default to blocking this
+
+***
+
+## Master Scorecard
+
+| Page | Status | Score |
+|---|---|---|
+| Hyper Station | Partially live — metrics loading, agents empty | 5/10 |
+| IDE | Working — file browser, editor, terminal confirmed | 8/10 |
+| Agents | Not registering — agents profile not started | 2/10 |
+| Mission | Best page — live events, logs, plan generator | 8/10 |
+| Flows | Ready — waiting for first flow trigger | 6/10 |
+| MCP | Live and OK — no version or skills display | 6/10 |
+| Docker Zone | Excellent — infra facts, security confirmed | 9/10 |
+| Health | Honest — 18 healthy, 33 unknown, root cause clear | 7/10 |
+| Grafana | Embedded but blank — observability stack offline | 3/10 |
+
+**Overall Platform Score: 6/10** — strong bones, clear root cause, fixable today.
+
+***
+
+## The Root Cause of Most Issues
+
+Almost every problem in this audit traces back to **one thing**: the agents compose profile is not running.
+
+Starting it will fix:
+- Agents page populating
+- Celery workers processing tasks
+- Specialist agents registering heartbeats
+- Crew Orchestrator becoming reachable
+- Healer agent activating
+- Error rate dropping from ~45% toward zero
+- Grafana getting data from node-exporter, cadvisor, promtail, Loki, Tempo
+
+**Single command to try first:**
+
+```bash
+docker compose --profile agents up -d
+```
+
+Then wait 60 seconds and hard refresh the Agents page.
+
+***
+
+## Priority Fix List
+
+| Priority | Fix | Expected Result |
+|---|---|---|
+| 1 | Start agents compose profile | Agents register, tasks flow, error rate drops |
+| 2 | Start monitoring profile (Loki, Tempo, alertmanager) | Grafana populates, observability live |
+| 3 | Fix file read 404 in IDE (metrics.py path resolution) | Editor works for all files |
+| 4 | Fix unicode rendering bug on home (\\u23F3) | Home page renders cleanly |
+| 5 | Add MCP version + skills count to MCP page | Instant version verification |
+| 6 | Upgrade API key management to Docker --mount=type=secret | Security hardening complete |
+| 7 | Trigger first test flow via POST /api/v1/flows/runs | Verify Flows page streams correctly |
+| 8 | Add BROski economy wiring | BROski$ and XP start accumulating |
+
+***
+
+## What Is Genuinely Impressive
+
+- The **IDE file browser** and event stream work in real time — that is not easy to build
+- The **Mission page** is a proper ops dashboard — live events, log streaming, plan generator all in one
+- The **Docker Zone** shows real engineering maturity: security scanning done, hot-reload live, build tooling clean
+- The **ND-first design** is consistent across every page — Dyslexia, High-C, Focus modes, Grid/Present view switching — this is not an afterthought
+- **18 core services are healthy** — your data layer (Redis, Postgres, MinIO, Chroma), AI layer (Ollama), observability base (Prometheus, Grafana), and gateway are all running solid
+
+The platform is not broken Bro — it is **built but not fully started**. The containers are there, the UI is wired, the design is coherent. You just need to bring the agents and monitoring profiles online and this becomes a proper live command centre. Nice one BROski♾️

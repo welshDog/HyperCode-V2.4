@@ -89,6 +89,6 @@ If you have exposed the Orchestrator port (8080) to your localhost:
 
 ## Future Improvements
 
-- **LLM Evaluation**: Integrate OpenAI/PERPLEXITY to judge complex code generation tasks.
+- **LLM Evaluation**: Integrate Anthropic/Ollama to judge complex code generation tasks.
 - **Performance Benchmarking**: Track latency trends over time.
 - **Stress Testing**: Scenarios that spawn concurrent requests.

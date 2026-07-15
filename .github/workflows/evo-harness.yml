@@ -1,0 +1,48 @@
+name: Evo Harness — Long-Horizon Regression
+
+# P2-1 — keeps HyperCode GREEN across multi-phase changes (separate from Trivy).
+# CI-safe: parses docs/ROADMAP.md → milestone DAG → scores. No stack, no rollback.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/evo_harness.py'
+      - 'scripts/test_evo_harness.py'
+      - 'docs/ROADMAP.md'
+      - '.github/workflows/evo-harness.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/evo_harness.py'
+      - 'docs/ROADMAP.md'
+  schedule:
+    - cron: '0 6 * * 1'   # weekly Monday 06:00 UTC — long-horizon drift check
+  workflow_dispatch: {}
+
+concurrency:
+  group: evo-harness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  evo-harness:
+    name: Milestone DAG Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest (harness is stdlib-only)
+        run: pip install pytest
+      - name: Unit tests (parse / DAG / scoring)
+        run: pytest scripts/test_evo_harness.py -v --tb=short
+      - name: Run Evo Harness (check mode)
+        run: python scripts/evo_harness.py --check --fail-under 0.9
+      - name: Upload evo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evo-report
+          path: docs/evo_reports/*.json
+          if-no-files-found: warn

@@ -6,6 +6,7 @@ import sys
 import os
 sys.path.append('/app')
 from base_agent import BaseAgent, AgentConfig
+import uvicorn
 
 class FrontendSpecialist(BaseAgent):
     async def process_task(self, task: str, context: dict, requires_approval: bool):
@@ -155,4 +156,4 @@ TESTING:
 if __name__ == "__main__":
     config = AgentConfig()
     agent = FrontendSpecialist(config)
-    agent.run()
+    uvicorn.run(agent.app, host="0.0.0.0", port=config.port)

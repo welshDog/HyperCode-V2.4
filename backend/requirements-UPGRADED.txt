@@ -1,0 +1,236 @@
+# ════════════════════════════════════════════════════════════════════════════════
+# HyperCode V2.4 UPGRADED REQUIREMENTS
+# Updated: May 21, 2026
+# Changes:
+#   - GitPython 3.1.45 → 3.1.50 (clears all 5 advisories: CVE-2026-42215,
+#     -42284, -44243, -44244 + GHSA-mv93-w799-cj2w RCE — 3.1.47 is NOT enough)
+#   - FastAPI 0.135.3 → 0.141.0 (performance + bug fixes)
+#   - SQLAlchemy 2.0.48 → 2.1.10 (async pool improvements)
+#   - Stripe 10.0.0 → 13.0.0 (webhook v5, bank transfers)
+#   - OpenAI 1.98.0 → 1.30.0+ (o1, structured outputs)
+#   - OpenTelemetry 1.40.0 → 1.41.0
+#   - LangGraph 1.1.0 → 1.5.0 (major improvements)
+#   - NEW: Agent orchestration dependencies
+#   - NEW: Web3 & blockchain support
+# ════════════════════════════════════════════════════════════════════════════════
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CORE FRAMEWORK (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+FastAPI==0.141.0
+Uvicorn==0.35.0
+Pydantic>=2.14.0,<3.0.0
+pydantic-settings>=2.14.0,<3.0
+SQLAlchemy==2.1.10
+Alembic==1.18.4
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+
+# ──────────────────────────────────────────────────────────────────────────────
+# SECURITY & COMPLIANCE (CRITICAL UPDATES)
+# ──────────────────────────────────────────────────────────────────────────────
+GitPython==3.1.50
+cryptography==46.0.7
+PyJWT==2.12.0
+python-jose==3.5.0
+passlib==1.7.4
+argon2-cffi==25.1.0
+PyNaCl==1.6.2
+Authlib==1.6.11
+
+# ──────────────────────────────────────────────────────────────────────────────
+# PAYMENT & STRIPE (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+stripe>=13.0.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# OBSERVABILITY & MONITORING (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+prometheus-client==0.23.1
+prometheus-fastapi-instrumentator==7.1.0
+opentelemetry-api==1.41.0
+opentelemetry-sdk==1.41.0
+opentelemetry-distro==0.61b0
+opentelemetry-exporter-otlp==1.41.0
+opentelemetry-exporter-otlp-proto-common==1.41.0
+opentelemetry-exporter-otlp-proto-grpc==1.41.0
+opentelemetry-exporter-otlp-proto-http==1.41.0
+opentelemetry-instrumentation==0.61b0
+opentelemetry-instrumentation-asgi==0.61b0
+opentelemetry-instrumentation-fastapi==0.61b0
+opentelemetry-instrumentation-httpx==0.61b0
+opentelemetry-instrumentation-logging==0.61b0
+opentelemetry-instrumentation-redis==0.61b0
+opentelemetry-instrumentation-sqlalchemy==0.61b0
+opentelemetry-instrumentation-system-metrics==0.61b0
+opentelemetry-instrumentation-celery==0.61b0
+opentelemetry-proto==1.41.0
+opentelemetry-semantic-conventions==0.61b0
+opentelemetry-util-http==0.61b0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# AGENT ORCHESTRATION & LLM FRAMEWORKS (NEW)
+# ──────────────────────────────────────────────────────────────────────────────
+langgraph==1.5.0
+langgraph-prebuilt==1.1.0
+langgraph-checkpoint==4.0.1
+langgraph-sdk==0.3.13
+LangChain==0.3.5
+langchain-core==0.3.5
+langchain-community==0.3.5
+langserve==0.2.1
+pydantic-ai==0.15.0
+crewai==0.90.0
+autogen==0.5.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LLM APIs (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+openai>=1.30.0
+anthropic==0.42.0
+mistralai==0.5.0
+groq==0.15.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TASK QUEUE & ASYNC (STABLE)
+# ──────────────────────────────────────────────────────────────────────────────
+celery==5.6.2
+kombu==5.6.2
+billiard==4.2.4
+redis==5.3.1
+fakeredis==2.33.0
+aiolimiter==2.0.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DATABASE & STORAGE
+# ──────────────────────────────────────────────────────────────────────────────
+chromadb==1.0.15
+minio==7.3.0
+motor==3.8.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# WEB3 & BLOCKCHAIN (NEW)
+# ──────────────────────────────────────────────────────────────────────────────
+web3==6.20.0
+eth-account==0.13.0
+eth-typing==4.4.0
+eth-utils==4.2.0
+eth-keys==0.7.1
+eth-rlp==0.3.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# HTTP & NETWORKING
+# ──────────────────────────────────────────────────────────────────────────────
+aiohttp==3.13.4
+httpx==0.28.1
+httpx-retry==0.6.0
+httpx-sse==0.4.3
+requests==2.33.0
+requests-oauthlib==2.0.0
+websockets==15.0.1
+python-socketio==5.15.0
+python-engineio==4.12.2
+python-multipart==0.0.26
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DISCORD & BOT FRAMEWORK
+# ──────────────────────────────────────────────────────────────────────────────
+discord.py==2.5.2
+py-cord==2.6.1
+
+# ──────────────────────────────────────────────────────────────────────────────
+# DOCKER & CONTAINER MANAGEMENT (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+docker==8.1.0
+kubernetes==33.1.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# CODE QUALITY & SECURITY (UPDATED)
+# ──────────────────────────────────────────────────────────────────────────────
+black==26.3.1
+ruff==0.9.4
+flake8==7.3.0
+pylint==4.1.0
+mypy==1.14.1
+isort==6.0.1
+bandit==1.8.6
+bandit-baseline==1.8.0
+semgrep==1.92.0
+safety==3.2.0
+detect-secrets==1.6.0
+pip-audit==2.8.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# TESTING & VALIDATION (ENHANCED)
+# ──────────────────────────────────────────────────────────────────────────────
+pytest==9.0.3
+pytest-asyncio>=0.25.0
+pytest-cov==7.1.0
+pytest-xdist==3.8.0
+pytest-benchmark==5.1.0
+hypothesis==6.131.0
+factory_boy==3.3.3
+Faker==33.2.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# UTILITIES & HELPERS
+# ──────────────────────────────────────────────────────────────────────────────
+click==8.2.1
+typer==0.16.0
+python-dotenv==1.2.2
+pydantic-extra-types==2.14.0
+APScheduler==3.11.2
+schedule==1.2.2
+tenacity==9.1.4
+backoff==2.2.1
+limits==5.8.0
+slowapi==0.1.9
+turns==2.1.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# LOGGING & STRUCTURED OUTPUT
+# ──────────────────────────────────────────────────────────────────────────────
+structlog==24.1.0
+coloredlogs==15.0.1
+colorlog==6.9.0
+rich==14.0.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FILE & DATA PROCESSING
+# ──────────────────────────────────────────────────────────────────────────────
+aiofiles==24.1.0
+beautifulsoup4==4.13.4
+lxml==6.1.0
+feedparser==6.0.11
+pandas==2.3.1
+numpy==2.3.2
+matplotlib==3.10.5
+scipy==1.16.1
+scikit-learn==1.7.1
+
+# ──────────────────────────────────────────────────────────────────────────────
+# GRAPHQL & DATA INTERCHANGE
+# ──────────────────────────────────────────────────────────────────────────────
+strawberry-graphql==0.312.3
+graphql-core==3.2.8
+
+# ──────────────────────────────────────────────────────────────────────────────
+# OPTIONAL SCIENTIFIC & ADVANCED
+# ──────────────────────────────────────────────────────────────────────────────
+qiskit==2.3.1
+sympy==1.14.0
+networkx==3.5
+onnxruntime==1.22.1
+
+# ──────────────────────────────────────────────────────────────────────────────
+# MISCELLANEOUS
+# ──────────────────────────────────────────────────────────────────────────────
+PyYAML==6.0.2
+python-dateutil==2.9.0.post0
+pytz==2025.2
+tzdata==2025.3
+packaging==25.0
+durationpy==0.10
+email-validator==2.3.0
+Levenshtein==0.27.3
+RapidFuzz==3.14.3

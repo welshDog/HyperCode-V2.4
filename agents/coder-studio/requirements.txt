@@ -1,0 +1,15 @@
+# coder-studio — HyperStudio write path (port 8087)
+#
+# claude-agent-sdk ships a bundled Claude Code CLI binary INSIDE the
+# platform-specific wheel (manylinux_2_17 → _bundled/claude, ~258 MB). No
+# Node.js / npm is needed. ⚠️ Must build on glibc (python:3.12-slim), NOT musl:
+# on Alpine pip silently falls back to the ancient 0.1.7 pure-python wheel with
+# no bundled CLI.
+claude-agent-sdk==0.2.115
+
+# ⚠️ agent-base ships fastapi 0.109.2 / uvicorn 0.27.0, but claude-agent-sdk's
+# `mcp` dep pulls in a newer starlette that dropped Router(on_startup=…) — the
+# old fastapi then crashes at import with "unexpected keyword argument
+# 'on_startup'". Pin the versions proven together locally (82 tests + boot).
+fastapi==0.139.0
+uvicorn==0.51.0

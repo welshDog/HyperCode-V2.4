@@ -16,6 +16,46 @@ logging.basicConfig(
 )
 logger = logging.getLogger("coder-agent")
 
+def _self_agent_key() -> str:
+    """OWN identity for agent->core calls (Phase 10E) — env first, then the
+    registered Docker secret. Empty = event mirroring silently off."""
+    key = (os.getenv("HYPERCODE_AGENT_KEY") or "").strip()
+    if key:
+        return key
+    path = os.getenv(
+        "HYPERCODE_AGENT_KEY_FILE", "/run/secrets/agent_api_key_coder-agent"
+    )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+async def _publish_core_event(event_status: str, task_id: str, payload: Dict[str, Any]) -> None:
+    """Mirror an execution event to core POST /api/v1/events as coder-agent.
+    Fail-open — core down or key missing never affects the task response."""
+    key = _self_agent_key()
+    if not key:
+        return
+    core_url = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                f"{core_url}/api/v1/events",
+                headers={"X-Agent-Key": key},
+                json={
+                    "channel": "task",
+                    "agentId": "coder-agent",
+                    "taskId": task_id,
+                    "status": event_status,
+                    "payload": payload,
+                },
+            )
+    except Exception as exc:
+        logger.warning("core event publish failed (non-fatal): %s", exc)
+
+
 # Define base classes if they are not in base_agent (or import them)
 class AgentConfig:
     def __init__(self, name: str, port: int, redis_url: str = "redis://redis:6379", **kwargs):
@@ -108,15 +148,23 @@ class CoderAgent:
                 result_data = await self.generate_code_with_ollama(request.task)
                 
             logger.info(f"Task {request.id} completed successfully.")
+            # Phase 10E: announce the execution to core's event stream as US
+            await _publish_core_event(
+                "completed", request.id,
+                {"task": request.task[:120], "result_keys": list(result_data.keys())},
+            )
             return TaskResponse(
                 task_id=request.id,
                 agent=self.config.name,
                 status="completed",
                 result=result_data
             )
-            
+
         except Exception as e:
             logger.error(f"Task {request.id} failed: {str(e)}", exc_info=True)
+            await _publish_core_event(
+                "failed", request.id, {"task": request.task[:120], "error": str(e)[:300]},
+            )
             return TaskResponse(
                 task_id=request.id,
                 agent=self.config.name,

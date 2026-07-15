@@ -229,11 +229,97 @@
       "Bash(railway domain *)",
       "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway domain)",
       "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway domain *)",
-      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway whoami)"
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway whoami)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway deployment --help)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway deployment list)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" railway variables -k --service \"HyperCode-V2.4\")",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway run --service \"HyperCode-V2.4\" -- printenv)",
+      "Bash(RAILWAY_PROJECT_ID=\"3d66bd92-cac3-4fde-ae9a-07f269b58791\" RAILWAY_ENVIRONMENT_ID=\"92291c6e-89d8-4a0b-af03-046ca3c30824\" RAILWAY_SERVICE_ID=\"6ba8816d-7f07-4f83-8fdd-682743edef6b\" railway service *)",
+      "Bash(railway scale *)",
+      "Bash(railway --version)",
+      "Bash(railway upgrade *)",
+      "Bash(cmd.exe /c \"npm update -g @railway/cli\")",
+      "PowerShell(npm update *)",
+      "Bash(findstr -i compose)",
+      "PowerShell(docker compose *)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "hypercode"
-  ]
+    "hypercode",
+    "hyper-sills",
+    "github",
+    "filesystem"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/env_guard.py\"; exit 0",
+            "if": "Bash(docker compose*)",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "Checking env vars..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$j = $input | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match 'docker-compose.*\\.yml') { python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/compose_validator.py\" $f }",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Validating compose file..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_start.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session start..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/broski_xp_reward.py\" --reason session_start",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Awarding BROski$ XP..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_end.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session end..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/broski_xp_reward.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Awarding BROski$ XP..."
+          }
+        ]
+      }
+    ]
+  }
 }

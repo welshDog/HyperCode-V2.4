@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_start.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/env_guard.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostFileSave": [
+      {
+        "matcher": "**/*.py",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/lint_on_save.py ${file}",
+            "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "**/docker-compose*.yml",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/compose_validator.py ${file}",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "agent_task_complete",
+        "loop_limit": 3,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/update_handover.py",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "agent_task_complete",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/broski_xp_reward.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "loop_limit": 1,
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 scripts/session_end.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

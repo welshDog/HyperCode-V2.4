@@ -42,7 +42,7 @@
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
       "targets": [
         {
-          "expr": "count(up == 1)",
+          "expr": "count(up{job=~\"$core_jobs\"} == 1)",
           "legendFormat": "UP",
           "refId": "A"
         }
@@ -78,7 +78,7 @@
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
       "targets": [
         {
-          "expr": "count(up == 0) OR vector(0)",
+          "expr": "count(up{job=~\"$core_jobs\"} == 0) OR vector(0)",
           "legendFormat": "DOWN",
           "refId": "A"
         }
@@ -150,7 +150,7 @@
       "datasource": { "type": "prometheus", "uid": "P1809F7CD0C75ACF3" },
       "targets": [
         {
-          "expr": "sum(rate(http_requests_total{status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+          "expr": "100 * (sum(rate(http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1e-9))",
           "legendFormat": "error %",
           "refId": "A"
         }
@@ -678,6 +678,21 @@
   "refresh": "30s",
   "schemaVersion": 38,
   "tags": ["hypercode", "mission-control", "v2.4"],
+  "templating": {
+    "list": [
+      {
+        "name": "core_jobs",
+        "type": "constant",
+        "label": "Core jobs regex",
+        "hide": 0,
+        "query": "hypercode-core|crew-orchestrator|broski-bot|prometheus|grafana|loki|tempo|promtail|pyroscope|cadvisor|node-exporter|celery-exporter|minio",
+        "current": {
+          "text": "hypercode-core|crew-orchestrator|broski-bot|prometheus|grafana|loki|tempo|promtail|pyroscope|cadvisor|node-exporter|celery-exporter|minio",
+          "value": "hypercode-core|crew-orchestrator|broski-bot|prometheus|grafana|loki|tempo|promtail|pyroscope|cadvisor|node-exporter|celery-exporter|minio"
+        }
+      }
+    ]
+  },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",

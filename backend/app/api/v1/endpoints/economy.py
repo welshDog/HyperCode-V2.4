@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import logging
 import secrets
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -217,4 +218,119 @@ def supabase_webhook_token_transactions(
     return _award_from_course(
         CourseAwardRequest(source_id=source_id, discord_id=discord_id, tokens=tokens, reason=reason),
         db,
+    )
+
+
+# ── Dev-action XP → durable BROski$ wallet ──────────────────────────────────
+# Durable sink for the broski_economy consumer. Hook XP awards (14 repos) were
+# only persisted in volatile redis; this routes them through the canonical
+# broski_service.award_xp so they land in broski_wallets / broski_transactions
+# (system of record) and survive restarts for real. See
+# scripts/broski_economy_consumer.py.
+
+
+class DevXpAwardRequest(BaseModel):
+    discord_id: str = Field(..., max_length=32, description="Owner of the dev-action XP stream")
+    xp: int = Field(..., gt=0, le=100_000)
+    reason: str = Field(default="dev action", max_length=255)
+    source: str = Field(default="unknown", max_length=128, description="Repo/hook that emitted the award")
+    full_name: str = Field(default="HyperFocus Dev", max_length=255)
+    source_id: Optional[str] = Field(
+        default=None, max_length=128,
+        description="Idempotency key — e.g. git:<repo>:<patch-id>. Stable across rebases, so a "
+                    "replayed commit isn't awarded twice. Stored in tx meta; re-award is a no-op.",
+    )
+
+
+class DevXpAwardResponse(BaseModel):
+    awarded: bool
+    user_id: int
+    xp_balance: int
+    level: int
+    level_name: str
+    level_up: Optional[str] = None
+
+
+def _verify_api_key(x_api_key: str = Header(..., alias="X-API-Key")) -> None:
+    """Gate the internal dev-xp sink with the master API_KEY (service-to-service)."""
+    expected = settings.API_KEY
+    if not expected:
+        raise HTTPException(status_code=503, detail="API_KEY not configured — dev-xp award disabled")
+    if not secrets.compare_digest(x_api_key, expected):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+
+def _get_or_create_user_by_discord(discord_id: str, full_name: str, db: Session) -> models.User:
+    user = (
+        db.query(models.User)
+        .filter(models.User.discord_id == discord_id)
+        .first()
+    )
+    if user:
+        return user
+    # System/dev identity — never password-logs-in, so the hash is intentionally unusable.
+    user = models.User(
+        email=f"{discord_id}@dev.hyperfocus.zone",
+        hashed_password="!",
+        full_name=full_name,
+        discord_id=discord_id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    logger.info("🆕 dev-economy user provisioned for discord_id=%s (user %s)", discord_id, user.id)
+    return user
+
+
+@router.post(
+    "/award-dev-xp",
+    response_model=DevXpAwardResponse,
+    status_code=200,
+    summary="Award dev-action XP into the durable BROski$ wallet (internal, API-key gated)",
+)
+def award_dev_xp(
+    payload: DevXpAwardRequest,
+    db: Session = Depends(get_db),
+    _: None = Depends(_verify_api_key),
+) -> Any:
+    user = _get_or_create_user_by_discord(payload.discord_id, payload.full_name, db)
+
+    # Idempotency: the transaction log IS the dedup record. If this source_id was
+    # already awarded (e.g. a rebase replayed the commit), no-op and return the
+    # current balance. meta is JSON, so meta->>'source_id' reads the stored key.
+    if payload.source_id:
+        already = db.execute(
+            text("SELECT 1 FROM broski_transactions WHERE meta->>'source_id' = :sid LIMIT 1"),
+            {"sid": payload.source_id},
+        ).first()
+        if already:
+            wallet = broski_service.get_wallet(user.id, db)
+            logger.info("⏭️ dev-xp dedup: source_id=%s already awarded — no double", payload.source_id)
+            return DevXpAwardResponse(
+                awarded=False,
+                user_id=user.id,
+                xp_balance=wallet.xp,
+                level=wallet.level,
+                level_name=wallet.level_name,
+                level_up=None,
+            )
+
+    wallet, level_up = broski_service.award_xp(
+        user_id=user.id,
+        amount=payload.xp,
+        reason=payload.reason,
+        db=db,
+        meta={"source": payload.source, "stream": "dev-action", "source_id": payload.source_id},
+    )
+    logger.info(
+        "⚡ dev-xp: +%d xp to user %s (discord=%s, source=%s, reason=%s)",
+        payload.xp, user.id, payload.discord_id, payload.source, payload.reason,
+    )
+    return DevXpAwardResponse(
+        awarded=True,
+        user_id=user.id,
+        xp_balance=wallet.xp,
+        level=wallet.level,
+        level_name=wallet.level_name,
+        level_up=level_up,
     )

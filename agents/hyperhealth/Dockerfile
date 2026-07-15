@@ -1,5 +1,5 @@
 # ================================================================
-# HyperHealth Agent — Multi-stage build
+# HyperHealth Agent — Multi-stage build with Alembic migrations
 # Matches healer agent pattern for consistency
 # ================================================================
 FROM python:3.11-slim AS base
@@ -31,14 +31,23 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy source code
+# Clean up __pycache__ and .pyc files from builder
+RUN find /usr/local/lib/python3.11/site-packages -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true \
+    && find /usr/local/lib/python3.11/site-packages -type f -name "*.pyc" -delete 2>/dev/null || true
+
+# Copy migrations and source code
+COPY --chown=hyperhealth:hyperhealth migrations /app/migrations
 COPY --chown=hyperhealth:hyperhealth . .
 
 USER hyperhealth
 
 EXPOSE 8090
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
     CMD curl -f http://localhost:8090/health || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8090", "--workers", "2"]
+# Migrate once, here, before uvicorn forks its workers. Never `|| alembic stamp`:
+# 001 is head, so stamping on failure marks an unmigrated DB as fully migrated and
+# every later `upgrade head` becomes a no-op. On failure we exit; compose has
+# restart: unless-stopped and waits for postgres to be healthy, so it retries.
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn main:app --host 0.0.0.0 --port 8090 --workers 2"]

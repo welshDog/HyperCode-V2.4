@@ -81,6 +81,7 @@ def create_checkout_session(
     """Creates a Stripe Checkout Session. Returns session — use .url to redirect."""
     mode = CHECKOUT_MODE.get(price_key, "payment")
     metadata = {"user_id": user_id, "price_key": price_key} if user_id else {"price_key": price_key}
+    metadata["price_id"] = price_id
     def _create() -> stripe.checkout.Session:
         return stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -112,6 +113,7 @@ def create_course_checkout_session(
     Function can enroll the correct course after payment.
     """
     metadata: dict = {"price_key": "course_purchase", "course_id": course_id}
+    metadata["price_id"] = "course_inline"
     if user_id:
         metadata["user_id"] = user_id
 

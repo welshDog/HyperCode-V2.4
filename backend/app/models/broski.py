@@ -2,10 +2,21 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, Text, JSON, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    JSON,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -115,3 +126,85 @@ class CourseSyncEvent(Base):
     tokens_awarded: Mapped[int] = mapped_column(Integer, nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DiscordIdempotencyKey(Base):
+    __tablename__ = "discord_idempotency_keys"
+    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_discord_idempotency_key"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    action: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    response_json: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class FocusSession(Base):
+    __tablename__ = "focus_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    discord_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    baseline_ready: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    baseline_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    baseline_grade: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+    baseline_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    baseline_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    end_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    end_grade: Mapped[Optional[str]] = mapped_column(String(4), nullable=True)
+    end_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    end_scanned_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    delta_available: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    delta_score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    delta_counts: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+
+class ModAction(Base):
+    """Server Guardian moderation audit log. Feeds the weekly digest.
+
+    Phase 3a writes status='auto_done' (reversible actions only).
+    Phase 3c will use status='pending_veto' → 'executed'/'vetoed' for ban/kick.
+    """
+    __tablename__ = "mod_actions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    action_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    target_discord_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    target_username: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    severity: Mapped[str] = mapped_column(String(8), nullable=False)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    evidence: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), default="auto_done", nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    executes_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class DailyMissionClaim(Base):
+    __tablename__ = "daily_mission_claims"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "mission_date",
+            "mission_slug",
+            name="uq_daily_mission_claim_user_date_slug",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    mission_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    mission_slug: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    awarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    coins_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    focus_session_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

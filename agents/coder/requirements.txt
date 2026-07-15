@@ -9,3 +9,6 @@ structlog>=24.1.0
 python-json-logger>=2.0.7
 mcp>=0.1.0
 prometheus-api-client>=0.5.0
+
+anthropic
+openai

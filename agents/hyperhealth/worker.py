@@ -20,6 +20,11 @@ _HERE = Path(__file__).resolve().parent
 if str(_HERE) not in sys.path:
     sys.path.insert(0, str(_HERE))
 
+# Shared module path for HyperAlert
+_APP_ROOT = str(Path(__file__).resolve().parent.parent)
+if _APP_ROOT not in sys.path:
+    sys.path.insert(0, _APP_ROOT)
+
 import httpx
 import structlog
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -27,7 +32,13 @@ from sqlalchemy import select
 
 from models import CheckDefinitionORM, CheckResultORM
 
-# ── Structured logging — FIXED: no add_logger_name ────────────────────────────────
+# HyperAlert \u2014 safe import guard
+try:
+    from shared.discord_alerts import HyperAlert
+except ImportError:
+    HyperAlert = None
+
+# \u2500\u2500 Structured logging \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 structlog.configure(
     processors=[
         structlog.contextvars.merge_contextvars,
@@ -42,7 +53,7 @@ structlog.configure(
 )
 log = structlog.get_logger()
 
-# ── Config ─────────────────────────────────────────────────────────────────
+# \u2500\u2500 Config \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL must be set")
@@ -59,7 +70,11 @@ WORKER_CONCURRENCY = int(os.environ.get("WORKER_CONCURRENCY", "50"))
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 LIVENESS_KEY = "hyperhealth:worker:heartbeat"
 
-# ── DB Engine ─────────────────────────────────────────────────────────────────
+# Disk alert threshold (percent used). Override via env if needed.
+DISK_WARN_PCT = int(os.environ.get("DISK_WARN_PCT", "80"))
+DISK_CRIT_PCT = int(os.environ.get("DISK_CRIT_PCT", "90"))
+
+# \u2500\u2500 DB Engine \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 _engine = None
 _session_factory = None
 
@@ -74,7 +89,7 @@ def _get_session_factory():
     assert _session_factory is not None
     return _session_factory
 
-# ── Shared HTTP client ───────────────────────────────────────────────────────────
+# \u2500\u2500 Shared HTTP client \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 HTTP_CLIENT: Optional[httpx.AsyncClient] = None
 
 
@@ -88,7 +103,7 @@ async def get_http_client() -> httpx.AsyncClient:
     return HTTP_CLIENT
 
 
-# ── Check Executors ───────────────────────────────────────────────────────────
+# \u2500\u2500 Check Executors \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async def execute_http_check(target: str, thresholds: Dict) -> Dict[str, Any]:
     client = await get_http_client()
     start = time.monotonic()
@@ -170,12 +185,33 @@ async def execute_cache_check(target: str, thresholds: Dict) -> Dict[str, Any]:
         return {"status": "CRIT", "latency_ms": latency_ms, "value": None, "message": str(exc)}
 
 
+async def execute_disk_check(target: str, thresholds: Dict) -> Dict[str, Any]:
+    """Check disk usage on a given path (target = mount path, default '/')"""
+    import shutil
+    path = target if target else "/"
+    try:
+        total, used, free = shutil.disk_usage(path)
+        pct_used = (used / total) * 100
+        warn_pct = thresholds.get("pct_used", {}).get("warn", DISK_WARN_PCT)
+        crit_pct = thresholds.get("pct_used", {}).get("crit", DISK_CRIT_PCT)
+        status = "CRIT" if pct_used >= crit_pct else "WARN" if pct_used >= warn_pct else "OK"
+        return {
+            "status": status,
+            "latency_ms": None,
+            "value": round(pct_used, 1),
+            "message": f"Disk {path}: {pct_used:.1f}% used ({free // (1024**3)}GB free)",
+        }
+    except Exception as exc:
+        return {"status": "CRIT", "latency_ms": None, "value": None, "message": str(exc)}
+
+
 async def execute_check(check: CheckDefinitionORM) -> Dict[str, Any]:
     dispatchers = {
         "http": execute_http_check,
         "tls": execute_tls_check,
         "db": execute_db_check,
         "cache": execute_cache_check,
+        "disk": execute_disk_check,
     }
     executor = dispatchers.get(check.type)
     if executor:
@@ -184,7 +220,7 @@ async def execute_check(check: CheckDefinitionORM) -> Dict[str, Any]:
             "message": f"Check type '{check.type}' not yet implemented"}
 
 
-# ── Storage & self-heal ───────────────────────────────────────────────────────────
+# \u2500\u2500 Storage & self-heal \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async def store_result(check: CheckDefinitionORM, result: Dict, started_at: datetime):
     async with _get_session_factory()() as db:
         row = CheckResultORM(
@@ -215,6 +251,31 @@ async def maybe_trigger_selfheal(check: CheckDefinitionORM, result: Dict):
         log.error("selfheal.error", check=check.name, error=str(exc))
 
 
+async def maybe_alert_discord(check: CheckDefinitionORM, result: Dict):
+    """Fire HyperAlert for disk checks (WARN or CRIT) and any CRIT."""
+    if not HyperAlert:
+        return
+    status = result["status"]
+    msg = result.get("message", "")
+    try:
+        if check.type == "disk" and status in ("WARN", "CRIT"):
+            pct = result.get("value", 0)
+            await HyperAlert.disk_warning(
+                f"{check.name}: {msg} [{status}] (path: {check.target or '/'})"
+            )
+        elif check.type == "tls" and status in ("WARN", "CRIT"):
+            await HyperAlert.cert_expiry(f"{check.name}: {msg} [{status}]")
+        elif status == "CRIT" and check.type not in ("disk", "tls"):
+            # Generic CRIT for non-disk/tls checks
+            await HyperAlert.error(
+                title=f"\U0001f6a8 {check.name} CRIT",
+                message=msg,
+                fields={"type": check.type, "env": check.environment or ENVIRONMENT},
+            )
+    except Exception as _ae:
+        log.warning("discord_alert.failed", check=check.name, error=str(_ae))
+
+
 async def write_heartbeat():
     import redis.asyncio as aioredis
     try:
@@ -225,13 +286,14 @@ async def write_heartbeat():
         log.warning("heartbeat.failed", error=str(exc))
 
 
-# ── Scheduler ──────────────────────────────────────────────────────────────────
+# \u2500\u2500 Scheduler \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 async def run_check_job(check: CheckDefinitionORM):
     started_at = datetime.utcnow()
     try:
         result = await execute_check(check)
         await store_result(check, result, started_at)
         await maybe_trigger_selfheal(check, result)
+        await maybe_alert_discord(check, result)  # \U0001f4e2 Discord alert routing
         log.debug("check.done", name=check.name, status=result["status"])
     except Exception as exc:
         log.error("check.error", name=check.name, error=str(exc))
@@ -247,6 +309,14 @@ async def load_checks() -> list:
 
 async def scheduler():
     log.info("worker.started", concurrency=WORKER_CONCURRENCY, environment=ENVIRONMENT)
+
+    # \U0001f4e2 Fleet heartbeat: announce hyperhealth-worker is live
+    if HyperAlert:
+        try:
+            await HyperAlert.agent_started("hyperhealth-worker")
+        except Exception as _ae:
+            log.warning("discord_alert.startup_failed", error=str(_ae))
+
     next_run: Dict[str, datetime] = {}
     semaphore = asyncio.Semaphore(WORKER_CONCURRENCY)
     tick = 0

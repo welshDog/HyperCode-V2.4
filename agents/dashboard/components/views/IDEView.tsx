@@ -68,8 +68,19 @@ export function IDEView(): React.JSX.Element {
       const items = normalizeEntries(data)
       setEntries(items)
       if (!res.ok) {
-        setFileTreeError('Filesystem tools unavailable (MCP adapter offline).')
-        toast({ variant: 'error', title: 'Directory load failed', message: 'Filesystem tools unavailable (MCP adapter offline).' })
+        // Surface the real upstream reason instead of always blaming the adapter.
+        // The MCP filesystem server is sandboxed to /workspace; out-of-root paths
+        // come back as a tool error (502), which is NOT the adapter being offline.
+        const obj = asRecord(data)
+        const detail = asRecord(obj?.detail)
+        const upstreamMsg =
+          (typeof detail?.message === 'string' ? detail.message : null) ??
+          (typeof obj?.error === 'string' ? obj.error : null)
+        const msg = upstreamMsg
+          ? `Filesystem error: ${upstreamMsg}`
+          : 'Filesystem tools unavailable (MCP adapter offline).'
+        setFileTreeError(msg)
+        toast({ variant: 'error', title: 'Directory load failed', message: msg })
       } else if (items.length === 0) {
         setFileTreeError('No files returned. /workspace may not be mounted in the container.')
         toast({ variant: 'error', title: 'No files returned', message: '/workspace may not be mounted in the container.' })
@@ -179,7 +190,8 @@ export function IDEView(): React.JSX.Element {
       >
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
           <button className="btn" onClick={() => setCwd('/workspace')}>/workspace</button>
-          <button className="btn" onClick={() => setCwd('/')}>/</button>
+          {/* The filesystem MCP server is sandboxed to /workspace — listing '/'
+              always errors ("unknown tool"), so no root escape-hatch button. */}
         </div>
         {fileTreeError && (
           <div style={{

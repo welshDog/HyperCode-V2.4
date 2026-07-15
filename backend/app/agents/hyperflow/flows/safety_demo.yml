@@ -1,0 +1,27 @@
+# HyperFlow × Safety Shepherd demo (P0-1 ↔ P0-2).
+#
+# A single dispatch node tagged with a `safety` hint declaring a dangerous
+# action (docker) that qa_engineer is NOT granted. In SAFETY_SHEPHERD_MODE=enforce
+# the runner consults Safety Shepherd before dispatch:
+#   ESCALATE → run parks at awaiting_approval → human approves via
+#   POST /api/v1/dashboard/approval-requests/{id}/respond → dispatch proceeds → completed.
+#
+# In monitor mode the decision is recorded in the flow timeline but never blocks.
+#
+# Run it:  POST /api/v1/flows/runs {"flow": "safety-demo"}
+
+name: safety-demo
+version: 1
+entry: risky_action
+
+nodes:
+  - id: risky_action
+    type: agent_role
+    agent: qa_engineer
+    params:
+      task: "Run a verification step that needs a privileged (docker) capability."
+    safety:
+      category: docker
+      tool: docker_run
+
+edges: []

@@ -104,8 +104,11 @@ def _get_session_factory():
 async def lifespan(app: FastAPI):
     log.info("hyperhealth.startup", environment=ENVIRONMENT)
     engine = _get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+
+    # Migrations run once in the container CMD, before uvicorn forks its
+    # workers. lifespan executes per worker, so running alembic here meant
+    # concurrent `upgrade head` calls racing each other on every boot.
+
     log.info("hyperhealth.db_ready")
     await _ping_healer()
     yield

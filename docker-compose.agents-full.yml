@@ -1,0 +1,1056 @@
+# ════════════════════════════════════════════════════════════════════════════════
+# docker-compose.agents-full.yml
+# 🤖 25-AGENT FULL SQUAD DEPLOYMENT
+# Usage: docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d
+# Created: May 21, 2026
+# ════════════════════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # TIER 1: CORE CREW (5 agents) — ORCHESTRATION BRAIN
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  crew-orchestrator:
+    image: hypercode-crew-orchestrator:latest
+    build:
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    ports:
+      - "127.0.0.1:8081:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - ORCHESTRATOR_MODE=swarm
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1.5GB
+        reservations:
+          cpus: "1"
+          memory: 1GB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=core"
+      - "com.hypercode.role=orchestrator"
+
+  agent-x:
+    image: hypercode-agent-x:latest
+    build:
+      context: ./agents/agent-x
+      dockerfile: Dockerfile
+    container_name: agent-x
+    ports:
+      - "127.0.0.1:8083:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - DOCKER_SOCKET_PROXY=http://docker-socket-proxy-healer:2375
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      docker-socket-proxy-healer:
+        condition: service_started
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2GB
+        reservations:
+          cpus: "1"
+          memory: 1.5GB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=core"
+      - "com.hypercode.role=meta-architect"
+
+  brain-agent:
+    image: hypercode-brain-agent:latest
+    build:
+      context: ./agents/brain
+      dockerfile: Dockerfile
+    container_name: brain-agent
+    ports:
+      - "127.0.0.1:8082:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - ADHD_MODE=true
+      - DYSLEXIA_MODE=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      chroma:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 768MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=core"
+      - "com.hypercode.role=memory"
+
+  coder-agent:
+    image: hypercode-coder-agent:latest
+    build:
+      context: ./agents/coder
+      dockerfile: Dockerfile
+    container_name: coder-agent
+    ports:
+      - "127.0.0.1:8002:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1.5GB
+        reservations:
+          cpus: "1"
+          memory: 1GB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=core"
+      - "com.hypercode.role=coder"
+
+  tips-tricks-writer:
+    image: hypercode-tips-tricks-agent:latest
+    build:
+      context: ./agents/09-tips-tricks-writer
+      dockerfile: Dockerfile
+    container_name: tips-tricks-writer
+    ports:
+      - "127.0.0.1:8011:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=core"
+      - "com.hypercode.role=documentation"
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # TIER 2: SPECIALIST SQUAD (8 agents) — DEVELOPMENT CREW
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  frontend-specialist:
+    image: hypercode-frontend-specialist:latest
+    build:
+      context: ./agents/01-frontend-specialist
+      dockerfile: Dockerfile
+    container_name: frontend-specialist
+    ports:
+      - "127.0.0.1:8012:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 512MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=frontend"
+
+  backend-specialist:
+    image: hypercode-backend-specialist:latest
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist
+    ports:
+      - "127.0.0.1:8003:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 512MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=backend"
+
+  database-architect:
+    image: hypercode-database-architect:latest
+    build:
+      context: ./agents/03-database-architect
+      dockerfile: Dockerfile
+    container_name: database-architect
+    ports:
+      - "127.0.0.1:8004:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+      - data-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=database"
+
+  qa-engineer:
+    image: hypercode-qa-engineer:latest
+    build:
+      context: ./agents/04-qa-engineer
+      dockerfile: Dockerfile
+    container_name: qa-engineer
+    ports:
+      - "127.0.0.1:8005:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 512MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=qa"
+
+  devops-engineer:
+    image: hypercode-devops-engineer:latest
+    build:
+      context: ./agents/05-devops-engineer
+      dockerfile: Dockerfile
+    container_name: devops-engineer
+    ports:
+      - "127.0.0.1:8006:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - DOCKER_SOCKET_PROXY=http://docker-socket-proxy:2375
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      docker-socket-proxy:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 512MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=devops"
+
+  security-engineer:
+    image: hypercode-security-engineer:latest
+    build:
+      context: ./agents/06-security-engineer
+      dockerfile: Dockerfile
+    container_name: security-engineer
+    ports:
+      - "127.0.0.1:8007:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=security"
+
+  system-architect:
+    image: hypercode-system-architect:latest
+    build:
+      context: ./agents/07-system-architect
+      dockerfile: Dockerfile
+    container_name: system-architect
+    ports:
+      - "127.0.0.1:8009:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=system-design"
+
+  project-strategist:
+    image: hypercode-project-strategist:latest
+    build:
+      context: ./agents/08-project-strategist
+      dockerfile: Dockerfile
+    container_name: project-strategist
+    ports:
+      - "127.0.0.1:8001:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=strategy"
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # TIER 3: INFRASTRUCTURE AGENTS (8 agents) — SYSTEM COORDINATION
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  hyper-architect:
+    image: hypercode-hyper-architect:latest
+    build:
+      context: ./agents/architect
+      dockerfile: Dockerfile
+    container_name: hyper-architect
+    ports:
+      - "127.0.0.1:8091:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=architecture"
+
+  hyper-observer:
+    image: hypercode-hyper-observer:latest
+    build:
+      context: ./agents/hyper-agents
+      dockerfile: Dockerfile.observer
+    container_name: hyper-observer
+    ports:
+      - "127.0.0.1:8092:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+      - obs-net
+    depends_on:
+      prometheus:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=monitoring"
+
+  hyper-worker:
+    image: hypercode-hyper-worker:latest
+    build:
+      context: ./agents/hyper-agents
+      dockerfile: Dockerfile.worker
+    container_name: hyper-worker
+    ports:
+      - "127.0.0.1:8093:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=execution"
+
+  goal-keeper:
+    image: hypercode-goal-keeper:latest
+    build:
+      context: ./agents/goal_keeper
+      dockerfile: Dockerfile
+    container_name: goal-keeper
+    ports:
+      - "127.0.0.1:8050:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=goals"
+
+  throttle-agent:
+    image: hypercode-throttle-agent:latest
+    build:
+      context: ./agents/throttle-agent
+      dockerfile: Dockerfile
+    container_name: throttle-agent
+    ports:
+      - "127.0.0.1:8014:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/1
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=rate-limiting"
+
+  super-hyper-broski-agent:
+    image: hypercode-super-hyper-broski-agent:latest
+    build:
+      context: ./agents/super-hyper-broski-agent
+      dockerfile: Dockerfile
+    container_name: super-hyper-broski-agent
+    ports:
+      - "127.0.0.1:8015:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2GB
+        reservations:
+          cpus: "1"
+          memory: 1.5GB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=mega-executor"
+
+  test-agent:
+    image: hypercode-test-agent:latest
+    build:
+      context: ./agents/test-agent
+      dockerfile: Dockerfile
+    container_name: test-agent
+    ports:
+      - "127.0.0.1:8100:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1GB
+        reservations:
+          cpus: "0.5"
+          memory: 512MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=testing"
+
+  hypercode-mcp-server:
+    image: hypercode-mcp-server:latest
+    build:
+      context: ./agents/hypercode-mcp-server
+      dockerfile: Dockerfile
+    container_name: hypercode-mcp-server
+    ports:
+      - "127.0.0.1:8823:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=mcp"
+
+  # ══════════════════════════════════════════════════════════════════════════════
+  # TIER 4: UTILITY AGENTS (4 agents) — SUPPORT SERVICES
+  # ══════════════════════════════════════════════════════════════════════════════
+
+  session-snapshot:
+    image: hypercode-session-snapshot:latest
+    build:
+      context: ./agents/session-snapshot
+      dockerfile: Dockerfile
+    container_name: session-snapshot
+    ports:
+      - "127.0.0.1:8097:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=utility"
+      - "com.hypercode.role=session"
+
+  hyper-split-agent:
+    image: hypercode-hyper-split-agent:latest
+    build:
+      context: ./agents/hyper-split-agent
+      dockerfile: Dockerfile
+    container_name: hyper-split-agent
+    ports:
+      - "127.0.0.1:8096:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=utility"
+      - "com.hypercode.role=task-decomposition"
+
+  coderabbit-webhook:
+    image: hypercode-coderabbit-webhook:latest
+    build:
+      context: ./agents/coderabbit-webhook
+      dockerfile: Dockerfile
+    container_name: coderabbit-webhook
+    ports:
+      - "127.0.0.1:8024:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - CODERABBIT_API_KEY=${CODERABBIT_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=utility"
+      - "com.hypercode.role=pr-review"
+
+  business-agent:
+    image: hypercode-business-agent:latest
+    build:
+      context: ./agents/business
+      dockerfile: Dockerfile
+    container_name: business-agent
+    ports:
+      - "127.0.0.1:8020:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=${DATABASE_URL}
+      - STRIPE_API_KEY=${STRIPE_API_KEY:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=utility"
+      - "com.hypercode.role=business"
+
+networks:
+  app-net:
+    external: true
+  agent-net:
+    external: true
+  agents-net:
+    external: true
+  obs-net:
+    external: true
+  data-net:
+    external: true

@@ -1,9 +1,68 @@
-*
-!healer/
-!healer/**
-!test-agent/
-!test-agent/**
-!shared/
-!shared/**
-!__init__.py
-!.dockerignore
+# Agent base - Python/FastAPI/docker-cli shared foundation
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+
+# Environment
+.env
+.env.local
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docs/tests
+tests/
+docs/
+*.md
+README*
+LICENSE
+
+# Cache
+.cache/
+tmp/
+temp/
+*.tmp
+.coverage
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Node (dashboard) — 816MB context trap without this
+**/node_modules/
+**/dist/

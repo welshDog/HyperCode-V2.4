@@ -9,8 +9,57 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import os
 import redis.asyncio as redis
-from PERPLEXITY import AsyncPERPLEXITY
 from contextlib import asynccontextmanager
+
+
+# ─── LLM helpers ────────────────────────────────────────────────────────────
+
+class _OllamaAdapter:
+    """Thin Anthropic-interface wrapper over the Ollama OpenAI-compat endpoint."""
+    def __init__(self, model: str, base_url: str, api_key: str):
+        from openai import AsyncOpenAI
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
+        self.messages = self  # so client.messages.create() works
+
+    async def create(self, model=None, max_tokens=1000, messages=None, system=None, **kwargs):
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.extend(messages or [])
+
+        class _Msg:
+            def __init__(self, text):
+                self.text = text
+
+        class _Resp:
+            def __init__(self, text):
+                self.content = [_Msg(text)]
+
+        resp = await self._client.chat.completions.create(
+            model=model or self._model,
+            max_tokens=max_tokens,
+            messages=msgs,
+        )
+        return _Resp(resp.choices[0].message.content or "")
+
+
+def _build_llm_client():
+    """
+    Anthropic → Ollama fallback chain, mirrors crew-orchestrator/_get_llm().
+    Returns an object exposing .messages.create() in the Anthropic SDK style.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if api_key:
+        import anthropic
+        return anthropic.AsyncAnthropic(api_key=api_key)
+    return _OllamaAdapter(
+        model=os.getenv("LLM_MODEL", "llama3.2"),
+        base_url=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
+        api_key=os.getenv("LLM_API_KEY", "NA"),
+    )
+
+
 import sys
 
 # Allow imports from shared modules
@@ -34,9 +83,8 @@ class AgentConfig:
     def __init__(self):
         self.name = os.getenv("AGENT_NAME", "base-agent")
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
-        self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
+        self.model = os.getenv("AGENT_MODEL", "claude-sonnet-4-6")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.PERPLEXITY_key = os.getenv("PERPLEXITY_API_KEY")
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
         self.api_key = os.getenv("HYPERCODE_API_KEY")
@@ -104,9 +152,8 @@ class BaseAgent:
         except Exception as e:
             print(f"Warning: Failed to connect to Redis at startup: {e}")
         
-        # Initialize AI Client
-        if self.config.PERPLEXITY_key:
-            self.client = AsyncPERPLEXITY(api_key=self.config.PERPLEXITY_key)
+        # Initialize AI Client (Anthropic → Ollama fallback)
+        self.client = _build_llm_client()
         
         # Initialize Shared Systems
         # (This import might fail if shared modules are missing, but we handle it gracefully)

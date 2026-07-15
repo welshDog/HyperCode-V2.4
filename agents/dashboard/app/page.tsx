@@ -16,13 +16,18 @@ export default function HyperStationPage(): React.JSX.Element {
   const { services, loading } = useDockerServices(15_000)
 
   const gridTemplate = focus
-    ? `"${focus} ${focus}" 1fr / 1fr 1fr`
+    ? `"${focus}" 1fr / 1fr`
     : `
         "metrics agents"  minmax(260px, 1fr)
         "services tasks"  minmax(260px, 1fr)
         "pulse   pulse"   minmax(260px, 1fr)
         / 1fr 1fr
       `
+
+  // In focus mode only the isolated pane renders — the others' gridAreas no
+  // longer exist in the template, so leaving them mounted auto-places them
+  // on top of each other (the overlap bug).
+  const show = (id: string): boolean => !focus || focus === id
 
   return (
     <div className="hyper-shell" style={{ gridTemplate }}>
@@ -31,6 +36,7 @@ export default function HyperStationPage(): React.JSX.Element {
         <LeanModeBadge services={services} loading={loading} />
       </div>
 
+      {show('metrics') && (
       <Pane
         id="metrics"
         title="📊 Metrics Home"
@@ -40,7 +46,9 @@ export default function HyperStationPage(): React.JSX.Element {
       >
         <MetricsView />
       </Pane>
+      )}
 
+      {show('agents') && (
       <Pane
         id="agents"
         title="🤖 Agents"
@@ -51,7 +59,9 @@ export default function HyperStationPage(): React.JSX.Element {
         {/* Agent cards are clickable — opens AgentDetailPopout */}
         <AgentSwarmView />
       </Pane>
+      )}
 
+      {show('tasks') && (
       <Pane
         id="tasks"
         title="✅ Tasks"
@@ -61,7 +71,9 @@ export default function HyperStationPage(): React.JSX.Element {
       >
         <TasksView />
       </Pane>
+      )}
 
+      {show('services') && (
       <Pane
         id="services"
         title="🖥️ Services"
@@ -72,7 +84,9 @@ export default function HyperStationPage(): React.JSX.Element {
         {/* SystemHealth now has sparklines + ghost agents toggle built in */}
         <SystemHealth />
       </Pane>
+      )}
 
+      {show('pulse') && (
       <Pane
         id="pulse"
         title="🦅 BROski Pulse"
@@ -82,6 +96,7 @@ export default function HyperStationPage(): React.JSX.Element {
       >
         <BROskiPulseView />
       </Pane>
+      )}
     </div>
   )
 }

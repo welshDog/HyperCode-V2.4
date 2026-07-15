@@ -92,3 +92,27 @@ datasources:
       # Loki search fallback — find traces by log query
       lokiSearch:
         datasourceUid: loki
+
+  - name: Pyroscope
+    type: grafana-pyroscope-datasource
+    uid: pyroscope
+    url: http://pyroscope:4040
+    access: proxy
+    editable: true
+
+  # P1-2 Governance Ledger — read governance_ledger from the app Postgres.
+  # Requires grafana on data-net + POSTGRES_* env (set in docker-compose.observability.yml).
+  - name: HyperCode Postgres
+    type: postgres
+    uid: hypercode-postgres
+    url: postgres:5432
+    access: proxy
+    user: ${POSTGRES_USER:-postgres}
+    editable: true
+    jsonData:
+      database: ${POSTGRES_DB:-hypercode}
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}

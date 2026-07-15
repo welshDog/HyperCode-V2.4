@@ -114,7 +114,17 @@ class AgentSpawner:
 
     def spawn(self, service: str, *, dry_run: bool = False) -> list[str]:
         self.ensure_available(service)
-        args = ["docker", "compose", "--profile", self.profile, "up", "-d", service]
+        args = [
+            "docker",
+            "compose",
+            "-f",
+            str(self.compose_file),
+            "--profile",
+            self.profile,
+            "up",
+            "-d",
+            service,
+        ]
         if dry_run:
             return args
         res = self.runner.run(args, cwd=self.repo_root)

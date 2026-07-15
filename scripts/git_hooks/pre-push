@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# HyperFocus Z0ne -- Evo Harness pre-push GATE (P2-1, Eval Engineering loop).
+#
+# Runs the milestone-DAG eval before every push and BLOCKS the push if the
+# pass_rate regresses below the floor. This is the LOCAL replacement for the
+# billing-locked evo-harness CI gate -- it keeps HyperCode GREEN across changes.
+#
+# Install:   cp scripts/git_hooks/pre-push .git/hooks/pre-push   (chmod +x on *nix)
+# Floor:     export EVO_FAIL_UNDER=0.95   (default 0.9)
+# Override:  git push --no-verify          (emergency only)
+set -u
+
+FLOOR="${EVO_FAIL_UNDER:-0.9}"
+if command -v python >/dev/null 2>&1; then PY=python; else PY=python3; fi
+
+echo "[evo-loop] running eval (check, floor ${FLOOR}) ..."
+OUT="$("$PY" scripts/evo_harness.py --check --fail-under "$FLOOR" --no-write 2>&1)"
+CODE=$?
+echo "$OUT"
+
+if [ "$CODE" -ne 0 ]; then
+  echo ""
+  echo "[evo-loop] PUSH BLOCKED -- evo eval regressed below floor ${FLOOR}."
+  echo "[evo-loop]   Fix the milestone(s) above (docs/ROADMAP.md), or override"
+  echo "[evo-loop]   in an emergency with:  git push --no-verify"
+  exit 1
+fi
+
+echo "[evo-loop] OK -- eval green, push proceeding."
+exit 0

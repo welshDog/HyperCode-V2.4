@@ -1,0 +1,83 @@
+# Python build/cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+.env.local
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation/tests (not needed at runtime)
+tests/
+docs/
+*.md
+LICENSE
+README*
+
+# Node (if any frontend deps)
+node_modules/
+npm-debug.log
+
+# Temp/cache
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Large data files (mounted separately)
+*.db
+*.sqlite
+*.sqlite3
+data/
+logs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib

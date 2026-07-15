@@ -33,16 +33,32 @@ class MultiTierCache:
         self,
         local_size: int = 1000,
         local_ttl: int = 300,
+<<<<<<< HEAD
         redis_url: str | None = None,
+=======
+        redis_url: Optional[str] = None,
+>>>>>>> origin/main
     ):
         """Initialize multi-tier cache.
-        
+
         Args:
             local_size: Max items in local cache
             local_ttl: TTL for local cache items (seconds)
+<<<<<<< HEAD
             redis_url: Redis connection URL. Defaults to HYPERCODE_REDIS_URL
                        env var, falling back to redis://redis:6379/1.
+=======
+            redis_url: Redis connection URL. If None, derives from
+                settings.HYPERCODE_REDIS_URL on DB 1 (cache convention).
+>>>>>>> origin/main
         """
+        if redis_url is None:
+            from urllib.parse import urlparse, urlunparse
+
+            from app.core.config import settings
+
+            parsed = urlparse(settings.HYPERCODE_REDIS_URL)
+            redis_url = urlunparse(parsed._replace(path="/1"))
         self.local_cache = TTLCache(maxsize=local_size, ttl=local_ttl)
         self.redis_url = redis_url or os.getenv("HYPERCODE_REDIS_URL", "redis://redis:6379/1")
         self.redis_client = None

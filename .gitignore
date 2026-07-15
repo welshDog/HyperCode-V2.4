@@ -2,6 +2,11 @@
 bfg.jar
 *.jar
 
+# Local runtime data (never commit)
+DockerData/
+HyperCodeData/
+discord-blueprint/
+
 # CI artefacts — generated on-demand, never commit
 coverage.xml
 *.coverage
@@ -49,6 +54,7 @@ client_secret.json
 .vscode/
 *.swp
 *.swo
+git-error-*
 .DS_Store
 Thumbs.db
 
@@ -226,3 +232,26 @@ __pycache__/
 secrets/stripe_publishable_key.txt
 secrets/stripe_secret_key.txt
 secrets/stripe_webhook_secret.txt
+.trae/.ignore
+
+# BRO secrets
+.bro/
+
+# Vendored / temporary third-party packages — NEVER commit (see revert of f1b0abc)
+# pip install --target dumps the whole dep tree; keep it out of git.
+extra/
+**/extra/
+vendor/
+**/vendor/
+_vendor/
+**/_vendor/
+**/*.dist-info/
+**/site-packages/
+# Accidental capture of an absolute Windows temp path when --target points there
+# (e.g. `agents/.../C:/Users/<user>/AppData/Local/Temp/...`). The `:` in `C:` is
+# stored as U+F03A in git; match the dir literally and via AppData/Temp segments.
+**/AppData/
+**/Local/Temp/
+**/Temp/extra/
+**/.cache/pip/
+

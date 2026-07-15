@@ -1,0 +1,11 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN pip install fastapi uvicorn docker psutil -q
+
+COPY hyperfocus_dashboard.py .
+
+EXPOSE 8765
+
+CMD ["python", "hyperfocus_dashboard.py"]

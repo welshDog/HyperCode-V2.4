@@ -376,40 +376,42 @@ POLL_INTERVAL_SECONDS = int(_parse_threshold("POLL_INTERVAL_SECONDS", 30.0))
 
 async def poll_memstream_and_throttle() -> None:
     pressure_to_delay = {"🟢 LOW": 0, "🟡 MEDIUM": 200, "🔴 HIGH": 500}
-    while True:
-        try:
-            r = httpx.get(
-                f"{MEMSTREAM_URL}/health/memstream",
-                headers={"Authorization": f"Bearer {MEMSTREAM_TOKEN}"},
-                timeout=2.0,
-            )
-            pressure = "🟢 LOW"
-            if r.status_code == 200:
-                pressure = (r.json() or {}).get("pressure", "🟢 LOW")
-            else:
-                print(f"[Throttle] Health poll failed: {r.status_code}")
-            delay = pressure_to_delay.get(pressure, 0)
-            last_status: int | None = None
-            for attempt in range(2):
-                resp = httpx.post(
-                    f"{MEMSTREAM_URL}/throttle",
-                    json={"delay_ms": delay},
-                    headers={"Authorization": f"Bearer {MEMSTREAM_TOKEN}"},
-                    timeout=2.0,
-                )
-                last_status = resp.status_code
-                if resp.status_code == 200:
+    # httpx.get/.post are the SYNC api. Called from a coroutine they block the
+    # loop, and a blocked loop stops uvicorn reading its sockets at all. With
+    # two 2s timeouts and one retry that is up to ~6s of stall every 10s
+    # whenever MemStream is slow. The sync helpers elsewhere in this file are
+    # fine — they run in sync def routes or via asyncio.to_thread.
+    async with httpx.AsyncClient(
+        timeout=2.0, headers={"Authorization": f"Bearer {MEMSTREAM_TOKEN}"}
+    ) as client:
+        while True:
+            try:
+                r = await client.get(f"{MEMSTREAM_URL}/health/memstream")
+                pressure = "🟢 LOW"
+                if r.status_code == 200:
+                    pressure = (r.json() or {}).get("pressure", "🟢 LOW")
+                else:
+                    print(f"[Throttle] Health poll failed: {r.status_code}")
+                delay = pressure_to_delay.get(pressure, 0)
+                last_status: int | None = None
+                for attempt in range(2):
+                    resp = await client.post(
+                        f"{MEMSTREAM_URL}/throttle",
+                        json={"delay_ms": delay},
+                    )
+                    last_status = resp.status_code
+                    if resp.status_code == 200:
+                        break
+                    if attempt == 0 and resp.status_code in {408, 429, 500, 502, 503, 504}:
+                        await asyncio.sleep(0.5)
+                        continue
                     break
-                if attempt == 0 and resp.status_code in {408, 429, 500, 502, 503, 504}:
-                    await asyncio.sleep(0.5)
-                    continue
-                break
-            if last_status != 200:
-                print(f"[Throttle] Throttle failed: {last_status}")
-            print(f"[Throttle] {pressure} → delay {delay}ms")
-        except Exception as e:
-            print(f"[Throttle] MemStream unreachable: {e}")
-        await asyncio.sleep(10)
+                if last_status != 200:
+                    print(f"[Throttle] Throttle failed: {last_status}")
+                print(f"[Throttle] {pressure} → delay {delay}ms")
+            except Exception as e:
+                print(f"[Throttle] MemStream unreachable: {e}")
+            await asyncio.sleep(10)
 
 
 def _parse_int_set(raw: str) -> set[int]:

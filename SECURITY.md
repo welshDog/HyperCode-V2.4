@@ -1,16 +1,19 @@
-# Security
+# Security Policy
 
-## Reporting
+## Supported Versions
 
-If you believe you’ve found a security issue, please open a GitHub issue with minimal reproduction details, and avoid posting secrets or tokens.
+| Version | Supported |
+|---|---|
+| Latest (main) | ✅ |
+| Older branches | ❌ |
 
-## Secret Handling
+## Reporting a Vulnerability
 
-- Do not commit `.env` files.
-- Use `.env.example` as the template and keep real values in your local environment or secret store.
-- Rotate keys immediately if a secret ever lands in git history.
+Please **do NOT** open a public issue for security vulnerabilities.
 
-## Security Artifacts
+Report them privately:
+1. Go to the [Security tab](https://github.com/welshDog/HyperCode-V2.4/security)
+2. Click **"Report a vulnerability"**
+3. We'll respond within **72 hours**
 
-- [security/](security/) contains security audit artifacts and reports.
-
+*Part of the HyperFocus Zone ecosystem — built by welshDog 🏴󠁧󠁢󠁷󠁬󠁳󠁧*

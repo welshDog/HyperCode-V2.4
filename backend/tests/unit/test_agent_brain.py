@@ -83,6 +83,7 @@ async def test_think_local_llm_success_with_auto_model(monkeypatch):
 
     settings.OLLAMA_HOST = "http://ollama"
     settings.DEFAULT_LLM_MODEL = "auto"
+    settings.ANTHROPIC_API_KEY = None
 
     async_brain = Brain()
 
@@ -111,14 +112,14 @@ async def test_think_local_llm_success_with_auto_model(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_think_local_llm_non_200_falls_back_to_session(monkeypatch):
+async def test_think_local_llm_non_200_falls_back_to_error(monkeypatch):
     import app.agents.brain as brain_mod
     from app.agents.brain import Brain
     from app.core.config import settings
 
     settings.OLLAMA_HOST = "http://ollama"
     settings.DEFAULT_LLM_MODEL = "tinyllama"
-    settings.PERPLEXITY_SESSION_AUTH = True
+    settings.ANTHROPIC_API_KEY = None
 
     async_brain = Brain()
     post_capture: dict = {}
@@ -133,7 +134,7 @@ async def test_think_local_llm_non_200_falls_back_to_session(monkeypatch):
     monkeypatch.setattr(brain_mod.httpx, "AsyncClient", client_factory)
 
     result = await async_brain.think("Role", "Do the thing", use_memory=False)
-    assert result == "Perplexity Session Auth is active. (Simulated Response)"
+    assert "No valid LLM provider available" in result
 
 
 @pytest.mark.asyncio
@@ -142,8 +143,7 @@ async def test_think_returns_error_when_no_llm_available(monkeypatch):
     from app.core.config import settings
 
     settings.OLLAMA_HOST = ""
-    settings.PERPLEXITY_SESSION_AUTH = False
-    settings.PERPLEXITY_API_KEY = None
+    settings.ANTHROPIC_API_KEY = None
 
     async_brain = Brain()
     result = await async_brain.think("Role", "Do the thing", use_memory=False)
@@ -152,19 +152,13 @@ async def test_think_returns_error_when_no_llm_available(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_think_cloud_api_success(monkeypatch):
-    """
-    FIX: brain.py now validates PERPLEXITY_API_KEY starts with 'pplx-' before
-    routing to the cloud provider. Old mock used key='k' which failed validation
-    and returned 'No valid LLM provider' before ever reaching the mock.
-    Fix: use a valid pplx- prefixed key + mock at the provider selection level.
-    """
+    """Anthropic API path: valid key → routes to api.anthropic.com, returns text."""
     import app.agents.brain as brain_mod
     from app.agents.brain import Brain
     from app.core.config import settings
 
     settings.OLLAMA_HOST = ""
-    settings.PERPLEXITY_SESSION_AUTH = False
-    settings.PERPLEXITY_API_KEY = "pplx-" + "x" * 20
+    settings.ANTHROPIC_API_KEY = "sk-ant-" + "x" * 40
 
     async_brain = Brain()
     post_capture: dict = {}
@@ -179,28 +173,24 @@ async def test_think_cloud_api_success(monkeypatch):
         async def post(self, url: str, json: dict, headers: dict | None = None):
             post_capture["url"] = url
             post_capture["json"] = json
-            return _DummyResponse(200, {"choices": [{"message": {"content": "hi"}}]})
+            return _DummyResponse(200, {"content": [{"text": "hi"}]})
 
     monkeypatch.setattr(brain_mod.httpx, "AsyncClient", lambda *a, **k: CloudClient())
 
     result = await async_brain.think("Role", "Do the thing", use_memory=False)
     assert result == "hi"
-    assert "openrouter" in post_capture.get("url", "") or "perplexity" in post_capture.get("url", "")
+    assert "anthropic.com" in post_capture.get("url", "")
 
 
 @pytest.mark.asyncio
 async def test_think_cloud_api_non_200_returns_error(monkeypatch):
-    """
-    FIX: Same root cause as test_think_cloud_api_success.
-    Key must be 'pplx-' prefixed to reach the cloud API path.
-    """
+    """Anthropic API non-200: falls through all providers to terminal error."""
     import app.agents.brain as brain_mod
     from app.agents.brain import Brain
     from app.core.config import settings
 
     settings.OLLAMA_HOST = ""
-    settings.PERPLEXITY_SESSION_AUTH = False
-    settings.PERPLEXITY_API_KEY = "pplx-" + "x" * 20
+    settings.ANTHROPIC_API_KEY = "sk-ant-" + "x" * 40
 
     async_brain = Brain()
 

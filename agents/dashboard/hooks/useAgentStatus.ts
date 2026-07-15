@@ -1,9 +1,16 @@
-// 🦅 HyperStation — Live Agent Status WebSocket Hook
-// Connects to FastAPI backend WS /api/v1/ws/agents (port 8000)
-// Auto-reconnects with exponential backoff (3s → 6s → 12s … cap 30s)
+// 🦅 HyperStation — Live Agent Status Hook
+// Primary:  WebSocket /api/v1/ws/agents (port 8000), exponential backoff
+//           (3s → 6s → 12s … cap 30s).
+// Fallback: polls REST /api/v1/agents/status every 5s — keeps the panel live
+//           even while the WS endpoint is unavailable.
+// Verified 2026-05-21: WS /api/v1/ws/agents returns 404; REST seed returns 200.
+//           Polling is therefore the real live-update path today.
 
 import { useEffect, useState } from 'react';
 import { fetchAgents } from '@/lib/api';
+
+/** Polling fallback interval — the live path while the WS endpoint 404s. */
+const POLL_INTERVAL_MS = 5_000;
 
 interface Agent {
   id: string;
@@ -147,9 +154,15 @@ export function useAgentStatus(): UseAgentStatusReturn {
     seed();
     connect();
 
+    // Fallback: re-poll the REST seed endpoint every 5s. The WS endpoint
+    // (/api/v1/ws/agents) currently 404s, so this polling IS the live
+    // update path. Harmless once the WS works — both just call setAgents().
+    const pollTimer = setInterval(seed, POLL_INTERVAL_MS);
+
     return () => {
       destroyed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
+      clearInterval(pollTimer);
       if (ws) ws.close();
     };
   }, []);

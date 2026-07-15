@@ -1,0 +1,37 @@
+name: Promote dashboards to Grafana Cloud
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboards/**/*.json'
+
+jobs:
+  validate-and-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Validate JSON + UID uniqueness
+        run: bash scripts/validate.sh dashboards
+
+      - name: Push changed dashboards to Grafana Cloud
+        env:
+          GRAFANA_URL: ${{ secrets.GRAFANA_CLOUD_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_CLOUD_TOKEN }}
+          CLOUD_PROM_UID: ${{ secrets.GRAFANA_CLOUD_PROM_UID }}
+        run: |
+          # Only push files changed in this commit
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'dashboards/**/*.json' 2>/dev/null || echo "")
+          if [[ -z "$CHANGED" ]]; then
+            echo "No dashboard changes detected — skipping push"
+            exit 0
+          fi
+          echo "Changed dashboards:"
+          echo "$CHANGED"
+          echo "$CHANGED" | xargs -I{} bash scripts/push.sh {}

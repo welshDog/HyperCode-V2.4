@@ -48,7 +48,7 @@ class DBPoolCollector:
 
     def collect(self):
         try:
-            from app.db.session import engine as sync_engine, async_engine
+            from app.core.db_pool import engine as async_engine
         except Exception as exc:
             logger.debug(f"DBPoolCollector: engine import failed ({exc})")
             return
@@ -74,7 +74,7 @@ class DBPoolCollector:
             labels=["engine"],
         )
 
-        for label, eng in (("sync", sync_engine), ("async", async_engine)):
+        for label, eng in (("async", async_engine)):
             if eng is None:
                 continue
             try:

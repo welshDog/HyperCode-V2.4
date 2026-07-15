@@ -1,7 +1,7 @@
 # Makefile for HyperCode Agent Crew
 # Simplifies common Docker operations
 
-.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus
+.PHONY: help build up down logs status clean test restart network-init init start agents stop setup dev prod scan scan-quick scan-sast scan-secrets scan-deps scan-iac scan-licenses scan-report pre-commit-install scan-agent scan-all scan-build trivy-hook-install calm snapshot load-test load-test-headless load-test-k6 load-test-k6-smoke load-test-agents load-test-stripe-k6 load-test-all focus healer-rebuild oom-test alert-test oom-webhook-test seed-checks
 
 # Default target
 help:
@@ -18,6 +18,7 @@ help:
 	@echo "  make focus        - 🎯 Focus Mode: stop non-essential containers + 25min timer"
 	@echo "  make calm         - 🌊 Calm Mode: restore everything + award BROski$"
 	@echo "  make network-init - Ensure hypercode_public_net exists"
+	@echo "  make seed-checks  - Seed HyperHealth checks (idempotent)"
 	@echo ""
 	@echo "Scanning & Quality Gates:"
 	@echo "  make scan              - Full local scan suite"
@@ -59,24 +60,51 @@ pre-build-check:
 # Build all containers
 build: pre-build-check network-init
 	@echo "Building all agent containers..."
-	docker-compose -f docker-compose.yml --profile agents --env-file .env.agents build
+	docker compose -f docker-compose.yml --profile agents build
 
 # Start full stack with secrets
 up:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
+	docker compose -f docker-compose.yml up -d
 	@bash scripts/show-session.sh || true
+
+# Start agents profile
+agents:
+	docker compose -f docker-compose.yml --profile agents up -d
+
+# Start hyper profile
+hyper:
+	docker compose -f docker-compose.yml --profile hyper up -d
+
+# Rebuild and restart healer-agent
+healer-rebuild:
+	docker compose -f docker-compose.yml --profile agents up -d --build healer-agent
+
+# Test OOM Discord alert (simulate via Redis)
+oom-test:
+	@echo "Simulating restart loop for coder-agent (sets Redis counter to 6)..."
+	docker exec redis redis-cli SETEX healer:restarts:coder-agent 300 6
+	@echo "Wait ~30s for the next healer scan cycle. Check Discord!"
+
+alert-test:
+	python scripts/alert_test.py
+
+oom-webhook-test:
+	docker exec healer-agent python -c "import asyncio; from agents.healer.adapters.discord_notifier import DiscordNotifier; n=DiscordNotifier(); asyncio.run(n.send_custom_alert('🧪 OOM Webhook Test', 'If you see this, DISCORD_OOM_WEBHOOK_URL is wired correctly.', color=0xFFAA00))"
+
+seed-checks:
+	python agents/hyperhealth/seed_checks.py
 
 # Stop full stack
 down:
-	docker compose -f docker-compose.secrets.yml down
+	docker compose -f docker-compose.yml down
 
 # Restart full stack
 restart:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml restart
+	docker compose -f docker-compose.yml restart
 
 # View logs (all services)
 logs:
-	docker compose -f docker-compose.yml -f docker-compose.secrets.yml logs -f
+	docker compose -f docker-compose.yml logs -f
 
 # View specific agent logs
 logs-orchestrator:

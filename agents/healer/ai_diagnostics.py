@@ -1,7 +1,7 @@
 """
 AI-Powered Diagnostics for Healer Agent
 
-Uses Claude/Perplexity to analyze symptoms and recommend fixes.
+Uses Claude (primary) with Ollama as local fallback for root cause analysis.
 """
 
 import os
@@ -18,13 +18,11 @@ class AIDiagnostics:
     
     def __init__(
         self,
-        openai_api_key: Optional[str] = None,
-        perplexity_api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
     ):
-        self.openai_key = openai_api_key or os.getenv("OPENAI_API_KEY", "")
-        self.perplexity_key = perplexity_api_key or os.getenv("PERPLEXITY_API_KEY", "")
         self.anthropic_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
+        self.ollama_base_url = os.getenv("LLM_API_BASE", "http://ollama:11434/v1")
+        self.ollama_model = os.getenv("LLM_MODEL", "llama3.2")
     
     async def diagnose(
         self,
@@ -58,29 +56,11 @@ class AIDiagnostics:
             return await self._diagnose_with_claude(
                 agent_name, symptoms, logs, context
             )
-        
-        # Fallback to Perplexity
-        if self.perplexity_key:
-            return await self._diagnose_with_perplexity(
-                agent_name, symptoms, logs, context
-            )
-        
-        # Fallback to OpenAI
-        if self.openai_key:
-            return await self._diagnose_with_openai(
-                agent_name, symptoms, logs, context
-            )
-        
-        # No API keys available
-        logger.warning("No AI API keys configured for diagnostics")
-        return {
-            "root_cause": "Unknown (AI diagnostics unavailable)",
-            "confidence": 0.0,
-            "recommended_fix": "Manual investigation required",
-            "steps": ["Check logs manually", "Contact on-call engineer"],
-            "estimated_resolution_time_minutes": 30,
-            "escalate_to_human": True,
-        }
+
+        # Fallback to Ollama (local, OpenAI-compat endpoint)
+        return await self._diagnose_with_ollama(
+            agent_name, symptoms, logs, context
+        )
     
     async def _diagnose_with_claude(
         self,
@@ -89,100 +69,47 @@ class AIDiagnostics:
         logs: Optional[str],
         context: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Diagnose using Claude API"""
+        """Diagnose using Claude API (async)."""
         try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=self.anthropic_key)
-            
-            prompt = self._build_diagnostic_prompt(
-                agent_name, symptoms, logs, context
-            )
-            
-            message = client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+            from anthropic import AsyncAnthropic
+            client = AsyncAnthropic(api_key=self.anthropic_key)
+
+            prompt = self._build_diagnostic_prompt(agent_name, symptoms, logs, context)
+            message = await client.messages.create(
+                model=os.getenv("AGENT_MODEL", "claude-sonnet-4-6"),
                 max_tokens=1024,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+                messages=[{"role": "user", "content": prompt}],
             )
-            
             response_text = message.content[0].text
             return self._parse_diagnostic_response(response_text)
-            
+
         except Exception as e:
             logger.error(f"Claude diagnostics failed: {e}")
             return self._fallback_diagnosis(agent_name, symptoms)
     
-    async def _diagnose_with_perplexity(
+    async def _diagnose_with_ollama(
         self,
         agent_name: str,
         symptoms: List[str],
         logs: Optional[str],
         context: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Diagnose using Perplexity API"""
+        """Diagnose using Ollama via OpenAI-compat endpoint (local fallback)."""
         try:
-            prompt = self._build_diagnostic_prompt(
-                agent_name, symptoms, logs, context
-            )
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    "https://api.perplexity.ai/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.perplexity_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": "pplx-70b-online",
-                        "messages": [{"role": "user", "content": prompt}],
-                        "max_tokens": 1024,
-                    },
-                    timeout=30.0,
-                )
-                
-                if response.status_code != 200:
-                    logger.error(f"Perplexity API error: {response.status_code}")
-                    return self._fallback_diagnosis(agent_name, symptoms)
-                
-                data = response.json()
-                response_text = data["choices"][0]["message"]["content"]
-                return self._parse_diagnostic_response(response_text)
-                
-        except Exception as e:
-            logger.error(f"Perplexity diagnostics failed: {e}")
-            return self._fallback_diagnosis(agent_name, symptoms)
-    
-    async def _diagnose_with_openai(
-        self,
-        agent_name: str,
-        symptoms: List[str],
-        logs: Optional[str],
-        context: Optional[Dict[str, Any]],
-    ) -> Dict[str, Any]:
-        """Diagnose using OpenAI API"""
-        try:
-            import openai
-            openai.api_key = self.openai_key
-            
-            prompt = self._build_diagnostic_prompt(
-                agent_name, symptoms, logs, context
-            )
-            
-            response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[{"role": "user", "content": prompt}],
+            from openai import AsyncOpenAI
+            client = AsyncOpenAI(base_url=self.ollama_base_url, api_key="NA")
+
+            prompt = self._build_diagnostic_prompt(agent_name, symptoms, logs, context)
+            response = await client.chat.completions.create(
+                model=self.ollama_model,
                 max_tokens=1024,
+                messages=[{"role": "user", "content": prompt}],
             )
-            
-            response_text = response["choices"][0]["message"]["content"]
+            response_text = response.choices[0].message.content or ""
             return self._parse_diagnostic_response(response_text)
-            
+
         except Exception as e:
-            logger.error(f"OpenAI diagnostics failed: {e}")
+            logger.error(f"Ollama diagnostics failed: {e}")
             return self._fallback_diagnosis(agent_name, symptoms)
     
     def _build_diagnostic_prompt(

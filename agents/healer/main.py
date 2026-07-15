@@ -71,6 +71,9 @@ WATCHDOG_AGENT = os.getenv("HEALER_WATCHDOG_AGENT", "").strip()
 WATCHDOG_FORCE_RESTART = os.getenv("HEALER_WATCHDOG_FORCE_RESTART", "false").strip().lower() == "true"
 HEALER_AGENT_ID = os.getenv("HEALER_AGENT_ID", "healer-01")
 
+# ── FIX 4: Semaphore — max 3 concurrent heals (prevents restart storm on mass-unhealthy event)
+_HEAL_SEMAPHORE = asyncio.Semaphore(3)
+
 # ── Global state ───────────────────────────────────────────────────────────────────────────
 redis_client: Optional[redis.Redis] = None
 docker_adapter: Optional[DockerAdapter] = None
@@ -208,7 +211,8 @@ circuit_breakers: Dict[str, CircuitBreaker] = defaultdict(CircuitBreaker)
 async def lifespan(app: FastAPI):
     global redis_client, docker_adapter, event_bus
     redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
-    docker_adapter = DockerAdapter(redis_url=REDIS_URL)
+    # FIX 2: Pass shared redis_client into DockerAdapter — avoids a second parallel connection
+    docker_adapter = DockerAdapter(redis_client=redis_client)
 
     # │ Phase 3 — Connect event bus │
     try:
@@ -247,7 +251,7 @@ async def lifespan(app: FastAPI):
 # ── App ──────────────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Healer Agent",
-    version="0.3.0",
+    version="0.3.1",
     description="Autonomous healing service for agents and systems",
     lifespan=lifespan,
 )
@@ -302,6 +306,18 @@ async def _publish_heal_event(
         logger.info(f"📤 HealEvent published | {event.summary()}")
     except Exception as e:
         logger.warning(f"EventBus publish failed (non-fatal): {e}")
+
+    # Phase 10E: also mirror into core's event stream, authed as US
+    try:
+        from core_events import publish_core_event
+        await publish_core_event(
+            "completed" if status == "recovered" else "failed",
+            f"heal-{healed_agent}",
+            {"healed_agent": healed_agent, "pattern": heal_pattern,
+             "status": status, "error": error_msg},
+        )
+    except Exception as e:
+        logger.warning(f"Core event mirror failed (non-fatal): {e}")
 
 
 # ── Heartbeat + heals_today ───────────────────────────────────────────────────────────────────────
@@ -398,19 +414,24 @@ async def watchdog_cycle() -> None:
         "X-Smoke-Mode": "true",
     }
     roster = await fetch_agent_roster()
+    r = None
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             payload: Dict[str, Any] = {"mode": "probe_health"}
             if WATCHDOG_AGENT:
                 payload["agent"] = WATCHDOG_AGENT
             r = await client.post(f"{ORCHESTRATOR_URL}/execute/smoke", headers=headers, json=payload)
-    except Exception:
+    # FIX 3: Log watchdog errors instead of silently swallowing them
+    except Exception as e:
+        logger.warning(f"watchdog_cycle request failed (non-fatal): {e}")
         return
-    if r.status_code != 200:
+    if r is None or r.status_code != 200:
+        logger.warning(f"watchdog_cycle bad response: status={getattr(r, 'status_code', 'no-response')}")
         return
     try:
         payload = r.json()
-    except Exception:
+    except Exception as e:
+        logger.warning(f"watchdog_cycle JSON parse failed: {e}")
         return
     agents = payload.get("agents")
     if not isinstance(agents, dict):
@@ -433,8 +454,8 @@ async def watchdog_cycle() -> None:
         return
     try:
         await asyncio.wait_for(asyncio.gather(*heal_tasks, return_exceptions=True), timeout=120.0)
-    except Exception:
-        return
+    except Exception as e:
+        logger.warning(f"watchdog heal gather failed: {e}")
 
 
 async def watchdog_loop() -> None:
@@ -443,8 +464,8 @@ async def watchdog_loop() -> None:
     while True:
         try:
             await watchdog_cycle()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"watchdog_loop unhandled error: {e}")
         await asyncio.sleep(max(WATCHDOG_INTERVAL_SECONDS, 5.0))
 
 
@@ -543,16 +564,22 @@ async def attempt_heal_agent(
 
 
 async def auto_heal_all():
+    """Heal all unhealthy agents — capped at 3 concurrent heals via semaphore (FIX 4)."""
     logger.info("🔧 Auto-healing triggered by system alert")
     health_data = await fetch_system_health()
     if not health_data:
         logger.warning("No health data available - skipping healing cycle")
         return
-    tasks = []
-    for name, info in health_data.items():
-        if info.get("status") == "unhealthy":
-            url = info.get("url", f"http://{name}:8000")
-            tasks.append(attempt_heal_agent(name, url, attempts=2, timeout=5.0))
+
+    async def _guarded_heal(name: str, url: str):
+        async with _HEAL_SEMAPHORE:
+            return await attempt_heal_agent(name, url, attempts=2, timeout=5.0)
+
+    tasks = [
+        _guarded_heal(name, info.get("url", f"http://{name}:8000"))
+        for name, info in health_data.items()
+        if info.get("status") == "unhealthy"
+    ]
     if not tasks:
         logger.info("✅ All agents healthy - no healing needed")
         return
@@ -565,26 +592,45 @@ async def auto_heal_all():
         logger.error("⏱️ Auto-heal cycle exceeded 60s timeout")
 
 
+# ── FIX 1: alert_listener with outer retry loop — never goes silent after Redis blip ──────────────
 async def alert_listener():
-    if not redis_client:
-        logger.error("Redis client not initialized - cannot start alert listener")
-        return
-    logger.info("Alert listener started - subscribed to 'system_alert' channel")
-    pubsub = redis_client.pubsub()
-    await pubsub.subscribe("system_alert")
-    try:
-        async for message in pubsub.listen():
-            if message["type"] == "message":
-                logger.info(f"📢 Received alert: {message['data']}")
+    """Subscribe to system_alert Redis channel. Auto-reconnects on failure."""
+    while True:
+        pubsub = None
+        try:
+            if not redis_client:
+                logger.error("Redis client not initialized - retrying in 5s")
+                await asyncio.sleep(5)
+                continue
+            pubsub = redis_client.pubsub()
+            await pubsub.subscribe("system_alert")
+            logger.info("Alert listener (re)subscribed to system_alert channel")
+            while True:
+                # get_message() returns None when the channel is simply idle.
+                # listen() would raise TimeoutError instead, and the handler
+                # below would treat "nothing happened" as a crash.
+                message = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=30.0
+                )
+                if message is None:
+                    continue
+                if message["type"] == "message":
+                    logger.info(f"📢 Received alert: {message['data']}")
+                    try:
+                        await auto_heal_all()
+                    except Exception as e:
+                        logger.error(f"Error processing alert: {e}", exc_info=True)
+        except Exception as e:
+            logger.error(f"Alert listener crashed, restarting in 5s: {e}", exc_info=True)
+        finally:
+            if pubsub:
                 try:
-                    await auto_heal_all()
-                except Exception as e:
-                    logger.error(f"Error processing alert: {e}", exc_info=True)
-    except Exception as e:
-        logger.error(f"Alert listener crashed: {e}", exc_info=True)
-    finally:
-        await pubsub.unsubscribe("system_alert")
-        logger.warning("Alert listener stopped")
+                    # aclose() returns the connection to the pool.
+                    # unsubscribe() alone leaves it checked out forever.
+                    await pubsub.aclose()
+                except Exception:
+                    pass
+        await asyncio.sleep(5)  # backoff before reconnect
 
 
 # ── Routes ──────────────────────────────────────────────────────────────────────────────────────
@@ -593,7 +639,8 @@ async def health():
     docker_ok = False
     if docker_adapter and docker_adapter.client:
         try:
-            docker_adapter.client.ping()
+            # Synchronous docker-py call — off the loop, /health is polled every 15s.
+            await asyncio.to_thread(docker_adapter.client.ping)
             docker_ok = True
         except Exception:
             pass

@@ -20,16 +20,40 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  - job_name: "grafana"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  - job_name: "loki"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["loki:3100"]
+
+  - job_name: "tempo"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["tempo:3200"]
+
+  - job_name: "promtail"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["promtail:9080"]
+
+  - job_name: "pyroscope"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["pyroscope:4040"]
+
   - job_name: "hypercode-core"
     metrics_path: /metrics
     static_configs:
       - targets: ["hypercode-core:8000"]
 
-  # crew-orchestrator is optional/profile-gated — uncomment when deployed
-  # - job_name: "crew-orchestrator"
-  #   metrics_path: /metrics
-  #   static_configs:
-  #     - targets: ["crew-orchestrator:8081"]
+  - job_name: "crew-orchestrator"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["crew-orchestrator:8080"]
 
   # test-agent is profile-gated (--profile agents) — uncomment when deployed
   # - job_name: "test-agent"
@@ -66,3 +90,9 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["broski-bot:8000"]
+
+  # P0-2 Safety Shepherd — safety_decisions_total (ALLOW/BLOCK/ESCALATE)
+  - job_name: "safety-shepherd"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["safety-shepherd:8096"]
