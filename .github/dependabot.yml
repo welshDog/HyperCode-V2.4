@@ -4,21 +4,7 @@
 version: 2
 
 updates:
-  permissions:
-    contents: read
-  on:
-    read
-  on:
-    push:
-      branches: [main, master]
-    pull_request:
-      branches: [main, master]
-    workflow_dispatch:
-  concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
-  jobs:
-    lint:
+
   # ── Python (pip) ──────────────────────────────────────────
   - package-ecosystem: "pip"
     directory: "/"
