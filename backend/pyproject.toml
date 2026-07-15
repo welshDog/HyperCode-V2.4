@@ -59,7 +59,7 @@ dependencies = [
     "opentelemetry-instrumentation-celery==0.61b0",
     "opentelemetry-proto==1.41.0",
     "opentelemetry-semantic-conventions==0.61b0",
-    "opentelemetry-util-http==0.61b0",
+    "opentelemetry-util-http==0.64b0",
 
     # ───── Agent Orchestration & LLM Frameworks ─────
     "langgraph==1.5.0",
