@@ -1,5 +1,7 @@
 name: \uD83D\uDD12 Security Scan
-
+permissions read
+on:
+ read
 on:
   workflow_call:
     inputs:

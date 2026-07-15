@@ -1,4 +1,5 @@
-name: CI — Python
+permissions:
+  contents: readname: CI — Python
 
 on:
   push:
@@ -12,6 +13,9 @@ on:
     paths:
       - 'backend/**'
       - 'requirements*.txt'
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-python-${{ github.ref }}

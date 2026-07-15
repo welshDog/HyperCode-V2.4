@@ -2,7 +2,8 @@ name: \uD83D\uDD17 Integration Tests
 
 on:
   workflow_dispatch:
-
+permissions:
+  contents: read
 jobs:
   integration:
     name: Integration Tests

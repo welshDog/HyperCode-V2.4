@@ -4,6 +4,10 @@ name: Quality Gate — Master Orchestrator
 # It calls the specialist workflows and enforces thresholds from
 # quality-gate-thresholds.yml.
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [main, master]

@@ -1,5 +1,9 @@
 name: IaC & Dockerfile Scan
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [main, master]

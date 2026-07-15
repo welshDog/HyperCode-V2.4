@@ -1,5 +1,9 @@
 name: Promote dashboards to Grafana Cloud
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [main]

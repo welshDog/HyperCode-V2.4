@@ -1,4 +1,9 @@
 name: Lean Duplicate Review
+
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     paths:

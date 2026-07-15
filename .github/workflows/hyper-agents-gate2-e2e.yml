@@ -1,5 +1,9 @@
 name: Hyper Agents Gate 2 — E2E & Full Stack
 
+permissions:
+  contents: read
+on:
+  read
 on:
   pull_request:
     branches:

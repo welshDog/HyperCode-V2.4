@@ -1,5 +1,9 @@
 name: 💚 HyperCode Health Check
 
+permissions:
+  contents: read
+on:
+  read
 on:
   push:
     branches: [main]

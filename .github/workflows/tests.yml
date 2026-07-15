@@ -1,5 +1,9 @@
 name: Tests & Quality
 
+permissions:
+  contents: read
+on:
+  read
 on:
   workflow_call:
   schedule:

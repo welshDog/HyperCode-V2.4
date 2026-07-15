@@ -1,5 +1,9 @@
 name: Docs Check
 
+permissions:
+  contents: read
+on:
+  read
 on:
   pull_request:
     paths:
