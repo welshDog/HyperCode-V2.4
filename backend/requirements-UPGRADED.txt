@@ -73,7 +73,7 @@ opentelemetry-util-http==0.61b0
 # ──────────────────────────────────────────────────────────────────────────────
 langgraph==1.5.0
 langgraph-prebuilt==1.1.0
-langgraph-checkpoint==4.0.1
+langgraph-checkpoint==4.1.1
 langgraph-sdk==0.3.13
 LangChain==0.3.5
 langchain-core==0.3.5
