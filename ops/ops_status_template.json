@@ -1,0 +1,160 @@
+{
+  "_meta": {
+    "description": "BROski Brain Ops — canonical daily status output format",
+    "version": "1.0.0",
+    "note": "This is the SINGLE SOURCE OF TRUTH. Every tool (Discord bot, Obsidian dashboard, agents, your eyeballs) reads THIS."
+  },
+  "timestamp": "{{ISO8601_TIMESTAMP}}",
+  "session_id": "ops_{{YYYYMMDD}}_{{HHMMSS}}",
+  "ops_version": "2.0.0",
+  "steps": {
+    "health_check": {
+      "status": "HEALTHY | DEGRADED | UNHEALTHY",
+      "duration_seconds": 0.0,
+      "details": {
+        "docker_daemon": "✅ responding | ❌ not responding",
+        "hyper_brain_container": "✅ running (uptime Xd Xh) | ❌ exited",
+        "briefing_api": "✅ responding (200 OK, Xms) | ❌ timeout"
+      },
+      "error_code": null,
+      "error_message": null
+    },
+    "github_sync": {
+      "status": "FULL | PARTIAL | FAILED",
+      "duration_seconds": 0.0,
+      "details": {
+        "repos_attempted": 0,
+        "repos_succeeded": 0,
+        "repos_failed": 0,
+        "issues_synced": 0,
+        "failed_repos": []
+      },
+      "error_code": null,
+      "error_message": null
+    },
+    "briefing_generation": {
+      "status": "GENERATED | PARTIAL | FAILED",
+      "duration_seconds": 0.0,
+      "details": {
+        "file_path": "",
+        "file_size_bytes": 0,
+        "sections_generated": 0,
+        "sections_skipped": 0
+      },
+      "error_code": null,
+      "error_message": null
+    },
+    "vault_commit": {
+      "status": "COMMITTED | NO_CHANGES | UNCOMMITTED",
+      "duration_seconds": 0.0,
+      "details": {
+        "commit_hash": null,
+        "commit_message": "",
+        "files_changed": 0,
+        "insertions": 0,
+        "deletions": 0
+      },
+      "error_code": null,
+      "error_message": null
+    },
+    "discord_report": {
+      "status": "SENT | FAILED",
+      "duration_seconds": 0.0,
+      "details": {
+        "webhook_id": null,
+        "message_id": null,
+        "channel": "brain-ops"
+      },
+      "error_code": null,
+      "error_message": null
+    }
+  },
+  "summary": {
+    "overall_status": "HEALTHY | PARTIAL | FAILED",
+    "icon": "✅ | ⚠️ | ❌",
+    "message": "",
+    "next_steps": [],
+    "all_ok": false,
+    "total_duration_seconds": 0.0
+  },
+  "_example": {
+    "note": "Real example output for reference",
+    "timestamp": "2026-06-01T08:00:00Z",
+    "session_id": "ops_20260601_080000",
+    "steps": {
+      "health_check": {
+        "status": "HEALTHY",
+        "duration_seconds": 2.3,
+        "details": {
+          "docker_daemon": "✅ responding",
+          "hyper_brain_container": "✅ running (uptime 2d 4h)",
+          "briefing_api": "✅ responding (200 OK, 150ms)"
+        },
+        "error_code": null,
+        "error_message": null
+      },
+      "github_sync": {
+        "status": "PARTIAL",
+        "duration_seconds": 18.5,
+        "details": {
+          "repos_attempted": 4,
+          "repos_succeeded": 3,
+          "repos_failed": 1,
+          "issues_synced": 47,
+          "failed_repos": [
+            { "repo": "welshDog/BROski", "error_code": "GH_003", "reason": "No access (check PAT scopes)" }
+          ]
+        },
+        "error_code": "GH_003",
+        "error_message": "1 of 4 repos failed to sync"
+      },
+      "briefing_generation": {
+        "status": "GENERATED",
+        "duration_seconds": 8.1,
+        "details": {
+          "file_path": "H:/HYPERFOCUSZONE/.../Briefings/2026-06-01-briefing.md",
+          "file_size_bytes": 4827,
+          "sections_generated": 5,
+          "sections_skipped": 0
+        },
+        "error_code": null,
+        "error_message": null
+      },
+      "vault_commit": {
+        "status": "COMMITTED",
+        "duration_seconds": 1.2,
+        "details": {
+          "commit_hash": "a3f2c1e",
+          "commit_message": "ops: sync briefings and github inbox 2026-06-01T08:00:00Z",
+          "files_changed": 2,
+          "insertions": 47,
+          "deletions": 0
+        },
+        "error_code": null,
+        "error_message": null
+      },
+      "discord_report": {
+        "status": "SENT",
+        "duration_seconds": 0.8,
+        "details": {
+          "webhook_id": "1234567890",
+          "message_id": "9876543210",
+          "channel": "brain-ops"
+        },
+        "error_code": null,
+        "error_message": null
+      }
+    },
+    "summary": {
+      "overall_status": "PARTIAL",
+      "icon": "⚠️",
+      "message": "Morning briefing generated, 3/4 repos synced. Check GitHub PAT scopes for welshDog/BROski.",
+      "next_steps": [
+        "Regenerate GitHub PAT with 'repo' scope",
+        "Re-run sync-github in 1h"
+      ],
+      "all_ok": false,
+      "total_duration_seconds": 30.9
+    }
+  }
+}

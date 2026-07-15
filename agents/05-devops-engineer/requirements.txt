@@ -6,3 +6,4 @@ httpx
 redis
 python-multipart
 anthropic>=0.25.0
+openai

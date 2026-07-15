@@ -8,7 +8,7 @@
 #
 # What it does:
 #   - Overrides ALL service resource limits to nano-safe values
-#   - Disables Ollama (use cloud LLM instead via PERPLEXITY_API_KEY)
+#   - Disables Ollama (use cloud LLM instead via ANTHROPIC_API_KEY)
 #   - Disables observability stack (Grafana/Prometheus/Loki/Tempo)
 #   - Disables MinIO, ChromaDB, cAdvisor, security-scanner
 #   - Keeps: redis, postgres, hypercode-core, dashboard, celery-worker
@@ -65,7 +65,7 @@ services:
           memory: 256M
 
   # ── DISABLED IN NANO ─────────────────────────────────────── #
-  # Ollama — too heavy (1–3GB). Use PERPLEXITY_API_KEY cloud fallback instead.
+  # Ollama — too heavy (1–3GB). Use ANTHROPIC_API_KEY cloud fallback instead.
   hypercode-ollama:
     deploy:
       replicas: 0

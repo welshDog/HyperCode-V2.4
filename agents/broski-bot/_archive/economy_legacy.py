@@ -238,7 +238,7 @@ class Economy(commands.Cog):
                         value=f"**{balance:,}** BROski$",
                         inline=False,
                     )
-                except:
+                except Exception:
                     embed.add_field(
                         name=f"{medals[idx]} #{idx + 1} Unknown User",
                         value=f"**{balance:,}** BROski$",

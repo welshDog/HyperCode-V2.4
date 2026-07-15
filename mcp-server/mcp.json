@@ -1,0 +1,17 @@
+{
+  "_comment": "AI Shell MCP config — copy to $HOME\\.aish\\mcp.json",
+  "_docs": "https://learn.microsoft.com/en-us/powershell/utility-modules/aishell/how-to/mcp-support",
+  "servers": {
+    "lyndz-devops-tools": {
+      "type": "stdio",
+      "command": "pwsh",
+      "args": [
+        "-NoProfile",
+        "-NoLogo",
+        "-File",
+        "PATH_TO_THIS_REPO/mcp-server/mcp-server.ps1"
+      ],
+      "_note": "Replace PATH_TO_THIS_REPO with your local clone path e.g. C:/projects/HyperCode-V2.4"
+    }
+  }
+}

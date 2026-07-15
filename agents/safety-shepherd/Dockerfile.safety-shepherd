@@ -1,0 +1,21 @@
+# Safety Shepherd — runtime policy brain (P0-2)
+# Base from the shared agent-base image (FastAPI + redis + httpx + docker-ce-cli).
+# Build agent-base first if missing:
+#   docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+FROM agent-base:latest
+
+WORKDIR /app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY policy.py safety_shepherd.py capabilities.json ./
+
+RUN chown -R appuser:appuser /app
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
+    CMD curl -f http://localhost:8096/health || exit 1
+
+EXPOSE 8096
+CMD ["uvicorn", "safety_shepherd:app", "--host", "0.0.0.0", "--port", "8096"]

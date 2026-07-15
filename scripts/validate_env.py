@@ -22,7 +22,6 @@ REQUIRED = [
 # ── Recommended vars — degraded mode if missing ───────────────────────────────
 RECOMMENDED = [
     "OPENAI_API_KEY",
-    "PERPLEXITY_API_KEY",
     "GF_SECURITY_ADMIN_USER",
     "GF_SECURITY_ADMIN_PASSWORD",
     "ANTHROPIC_API_KEY",

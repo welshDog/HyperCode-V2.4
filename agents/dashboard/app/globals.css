@@ -1,3 +1,8 @@
+/* Tailwind v4 — theme + utilities ONLY (no preflight: the hand-written
+   .hyper-* CSS below owns the base styles; preflight would reset them). */
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+
 /* ====================================================
    HyperCode V2.0 — Global Styles
    ND-First: WCAG 2.1 AA, Dyslexia fonts, Reduced Motion
@@ -1731,4 +1736,62 @@ html, body, .hyper-root {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ── HyperStudio (write-path view) ─────────────────────────────────────────
+   Reuses the shared Pane/.btn system; only the studio-specific accents live
+   here. The global prefers-reduced-motion guard above already tames these. */
+
+.studio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.studio-dot.live {
+  animation: studio-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes studio-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.45); }
+  70%  { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
+}
+
+.studio-caret {
+  margin-left: 2px;
+  animation: studio-blink 1s step-end infinite;
+}
+@keyframes studio-blink {
+  50% { opacity: 0; }
+}
+
+.studio-banner {
+  border: 1px solid var(--pane-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* The one primary action per screen — accented above the neutral .btn. */
+.btn.studio-build,
+.btn.studio-merge {
+  border-color: rgba(99, 102, 241, 0.5);
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.14);
+}
+.btn.studio-build:hover:not(:disabled),
+.btn.studio-merge:hover:not(:disabled) {
+  border-color: rgba(99, 102, 241, 0.8);
+  background: rgba(99, 102, 241, 0.22);
+}
+.btn.studio-build:active:not(:disabled),
+.btn.studio-merge:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.btn.studio-build,
+.btn.studio-merge {
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              background 120ms ease, border-color 120ms ease;
 }

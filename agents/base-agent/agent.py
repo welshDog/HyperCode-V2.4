@@ -12,6 +12,7 @@ import secrets
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
 import sys
+import uvicorn
 
 # Allow imports from shared modules
 sys.path.insert(0, "/app")
@@ -21,25 +22,65 @@ try:
     from shared.logging_config import setup_logging
     from shared.approval_system import ApprovalSystem
 except ImportError:
-    print("⚠️ Shared modules not found, running in limited mode")
+    print("\u26a0\ufe0f Shared modules not found, running in limited mode")
     AgentMemory = None
     ProjectMemory = None
     def setup_logging(agent_name: str):
         return None
     ApprovalSystem = None
 
-# AI Client — try anthropic first, fallback to openai
+# HyperAlert - safe import guard (no crash if module not yet mounted)
 try:
-    from anthropic import AsyncAnthropic as AIClient
-    ai_backend = "anthropic"
+    from shared.discord_alerts import HyperAlert
 except ImportError:
-    try:
-        from openai import AsyncOpenAI as AIClient
-        ai_backend = "openai"
-    except ImportError:
-        AIClient = None
-        ai_backend = None
-        print("⚠️ No AI client found (anthropic or openai). Running in limited mode.")
+    HyperAlert = None
+
+# \u2500\u2500\u2500 LLM helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+
+class _OllamaAdapter:
+    """Thin Anthropic-interface wrapper over the Ollama OpenAI-compat endpoint."""
+    def __init__(self, model: str, base_url: str, api_key: str):
+        from openai import AsyncOpenAI
+        self._client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        self._model = model
+        self.messages = self  # so client.messages.create() works
+
+    async def create(self, model=None, max_tokens=1000, messages=None, system=None, **kwargs):
+        msgs = []
+        if system:
+            msgs.append({"role": "system", "content": system})
+        msgs.extend(messages or [])
+
+        class _Msg:
+            def __init__(self, text):
+                self.text = text
+
+        class _Resp:
+            def __init__(self, text):
+                self.content = [_Msg(text)]
+
+        resp = await self._client.chat.completions.create(
+            model=model or self._model,
+            max_tokens=max_tokens,
+            messages=msgs,
+        )
+        return _Resp(resp.choices[0].message.content or "")
+
+
+def _build_llm_client():
+    """
+    Anthropic \u2192 Ollama fallback chain, mirrors crew-orchestrator/_get_llm().
+    Returns an object exposing .messages.create() in the Anthropic SDK style.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if api_key:
+        from anthropic import AsyncAnthropic
+        return AsyncAnthropic(api_key=api_key)
+    return _OllamaAdapter(
+        model=os.getenv("LLM_MODEL", "llama3.2"),
+        base_url=os.getenv("LLM_API_BASE", "http://ollama:11434/v1"),
+        api_key=os.getenv("LLM_API_KEY", "NA"),
+    )
 
 def _resolve_secret(var: str) -> Optional[str]:
     """Return env ``var``, or the content of ``<var>_FILE`` if set (Docker secrets)."""
@@ -58,13 +99,8 @@ class AgentConfig:
     def __init__(self):
         self.name = os.getenv("AGENT_NAME", "base-agent")
         self.role = os.getenv("AGENT_ROLE", "Generic Agent")
-        self.model = os.getenv("AGENT_MODEL", "claude-3-5-sonnet-20241022")
+        self.model = os.getenv("AGENT_MODEL", "claude-sonnet-4-6")
         self.port = int(os.getenv("AGENT_PORT", "8001"))
-        self.api_key = (
-            _resolve_secret("ANTHROPIC_API_KEY")
-            or _resolve_secret("PERPLEXITY_API_KEY")
-            or _resolve_secret("OPENAI_API_KEY")
-        )
         self.redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
         self.core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
         self.hypercode_api_key = _resolve_secret("HYPERCODE_API_KEY")
@@ -141,9 +177,8 @@ class BaseAgent:
         else:
             raise RuntimeError("Could not connect to Redis after 5 attempts")
         
-        # Initialize AI Client
-        if AIClient and self.config.api_key:
-            self.client = AIClient(api_key=self.config.api_key)
+        # Initialize AI Client (Anthropic → Ollama fallback)
+        self.client = _build_llm_client()
         
         # Initialize Shared Systems
         try:
@@ -160,6 +195,14 @@ class BaseAgent:
                 self.logger.warning("Shared memory modules not available")
             
         await self.initialize()
+
+        # \U0001f4e2 Fleet heartbeat: fire agent_started Discord alert on every boot
+        if HyperAlert:
+            try:
+                await HyperAlert.agent_started(self.config.name)
+            except Exception as _alert_err:
+                if self.logger:
+                    self.logger.warning(f"HyperAlert.agent_started failed (non-fatal): {_alert_err}")
 
     async def initialize(self):
         """Hook for subclasses to add custom initialization logic"""
@@ -181,7 +224,43 @@ class BaseAgent:
         if self.logger:
             self.logger.info("agent_shutdown")
 
+    def run(self) -> None:
+        uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
+
     def setup_routes(self):
+        async def _handle_task(request: TaskRequest) -> TaskResponse:
+            task_id = request.task_id or request.id or secrets.token_hex(8)
+            try:
+                task_text = request.task or request.description or ""
+                if not task_text.strip():
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Field required: task (or description)",
+                    )
+                result = await self.process_task(
+                    task_text,
+                    request.context or {},
+                    request.requires_approval,
+                )
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="completed",
+                    result=result,
+                )
+            except HTTPException:
+                raise
+            except Exception as e:
+                if self.logger:
+                    self.logger.error("task_failed", task_id=task_id, error=str(e))
+                return TaskResponse(
+                    task_id=task_id,
+                    agent=self.config.name,
+                    status="error",
+                    result=None,
+                    error=str(e),
+                )
+
         @self.app.get("/")
         async def root():
             return {
@@ -196,101 +275,22 @@ class BaseAgent:
                 if self.redis:
                     await self.redis.ping()
                 return {"status": "healthy"}
-            except Exception as e:
-                raise HTTPException(status_code=503, detail=str(e))
+            except Exception:
+                raise HTTPException(status_code=503, detail="Redis unavailable")
+        
+        @self.app.post("/task")
+        async def execute_task(request: TaskRequest) -> TaskResponse:
+            return await _handle_task(request)
 
         @self.app.post("/execute")
-        async def execute(request: TaskRequest):
-            task_desc = (request.description or request.task or "").strip()
-            if not task_desc:
-                raise HTTPException(status_code=422, detail="Missing task")
-            task_id = request.id or request.task_id or "unknown"
-            context = request.context if isinstance(request.context, dict) else {}
-            
-            if self.logger:
-                self.logger.info("task_received", task_id=task_id)
-            
-            try:
-                result = await self.process_task(task_desc, context, request.requires_approval)
-                return {"status": "success", "result": result}
-            except Exception as e:
-                if self.logger:
-                    self.logger.error("task_failed", error=str(e))
-                raise HTTPException(status_code=500, detail=str(e))
+        async def execute(request: TaskRequest) -> TaskResponse:
+            return await _handle_task(request)
 
-    async def process_task(self, task: str, context: Optional[Dict[str, Any]], requires_approval: bool):
-        """Override this method in specialized agents"""
-        context = context or {}
-        rag_context = ""
-        if self.agent_memory:
-            rag_context = self.agent_memory.query_relevant_context(task)
-            
-        project_context = {}
-        if self.project_memory:
-            project_context = self.project_memory.get_project_context()
-
-        plan = await self.generate_plan(task, rag_context, project_context)
-        
-        if requires_approval and self.approval_system:
-            approval = await self.approval_system.request_approval(
-                self.config.name,
-                "execute_task",
-                {"task": task, "plan": plan}
-            )
-            if approval['status'] != "approved":
-                raise Exception(f"Task rejected: {approval.get('reason')}")
-        
-        return f"Executed task: {task} based on plan: {plan}"
-
-    async def generate_plan(self, task, rag_context, project_context):
-        if not self.client:
-            return "No AI client configured — running in limited mode"
-
-        prompt = f"""
-        You are {self.config.name} ({self.config.role}).
-
-        CONTEXT FROM BIBLE:
-        {rag_context}
-
-        PROJECT STATUS:
-        {project_context}
-
-        TASK:
-        {task}
-
-        Create a brief execution plan.
-        """
-
-        for attempt in range(4):
-            try:
-                if ai_backend == "anthropic":
-                    response = await self.client.messages.create(
-                        model=self.config.model,
-                        max_tokens=1000,
-                        timeout=30.0,
-                        messages=[{"role": "user", "content": prompt}]
-                    )
-                    return response.content[0].text
-                elif ai_backend == "openai":
-                    response = await self.client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[{"role": "user", "content": prompt}],
-                        timeout=30.0,
-                    )
-                    return response.choices[0].message.content
-                return "No AI backend available"
-            except Exception as e:
-                err_str = str(e).lower()
-                if attempt < 3 and ("rate" in err_str or "connection" in err_str or "timeout" in err_str):
-                    wait = 2 ** (attempt + 1)
-                    if self.logger:
-                        self.logger.warning(f"AI call failed (attempt {attempt + 1}): {e}. Retry in {wait}s")
-                    await asyncio.sleep(wait)
-                else:
-                    if self.logger:
-                        self.logger.error(f"AI API error: {e}")
-                    return f"Plan generation failed: {e}"
-
-    def run(self):
-        import uvicorn
-        uvicorn.run(self.app, host="0.0.0.0", port=self.config.port)
+    async def process_task(
+        self,
+        task: str,
+        context: Dict[str, Any],
+        requires_approval: bool = True,
+    ) -> Any:
+        """Override in subclasses to implement agent-specific logic"""
+        return {"message": f"Task received by {self.config.name}: {task}"}

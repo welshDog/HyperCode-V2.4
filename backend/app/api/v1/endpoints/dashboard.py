@@ -1,7 +1,13 @@
 from typing import Any, List
+import json
+import uuid
+from datetime import datetime, timezone
+
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
+from app.core.config import settings
 from app.models import models
 from app.api import deps
 from pydantic import BaseModel
@@ -26,6 +32,105 @@ class LogEntry(BaseModel):
     level: str
     msg: str
     time: str
+
+
+class ApprovalRequestCreate(BaseModel):
+    agent: str
+    action_type: str
+    details: dict = {}
+    source: str = "dashboard"
+
+
+class ApprovalRespond(BaseModel):
+    status: str  # approved | rejected
+    reason: str | None = None
+
+
+# --- Approval Requests (Safety Shepherd escalations + dashboard) ---
+# Backed by the shared `approval_requests` Redis channel + `approval:*` keys
+# (DB 0) that Safety Shepherd and HyperFlow already publish to.
+
+PENDING_SET = "approval:pending"
+
+
+@router.get("/approval-requests")
+async def list_approval_requests(
+    current_user: Any | None = Depends(deps.get_optional_current_user),
+) -> Any:
+    """List pending human approval requests for the Mission Control dashboard."""
+    if settings.ENVIRONMENT.lower() in {"production", "staging"} and current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
+    try:
+        ids = await r.smembers(PENDING_SET)
+        items = []
+        for approval_id in ids:
+            raw = await r.get(f"approval:{approval_id}")
+            if raw:
+                items.append(json.loads(raw))
+            else:
+                await r.srem(PENDING_SET, approval_id)  # expired — prune
+        items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return {"count": len(items), "requests": items}
+    finally:
+        await r.aclose()
+
+
+@router.post("/approval-requests")
+async def create_approval_request(
+    body: ApprovalRequestCreate,
+    current_user: Any | None = Depends(deps.get_optional_current_user),
+) -> Any:
+    """Raise a human approval request (Safety Shepherd ESCALATE target)."""
+    approval_id = str(uuid.uuid4())
+    request = {
+        "id": approval_id,
+        "agent": body.agent,
+        "action_type": body.action_type,
+        "source": body.source,
+        "details": body.details,
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
+    try:
+        payload = json.dumps(request)
+        await r.set(f"approval:{approval_id}", payload, ex=900)
+        await r.sadd(PENDING_SET, approval_id)
+        await r.publish("approval_requests", payload)
+    finally:
+        await r.aclose()
+    return {"id": approval_id, "status": "pending"}
+
+
+@router.post("/approval-requests/{approval_id}/respond")
+async def respond_approval_request(
+    approval_id: str,
+    body: ApprovalRespond,
+    current_user: Any | None = Depends(deps.get_optional_current_user),
+) -> Any:
+    """Resolve a pending approval (human approve/reject)."""
+    if settings.ENVIRONMENT.lower() in {"production", "staging"} and current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    r = await aioredis.from_url(settings.HYPERCODE_REDIS_URL, decode_responses=True)
+    try:
+        raw = await r.get(f"approval:{approval_id}")
+        if not raw:
+            raise HTTPException(status_code=404, detail="Approval not found or expired")
+        request = json.loads(raw)
+        request["status"] = body.status
+        await r.set(f"approval:{approval_id}", json.dumps(request), ex=3600)
+        await r.set(
+            f"approval:{approval_id}:response",
+            json.dumps({"status": body.status, "reason": body.reason,
+                        "responded_at": datetime.now(timezone.utc).isoformat()}),
+            ex=3600,
+        )
+        await r.srem(PENDING_SET, approval_id)
+        return {"id": approval_id, "status": body.status}
+    finally:
+        await r.aclose()
+
 
 # --- Endpoints ---
 

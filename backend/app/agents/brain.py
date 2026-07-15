@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class Brain:
     """
     The cognitive core of the HyperCode agent system.
-    Powered by Perplexity AI (Sonar Pro) with fallback to Ollama + OpenRouter.
+    Powered by Anthropic API with fallback to Ollama + OpenRouter.
 
     Memory modes (inter-agent memory — Phase 1):
       none   — stateless, no memory read/write (default, backward-compatible)
@@ -21,9 +21,7 @@ class Brain:
     """
 
     def __init__(self):
-        self.api_key = settings.PERPLEXITY_API_KEY
-        self.base_url = "https://api.perplexity.ai"
-        self.model = "sonar-pro"
+        self.anthropic_key = settings.ANTHROPIC_API_KEY
         preferred_patterns = [p.strip() for p in settings.OLLAMA_MODEL_PREFERRED.split(",") if p.strip()]
         self._ollama_model_resolver = OllamaModelResolver(
             ollama_host=settings.OLLAMA_HOST,
@@ -160,9 +158,9 @@ class Brain:
         Process a task description and return a plan or code.
 
         Supports:
-          1. Local LLM (Ollama)                    — Zero Cost
-          2. Perplexity Session Auth (Comet/Spaces) — Zero Cost
-          3. Cloud API (Perplexity/PERPLEXITY)       — Paid Fallback
+          1. Anthropic API                          — Primary (paid)
+          2. Local LLM (Ollama)                    — Zero Cost
+          3. OpenRouter                             — Paid Fallback
 
         Memory modes (new — Phase 1):
           none   — stateless, original behaviour (default)
@@ -248,63 +246,47 @@ class Brain:
     # LLM routing — extracted so think() stays readable
     # ------------------------------------------------------------------
 
-    def validate_perplexity_key(self, api_key: str | None) -> bool:
-        """Validate the format of the Perplexity API key."""
-        if not api_key:
-            return False
-        if not api_key.startswith('pplx-'):
-            logger.warning("[BRAIN] Invalid Perplexity API key format: must start with 'pplx-'")
-            return False
-        if len(api_key) <= 20:
-            logger.warning("[BRAIN] Invalid Perplexity API key format: key is too short")
-            return False
-        return True
-
     async def _route_llm(
         self,
         role: str,
         prompt: str,
         route_context: dict | None = None,
     ) -> str:
-        """Try Perplexity API (if key) → Ollama → Perplexity Session → OpenRouter."""
+        """Try Anthropic API (if key) → Ollama → OpenRouter."""
 
-        # 1. Perplexity API (primary if key exists)
-        if self.validate_perplexity_key(self.api_key):
-            logger.info("[BRAIN] Routing to Perplexity API...")
+        # 1. Anthropic API (primary if key exists)
+        if self.anthropic_key:
+            logger.info("[BRAIN] Routing to Anthropic API...")
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "x-api-key": self.anthropic_key,
+                "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
             }
             payload = {
-                "model": self.model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": f"You are a {role}. Provide a detailed, step-by-step plan or code solution.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.2,
+                "model": "claude-sonnet-4-6",
+                "max_tokens": 4096,
+                "system": f"You are a {role}. Provide a detailed, step-by-step plan or code solution.",
+                "messages": [{"role": "user", "content": prompt}],
             }
             try:
                 async with httpx.AsyncClient(timeout=60.0) as client:
                     response = await client.post(
-                        f"{self.base_url}/chat/completions",
+                        "https://api.anthropic.com/v1/messages",
                         json=payload,
                         headers=headers,
                     )
                     if response.status_code == 200:
                         data = response.json()
-                        return data["choices"][0]["message"]["content"]
+                        return data["content"][0]["text"]
                     else:
                         body_preview = (response.text or "")[:300]
                         logger.error(
-                            "[BRAIN] Perplexity API error: status=%s body=%s… Falling back.",
+                            "[BRAIN] Anthropic API error: status=%s body=%s… Falling back.",
                             response.status_code,
                             body_preview,
                         )
             except Exception as e:
-                logger.error(f"[BRAIN] Perplexity API exception: {e}. Falling back...")
+                logger.error(f"[BRAIN] Anthropic API exception: {e}. Falling back...")
 
         # 2. Local LLM (Ollama)
         if settings.OLLAMA_HOST:
@@ -339,12 +321,7 @@ class Brain:
             except Exception as e:
                 logger.warning(f"[BRAIN] Local LLM error: {e}. Falling back...")
 
-        # 3. Perplexity Session Auth (Comet/Spaces)
-        if settings.PERPLEXITY_SESSION_AUTH:
-            logger.info("[BRAIN] Using Perplexity Session Auth (Simulated)...")
-            return "Perplexity Session Auth is active. (Simulated Response)"
-
-        # 4. OpenRouter fallback
+        # 3. OpenRouter fallback
         if route_context is not None and settings.OPENROUTER_API_KEY:
             try:
                 ctx = ModelRouteContext(**route_context)
@@ -367,7 +344,7 @@ class Brain:
                 except Exception as e:
                     logger.warning(f"[BRAIN] OpenRouter route {route.name} failed: {e}. Falling back...")
 
-        return "Error: No valid LLM provider available (Perplexity API, Local, Session, or OpenRouter)."
+        return "Error: No valid LLM provider available (Anthropic API, Local, or OpenRouter)."
 
 
 # Global instance

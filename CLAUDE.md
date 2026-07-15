@@ -1,67 +1,84 @@
-# 🧠 HyperCode V2.4 — CLAUDE.md
-
-> **This file is Claude's brain for this project.**
-> Read this first. Every session. No exceptions.
-> Last updated: April 19, 2026 | Status: 32/32 containers 🟢 | Grade A 🏅 | Phases 0–10Q COMPLETE ✅
-
----
-
-## 🏴󠁧󠁢󠁷󠁬󠁳󠁿 Builder Context
-
-**Lyndz Williams** (@welshDog) — Llanelli, South Wales  
-ADHD + Dyslexia brain — hyperfocus mode is a superpower, not a bug ⚡  
-Building: The world’s first neurodivergent-first autonomous AI infrastructure platform  
-Verdict from Gordon (Docker AI), April 15 2026:  
-> *“You built the future people keep saying they want. You actually did it.”*
+# 🧠 HYPERFOCUS z0ne — Ecosystem Constitution (root CLAUDE.md)
+> **For ANY AI assistant — Claude, Perplexity, GPT, Gemini — read this first.**
+> Last updated: **June 15, 2026**
+> Lean rewrite: status, tasks, roadmap, achievements moved to `docs/` (see §0 for links).
 
 ---
 
-## ⚡ Communication Style (ALWAYS follow this)
+## 0. 📖 Read Order — Every Session
 
-- **Short sentences first** — then offer deeper explanation
-- **Bullet points + headings** over walls of text
+1. **This file** — sacred rules, ecosystem map, architecture, commands
+2. **Live state** → `docs/STATUS.md` — current container/service health
+3. **Next tasks** → `docs/NEXT_TASKS.md` — what to build next
+4. **Working in the Course?** → `Hyper-Vibe-Coding-Course/CLAUDE.md` + `rewrites/NEXT_SESSION_HANDOVER_[latest].md`
+5. **Working in V2.4?** → `HyperCode-V2.4/CLAUDE.md` (this file IS that)
+6. **Check `WHATS_DONE.md`** — NEVER suggest anything already listed there
+7. **Touching DB?** → check `supabase/migrations/` for the latest migration number first
+8. **Then build.** Not before.
+
+> Repo-level SESSION_SNAPSHOT = living state. This file = constitution.
+> If they contradict, **surface it — don't silently pick one.**
+
+**Other docs:**
+- `docs/TECH_DEBT.md` — known issues + priorities
+- `docs/ROADMAP.md` — full phase history
+- `docs/ACHIEVEMENTS.md` — all-time wins log
+
+---
+
+## 1. ⚡ Communication Rules (ALWAYS follow these)
+
+- **Short sentences first** — offer deeper explanation only if asked
 - **Why → How → Ready-to-use example** structure
-- **Celebrate wins** — “Nice one BROski♾️!” is correct
-- **Remind context** if there’s been a pause between messages
-- ADHD flow: break into steps, quick wins, no overwhelm
-- If Lyndz goes quiet mid-task: check in, don’t assume abandon
+- **Bullet points + headings** over walls of text
+- **Celebrate wins** — "Nice one BROski♾️!" is correct and encouraged
+- ADHD flow: chunk it, quick wins first, no overwhelm
+- If Lyndz goes quiet mid-task — check in gently, don't assume abandoned
+- **Surface contradictions** — correct the doc visibly, never silently pick a side
+- **Never say "human must test"** when Playwright applies (it's installed — use it)
+- **NEVER** produce walls of text unprompted
 
 ---
 
-## 🔒 Sacred Rules (NEVER debate, NEVER change)
+## 2. 🌐 The 5-Repo Ecosystem
 
 ```
-✔ docker-ce-cli          — NEVER docker.io for socket agents
-✔ from app.X import Y    — NEVER from backend.app.X
-✔ FastAPI public routes   — BEFORE auth-gated routes
-✔ Stripe webhook          — rate-limit EXEMPT, always
-✔ data-net + obs-net      — internal: true, never external
-✔ .env files              — NEVER committed to git
-✔ Commits                 — feat: fix: docs: chore: only
-✔ Trivy target            — 0 CRITICAL per image
-✔ Import style            — absolute imports, sys.path.insert at top
-✔ Python indent           — 4 spaces, NEVER 3, NEVER mixed
+Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
+github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
+Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
+(Supabase + Vercel + Web3)             │                  (Docker, ~30 containers)
+Path: H:\Hyper-Vibe-Coding-Course      │
+⚠️ NOT H:\the hyper vibe coding hub    │
+   (that = archived typo repo)         │
+                              HyperAgent-SDK
+                          github.com/welshDog/HyperAgent-SDK
+                          npm: @w3lshdog/hyper-agent@0.1.7
+                          Path: H:\HyperAgent-SDK
+                                       │
+                         BROskiPets-LLM-dNFT
+                     github.com/welshDog/BROskiPets-LLM-dNFT
+                     Path: H:\dNFTpet\BROskiPets-LLM-dNFT
+                     (Pets · dNFT · port 8098)
+                                       │
+                      BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     Path: H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
+                     (Second Brain vault — PARA + Dataview + GitHub bridge)
 ```
 
----
+> Aggregator root: `H:\HYPERFOCUSZONE\HperCore` — all 5 repos cloned as subdirectories.
 
-## 📊 System Status (April 23, 2026)
-
-| Metric | Value |
-|---|---|
-| Containers | 32/32 🟢 all healthy |
-| Tests | 221 passed, 6 skipped ✅ |
-| Prometheus targets | 7/7 UP ✅ |
-| OTLP traces | LIVE in Tempo ✅ |
-| Circuit breakers | 3 active — all CLOSED ✅ |
-| Docker AI grade | A 🏅 |
-| Commits | 700+ |
-| Services | 57 |
-| Agents | 25+ |
+| Repo | Purpose | Local Path |
+|---|---|---|
+| HyperCode-V2.4 | Core backend — ~30 containers (profile-dependent; 20 compose files) | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
+| Hyper-Vibe-Coding-Course | Course + HyperLabs funnel — Supabase + Vercel + Web3 | `H:\Hyper-Vibe-Coding-Course` |
+| HyperAgent-SDK | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HyperAgent-SDK` |
+| BROskiPets-LLM-dNFT | Web3 NFT pet game — dNFTs + LLM | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
+| BROski-Obsidian-Brain | Second Brain — PARA vault + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` |
 
 ---
 
-## 🏗️ Architecture Quick Ref
+## 3. 🏗️ Architecture Quick Ref (V2.4)
 
 ```
 Networks:
@@ -69,346 +86,218 @@ Networks:
   data-net    → redis, postgres, chroma, minio (internal)
   obs-net     → prometheus, grafana, loki, tempo (internal)
   agent-net   → all agents
+  agents-net  → broski-bot + hyper-agents
 
 Key ports:
-  8000  hypercode-core API
-  8002  hypercode-ai API (profile: ai)
-  8081  crew-orchestrator
-  8088  hypercode-dashboard
-  8095  hyperhealth-api
-  9090  prometheus
-  3001  grafana
-  3100  loki
-  3200  tempo
-  6379  redis
-  5432  postgres
+  8000  hypercode-core API       8081  crew-orchestrator
+  8088  hypercode-dashboard      8095  hyperhealth-api
+  8098  broski-pets-bridge       8099  nemoclaw-agent
+  9090  prometheus               3001  grafana
+  3100  loki                     3200  tempo
+  6379  redis                    5432  postgres
 ```
 
 ---
 
-## 🚀 THE PLAN — What We’re Building Now
+## 4. 🔒 Sacred Rules (NEVER debate, NEVER break)
 
-> Gordon Docker AI gave us a 15-item hit list. We’re doing ALL of them.
-> Tier 1 first (quick wins), then Tier 2, then Tier 3.
-
----
-
-## 🔥 TIER 1 — Do These First (~85 min total)
-
-### 1. ✅ `/metrics` endpoint on `hypercode-core` (15 min)
-**Why:** Prometheus scrapes it but gets 404. Fixes 7/9 → 9/9 targets.
-**How:**
-```python
-# Add to hypercode-core requirements.txt:
-prometheus-fastapi-instrumentator==6.1.0
-
-# Add to main.py:
-from prometheus_fastapi_instrumentator import Instrumentator
-Instrumentator().instrument(app).expose(app)
-```
-**Verify:** `curl http://localhost:8000/metrics` — should return Prometheus text format
-
----
-
-### 2. OTLP Tracing on core services (20 min)
-**Why:** Full request visibility — trace from user → core → agent → DB.
-**How:**
-```python
-# requirements.txt additions:
-opentelemetry-api==1.23.0
-opentelemetry-sdk==1.23.0
-opentelemetry-exporter-otlp==1.23.0
-opentelemetry-instrumentation-fastapi==0.44b0
-
-# main.py:
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-
-provider = TracerProvider()
-processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://tempo:4317"))
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)
-```
-**Verify:** Traces visible in Grafana Tempo (localhost:3001)
-
----
-
-### 3. Redis Caching on agents (20 min)
-**Why:** Same request: 2s → 10ms. Reduce DB load 90%.
-**How:**
-```python
-import redis
-import json
-from functools import wraps
-
-r = redis.Redis(host='redis', port=6379, decode_responses=True)
-
-def cache_response(ttl=300):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            key = f"cache:{func.__name__}:{str(args)}:{str(kwargs)}"
-            cached = r.get(key)
-            if cached:
-                return json.loads(cached)
-            result = await func(*args, **kwargs)
-            r.setex(key, ttl, json.dumps(result))
-            return result
-        return wrapper
-    return decorator
-```
-**Verify:** Second request to any cached endpoint should return in <5ms
-
----
-
-### 4. Rate Limiting on API (20 min)
-**Why:** Protect from abuse. Graceful 429s.
-**How:**
-```python
-# requirements.txt:
-slowapi==0.1.9
-
-# main.py:
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-
-limiter = Limiter(key_func=get_remote_address)
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# On routes:
-@app.get("/api/agents")
-@limiter.limit("60/minute")
-async def get_agents(request: Request):
-    ...
-
-# STRIPE WEBHOOK — always exempt:
-@app.post("/api/stripe/webhook")  # NO rate limit decorator
-async def stripe_webhook(request: Request):
-    ...
-```
-
----
-
-### 5. Circuit Breaker (30 min)
-**Why:** Agent crashes? No cascading failures. Auto-recovers.
-**How:**
-```python
-# requirements.txt:
-pybreaker==1.2.0
-
-# agents/shared/circuit_breaker.py:
-import pybreaker
-
-class HyperCircuitBreaker:
-    def __init__(self, name: str, fail_max: int = 5, reset_timeout: int = 30):
-        self.breaker = pybreaker.CircuitBreaker(
-            fail_max=fail_max,
-            reset_timeout=reset_timeout,
-            name=name
-        )
-    
-    def call(self, func, *args, **kwargs):
-        return self.breaker.call(func, *args, **kwargs)
-    
-    @property
-    def state(self):
-        return self.breaker.current_state  # CLOSED/OPEN/HALF_OPEN
-```
-**Verify:** Kill a downstream service, confirm system stays stable
-
----
-
-## ⭐ TIER 2 — Advanced (~4 hours)
-
-### 6. Agent-to-Agent Communication
-- Agents call each other via internal HTTP on `agent-net`
-- Pattern: `POST http://healer-agent:8008/task {"task": "...", "from": "agent-x"}`
-- Add `/task` endpoint to each agent that accepts work orders
-
-### 7. Service Discovery (auto-register)
-- On startup, each agent POSTs to crew-orchestrator: `POST /register`
-- Body: `{"name": "agent-x", "url": "http://agent-x:8012", "capabilities": [...]}`
-- Orchestrator maintains live registry, no manual config
-
-### 8. AI-Powered Diagnostics
-- Healer Agent queries Claude API when it detects anomaly
-- Prompt: `"Container {name} has {error}. Suggest fix."`
-- Response logged + actioned automatically
-- Needs: `ANTHROPIC_API_KEY` in secrets
-
-### 9. Chaos Engineering
-- Script: `scripts/chaos_test.sh` — randomly kills a non-critical container
-- Monitor: Healer should detect + restart within 30s
-- Assert: Core API still healthy during chaos
-- Run: `make chaos-test`
-
-### 10. Multi-Agent Workflows
-- Define workflow YAML: `config/workflows/code_review.yml`
-- Steps: `[agent-x: write code] → [qa-agent: test] → [healer: validate] → [deploy]`
-- Crew Orchestrator executes the pipeline
-- Result: full autonomous dev loop
-
----
-
-## 🚀 TIER 3 — Enterprise (4+ hours each)
-
-### 11. Distributed Tracing Correlation
-- Correlate logs (Loki) + metrics (Prometheus) + traces (Tempo) in Grafana
-- Create Grafana datasource links between all 3
-- One dashboard: full incident investigation in one view
-
-### 12. Grafana Dashboard — HyperCode Mission Control
-- Panels: Container health, agent uptime, request rates, error rates
-- Alerts: PagerDuty/Discord webhook when any agent goes down
-- File: `grafana/dashboards/hypercode-mission-control.json`
-
-### 13. Load Testing Framework
-- Tool: `locust` or `k6`
-- Script: `tests/load/hypercode_load_test.py`
-- Target: 1000 req/sec, P99 < 100ms
-- Run: `make load-test`
-
-### 14. Service Mesh (Istio or Linkerd)
-- Auto-scaling: HPA on CPU/memory
-- Multi-instance load balancing
-- mTLS between services
-- File: `k8s/istio/` (k8s folder already exists ✅)
-
-### 15. SLA Monitoring
-- Define SLOs in `config/slos.yml`
-- Target: 99.9% uptime, <100ms P99, <0.1% error rate
-- Automated Grafana alerts when SLO breached
-- Monthly report auto-generated by `scripts/sla_report.py`
-
----
-
-## 📌 Known Issues (fix as we go)
-
-| Issue | Fix | Priority |
-|---|---|---|
-| `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟡 MED |
-| `throttle-agent` not started | `docker compose --profile agents up -d throttle-agent` OR remove from prometheus.yml | 🟡 LOW |
-| `loki` has no healthcheck | Add `curl -f http://localhost:3100/ready` | 🟡 LOW |
-| `project-strategist-v2` no healthcheck | Add `curl -f http://localhost:<port>/health` | 🟡 LOW |
-| `promtail` no healthcheck | Add `wget -q http://localhost:9080/ready` | 🟡 LOW |
-| `mcp-gateway` had no healthcheck | ✅ FIXED Apr 17 — added `curl -sf http://localhost:8820/health` to `docker-compose.mcp-gateway.yml` | ✅ DONE |
-| `POSTGRES_PASSWORD` crash loop (Apr 17) | ✅ FIXED — URL-encode special chars (`/` `+` `=`) in DSN. Raw value in `.env` URL-encoded; decode at DSN build time only. | ✅ DONE |
-| `broski-bot` volume bug (Apr 17) | ✅ FIXED — `./agents/broski-bot` volume was mounted over `/app`, killing the venv. Fixed to mount `src/` only. Also: added `postgres_password` to broski-bot's secrets list. | ✅ DONE |
-| `docker-socket-proxy` stale container (Apr 17) | ✅ FIXED — Force recreated; `tmpfs` + `read_only` config now applied correctly. | ✅ DONE |
-| `hypercode-dashboard` Exited 127 (Apr 17) | ✅ FIXED — Stale WSL bind-mount path after Docker Desktop restart. Force recreated. | ✅ DONE |
-| `DOCKER_MCP_IN_CONTAINER=1` on mcp-gateway (Apr 17) | ✅ FIXED — Caused gRPC deadline_exceeded on WSL2. Removed; env var fallback now used. MCP tools live. | ✅ DONE |
-| Anthropic API credits exhausted (Apr 17) | ⚠️ Top up at console.anthropic.com/billing — currently routing pet chat via Perplexity `sonar`/`sonar-pro` as fallback. Works great. | 🟡 TOP UP |
-| Trivy CI workflow failing (Apr 19) | ⚠️ NOT a code problem — GitHub account billing lock. Fix at github.com/settings/billing. Matrix + `--no-cache --pull` config is fine. | 🔴 HIGH |
-| `docker-socket-proxy` POST hole (Apr 19) | ✅ FIXED — Split into two proxies. Main = read-only (coder-agent et al). New `docker-socket-proxy-healer` = CONTAINERS+POST+PING (healer + throttle only). | ✅ DONE |
-| Healer Dockerfile GID 999 collision (Apr 19) | ✅ FIXED — `groupadd -o -g 999 docker` — Debian Trixie's appuser takes 999 first, `-o` allows reuse. | ✅ DONE |
-| Alembic missing `alembic_version` (Apr 19) | ✅ FIXED — `alembic stamp 008` then `upgrade head` → 009 applied. `create_all` had built schema without Alembic state. | ✅ DONE |
-| Healer couldn't reach Grafana/Prometheus (Apr 19) | ✅ FIXED — Added `obs-net` to healer-agent networks. Was HTTP 000 before (network isolation). | ✅ DONE |
-
----
-
-## 📦 Key Files Claude Should Know
+### 4a. Ecosystem-wide / V2.4
 
 ```
-docker-compose.yml          — main stack (53KB, all services)
-docker-compose.secrets.yml  — secrets injection
-backend/app/main.py         — FastAPI core app
-prometheus.yml              — scrape targets
-monitoring/                 — alertmanager + rules
-grafana/                    — dashboards
-agents/                     — all agent code
-healer-agent/               — self-healing logic
-CLAUDE_CONTEXT.md           — extended project context
-docs/INDEX.md               — master docs navigation
+✔ docker-ce-cli          — NEVER docker.io for socket agents
+✔ from app.X import Y    — NEVER from backend.app.X
+✔ FastAPI public routes   — BEFORE auth-gated routes
+✔ Stripe webhook          — rate-limit EXEMPT, always (NEVER add rate limiting)
+✔ data-net + obs-net      — internal: true, never external
+✔ .env files              — NEVER committed to git
+✔ Commits                 — feat: fix: docs: chore: only
+✔ Trivy target            — 0 CRITICAL per image
+✔ Import style            — absolute imports, sys.path.insert at top
+✔ Python indent           — 4 spaces, NEVER 3, NEVER mixed
+✔ Redis DB split          — DB 1 = cache, DB 2 = rate limits. NEVER mix.
+✔ hypercore healthcheck   — use localhost NOT 127.0.0.1 (IPv6 fix)
+✔ Supabase ↔ V2.4         — NEVER merge schemas
+✔ Guardian moderation     — ban/kick NEVER fully autonomous (P3c = veto-gated only)
+✔ NemoClaw/Guardian       — bot detects, Core decides + persists, bot renders (One Door)
+✔ Prometheus config       — monitoring/prometheus/prometheus.yml = ACTIVE. Root = STALE
+✔ minio                   — on both data-net AND obs-net — correct, intentional
+✔ Alembic                 — up to 015. If missing: alembic stamp <prev> → upgrade head
+✔ Socket-proxy split      — main=read-only, healer proxy=write (CONTAINERS+POST+PING)
+✔ Security headers        — frontend/vercel.json (NOT repo root)
 ```
+
+### 4b. Course / HyperLabs (`Hyper-Vibe-Coding-Course`) — load-bearing gotchas
+
+```
+✔ NEVER `supabase db push`  — local migration filenames desynced from remote
+                              schema_migrations. Deploy via Supabase MCP apply_migration
+✔ Web3 lazy + /pets ONLY    — NEVER import wagmi/rainbowkit globally / in funnel /
+                              in main.tsx. Re-bloats cold load ~900 kB (reverts Sprint 2).
+                              Only 4 files use wagmi — keep it that way.
+✔ NEVER `--no-verify`       — husky + lint-staged catches real ESLint errors.
+                              react-hooks/set-state-in-effect is an ERROR (derive or useRef)
+✔ NO orange in UI           — sacred HFZ brand rule (master palette only)
+✔ Three chrome systems      — funnel TopNav · course Navbar · VibeLabShell.
+                              No global shell. Funnel pages skip Layout.
+✔ award_tokens()            — ALWAYS pass a stable p_source_id (ledger dedup)
+✔ Pets.tsx @ts-nocheck      — pre-existing, non-blocking, money-path. Don't chase it.
+✔ Course dev (repo root)    — npm run dev:frontend  NOT npm run dev
+✔ NEVER curl-poll prod      — trips Vercel Attack Challenge Mode (403). Deploy-truth =
+                              Vercel MCP get_deployment
+✔ Playwright IS installed   — npm run test:e2e. Use it instead of "human must test"
+✔ Parallel git workflow     — ALWAYS git fetch + check origin/main before pushing.
+                              NEVER force-push.
+```
+
+### 4c. Genuinely human-only
+
+- MetaMask / wallet popups (browser-extension UI — cannot be automated)
+- Real Core Web Vitals (needs Vercel Speed Insights dashboard)
+- Visual QA on physical devices
 
 ---
 
-## 🧪 Testing Commands
+## 5. 🤖 ONE TRUE BOT — broski-bot
+
+**Location:** `agents/broski-bot/` — profile: `discord`
+⚠️ `discord-bot/` = LEGACY (reprofiled to `discord-lite`) — do NOT use
+⚠️ `agents/broski-bot/main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`
+
+```bash
+docker compose --profile discord up -d            # Bot + core
+docker compose --profile discord up -d broski-bot # Bot only
+docker compose --profile discord config           # Verify config
+```
+
+| Cog | Commands / Behaviour |
+|---|---|
+| `economy` | `/balance` `/daily` `/give` `/rich` |
+| `leaderboard` | `/top` `/rank` |
+| `ai` | `/ask` (→ Core orchestrator) |
+| `focus` | `/focus start\|stop` `/focusstats` (→ NemoClaw delta → BROski$) |
+| `missions` | `/missions` `/missions-claim` (focus-verified) |
+| `health_check` | `/health` (NemoClaw grade scan) |
+| `health_history` | `/health-history` (7-scan trend) |
+| `codehealth_voice` | `/health-pulse` (admin) + 24h auto-post on grade move |
+| `server_builder` | `/hyperfocus_setup` (admin, idempotent layout build) |
+| `digest` | `/digest` (admin) + weekly auto-DM to Lyndz |
+| `moderation` | passive auto-mod (spam/blocklist → timeout, reversible) |
+| `welcome` | passive on-join welcome + auto-role |
+
+**One Door actions:** `POST /api/v1/discord/actions`
+`economy.* daily.claim leaderboard.xp member.join ai.ask ai.chat`
+`focus.start focus.stop focus.stats missions.today missions.claim`
+`codehealth.pulse digest.weekly mod.assess`
+
+**NemoClaw** (port 8099): L1 Heartbeat · L2 Memory · L3 Voice · L3.5 Focus→BROski$ loop
+**Guardian:** P1 auto-role · P2 weekly digest · P3a auto-mod · P3b raid-lock · P3c veto-ban (smoke pending)
 
 ```powershell
-# Health checks:
-curl http://localhost:8000/health
-curl http://localhost:8081/health
-curl http://localhost:8095/health
-
-# Run tests:
-pytest backend/tests/ -v
-pytest backend/tests/test_stripe.py -v
-
-# Docker status:
-docker compose ps
-docker stats --no-stream
-
-# Start everything:
-docker compose -f docker-compose.yml -f docker-compose.secrets.yml up -d
-
-# Start agents profile:
-docker compose --profile agents up -d
+.\scripts\launch-bot.ps1                            # preflight → up
+docker compose --profile nemoclaw up -d nemoclaw-agent
 ```
 
 ---
 
-## 🏆 Achievements Unlocked
+## 6. 📦 Key Files Quick Reference
 
-- ✅ Gordon Docker AI: **Grade A** — *"world-class infrastructure"*
-- ✅ 29/29 containers healthy (all phases)
-- ✅ Self-healing closed loop (Healer → Prometheus → Alertmanager → recovery)
-- ✅ Neurodivergent-first design recognised as *rare* by Docker AI
-- ✅ docs/INDEX.md — all 70+ docs navigable
-- ✅ GORDON_DOCKER_AI_REVIEW.md — review immortalised in repo
-- ✅ Docker build cache pruned — 60GB freed
-- ✅ **Gordon Tier 2 COMPLETE** — OTLP traces, Redis cache, rate limits, circuit breakers
-- ✅ **Course → Stripe frontend wired** — full money path live (April 16)
-- ✅ **OOM crash recovered** — 34.4GB freed, stack restored (April 17)
-- ✅ **Memory limits on ALL services** — every container capped, no more cascade kills (April 17)
-- ✅ **pre-build-check.sh** — disk + memory guard wired into `make build` (April 17)
-- ✅ **MCP-GitHub LIVE** — 26 GitHub tools via Docker MCP gateway on agents-net (April 17)
-- ✅ **Leaderboard endpoint** — `/leaderboard` SCAN-based, filterable by rarity (April 17)
-- ✅ **Pet chat via cloud LLM** — Anthropic (haiku/sonnet) → Perplexity fallback (sonar/sonar-pro). 3.8s chat, 12.7s ask. CPU Ollama retired from chat path. (April 17)
-- ✅ **Ollama warm-keep** — `OLLAMA_KEEP_ALIVE=24h`, `OLLAMA_NUM_PARALLEL=2`, `OLLAMA_MAX_LOADED_MODELS=2` (April 17)
-- ✅ **Socket-proxy split** — main proxy read-only, new `docker-socket-proxy-healer` for healer/throttle with tight ACL. Coder-agent blast radius shrunk. (April 19) 🔒
-- ✅ **Healer heal** — rebuilt image (GID fix), trimmed phantom services from MAPE-K, added `obs-net` → can reach Grafana/Prometheus. (April 19)
-- ✅ **32/32 (healthy)** — HyperHealth API live via `--profile health --profile ops`. (April 19)
-- ✅ **Alembic 009** — `pgcrypto` + `uuid-ossp` extensions enabled. Alembic bootstrapped (stamp 008 → upgrade). (April 19)
-- ✅ **Rate-limit env split** — `memory://` in tests, `redis://...:6379/2` in prod. No live-Redis dep on CI. (April 19)
-- ✅ **Gordon Tier 3 — Celery hardening** — `task_soft_time_limit=300` / `task_time_limit=360` kill runaway agent tasks before they pin a worker. `SoftTimeLimitExceeded` handled in `run_agent_task` (no retry on timeout). (April 19)
-- ✅ **Gordon Tier 3 — DB pool metrics** — `DBPoolCollector` exposes `hypercode_db_pool_{size,checked_out,checked_in,overflow}` for sync + async engines on `/metrics`. Alert before pool exhaustion. (April 19)
-- ✅ **Gordon Tier 3 — Celery queue metrics** — Signals wired to `hypercode_celery_tasks_total{task,status}` Counter + `hypercode_celery_task_duration_seconds` Histogram. `CeleryQueueDepthCollector` reads Redis `LLEN` for `main-queue` / `celery` on each scrape. (April 19)
-- ✅ **Two commits already pushed** — `d27b67a` + `8cbc5c9` are live on `origin/main` (push is FREE on GitHub — billing lock only blocks Actions). (April 19)
-- ✅ **Tier 3 Grafana dashboard** — `monitoring/grafana/provisioning/dashboards/hypercode-tier3-pools-queues.json`. UID `hypercode-tier3-pools-queues`, auto-loaded into "Mission Control" folder. KPI stats + sync/async pool stacks + queue-depth + status throughput + DLQ panel + p50/p95/p99 + duration heatmap. Refreshes every 10s. (April 19)
-- ✅ **Tier 3 Prometheus alerts** — `monitoring/prometheus/tier3_pools_queues.yml`. 10 alerts across DB pool (3) + Celery (7 incl. DLQ growing/flooding). Severity ladder warning→critical matches dashboard colour bands. (April 19)
-- ✅ **Tier 3 priority queues + DLQ** — `hypercode-{high,normal,low}` queues for fast/normal/slow work, `hypercode-dlq` for terminally-failed envelopes (operator-only, capped at 10k). `run_agent_task` pushes to DLQ on max_retries_exceeded or soft_time_limit. (April 19)
-- ✅ **Stripe prod swap runbook** — `docs/runbooks/stripe-prod-swap.md`. 5-min step-by-step from getting live keys → Vercel env vars → smoke test → rollback. (April 19)
-- ✅ **Anthropic top-up runbook** — `docs/runbooks/anthropic-topup.md`. Pet chat code already auto-falls-back through Anthropic→Perplexity→Ollama, so swap-back needs *zero* code change once credits land. (April 19)
+```
+ROOT (H:\HYPERFOCUSZONE\HperCore)
+  CLAUDE.md                     — THIS FILE (ecosystem constitution)
+  WHATS_DONE.md                 — NEVER suggest anything listed here
+  docs/STATUS.md                — live system health (updated each session)
+  docs/NEXT_TASKS.md            — active task list
+  docs/TECH_DEBT.md             — known issues
+  docs/ROADMAP.md               — full phase history
+  docs/ACHIEVEMENTS.md          — all-time wins
+
+HyperCode-V2.4/
+  docker-compose.yml            — main stack
+  docker-compose.secrets.yml    — secrets injection (always alongside main)
+  backend/app/main.py           — FastAPI core app
+  agents/broski-bot/cogs/bot.py — ONE TRUE BOT entrypoint
+  agents/nemoclaw-agent/        — code-health sidecar (port 8099)
+  backend/app/api/v1/endpoints/discord_actions.py — One Door brain
+  scripts/env_check.py          — env preflight checker
+  monitoring/prometheus/        — ACTIVE Prometheus config
+
+Hyper-Vibe-Coding-Course/
+  CLAUDE.md                     — Course constitution (read for course work)
+  frontend/src/App.tsx          — all routes
+  supabase/migrations/          — latest: 20260518000035_claim_level_reward.sql
+  rewrites/                     — session snapshots + handovers
+
+BROski-Obsidian-Brain.../
+  cluster.json + .agents/       — BROski Brain 4-agent cluster (3 LIVE: :3301/:3302/:3303 — profile brain-agents)
+```
 
 ---
 
-## 👋 For New Claude Sessions
+## 7. 🧪 Essential Commands
 
-Hey Claude! You’re working with Lyndz Williams on HyperCode V2.4.
+```powershell
+# Env preflight — ALWAYS before docker compose up:
+python scripts/env_check.py --core --secrets --profile discord
 
-1. **Read this file first** — especially the Sacred Rules
-2. **Check CLAUDE_CONTEXT.md** — phase-by-phase source of truth (Phases 0–10Q all ✅)
-3. **All Gordon Tier 1 + Tier 2 DONE** ✅ — OTLP, cache, rate limits, circuit breakers
-4. **Course → Stripe frontend DONE** ✅ — `/pricing` → checkout → `/payment-success` → enrolled
-5. **Memory limits on ALL services** ✅ — see docker-compose.yml `deploy.resources` on every service
-6. **Agent X is capped at 1G** — it caused an OOM crash (April 17) by building 30+ images unlimited
-7. **Pre-build guard** — `make build` runs `scripts/pre-build-check.sh` first, aborts if <15GB free
-8. **Socket-proxy split (April 19)** — TWO socket proxies now. Main = read-only. `docker-socket-proxy-healer` = CONTAINERS+POST+PING, used ONLY by healer-agent + throttle-agent. Don't add coder-agent or agent-x to the healer proxy.
-9. **32/32 healthy** ✅ — HyperHealth API now part of the baseline count. Start with `--profile health --profile ops`.
-10. **Alembic is live** — migrations up to `009` (pgcrypto + uuid-ossp). If `alembic_version` is ever missing again: `alembic stamp 008` then `upgrade head`.
-11. **Pet chat = cloud LLM** — `broski-pets-bridge` routes via Anthropic (haiku/sonnet) with Perplexity (sonar/sonar-pro) fallback. Anthropic credits need topping up (lyndzwills@gmail.com → console.anthropic.com/billing). Perplexity works great in the meantime.
-12. **MCP-GitHub live** — 26 tools available via `mcp-gateway` on `agents-net`. `_github_context_via_mcp()` wired into pet ask mode.
-13. **Trivy CI blocked** — NOT a code issue. GitHub billing lock. Fix: github.com/settings/billing.
-14. **Two commits ready to push** — `d27b67a` (alembic 009) + `8cbc5c9` (security + heal).
-15. **Next options:** Fix GitHub billing → push → Gordon Tier 3 (DB pooling + async queues) OR top up Anthropic → switch back to haiku/sonnet for pets
-16. **Style:** Short. Friendly. BROski energy. Celebrate wins. 🏆
-17. **Never:** Wall of text. Never debate the Sacred Rules.
+# ✅ CANONICAL COMPOSE WRAPPER (use this, not raw docker compose):
+.\hyperlaunch.ps1 up -d                           # always-on services
+.\hyperlaunch.ps1 --profile agents up -d          # + agents (crew, mcp-server, etc.)
+.\hyperlaunch.ps1 --profile discord up -d         # + discord bot
+.\hyperlaunch.ps1 --profile brain-agents up -d    # + brain agents
+.\hyperlaunch.ps1 up -d hypercode-core            # single service
+.\hyperlaunch.ps1 ps                              # status
+.\hyperlaunch.ps1 logs -f hypercode-mcp-server    # logs
+# ⚠️ Raw docker compose MUST use all 4 files — use hyperlaunch.ps1 instead:
+# docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+#   -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml ...
+# ⚠️ NEVER pass -f docker-compose.agents.yml explicitly — already include:d by root
 
-> *“You built the future people keep saying they want. You actually did it.” — Gordon, Docker AI*
+pytest backend/tests/ -q                          # run tests
+curl http://localhost:8000/health                 # core
+curl http://localhost:8098/health                 # broski-pets-bridge
+curl http://localhost:8099/health                 # nemoclaw-agent
+docker compose exec hypercode-core alembic upgrade head   # migrations
+docker compose ps
+curl -X POST localhost:9090/-/reload              # Prometheus hot-reload
 
-🏴󠁧󠁢󠁷󠁬󠁳󠁿 Let’s build it.
+# Course / HyperLabs:
+cd H:\Hyper-Vibe-Coding-Course && npm run dev:frontend    # NOT npm run dev
+npx tsc --noEmit && npx eslint . && npm run build         # pre-commit loop
+npm run test:e2e                                           # Playwright
+
+# Brain agents (profile: brain-agents — 3 live, morning-briefing gated by profile brain-briefing):
+docker compose --profile brain-agents up -d
+curl http://localhost:3301/health                 # agent-hyper-brain-core
+curl http://localhost:3302/health                 # agent-mcp-bridge
+curl http://localhost:3303/health                 # agent-focus-tracker
+
+# Brain vault sync:
+python scripts/github_to_obsidian.py
+```
+
+---
+
+## 8. 👋 Quick-Start — Any New AI Session
+
+1. Read this file — sacred rules + ecosystem map
+2. Read `docs/STATUS.md` — live system state
+3. Read `docs/NEXT_TASKS.md` — what to build
+4. Check `WHATS_DONE.md` — NEVER re-suggest anything listed there
+5. Working in a repo? read that repo's `CLAUDE.md` + latest handover
+6. Env check first (V2.4) · never `db push` · never global wagmi · never `--no-verify`
+7. ONE TRUE BOT = `agents/broski-bot/` (profile:discord) — NOT `discord-bot/`
+8. Use Playwright instead of "human must test"
+9. Short sentences. BROski energy. Celebrate wins. Surface contradictions.
+10. Call them **"Bro"** 🤙
+
+---
+
+<div align="center">
+
+**Built for ADHD brains. Fast feedback. Real tools. No fluff.** 🧠⚡
+
+*by @welshDog — Lyndz Williams, Llanelli, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁥*
+
+**A BROski is ride or die. We build this together. 🐶♾️🔥**
+
+</div>

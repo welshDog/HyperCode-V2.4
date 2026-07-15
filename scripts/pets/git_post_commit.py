@@ -65,6 +65,60 @@ def _agent_key_headers() -> dict[str, str]:
     return {"x-api-key": key}
 
 
+_BROSKI_ECONOMY_CHANNEL = "broski_economy"
+_BROSKI_ECONOMY_DB = 1  # Sacred Rule: DB 1 = cache
+_REDIS_CONTAINERS = ("redis", "hypercode-redis")  # internal redis -- 6379 not published to host
+
+
+def _patch_id() -> str:
+    """Stable-across-rebase commit identity: same diff -> same id, so a rebase
+    replay dedups against the original award. Falls back to HEAD sha."""
+    try:
+        diff = subprocess.run(["git", "diff-tree", "-p", "--root", "HEAD"],
+                              capture_output=True, text=True, timeout=8)
+        pid = subprocess.run(["git", "patch-id", "--stable"],
+                             input=diff.stdout, capture_output=True, text=True, timeout=8)
+        tok = pid.stdout.strip().split()
+        if tok:
+            return tok[0]
+    except Exception:
+        pass
+    try:
+        return _git(["rev-parse", "HEAD"])
+    except Exception:
+        return "unknown"
+
+
+def _publish_broski_economy(xp: int, reason: str, source: str, source_id: str) -> str | None:
+    """Publish an xp_award to the broski_economy channel so the always-on
+    consumer banks it (redis tally + durable postgres wallet via
+    /api/v1/economy/award-dev-xp). Redis is on an internal docker net (6379
+    unpublished), so reach it via `docker exec` -- offline is non-fatal."""
+    payload = json.dumps({
+        "event": "xp_award",
+        "xp": xp,
+        "reason": reason,
+        "source": source,
+        "source_id": source_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+    try:
+        import shutil
+        if not shutil.which("docker"):
+            return None
+        for container in _REDIS_CONTAINERS:
+            proc = subprocess.run(
+                ["docker", "exec", container, "redis-cli", "-n", str(_BROSKI_ECONOMY_DB),
+                 "PUBLISH", _BROSKI_ECONOMY_CHANNEL, payload],
+                capture_output=True, text=True, timeout=8,
+            )
+            if proc.returncode == 0:
+                return "docker:" + container
+    except Exception:
+        pass
+    return None
+
+
 def main() -> None:
     repo_root = ""
     try:
@@ -88,6 +142,17 @@ def main() -> None:
         "chore": 5,
     }.get(commit_prefix, 10)
     reason = f"git commit: {first}" if first else "git commit"
+
+    # Bank the XP through the always-on consumer -> redis tally + durable pg wallet.
+    # This is the primary, reliable path (owner attribution lives on the consumer,
+    # so it sidesteps the discord_id lookups the course/pets paths below need).
+    repo_name = os.path.basename(repo_root) if repo_root else "unknown"
+    source_id = f"git:{repo_name}:{_patch_id()}"
+    broski_published = _publish_broski_economy(award_amount, reason, f"git:{repo_name}", source_id)
+    if broski_published:
+        sys.stderr.write(
+            f"[broski_economy] +{award_amount} XP  git:{repo_name}  ({reason})  -> {broski_published}\n"
+        )
 
     hypercode_base = os.getenv("HYPERCODE_API_URL", "http://127.0.0.1:8000").rstrip("/")
     sync_secret = os.getenv("COURSE_SYNC_SECRET", "").strip()
@@ -215,6 +280,7 @@ def main() -> None:
                 "amount": 0,
                 "discord_id": discord_id or None,
                 "hypercode_tokens_awarded": awarded_hypercode,
+                "broski_economy": broski_published,
             }
         )
     )

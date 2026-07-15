@@ -9,7 +9,6 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 
 # Mock imports that might fail or need mocking
 sys.modules['redis.asyncio'] = MagicMock()
-sys.modules['PERPLEXITY'] = MagicMock()
 
 from agent import ProjectStrategist
 from base_agent import AgentConfig, TaskRequest

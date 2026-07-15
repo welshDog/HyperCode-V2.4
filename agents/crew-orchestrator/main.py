@@ -50,6 +50,18 @@ try:
 except ImportError:
     from config import settings
 
+# Import result writer for vault sync
+try:
+    from .result_writer import write_and_sync
+except ImportError:
+    from result_writer import write_and_sync
+
+# Safety Shepherd gate for downstream dispatch (P0-2 remaining intercept)
+try:
+    from . import safety_gate
+except ImportError:
+    import safety_gate
+
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
@@ -145,6 +157,8 @@ async def lifespan(app: FastAPI):
             await task
         except asyncio.CancelledError:
             pass
+
+    await safety_gate.aclose()
 
     if redis_client:
         await redis_client.close()
@@ -410,6 +424,127 @@ async def request_approval(
     return status
 
 
+def _agent_self_key() -> str:
+    """This orchestrator's OWN identity key for agent->core calls (Phase 10E).
+    Registered in core's agent_api_keys table — env first, Docker secret file
+    fallback. Empty string = feature off (event mirroring silently skipped)."""
+    key = os.getenv("HYPERCODE_AGENT_KEY", "").strip()
+    if key:
+        return key
+    path = os.getenv(
+        "HYPERCODE_AGENT_KEY_FILE", "/run/secrets/agent_api_key_crew-orchestrator"
+    )
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+async def _publish_core_event(
+    channel: str, task_id: str, event_status: str, payload: Optional[Dict[str, Any]] = None
+) -> bool:
+    """Mirror a lifecycle event to core's POST /api/v1/events, authenticated
+    as crew-orchestrator via X-Agent-Key (per-agent identity + rate limit).
+    Fail-open: core down or key missing must never block dispatch."""
+    key = _agent_self_key()
+    if not key:
+        return False
+    core_url = os.getenv("CORE_URL", "http://hypercode-core:8000").rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(
+                f"{core_url}/api/v1/events",
+                headers={"X-Agent-Key": key},
+                json={
+                    "channel": channel,
+                    "agentId": "crew-orchestrator",
+                    "taskId": task_id,
+                    "status": event_status,
+                    "payload": payload or {},
+                },
+            )
+            return resp.status_code == 200
+    except Exception as exc:
+        logger.warning(
+            json.dumps({"event": "core_event_publish_failed", "reason": str(exc)})
+        )
+        return False
+
+
+async def _fetch_routed_skills(description: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Graph-aware skill routing — ask the Brain bridge which HYPER-SILLs fit
+    this task. Deterministic graph walk on :3302, no LLM call. Fail-open:
+    bridge down = empty list, agents run without routed skills."""
+    route_url = os.getenv("GRAPH_ROUTE_URL", "http://agent-mcp-bridge:3302/route")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(
+                route_url, params={"query": description, "limit": limit}
+            )
+            if resp.status_code == 200:
+                return resp.json().get("skills") or []
+    except Exception as exc:
+        logger.warning(
+            json.dumps({"event": "skill_routing_failed", "reason": str(exc)})
+        )
+    return []
+
+
+def _routed_skills_block(skills: List[Dict[str, Any]]) -> str:
+    """Render routed skills as a prompt block agents can act on."""
+    if not skills:
+        return ""
+    lines = "\n".join(
+        f"- {s.get('emoji') or '🦸'} {s.get('title')} ({s.get('id')}): "
+        f"{s.get('description')} — vault: HYPER-SILLs/{s.get('path')}"
+        for s in skills
+    )
+    return (
+        "\n\n[Routed skills — graph-picked from HYPER-SILLs for this task; "
+        "apply their patterns]\n" + lines
+    )
+
+
+async def _safety_check_dispatch(
+    agent_name: str, task_type: Optional[str], task_id: str, description: str
+) -> Optional[Dict[str, Any]]:
+    """Consult Safety Shepherd before dispatching to an agent (P0-2).
+
+    Returns None to proceed. In enforce mode a BLOCK returns a terminal result
+    dict and an ESCALATE waits on the Shepherd-raised approval (denied/timeout
+    ⇒ terminal result). monitor mode records the verdict but always proceeds.
+    """
+    verdict = await safety_gate.evaluate_dispatch(agent_name, task_type, task_id, description)
+    decision = verdict.get("decision")
+    if decision != safety_gate.ALLOW and not verdict.get("skipped"):
+        await log_event(
+            "orchestrator",
+            "warn",
+            f"Safety Shepherd {decision} for {agent_name}: {verdict.get('reason') or ''}",
+        )
+    if not safety_gate.is_enforced(verdict):
+        return None
+    if decision == safety_gate.BLOCK:
+        return {
+            "status": "blocked",
+            "agent": agent_name,
+            "reason": verdict.get("reason"),
+            "rule": verdict.get("rule"),
+        }
+    if decision == safety_gate.ESCALATE:
+        approved = await safety_gate.wait_for_shepherd_approval(
+            redis_client, verdict.get("approval_id")
+        )
+        if approved:
+            await log_event(
+                "orchestrator", "success", f"Safety escalation approved for {agent_name}"
+            )
+            return None
+        return {"status": "rejected", "agent": agent_name, "reason": verdict.get("reason")}
+    return None
+
+
 def _route_agent_for_task_type(task_type: str) -> Optional[str]:
     normalized = (task_type or "").strip().lower()
     if normalized == "code_generation":
@@ -510,16 +645,39 @@ async def execute_task(
             json.dumps({"event": "rag_query_failed", "reason": str(rag_exc)})
         )
 
-    # 3. Plan Generation — build execution plan enriched by RAG context
+    # 2b. Graph skill routing — Brain picks the HYPER-SILLs for this task
+    routed_skills = await _fetch_routed_skills(task.description)
+    if routed_skills:
+        logger.info(
+            json.dumps(
+                {
+                    "event": "skill_routing",
+                    "task_id": task.id,
+                    "skills": [s.get("id") for s in routed_skills],
+                }
+            )
+        )
+        await log_event(
+            "orchestrator", "info",
+            f"Routed skills: {', '.join(s.get('title') or s.get('id', '?') for s in routed_skills)}",
+        )
+        if redis_client:
+            task_data = json.loads(await redis_client.get(f"task:{task.id}:details"))
+            task_data["routed_skills"] = [s.get("id") for s in routed_skills]
+            await redis_client.set(f"task:{task.id}:details", json.dumps(task_data))
+
+    # 3. Plan Generation — build execution plan enriched by RAG context + skills
     plan_description = task.description
     if rag_context:
         plan_description = f"{task.description}\n\n[Context]\n{rag_context[:500]}"
+    plan_description += _routed_skills_block(routed_skills)
     logger.info(
         json.dumps(
             {
                 "event": "plan_generated",
                 "task_id": task.id,
                 "has_rag_context": bool(rag_context),
+                "routed_skill_count": len(routed_skills),
             }
         )
     )
@@ -538,6 +696,7 @@ async def execute_task(
         agents_to_run = [task.agent]
 
     results = {}
+    _t_start = perf_counter()
 
     # Update progress
     if redis_client:
@@ -579,6 +738,13 @@ async def execute_task(
                 status_code=422,
                 detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
             )
+
+        # P0-2: consult Safety Shepherd before dispatching to the agent
+        safety_stop = await _safety_check_dispatch(
+            agent_name, task.type, task.id, task.description
+        )
+        if safety_stop:
+            return safety_stop
 
         # Call the agent
         try:
@@ -642,7 +808,43 @@ async def execute_task(
             json.dumps({"event": "broski_event_published", "task_id": task.id})
         )
 
-    return {"status": "completed", "message": "Workflow finished", "results": results}
+    # Phase 10E: mirror workflow completion into core's event stream
+    await _publish_core_event(
+        "task", task.id, "completed",
+        {"agents": list(results.keys()),
+         "routed_skills": [s.get("id") for s in routed_skills]},
+    )
+
+    # ── Post-run: write results to ./results (obsidian-watcher pushes them) ────
+    _duration = perf_counter() - _t_start
+    obsidian_sync_info: dict = {"status": "skipped"}
+    try:
+        obsidian_sync_info = await write_and_sync(
+            result=results,
+            task_id=task.id,
+            agents=list(results.keys()),
+            duration_seconds=_duration,
+        )
+        logger.info(
+            json.dumps({
+                "event": "obsidian_sync",
+                "task_id": task.id,
+                "sync_mode": obsidian_sync_info.get("sync_mode"),
+            })
+        )
+    except Exception as _sync_exc:
+        # Vault sync is non-blocking — never fail the API response
+        logger.warning(
+            json.dumps({"event": "obsidian_sync_failed", "reason": str(_sync_exc)})
+        )
+        obsidian_sync_info = {"status": "error", "reason": str(_sync_exc)}
+
+    return {
+        "status": "completed",
+        "message": "Workflow finished",
+        "results": results,
+        "obsidian_sync": obsidian_sync_info,
+    }
 
 
 @app.post("/task")
@@ -673,9 +875,28 @@ async def dispatch_task(
             detail=f"Unknown agent: '{agent_name}'. Must be one of: {list(settings.agents.keys())}",
         )
 
+    # P0-2: consult Safety Shepherd before dispatching to the agent
+    safety_stop = await _safety_check_dispatch(agent_name, task_type, task_id, task_text)
+    if safety_stop:
+        return safety_stop
+
+    # Graph skill routing — same Brain assist as /execute (fail-open)
+    routed_skills = await _fetch_routed_skills(task_text)
+    if routed_skills:
+        logger.info(
+            json.dumps(
+                {
+                    "event": "skill_routing",
+                    "task_id": task_id,
+                    "endpoint": "/task",
+                    "skills": [s.get("id") for s in routed_skills],
+                }
+            )
+        )
+
     payload = {
         "id": task_id,
-        "task": task_text,
+        "task": task_text + _routed_skills_block(routed_skills),
         "type": task_type,
         "context": request.context or {},
         "requires_approval": False,
@@ -701,10 +922,16 @@ async def dispatch_task(
                 )
             )
             raise HTTPException(status_code=502, detail="Agent execution failed")
+        # Phase 10E: mirror completion into core's event stream, authed as US
+        await _publish_core_event(
+            "task", task_id, "completed",
+            {"agent": agent_name, "routed_skills": [s.get("id") for s in routed_skills]},
+        )
         return {
             "status": "completed",
             "task_id": task_id,
             "agent": agent_name,
+            "routed_skills": [s.get("id") for s in routed_skills],
             "result": resp.json(),
         }
     except HTTPException:
@@ -927,6 +1154,8 @@ async def websocket_approvals(websocket: WebSocket):
         connected_dashboards.append(websocket)
     logger.info("Dashboard connected to approval stream")
 
+    pubsub_redis = None
+    pubsub = None
     try:
         # Create a new Redis connection for subscribing
         pubsub_redis = await redis.from_url(settings.redis_url, decode_responses=True)
@@ -943,6 +1172,18 @@ async def websocket_approvals(websocket: WebSocket):
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
     finally:
+        # This handler owns a Redis client per connection — both it and the
+        # pubsub must be closed, or every dashboard connect leaks a pool.
+        if pubsub is not None:
+            try:
+                await pubsub.aclose()
+            except Exception:
+                pass
+        if pubsub_redis is not None:
+            try:
+                await pubsub_redis.aclose()
+            except Exception:
+                pass
         async with _dashboards_lock:
             try:
                 connected_dashboards.remove(websocket)
@@ -971,6 +1212,18 @@ async def respond_to_approval(
     )
 
     return {"status": "response_recorded"}
+
+
+@app.get("/route/preview")
+async def route_preview(q: str, api_key: str = Depends(require_api_key)):
+    """Dry-run of graph skill routing — shows exactly what /execute would
+    inject into the agent prompt for this task. No LLM call, no agents run."""
+    skills = await _fetch_routed_skills(q)
+    return {
+        "query": q,
+        "skills": skills,
+        "prompt_block": _routed_skills_block(skills),
+    }
 
 
 @app.get("/system/health")
@@ -1008,32 +1261,23 @@ async def health_check():
 @app.get("/agents")
 async def get_agents(api_key: str = Depends(require_api_key)):
     """Get status of all agents"""
-    # In a real system, we'd query Prometheus or Docker
-    # For now, we return the configured agents with 'idle' status
-    # unless we track them in Redis
-
     agents_list = []
     for key in settings.enabled_agent_keys():
         url = settings.agents[key]
-        # Clean up name
         name = key.replace("_", " ").title()
         role = key.split("_")[-1].title() if "_" in key else "Agent"
 
-        # Check Redis for status if available
         status = "idle"
         cpu = 0
         ram = 0
 
         if redis_client:
-            # Check if agent is busy
-            # This key would be set during execution
             current_task = await redis_client.get(f"agent:{key}:current_task")
             if current_task:
                 status = "working"
-                cpu = 45 + (len(name) * 2)  # Mock variation
+                cpu = 45 + (len(name) * 2)
                 ram = 30 + (len(name) * 3)
             else:
-                # Mock idle stats
                 cpu = 1 + (len(name) % 5)
                 ram = 10 + (len(name) % 10)
 
@@ -1058,7 +1302,6 @@ async def get_tasks(api_key: str = Depends(require_api_key)):
     if not redis_client:
         return []
 
-    # Get last 10 tasks from a list
     task_ids = await redis_client.lrange("tasks:history", 0, 9)
     tasks = []
 
@@ -1076,14 +1319,11 @@ async def get_logs(api_key: str = Depends(require_api_key)):
     if not redis_client:
         return []
 
-    # Get last 50 logs
     logs = await redis_client.lrange("logs:global", 0, 49)
     return [json.loads(log) for log in logs]
 
 
-# ── WebSocket event stream ────────────────────────────────────────────────────
-# Subscribes to Redis pub/sub channels and broadcasts all agent activity to
-# connected dashboard clients in real time.
+# ── WebSocket event stream ────────────────────────────────────────────────────────────────────────────
 
 _ws_clients: set[WebSocket] = set()
 
@@ -1136,7 +1376,6 @@ async def ws_events(websocket: WebSocket):
     await websocket.accept()
     _ws_clients.add(websocket)
 
-    # Send the last 20 log entries as initial state
     if redis_client:
         try:
             recent = await redis_client.lrange("logs:global", 0, 19)
@@ -1152,12 +1391,9 @@ async def ws_events(websocket: WebSocket):
             pass
 
     try:
-        # Keep the connection open; client pings keep it alive
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
         pass
     finally:
         _ws_clients.discard(websocket)
-
-

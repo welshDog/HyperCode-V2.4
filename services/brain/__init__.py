@@ -1,3 +1,3 @@
-from .perplexity_brain import BrainAPI
+from .brain_api import BrainAPI
 
 __all__ = ["BrainAPI"]

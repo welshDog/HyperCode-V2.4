@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import { IDEView } from '@/components/views/IDEView'
+import { StudioView } from '@/components/views/StudioView'
 
 export default function IDEPage(): React.JSX.Element {
-  return <IDEView />
+  return <StudioView />
 }
 

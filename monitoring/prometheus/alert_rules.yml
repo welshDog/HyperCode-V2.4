@@ -28,6 +28,51 @@ groups:
       summary: "Crew Orchestrator metrics target is down"
       description: "Prometheus cannot scrape crew-orchestrator /metrics for more than 1 minute."
 
+  - alert: GrafanaDown
+    expr: up{job="grafana"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Grafana is down"
+      description: "Prometheus cannot scrape grafana /metrics for more than 1 minute."
+
+  - alert: GrafanaProcessRestartLoop
+    expr: changes(process_start_time_seconds{job="grafana"}[10m]) > 3
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Grafana process restart loop suspected"
+      description: "Grafana process start time changed >3x in 10m."
+
+  - alert: LokiDown
+    expr: up{job="loki"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Loki is down"
+      description: "Prometheus cannot scrape loki /metrics for more than 1 minute."
+
+  - alert: PromtailDown
+    expr: up{job="promtail"} == 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Promtail is down"
+      description: "Prometheus cannot scrape promtail /metrics for more than 1 minute."
+
+  - alert: PyroscopeDown
+    expr: up{job="pyroscope"} == 0
+    for: 1m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Pyroscope is down"
+      description: "Prometheus cannot scrape pyroscope /metrics for more than 1 minute."
+
   - alert: SmokeFailuresDetected
     expr: sum(rate(smoke_request_total{result="fail"}[5m])) > 0
     for: 2m

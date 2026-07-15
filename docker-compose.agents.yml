@@ -1,61 +1,101 @@
-# docker-compose.agents.yml — HyperCode V2.0 Full Agent Stack
-# Self-contained: brings up infra + all agents. No external networks required.
-# Run: docker compose -f docker-compose.agents.yml up -d
+# docker-compose.agents.yml — All AI agents + apps + infra-side helpers
 #
-# HOT-RELOAD: Add --watch flag for live code updates:
-#   docker compose -f docker-compose.agents.yml up --watch
-# This enables develop.watch on all agent services for sync-on-change.
-
-networks:
-  hypercode-net:
-    driver: bridge
-
-volumes:
-  postgres-data:
-  redis-data:
+# Always-on (no profile):
+#   docker-socket-proxy, docker-socket-proxy-healer, healer-agent,
+#   dashboard, hypercode-mcp-server, hypercode-ollama (in core.yml),
+#   github-sync
+#
+# Profile-gated services — start with `--profile <name>`:
+#   ai            → ai-backend
+#   agents        → coder-agent, mcp-gateway, broski-pets-bridge,
+#                   crew-orchestrator, goal-keeper, project-strategist,
+#                   frontend-specialist, backend-specialist, database-architect,
+#                   qa-engineer, devops-engineer
+#   (super-hyper-broski-agent, security-engineer, system-architect,
+#    test-agent, throttle-agent, tips-tricks-writer live ONLY in
+#    docker-compose.agents-full.yml — not in this file)
+#   discord       → broski-bot
+#   mission       → hyper-mission-api, hyper-mission-ui
+#   hyper         → hyper-architect, hyper-observer, hyper-worker,
+#                   agent-x, docker-socket-proxy-build (also ops/health)
+#   (hyper-split-agent, session-snapshot live ONLY in agents-full.yml)
+#   health        → hyperhealth-api, hyperhealth-worker, auto-prune,
+#                   security-scanner, docker-socket-proxy-build
+#   ops           → auto-prune, security-scanner, docker-socket-proxy-build
+#   gpu           → hypercode-ollama-gpu (replaces hypercode-ollama)
+#   disabled      → docker-janitor (kept for reference)
 
 services:
-
-  # ── INFRA ──────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    networks: [hypercode-net]
-    volumes: [redis-data:/data]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      retries: 3
-
-  postgres:
-    image: postgres:15-alpine          # I2 fix: aligned with main docker-compose.yml
-    restart: unless-stopped
-    networks: [hypercode-net]
-    volumes: [postgres-data:/var/lib/postgresql/data]
-    environment:
-      POSTGRES_DB: hypercode
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      retries: 5
+  # ====================================================================
+  # ALWAYS-ON CORE AGENT INFRA
+  # ====================================================================
 
   docker-socket-proxy:
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    container_name: docker-socket-proxy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
-    networks: [hypercode-net]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    networks:
+      - agents-net
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      CONTAINERS: "1"
-      IMAGES: "1"
-      BUILD: "0"
-      VOLUMES: "1"
-      NETWORKS: "1"
-      INFO: "1"
-      PING: "1"
-      VERSION: "1"
+      - CONTAINERS=1
+      - IMAGES=1
+      - BUILD=0
+      - VOLUMES=1
+      - NETWORKS=1
+      - INFO=1
+      - PING=1
+      - VERSION=1
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /run
+      - /var/lib/haproxy
+    read_only: true
+
+  # Dedicated write-enabled proxy — ONLY for healer + throttle-agent.
+  # Scoped tight: CONTAINERS + POST + PING only.
+  docker-socket-proxy-healer:
+    image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    container_name: docker-socket-proxy-healer
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
+    networks:
+      - agents-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - POST=1
+      - PING=1
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -66,20 +106,23 @@ services:
     read_only: true
 
   docker-socket-proxy-build:
+    profiles: ["ops", "health", "hyper"]
     image: ${DOCKER_SOCKET_PROXY_IMAGE:-tecnativa/docker-socket-proxy:0.1.1}
+    container_name: docker-socket-proxy-build
     restart: unless-stopped
-    networks: [hypercode-net]
+    networks:
+      - agents-net
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      CONTAINERS: "1"
-      IMAGES: "1"
-      BUILD: "1"
-      VOLUMES: "1"
-      NETWORKS: "1"
-      INFO: "1"
-      PING: "1"
-      VERSION: "1"
+      - CONTAINERS=1
+      - IMAGES=1
+      - BUILD=1
+      - VOLUMES=1
+      - NETWORKS=1
+      - INFO=1
+      - PING=1
+      - VERSION=1
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -88,332 +131,1613 @@ services:
       - /run
       - /var/lib/haproxy
     read_only: true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2375/_ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+        reservations:
+          cpus: "0.05"
+          memory: 32M
 
-  # ── CORE AGENTS ───────────────────────────────────────────
-  healer-agent:                        # H4 fix: renamed from 'healer' to match main compose + lite file
-    build: ./agents/healer
-    restart: always                    # 🩺 ALWAYS — cannot die
-    ports: ["127.0.0.1:8008:8008"]    # I3 fix: localhost-only
-    networks: [hypercode-net]
+  healer-agent:
+    build:
+      context: ./agents
+      dockerfile: healer/Dockerfile
+    container_name: healer-agent
+    restart: always
+    ports:
+      - "127.0.0.1:8008:8008"
+    networks:
+      - agents-net
+      - data-net
+      - obs-net
     depends_on:
-      redis: {condition: service_healthy}
+      redis:
+        condition: service_healthy
+      docker-socket-proxy-healer:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8008/health"]
       interval: 15s
+      timeout: 5s
       retries: 3
     environment:
       REDIS_URL: redis://redis:6379
-      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
-    develop:
-      watch:
-        - path: ./agents/healer
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/healer/requirements.txt
-          action: rebuild
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      DOCKER_HOST: tcp://docker-socket-proxy-healer:2375
+      HYPERCODE_API_KEY: ${API_KEY:-dev-master-key}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      DISCORD_OOM_WEBHOOK_URL: ${DISCORD_OOM_WEBHOOK_URL:-}
+      DISCORD_ALERTS_WEBHOOK_URL: ${DISCORD_ALERTS_WEBHOOK_URL:-}
+      RESTART_LOOP_THRESHOLD: ${RESTART_LOOP_THRESHOLD:-5}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
-  architect:
-    build: ./agents/architect
-    restart: unless-stopped
-    ports: ["127.0.0.1:8080:8080"]    # I3 fix: localhost-only
-    networks: [hypercode-net]
+  hypercode-mcp-server:
+    build:
+      context: ./services/hypercode-mcp-server
+      dockerfile: Dockerfile
+    container_name: hypercode-mcp-server
+    environment:
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - HYPERCODE_ORCH_URL=http://crew-orchestrator:8080
+    networks:
+      - agents-net
+      - frontend-net
+    ports:
+      - "127.0.0.1:8823:8823"
     depends_on:
-      healer-agent: {condition: service_healthy}   # H4 fix: updated reference
-      docker-socket-proxy: {condition: service_started}
-    healthcheck:                       # M2 fix: added health check so system-architect can depend on it
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8823/sse')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+
+  dashboard:
+    build:
+      context: ./agents/dashboard
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_HYPER_BRAIN_URL=${NEXT_PUBLIC_HYPER_BRAIN_URL:-}
+    container_name: hypercode-dashboard
+    environment:
+      - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
+      - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      # Service identity for tasks/planning/DLQ proxies (no login UI yet).
+      # Empty = proxies forward the browser header only, as before.
+      - DASHBOARD_SERVICE_JWT=${DASHBOARD_SERVICE_JWT:-}
+      - NEXT_PUBLIC_CORE_WS_HOST=localhost
+      - NEXT_PUBLIC_CORE_WS_PORT=8000
+      - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      # HyperStudio proxy → coder-studio. The key must match coder-studio's
+      # (both resolve from ${API_KEY}); without it the proxy forwards an empty
+      # X-Agent-Key and coder-studio rejects every request with 401.
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - STUDIO_AGENT_URL=http://coder-studio:8087
+      - NODE_ENV=production
+      - HOSTNAME=0.0.0.0
+      - PORT=3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {if (r.statusCode >= 500) process.exit(1)}).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    ports:
+      - "127.0.0.1:8088:3000"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    networks:
+      - frontend-net
+      - agents-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================================================================
+  # GITHUB SYNC — always-on, no profile
+  # Runs github_to_obsidian.py every 4 hours via cron
+  # Healthcheck: verify cron process is alive (not HTTP — cron has no port)
+  # BROski♾️
+  # ====================================================================
+
+  github-sync:
+    build:
+      context: ../BROski-Obsidian-Brain-for-HyperFocus-z0ne
+      dockerfile: docker/Dockerfile.github-sync
+    container_name: github-sync
+    restart: unless-stopped
+    environment:
+      - GITHUB_PAT=${GITHUB_PAT}
+      - OBSIDIAN_VAULT_PATH=/vault/00-Inbox/GitHub
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
+      - github-sync-logs:/var/log
+    networks:
+      - agents-net
+    healthcheck:
+      # grep PID 1's comm (cron -f runs as PID 1). Zero deps — `ps`/`pgrep` not installed in python:3.11-slim.
+      test: ["CMD-SHELL", "grep -q cron /proc/1/comm || exit 1"]
+      interval: 120s
+      timeout: 10s
+      retries: 2
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ====================================================================
+  # MISSION (profile: mission)
+  # ====================================================================
+
+  hyper-mission-api:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/server
+      dockerfile: Dockerfile
+    container_name: hyper-mission-api
+    restart: unless-stopped
+    environment:
+      PORT: "5000"
+      CORE_API_URL: http://hypercode-core:8000
+      AUTH_PASSTHROUGH: "true"
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      JWT_SECRET: ${HYPERCODE_JWT_SECRET:-dev-jwt-secret}
+      NODE_ENV: production
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:5000/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  hyper-mission-ui:
+    profiles: ["mission"]
+    build:
+      context: ./hyper-mission-system/client
+      dockerfile: Dockerfile
+    container_name: hyper-mission-ui
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8099:80"
+    networks:
+      - frontend-net
+      - agents-net
+    depends_on:
+      hyper-mission-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  hyperhealth-api:
+    profiles: ["health"]
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-api
+    container_name: hyperhealth-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8095:8090"
+    environment:
+      - PORT=8090
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - GRAFANA_URL=http://grafana:3000
+      - CREW_URL=http://crew-orchestrator:8080
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "hypercode.service=hyperhealth-api"
+      - "hypercode.role=health-orchestrator"
+
+  hyperhealth-worker:
+    profiles: ["health"]
+    build:
+      context: ./agents/hyperhealth
+      dockerfile: Dockerfile
+    image: hypercode-v20-hyperhealth-worker
+    container_name: hyperhealth-worker
+    restart: unless-stopped
+    command: ["python", "-m", "worker"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://redis:6379/0
+      - HEALER_URL=http://healer-agent:8008
+      - CORE_URL=http://hypercode-core:8000
+      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - WORKER_CONCURRENCY=50
+      - CHECK_BATCH_SIZE=100
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    depends_on:
+      hyperhealth-api:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - |
+          import redis, sys
+          r = redis.from_url('redis://redis:6379/0', socket_timeout=5)
+          val = r.get('hyperhealth:worker:heartbeat')
+          sys.exit(0 if val else 1)
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "hypercode.service=hyperhealth-worker"
+      - "hypercode.role=check-executor"
+
+  hyper-architect:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/architect/Dockerfile
+    container_name: hyper-architect
+    hostname: hyper-architect
+    ports:
+      - "127.0.0.1:8091:8091"
+    environment:
+      AGENT_NAME: lead-architect-01
+      AGENT_PORT: "8091"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "architect"
+      hypercode.version: "2.0"
+
+  hyper-observer:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/observer/Dockerfile
+    container_name: hyper-observer
+    hostname: hyper-observer
+    ports:
+      - "127.0.0.1:8092:8092"
+    environment:
+      AGENT_NAME: sys-observer-01
+      AGENT_PORT: "8092"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      OBSERVER_WINDOW_SIZE: "200"
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "observer"
+      hypercode.version: "2.0"
+
+  hyper-worker:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/hyper-agents/worker/Dockerfile
+    container_name: hyper-worker
+    hostname: hyper-worker
+    ports:
+      - "127.0.0.1:8093:8093"
+    environment:
+      AGENT_NAME: task-worker-01
+      AGENT_PORT: "8093"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      REDIS_URL: redis://redis:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      HYPERFOCUS_MODE: "false"
+    volumes:
+      - ./agents/shared:/app/shared:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      hypercode.agent: "true"
+      hypercode.archetype: "worker"
+      hypercode.version: "2.0"
+
+  agent-x:
+    profiles: ["hyper"]
+    build:
+      context: .
+      dockerfile: agents/agent-x/Dockerfile
+    container_name: agent-x
+    hostname: agent-x
+    ports:
+      - "127.0.0.1:8084:8080"
+    environment:
+      AGENT_NAME: agent-x-01
+      AGENT_PORT: "8080"
+      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
+      OLLAMA_HOST: http://hypercode-ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}
+      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+      WORKSPACE_PATH: /workspace
+      HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
+      AGENTS_COMPOSE: /workspace/docker-compose.agents.yml
+      OBSERVER_URL: http://hyper-observer:8092
+      WORKER_URL: http://hyper-worker:8093
+      ARCHITECT_URL: http://hyper-architect:8091
+      AGENT_HEALTH_THRESHOLD: "60"
+      LLM_TIMEOUT_SECONDS: "120"
+    volumes:
+      - .:/workspace
+    healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-    environment:
-      REDIS_URL: redis://redis:6379
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
-
-  crew-orchestrator:
-    build: ./agents/crew-orchestrator
+      start_period: 20s
     restart: unless-stopped
-    ports: ["127.0.0.1:8081:8081"]    # I3 fix: localhost-only
-    networks: [hypercode-net]
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - agents-net
+      - data-net
     depends_on:
-      redis: {condition: service_healthy}
-      postgres: {condition: service_healthy}
+      hyper-architect:
+        condition: service_healthy
+      hyper-observer:
+        condition: service_healthy
+      hyper-worker:
+        condition: service_healthy
+      docker-socket-proxy-build:
+        condition: service_started
+
+  # ====================================================================
+  # GPU OLLAMA — replaces hypercode-ollama (core.yml) when --profile gpu
+  # ====================================================================
+
+  hypercode-ollama-gpu:
+    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    profiles: ["gpu"]
+    volumes:
+      - ollama-data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+    networks:
+      agents-net:
+        aliases:
+          - hypercode-ollama
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 1G
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  # ====================================================================
+  # AI BACKEND (heavy AI deps) — `--profile ai`
+  # ====================================================================
+
+  ai-backend:
+    profiles: ["ai"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        INSTALL_AI_DEPS: "true"
+    image: ${HYPERCODE_AI_IMAGE:-hypercode-ai:latest}
+    container_name: ai-backend
+    environment:
+      - ENVIRONMENT=development
+      - PRISMA_PY_DEBUG=0
+      - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
+      - API_KEY=${API_KEY}
+      - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - JWT_SECRET=${HYPERCODE_JWT_SECRET}
+      - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER:-}
+      - STRIPE_PRICE_BUILDER=${STRIPE_PRICE_BUILDER:-}
+      - STRIPE_PRICE_HYPER=${STRIPE_PRICE_HYPER:-}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY:-}
+      - STRIPE_PRICE_PRO_YEARLY=${STRIPE_PRICE_PRO_YEARLY:-}
+      - STRIPE_PRICE_HYPER_MONTHLY=${STRIPE_PRICE_HYPER_MONTHLY:-}
+      - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY:-}
+      - OLLAMA_HOST=http://hypercode-ollama:11434
+      - DEFAULT_LLM_MODEL=auto
+      - OTLP_EXPORTER_DISABLED=${OTLP_EXPORTER_DISABLED}
+      - OTLP_ENDPOINT=http://tempo:4317
+      - PROMETHEUS_METRICS_DISABLED=false
+      - DB_AUTO_CREATE=true
+      - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-http://localhost:8088,http://127.0.0.1:8088,http://localhost:3000,http://127.0.0.1:3000}
+    env_file:
+      - .env
+    volumes:
+      - ./backend/alembic:/app/alembic:ro
+      - ./backend/alembic.ini:/app/alembic.ini:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - data-net
+      - agents-net
+    ports:
+      - "127.0.0.1:8002:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ====================================================================
+  # OPS / HEALTH — auto-prune, security-scanner, docker-janitor
+  # ====================================================================
+
+  auto-prune:
+    profiles: ["ops", "health"]
+    image: ${DOCKER_CLI_IMAGE:-docker:27.3.1-cli}
+    container_name: hyper-sweeper-prune
+    environment:
+      - DOCKER_HOST=tcp://docker-socket-proxy-build:2375
+    command: >
+      sh -c "echo '0 * * * * docker container prune -f && docker image prune -f --filter until=48h && docker builder prune -f --keep-storage=5gb' > /etc/crontabs/root && crond -f"
+    restart: unless-stopped
+    networks:
+      - agents-net
+    depends_on:
+      docker-socket-proxy-build:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep crond"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-    environment:
-      REDIS_URL: redis://redis:6379
-      POSTGRES_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/hypercode
-    develop:
-      watch:
-        - path: ./agents/crew-orchestrator
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/crew-orchestrator/requirements.txt
-          action: rebuild
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 128M
+        reservations:
+          cpus: "0.02"
+          memory: 32M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
-  # ── SPECIALIST AGENTS ─────────────────────────────────────
-  coder:
-    build: ./agents/coder
-    restart: unless-stopped
-    ports: ["127.0.0.1:8002:8000"]    # I3 fix: localhost-only
-    networks: [hypercode-net]
-    depends_on:
-      crew-orchestrator: {condition: service_started}
-    develop:
-      watch:
-        - path: ./agents/coder
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/coder/requirements.txt
-          action: rebuild
+  security-scanner:
+    profiles: ["ops", "health"]
+    image: ${TRIVY_IMAGE:-aquasec/trivy:0.56.2}
+    container_name: hyper-shield-scanner
+    entrypoint: ["/bin/sh", "-c", "while true; do trivy image --exit-code 0 --severity HIGH,CRITICAL --format json -o /reports/trivy-hypercode-core.json hypercode-core:latest; sleep 86400; done"]
     environment:
-      CORE_URL: http://crew-orchestrator:8081
-      AGENT_PORT: "8000"
-
-  agent-x:
-    build: ./agents/agent-x
-    restart: unless-stopped
-    ports: ["127.0.0.1:8083:8000"]
-    networks: [hypercode-net]
-    depends_on:
-      crew-orchestrator: {condition: service_started}
-      docker-socket-proxy-build: {condition: service_started}
-    develop:
-      watch:
-        - path: ./agents/agent-x
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/agent-x/requirements.txt
-          action: rebuild
-    environment:
-      AGENT_NAME: agent-x-01
-      AGENT_PORT: "8000"
-      CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8081
-      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
+      - DOCKER_HOST=tcp://docker-socket-proxy-build:2375
     volumes:
-      - .:/workspace
-
-  hyper-split-agent:
-    build: ./agents/hyper-split-agent
+      - ./reports/security:/reports
+      - trivy-cache:/root/.cache/trivy
+    networks:
+      - agents-net
     restart: unless-stopped
-    ports: ["127.0.0.1:8096:8096"]
-    networks: [hypercode-net]
+    depends_on:
+      docker-socket-proxy-build:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+
+  docker-janitor:
+    profiles: ["disabled"]
+    image: meltwater/docker-cleanup:latest
+    container_name: docker-janitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CLEAN_PERIOD=1800
+      - DELAY_TIME=600
+      - KEEP_IMAGES=true
+      - KEEP_CONTAINERS=true
+      - CLEAN_STOPPED_CONTAINERS=false
+      - CLEAN_UNUSED_IMAGES=false
+      - CLEAN_UNUSED_VOLUMES=false
+
+  # ====================================================================
+  # CORE AGENTS — `--profile agents`
+  # ====================================================================
+
+  crew-orchestrator:
+    profiles: ["agents"]
+    build:
+      # context MUST be the agent folder, not repo root: root context ships
+      # ~3.85GB to buildkit AND grabs the wrong requirements.txt/main.py
+      # (repo root has no main.py — the image would crash on boot)
+      context: ./agents/crew-orchestrator
+      dockerfile: Dockerfile
+    container_name: crew-orchestrator
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=crew-orchestrator
+      - REDIS_URL=redis://redis:6379
+      - ORCHESTRATOR_REDIS_HOST=redis
+      - ORCHESTRATOR_REDIS_PORT=6379
+      - ORCHESTRATOR_ENABLED_AGENTS=${ORCHESTRATOR_ENABLED_AGENTS:-}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hypercode}
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
+      - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
+      - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-}
+      # P0-2 remaining intercept — downstream dispatch gated by Safety Shepherd
+      - SAFETY_SHEPHERD_URL=${SAFETY_SHEPHERD_URL:-http://safety-shepherd:8096}
+      - SAFETY_SHEPHERD_MODE=${SAFETY_SHEPHERD_MODE:-monitor}
+    volumes:
+      - ./agents/crew-orchestrator:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+      # result_writer.py writes crew results here (path resolves to /results
+      # inside the container). Shared with obsidian-sync, which reads ./results.
+      - ./results:/results
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  coder-agent:
+    profiles: ["agents"]
+    build:
+      context: ./agents/coder
+      dockerfile: Dockerfile
+    container_name: coder-agent
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - PROMETHEUS_URL=http://prometheus:9090
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
+      - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-qwen2.5:3b}
+      - AGENT_PORT=8002
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+    volumes:
+      - ./agents/coder/workspace:/workspace
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    ports:
+      - "127.0.0.1:8002:8002"
+    networks:
+      - agents-net
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  mcp-gateway:
+    profiles: ["agents"]
+    image: docker/mcp-gateway:latest
+    container_name: mcp-gateway
+    command:
+      - --servers=github
+      - --transport=streaming
+      - --port=8820
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_TOKEN}
+    expose:
+      - "8820"
+    ports:
+      - "127.0.0.1:8820:8820"
+    networks:
+      - agents-net
+    depends_on:
+      docker-socket-proxy:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8820/health >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ── MCP REST adapter ─────────────────────────────────────────────────
+  # Thin REST shim the dashboard's /api/mcp/* routes proxy to. Speaks the
+  # MCP Streamable HTTP transport to mcp-gateway; serves /workspace file
+  # ops locally from the read-only bind mount. Canonical definition —
+  # the copy in docker-compose.mcp-gateway.yml was removed to stop drift.
+  mcp-rest-adapter:
+    profiles: ["agents"]
+    build:
+      context: ./services/mcp-rest-adapter
+      dockerfile: Dockerfile
+    container_name: mcp-rest-adapter
+    environment:
+      - MCP_GATEWAY_BASE_URL=http://mcp-gateway:8820
+      - MCP_GATEWAY_MCP_URL=http://mcp-gateway:8820/mcp
+      - MCP_WORKSPACE_TARGET_PATH=/workspace
+      - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4
+      - MCP_LOCAL_WORKSPACE_ROOT=/workspace
+    volumes:
+      - ./:/workspace:ro
+    expose:
+      - "8821"
+    ports:
+      - "127.0.0.1:8821:8821"
+    networks:
+      - agents-net
+    depends_on:
+      mcp-gateway:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8821/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  broski-pets-bridge:
+    profiles: ["agents"]
+    build:
+      context: ./agents/broski-pets-bridge
+      dockerfile: Dockerfile
+    container_name: broski-pets-bridge
+    environment:
+      - PORT=8098
+      - PETS_ENABLED=${BROSKIE_PETS_ENABLED:-false}
+      - EVOLVE_WEBHOOK_URL=${EVOLVE_WEBHOOK_URL:-http://evolve-relay:8097/evolve}
+      - REDIS_URL=redis://redis:6379/3
+      - OLLAMA_URL=http://hypercode-ollama:11434
+      - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
+      - PETS_NUM_PREDICT=${PETS_NUM_PREDICT:-80}
+      - WORKSPACE_PATH=/workspace
+      - SQUAD_JSON_PATH=/workspace/squad.json
+      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://mcp-gateway:8820}
+      - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
+      - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - PETS_LLM_PROVIDER=${PETS_LLM_PROVIDER:-anthropic}
+      - PETS_ANTHROPIC_MODEL_CHAT=${PETS_ANTHROPIC_MODEL_CHAT:-claude-haiku-4-5-20251001}
+      - PETS_ANTHROPIC_MODEL_ASK=${PETS_ANTHROPIC_MODEL_ASK:-claude-sonnet-4-6}
+      - PETS_ANTHROPIC_MAX_TOKENS=${PETS_ANTHROPIC_MAX_TOKENS:-300}
+      - PETS_ANTHROPIC_FALLBACK_OLLAMA=${PETS_ANTHROPIC_FALLBACK_OLLAMA:-true}
+    volumes:
+      - .:/workspace:ro
+    ports:
+      - "127.0.0.1:8098:8098"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+      mcp-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  nemoclaw-agent:
+    profiles: ["agents", "nemoclaw"]
+    build:
+      context: ./agents/nemoclaw-agent
+      dockerfile: Dockerfile
+    container_name: nemoclaw-agent
+    environment:
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - WORKSPACE_PATH=/workspace
+      - NEMOCLAW_SCAN_TARGETS=${NEMOCLAW_SCAN_TARGETS:-backend,agents}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-hypercode}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
+    volumes:
+      - .:/workspace:ro
+    ports:
+      - "127.0.0.1:8099:8099"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.15"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # P0-2 — Safety Shepherd: runtime policy brain (ALLOW/BLOCK/ESCALATE).
+  # agents-net + data-net only (never app-net). No Docker socket at all (more
+  # restrictive than the brief's read-only rule — it never touches Docker).
+  safety-shepherd:
+    profiles: ["agents", "safety"]
+    build:
+      context: ./agents/safety-shepherd
+      dockerfile: Dockerfile.safety-shepherd
+    image: safety-shepherd:latest
+    container_name: safety-shepherd
+    environment:
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - REDIS_URL=redis://redis:6379/0
+      - SAFETY_RATE_WINDOW=${SAFETY_RATE_WINDOW:-3600}
+      # HS-P2c — verdicts → governance ledger; empty key = push disabled
+      - CORE_URL=${CORE_URL:-http://hypercode-core:8000}
+      - CORE_AGENT_KEY=${SAFETY_CORE_AGENT_KEY:-}
+    ports:
+      - "127.0.0.1:8096:8096"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
-    environment:
-      OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}
-    develop:
-      watch:
-        - path: ./agents/hyper-split-agent
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/hyper-split-agent/requirements.txt
-          action: rebuild
-
-  session-snapshot:
-    build: ./agents/session-snapshot
     restart: unless-stopped
-    ports: ["127.0.0.1:8097:8097"]
-    networks: [hypercode-net]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # HyperStudio write path: agents edit code inside a throwaway git worktree,
+  # every tool call gated by safety-shepherd (fail-closed). Nothing lands on the
+  # working tree until a human merges. See agents/coder-studio/.
+  coder-studio:
+    profiles: ["agents", "studio"]
+    build:
+      context: ./agents/coder-studio
+      dockerfile: Dockerfile.coder-studio
+    image: coder-studio:latest
+    container_name: coder-studio
+    environment:
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      # The bundled Claude Code CLI reads ANTHROPIC_API_KEY from the environment.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - SAFETY_SHEPHERD_URL=http://safety-shepherd:8096
+      - STUDIO_MODEL=${STUDIO_MODEL:-claude-sonnet-5}
+      - STUDIO_MAX_TURNS=${STUDIO_MAX_TURNS:-30}
+      # Repo to operate on (read-write mount below); throwaway checkouts live on
+      # a named volume so they never touch the working tree or the image layer.
+      - WORKSPACE_ROOT=/workspace
+      - STUDIO_WORKTREE_ROOT=/studio-worktrees
     volumes:
       - .:/workspace
+      - studio-worktrees:/studio-worktrees
+    ports:
+      # 8087 — 8097 is taken by evolve-relay (bropets).
+      - "127.0.0.1:8087:8087"
+    networks:
+      - agents-net
+    depends_on:
+      safety-shepherd:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8097/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  goal-keeper:
+    profiles: ["agents", "goal-keeper"]
+    build:
+      context: ./agents/goal_keeper
+      dockerfile: Dockerfile
+    container_name: goal-keeper
     environment:
-      WORKSPACE_PATH: /workspace
-      SNAPSHOT_POLL_SECONDS: "300"
-      SNAPSHOT_IDLE_MINUTES: "30"
-    develop:
-      watch:
-        - path: ./agents/session-snapshot
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/session-snapshot/requirements.txt
-          action: rebuild
-
-  frontend-specialist:
-    build: ./agents/01-frontend-specialist
-    restart: unless-stopped
-    networks: [hypercode-net]
+      - AGENT_NAME=goal-keeper
+      - AGENT_PORT=8050
+      - CORE_URL=http://hypercode-core:8000
+      - REDIS_URL=redis://redis:6379
+      - GOAL_KEEPER_API_KEY=${GOAL_KEEPER_API_KEY:-}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - ./agents/goal_keeper:/app
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8050:8050"
     depends_on:
-      crew-orchestrator: {condition: service_started}
-    develop:
-      watch:
-        - path: ./agents/01-frontend-specialist
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/01-frontend-specialist/requirements.txt
-          action: rebuild
-
-  backend-specialist:
-    build: ./agents/02-backend-specialist
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
-    networks: [hypercode-net]
-    depends_on:
-      crew-orchestrator: {condition: service_started}
-    develop:
-      watch:
-        - path: ./agents/02-backend-specialist
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/02-backend-specialist/requirements.txt
-          action: rebuild
-
-  database-architect:
-    build: ./agents/03-database-architect
-    restart: unless-stopped
-    networks: [hypercode-net]
-    depends_on:
-      postgres: {condition: service_healthy}
-    develop:
-      watch:
-        - path: ./agents/03-database-architect
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/03-database-architect/requirements.txt
-          action: rebuild
-
-  qa-engineer:
-    build: ./agents/04-qa-engineer
-    restart: unless-stopped
-    networks: [hypercode-net]
-    depends_on:
-      crew-orchestrator: {condition: service_started}
-    develop:
-      watch:
-        - path: ./agents/04-qa-engineer
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/04-qa-engineer/requirements.txt
-          action: rebuild
-
-  devops-engineer:
-    build: ./agents/05-devops-engineer
-    restart: unless-stopped
-    networks: [hypercode-net]
-    develop:
-      watch:
-        - path: ./agents/05-devops-engineer
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/05-devops-engineer/requirements.txt
-          action: rebuild
-    environment:
-      DOCKER_HOST: tcp://docker-socket-proxy-build:2375
-    depends_on:
-      docker-socket-proxy-build: {condition: service_started}
-
-  security-engineer:
-    build: ./agents/06-security-engineer
-    restart: unless-stopped
-    networks: [hypercode-net]
-    develop:
-      watch:
-        - path: ./agents/06-security-engineer
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/06-security-engineer/requirements.txt
-          action: rebuild
-
-  system-architect:
-    build: ./agents/07-system-architect
-    restart: unless-stopped
-    networks: [hypercode-net]
-    develop:
-      watch:
-        - path: ./agents/07-system-architect
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/07-system-architect/requirements.txt
-          action: rebuild
-    depends_on:                        # M1 fix: modern map syntax (was deprecated list syntax)
-      architect:
-        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
 
   project-strategist:
-    build: ./agents/08-project-strategist
-    restart: unless-stopped
-    networks: [hypercode-net]
-    develop:
-      watch:
-        - path: ./agents/08-project-strategist
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/08-project-strategist/requirements.txt
-          action: rebuild
-    depends_on:
-      crew-orchestrator: {condition: service_started}
-
-  tips-tricks-writer:                  # H4 fix: renamed from 'tips-writer' to match lite file
-    build: ./agents/09-tips-tricks-writer
-    restart: unless-stopped
-    networks: [hypercode-net]
-    develop:
-      watch:
-        - path: ./agents/09-tips-tricks-writer
-          action: sync+restart
-          target: /app
-          ignore: [__pycache__, .pytest_cache, "*.pyc"]
-        - path: ./agents/09-tips-tricks-writer/requirements.txt
-          action: rebuild
-
-  # ── INTERFACE LAYER ───────────────────────────────────────
-  broski-terminal:
-    build: ./agents/broski-bot
-    restart: unless-stopped
-    ports: ["127.0.0.1:3000:3000"]    # I3 fix: localhost-only
-    networks: [hypercode-net]
+    profiles: ["agents"]
+    build:
+      context: ./agents/business/project-strategist
+      dockerfile: Dockerfile
+    container_name: project-strategist
     environment:
-      DISCORD_TOKEN: ${DISCORD_TOKEN}
-
-  broski-pets-bridge:
-    build: ./agents/broski-pets-bridge
-    restart: unless-stopped
-    ports: ["127.0.0.1:8098:8098"]
-    networks: [hypercode-net]
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=project-strategist
+      - AGENT_PORT=8001
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
-      - .:/workspace:ro
+      - ./agents/business/project-strategist:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+    ports:
+      - "127.0.0.1:8001:8001"
     depends_on:
-      redis: {condition: service_healthy}
+      hypercode-core:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8098/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health').read()"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  frontend-specialist:
+    profiles: ["agents"]
+    build:
+      context: ./agents/01-frontend-specialist
+      dockerfile: Dockerfile
+    container_name: frontend-specialist
+    restart: unless-stopped
     environment:
-      PETS_ENABLED: ${BROSKIE_PETS_ENABLED:-false}
-      REDIS_URL: redis://redis:6379/3
-      OLLAMA_URL: http://hypercode-ollama:11434
-      PETS_OLLAMA_MODEL: ${PETS_OLLAMA_MODEL:-qwen2.5:7b}
-      WORKSPACE_PATH: /workspace
-      SQUAD_JSON_PATH: /workspace/squad.json
-      PETS_WEBHOOK_SECRET: ${PETS_WEBHOOK_SECRET:-}
-      COURSE_SYNC_SECRET: ${COURSE_SYNC_SECRET:-}
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=frontend-specialist
+      - AGENT_PORT=8012
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    volumes:
+      - ./agents/01-frontend-specialist:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8012:8012"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  backend-specialist:
+    profiles: ["agents"]
+    build:
+      context: ./agents/02-backend-specialist
+      dockerfile: Dockerfile
+    container_name: backend-specialist
+    restart: unless-stopped
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=backend-specialist
+      - AGENT_PORT=8003
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    volumes:
+      - ./agents/02-backend-specialist:/app
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8003:8003"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  database-architect:
+    profiles: ["agents"]
+    build:
+      context: ./agents/03-database-architect
+      dockerfile: Dockerfile
+    container_name: database-architect
+    restart: unless-stopped
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=database-architect
+      - AGENT_PORT=8004
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    volumes:
+      - ./agents/03-database-architect:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8004:8004"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # security_opt defined once — no-new-privileges applied via compose merge
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  qa-engineer:
+    profiles: ["agents"]
+    build:
+      context: ./agents/04-qa-engineer
+      dockerfile: Dockerfile
+    container_name: qa-engineer
+    restart: unless-stopped
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=qa-engineer
+      - AGENT_PORT=8005
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    volumes:
+      - ./agents/04-qa-engineer:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8005:8005"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  devops-engineer:
+    profiles: ["agents"]
+    build:
+      context: ./agents/05-devops-engineer
+      dockerfile: Dockerfile
+    container_name: devops-engineer
+    restart: unless-stopped
+    environment:
+      - CORE_URL=http://hypercode-core:8000
+      - AGENT_ROLE=devops-engineer
+      - AGENT_PORT=8006
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    volumes:
+      - ./agents/05-devops-engineer:/app
+      - ./Configuration_Kit:/app/hive_mind:ro
+      - ./agents/shared:/app/shared:ro
+      - ./agents/base-agent/agent.py:/app/base_agent.py:ro
+      - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro
+      - agent_memory:/app/memory
+    networks:
+      - agents-net
+      - data-net
+    ports:
+      - "127.0.0.1:8006:8006"
+    depends_on:
+      hypercode-core:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  github-sync-logs:
+    driver: local
+  # Throwaway agent worktrees — never persisted, never on the working tree.
+  studio-worktrees:
+    driver: local
+
+# ====================================================================
+# NETWORKS — declare all networks used across services in this file.
+# frontend-net is created by docker-compose.core.yml (external here).
+# agents-net, data-net, obs-net, backend-net are also external —
+# they are owned by core.yml and shared across the stack.
+# BROski♾️
+# ====================================================================
+networks:
+  agents-net:
+    external: true
+  frontend-net:
+    external: true
+  data-net:
+    external: true
+  obs-net:
+    external: true
+  backend-net:
+    external: true

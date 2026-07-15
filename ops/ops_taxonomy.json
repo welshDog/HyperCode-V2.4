@@ -1,0 +1,84 @@
+{
+  "_meta": {
+    "version": "1.0.0",
+    "description": "BROski Brain Ops — canonical error codes and status taxonomy",
+    "last_updated": "2026-05-31"
+  },
+  "operations": {
+    "health_check": {
+      "statuses": {
+        "HEALTHY":   { "icon": "✅", "meaning": "All containers up, APIs responding" },
+        "DEGRADED":  { "icon": "⚠️", "meaning": "Some containers up, some APIs slow (>2s)" },
+        "UNHEALTHY": { "icon": "❌", "meaning": "Core container down or all APIs timeout" }
+      },
+      "error_codes": {
+        "HC_001": { "message": "Docker daemon not responding",           "action": "Restart Docker Desktop" },
+        "HC_002": { "message": "hyper-brain container exited",           "action": "Check logs: docker logs hyper-brain" },
+        "HC_003": { "message": "Briefing API timeout (>5s)",            "action": "Check CPU/memory: docker stats" },
+        "HC_004": { "message": "Port 8100 in use by another process",   "action": "netstat -ano | findstr :8100" }
+      },
+      "stop_chain_on_failure": true,
+      "note": "ONLY operation that halts the full chain. If Docker/API is down, nothing else can run."
+    },
+    "github_sync": {
+      "statuses": {
+        "FULL":    { "icon": "✅", "meaning": "All repos synced, all issues pulled" },
+        "PARTIAL": { "icon": "⚠️", "meaning": "Some repos synced, rate limit hit or timeout" },
+        "FAILED":  { "icon": "❌", "meaning": "No repos synced, token invalid or network down" }
+      },
+      "error_codes": {
+        "GH_001": { "message": "GitHub token invalid or expired",            "action": "Regenerate PAT: github.com/settings/tokens" },
+        "GH_002": { "message": "Rate limit exceeded (429)",                  "action": "Wait 1h, or upgrade to higher tier" },
+        "GH_003": { "message": "Repo does not exist or no access",           "action": "Check GITHUB_REPOS env var, verify PAT scopes" },
+        "GH_004": { "message": "Network timeout",                            "action": "Check internet, try --retry-count 3" }
+      },
+      "stop_chain_on_failure": false,
+      "note": "Partial sync is acceptable — briefing generates with whatever was pulled."
+    },
+    "briefing_generation": {
+      "statuses": {
+        "GENERATED": { "icon": "✅", "meaning": "Briefing .md created and written to vault" },
+        "PARTIAL":   { "icon": "⚠️", "meaning": "Briefing created but some sections missing (API timeouts)" },
+        "FAILED":    { "icon": "❌", "meaning": "Could not generate briefing, vault path invalid or API down" }
+      },
+      "error_codes": {
+        "BR_001": { "message": "Vault path does not exist or not writable",  "action": "Check VAULT_PATH, verify folder permissions" },
+        "BR_002": { "message": "Briefing API returned 500",                  "action": "Check hyper-brain logs: docker logs hyper-brain" },
+        "BR_003": { "message": "Briefing template missing",                  "action": "Verify briefing template exists in configs/" },
+        "BR_004": { "message": "Could not create Briefings/ folder",         "action": "Check disk space and permissions" }
+      },
+      "stop_chain_on_failure": false,
+      "note": "If FAILED, vault commit still runs (no files to commit, will be NO_CHANGES)."
+    },
+    "vault_commit": {
+      "statuses": {
+        "COMMITTED":   { "icon": "✅", "meaning": "Changes committed to git with message" },
+        "NO_CHANGES":  { "icon": "⏭️", "meaning": "No new files, git diff empty" },
+        "UNCOMMITTED": { "icon": "⚠️", "meaning": "Changes exist but commit failed" }
+      },
+      "error_codes": {
+        "VC_001": { "message": "Git not initialized in vault folder",        "action": "cd $VAULT_PATH && git init" },
+        "VC_002": { "message": "Git config missing (user.name, user.email)", "action": "git config user.name 'BROski' && git config user.email 'broski@hyperfocus.zone'" },
+        "VC_003": { "message": "Uncommitted changes (merge conflict?)",      "action": "cd $VAULT_PATH && git status" },
+        "VC_004": { "message": "Remote push failed",                         "action": "Check origin, network, and credentials" }
+      },
+      "stop_chain_on_failure": false,
+      "note": "Commit failure should NOT block Discord report — vault issue ≠ ops failure."
+    },
+    "discord_report": {
+      "statuses": {
+        "SENT":   { "icon": "✅", "meaning": "Status message posted to Discord" },
+        "FAILED": { "icon": "❌", "meaning": "Webhook request failed" }
+      },
+      "error_codes": {
+        "DC_001": { "message": "Webhook URL invalid or expired",    "action": "Regenerate webhook in Discord server" },
+        "DC_002": { "message": "Webhook returned 401/403",          "action": "Verify webhook still exists, check channel permissions" },
+        "DC_003": { "message": "Network timeout",                   "action": "Check internet, try again" }
+      },
+      "stop_chain_on_failure": false,
+      "note": "Last step. Discord fail = report missed, vault is still truth."
+    }
+  },
+  "retryable_error_codes": ["GH_004", "DC_003", "HC_003"],
+  "non_retryable_error_codes": ["GH_001", "GH_003", "DC_001", "DC_002", "VC_001", "VC_002", "BR_001", "BR_003"]
+}

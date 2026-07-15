@@ -47,11 +47,6 @@ class Database:
         Initialize database engine and session factory.
         Creates connection pool and sets up event listeners.
         """
-        # Debug: Log environment and settings
-        logger.info(f"DB_PASSWORD env: {os.environ.get('DB_PASSWORD', 'NOT SET')}")
-        logger.info(f"settings.db_password: {repr(settings.db_password)}")
-        logger.info(f"bool(settings.db_password): {bool(settings.db_password)}")
-        
         # Validate required settings - check for None or empty string only
         required_settings = [
             "db_host", "db_port", "db_name", "db_user", "db_password"

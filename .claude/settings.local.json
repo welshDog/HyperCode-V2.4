@@ -239,11 +239,87 @@
       "Bash(railway --version)",
       "Bash(railway upgrade *)",
       "Bash(cmd.exe /c \"npm update -g @railway/cli\")",
-      "PowerShell(npm update *)"
+      "PowerShell(npm update *)",
+      "Bash(findstr -i compose)",
+      "PowerShell(docker compose *)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "hypercode"
-  ]
+    "hypercode",
+    "hyper-sills",
+    "github",
+    "filesystem"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/env_guard.py\"; exit 0",
+            "if": "Bash(docker compose*)",
+            "shell": "powershell",
+            "timeout": 15,
+            "statusMessage": "Checking env vars..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$j = $input | ConvertFrom-Json; $f = $j.tool_input.file_path; if ($f -match 'docker-compose.*\\.yml') { python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/compose_validator.py\" $f }",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Validating compose file..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_start.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session start..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/broski_xp_reward.py\" --reason session_start",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Awarding BROski$ XP..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/session_end.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "HyperFocus Z0ne session end..."
+          },
+          {
+            "type": "command",
+            "command": "python3 \"H:/HYPERFOCUSZONE/HperCore/HyperCode-V2.4/scripts/broski_xp_reward.py\"",
+            "shell": "powershell",
+            "timeout": 30,
+            "statusMessage": "Awarding BROski$ XP..."
+          }
+        ]
+      }
+    ]
+  }
 }

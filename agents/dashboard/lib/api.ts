@@ -354,3 +354,52 @@ export function getApprovalsWebSocketUrl(token?: string) {
   const qs = t ? `?token=${encodeURIComponent(t)}` : "";
   return `${origin}/api/v1/orchestrator/ws/approvals${qs}`;
 }
+
+// --- HYPERFLOW MISSION GRAPH (P0-3) ---
+export interface FlowTransition {
+  node: string | null;
+  type: string;
+  status: string;
+  result?: Record<string, unknown>;
+  ts: string;
+}
+
+export interface FlowRun {
+  run_id: string;
+  flow: string;
+  version?: number;
+  status: string;
+  current_node: string | null;
+  history: FlowTransition[];
+  error?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  completed_at?: string | null;
+}
+
+export async function fetchActiveFlows(): Promise<FlowRun[]> {
+  try {
+    const res = await apiFetch(`/flows/active`);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    const data = await res.json();
+    return Array.isArray(data.runs) ? data.runs : [];
+  } catch (error) {
+    console.error("API Error (fetchActiveFlows):", error);
+    return [];
+  }
+}
+
+export async function fetchFlowRun(runId: string): Promise<FlowRun | null> {
+  try {
+    const res = await apiFetch(`/flows/runs/${runId}`);
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Direct-to-core SSE URL for a run's node transitions (EventSource, no auth). */
+export function flowEventsUrl(runId: string): string {
+  return `${API_BASE_URL}/flows/runs/${runId}/events`;
+}

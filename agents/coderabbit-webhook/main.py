@@ -169,7 +169,8 @@ async def receive_github_webhook(request: Request):
     """
     try:
         payload = await request.json()
-    except:
+    except Exception as e:
+        logger.error(f"Failed to parse GitHub webhook payload: {e}")
         raise HTTPException(status_code=400, detail="Invalid JSON")
     
     action = payload.get("action")

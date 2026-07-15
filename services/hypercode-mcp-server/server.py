@@ -73,10 +73,13 @@ async def hypercode_system_health() -> dict:
 async def hypercode_list_agents() -> dict:
     """
     List all running agents and their current status.
-    Returns agent IDs, names, health state, XP, level, and coin balance.
+    Returns agent IDs, names, online/health status, and last-seen time.
     Use this to see what agents are active and whether any need attention.
     """
-    return await _get(f"{API_PREFIX}/orchestrator/agents")
+    # Public agent roster. /orchestrator/agents is auth-gated (401 without a
+    # user token); /agents/status is the unauthenticated feed the dashboard's
+    # Agent Monitor uses too.
+    return await _get(f"{API_PREFIX}/agents/status")
 
 
 @mcp.tool()

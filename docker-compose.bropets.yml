@@ -1,0 +1,96 @@
+# docker-compose.bropets.yml — BROskiPets Integration
+# Add to root: include: docker-compose.bropets.yml
+# Usage: docker compose --profile pets up -d
+
+services:
+  bropets-api:
+    profiles: ["pets"]
+    build:
+      context: ../BROskiPets-LLM-dNFT
+      dockerfile: Dockerfile
+    container_name: bropets-api
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      # HperCore root .env doesn't exist on this box — optional so the file
+      # is used if present but its absence doesn't break compose validation
+      - path: ../.env
+        required: false
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
+      - REDIS_DB=5  # Separate namespace from core services
+      - LLM_BASE_URL=http://hypercode-ollama:11434
+      - LLM_MODEL=qwen2.5:7b
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - ./eeps:/app/eeps:ro
+      - ./metadata:/app/metadata
+
+  evolve-relay:
+    # webhook receiver closing the dNFT loop: bridge fires on bound-pet
+    # evolutions -> relay mirrors them on Base Sepolia (metadata -> Pinata
+    # -> evolve()). Profile "agents" so it runs alongside broski-pets-bridge.
+    profiles: ["agents"]
+    build:
+      context: ../BROskiPets-LLM-dNFT
+      dockerfile: Dockerfile.relay
+    container_name: evolve-relay
+    environment:
+      - PORT=8097
+      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+    env_file:
+      # SEPOLIA_RPC / CONTRACT_ADDRESS / DEPLOYER_KEY / PINATA_JWT — secrets
+      # stay in the Pets repo's gitignored .env
+      - ../BROskiPets-LLM-dNFT/.env
+    ports:
+      - "127.0.0.1:8097:8097"
+    networks:
+      - agents-net
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents_net
+  data-net:
+    external: true
+    name: hypercode_data_net

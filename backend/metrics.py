@@ -117,6 +117,19 @@ agent_x_deployments_total = Counter(
 )
 
 # ─────────────────────────────────────────────
+# 🕸️ HYPERFLOW — MISSION GRAPH METRICS (P0-1)
+# ─────────────────────────────────────────────
+
+# Per-node execution duration for a HyperFlow run.
+hyperflow_node_duration_seconds = Histogram(
+    "hyperflow_node_duration_seconds",
+    "Duration of each HyperFlow node execution",
+    ["flow", "node", "status"],  # status = completed | failed | awaiting_approval
+    buckets=[0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0]
+)
+
+
+# ─────────────────────────────────────────────
 # 🛠️ HELPER FUNCTIONS — use these inside your agents
 # ─────────────────────────────────────────────
 

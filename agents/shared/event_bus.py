@@ -61,6 +61,14 @@ class AgentEventBus:
     # ── Connection ─────────────────────────────────────────────────────────────
     async def connect(self) -> None:
         """Connect to Redis. Call once on agent startup."""
+        # Reconnects land here too. Without this, each one abandons a whole
+        # ConnectionPool and its open sockets.
+        if self._redis is not None:
+            try:
+                await self._redis.aclose()
+            except Exception:
+                pass
+            self._redis = None
         try:
             self._redis = aioredis.from_url(
                 self._url,
@@ -152,11 +160,20 @@ class AgentEventBus:
                             logger.error("❌ Handler error: %s | raw: %s", exc, raw_message["data"][:120])
             except Exception as exc:
                 logger.warning("⚠️ Redis subscription dropped: %s. Reconnecting in 3s...", exc)
-                await asyncio.sleep(3)
-                try:
-                    await self.connect()
-                except Exception:
-                    pass
+            finally:
+                if self._pubsub is not None:
+                    try:
+                        # aclose() returns the connection to the pool.
+                        # unsubscribe() alone leaves it checked out forever.
+                        await self._pubsub.aclose()
+                    except Exception:
+                        pass
+                    self._pubsub = None
+            await asyncio.sleep(3)
+            try:
+                await self.connect()
+            except Exception:
+                pass
 
     # ── XP Ledger ────────────────────────────────────────────────────────────────
     async def award_xp(

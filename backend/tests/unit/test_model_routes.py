@@ -46,8 +46,7 @@ async def test_brain_routes_to_openrouter_when_requested(monkeypatch):
     import app.core.model_routes as routes_mod
 
     settings.OLLAMA_HOST = ""
-    settings.PERPLEXITY_SESSION_AUTH = False
-    settings.PERPLEXITY_API_KEY = None
+    settings.ANTHROPIC_API_KEY = None
     settings.OPENROUTER_API_KEY = "k"
     settings.HUNTER_ALPHA_ENABLED = True
 

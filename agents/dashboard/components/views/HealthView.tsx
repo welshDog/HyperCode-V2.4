@@ -92,7 +92,7 @@ export function HealthView(): React.JSX.Element {
   const healerObj = asRecord(healer) ?? {}
   const orchStatus = toStatus(orchObj.status ?? orchObj.healthy)
   const orchDetail = orchStatus === 'unknown'
-    ? `Unreachable — start crew-orchestrator${orchObj.error ? ` (${String(orchObj.error).slice(0, 60)})` : ''}`
+    ? `No health report — check crew-orchestrator${orchObj.error ? ` (${String(orchObj.error).slice(0, 60)})` : ''}`
     : (orchObj.error ? String(orchObj.error).slice(0, 80) : '—')
 
   const knownRows = useMemo(() => {

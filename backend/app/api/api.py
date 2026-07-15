@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning, hypersync, hypersplit, agent_keys, ops_dlq
+from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning, hypersync, hypersplit, agent_keys, ops_dlq, discord_actions
 from app.api.v1.endpoints import health
 from app.ws import metrics_broadcaster, agents_broadcaster, events_broadcaster, logs_broadcaster
 from app.routes import reliability, tasks as public_tasks
@@ -22,6 +22,33 @@ except Exception as _e:
     _log.getLogger(__name__).warning("Pets endpoints unavailable (old image): %s", _e)
     _HAS_PETS = False
 
+# P0-1 HyperFlow — declarative mission graphs (requires the hyperflow model/migration)
+try:
+    from app.api.v1.endpoints import flows
+    _HAS_HYPERFLOW = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("HyperFlow endpoints unavailable (old image): %s", _e)
+    _HAS_HYPERFLOW = False
+
+# P1-1 BROski Identity Agent (requires the identity model/migration)
+try:
+    from app.api.v1.endpoints import identity
+    _HAS_IDENTITY = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Identity endpoints unavailable (old image): %s", _e)
+    _HAS_IDENTITY = False
+
+# P1-2 Governance Ledger (requires the governance model/migration)
+try:
+    from app.api.v1.endpoints import governance
+    _HAS_GOVERNANCE = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Governance endpoints unavailable (old image): %s", _e)
+    _HAS_GOVERNANCE = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -30,6 +57,7 @@ api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(memory.router, prefix="/memory", tags=["memory"])
 api_router.include_router(orchestrator.router, prefix="/orchestrator", tags=["orchestrator"])
+api_router.include_router(discord_actions.router, prefix="/discord", tags=["discord"])
 api_router.include_router(broski.router, prefix="/broski", tags=["broski"])  # 🔥 BROski$ Token System
 api_router.include_router(planning.router, prefix="/planning", tags=["planning"])  # 🗺️ Planning System
 api_router.include_router(hypersync.router, prefix="/hypersync", tags=["hypersync"])
@@ -42,6 +70,12 @@ if _HAS_PHASE234:
     api_router.include_router(graduate.router, prefix="/graduate", tags=["graduate"])  # Phase 4: npm run graduate 🔥
 if _HAS_PETS:
     api_router.include_router(pets.router,     prefix="/pets",     tags=["pets"])      # BROskiPets bridge
+if _HAS_HYPERFLOW:
+    api_router.include_router(flows.router,    prefix="/flows",    tags=["hyperflow"])  # P0-1: Mission Graphs
+if _HAS_IDENTITY:
+    api_router.include_router(identity.router, prefix="/identity", tags=["identity"])   # P1-1: Identity Agents
+if _HAS_GOVERNANCE:
+    api_router.include_router(governance.router, prefix="/governance", tags=["governance"])  # P1-2: Audit Ledger
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics

@@ -33,6 +33,7 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
     networks:
+      - agents-net
       - backend-net
       - data-net
     depends_on:
@@ -62,8 +63,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
     labels:
       - "hypercode.service=hyperhealth-api"
       - "hypercode.role=health-orchestrator"
@@ -90,6 +89,7 @@ services:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
     networks:
+      - agents-net
       - backend-net
       - data-net
     depends_on:
@@ -127,15 +127,16 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
     labels:
       - "hypercode.service=hyperhealth-worker"
       - "hypercode.role=check-executor"
 
 networks:
+  agents-net:
+    name: hypercode_agents_net
+    external: true
   backend-net:
-    name: hypercode_public_net
+    name: hypercode_backend_net
     external: true
   data-net:
     name: hypercode_data_net

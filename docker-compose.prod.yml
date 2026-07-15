@@ -1,0 +1,290 @@
+# ════════════════════════════════════════════════════════════════════════════════
+# docker-compose.prod.yml — PRODUCTION HARDENED WITH ZERO-TRUST
+# mTLS, network policies, secrets management
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Created: May 21, 2026
+# ════════════════════════════════════════════════════════════════════════════════
+
+version: "3.9"
+
+services:
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # TIER 1: CORE CREW — PRODUCTION HARDENED
+  # ──────────────────────────────────────────────────────────────────────────────
+
+  crew-orchestrator:
+    image: docker.io/w3lshdog/hypercode-crew-orchestrator:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - TLS_CERT_PATH=/run/secrets/tls_cert
+      - TLS_KEY_PATH=/run/secrets/tls_key
+      - CA_CERT_PATH=/run/secrets/ca_cert
+      - RATE_LIMIT=100/minute
+      - REQUEST_TIMEOUT=30
+    secrets:
+      - tls_cert
+      - tls_key
+      - ca_cert
+    networks:
+      app-net:
+        aliases:
+          - crew-orchestrator.internal
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  agent-x:
+    image: docker.io/w3lshdog/hypercode-agent-x:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - TLS_CERT_PATH=/run/secrets/tls_cert
+      - TLS_KEY_PATH=/run/secrets/tls_key
+      - AGENT_SPAWN_POLICY=approved_only
+      - DRY_RUN_MODE=false
+      - ROLLBACK_ON_FAILURE=true
+    secrets:
+      - tls_cert
+      - tls_key
+      - ca_cert
+    networks:
+      app-net:
+        aliases:
+          - agent-x.internal
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+
+  brain-agent:
+    image: docker.io/w3lshdog/hypercode-brain-agent:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - ADHD_MODE=true
+      - DYSLEXIA_MODE=true
+      - CACHE_TTL=3600
+      - MEMORY_LIMIT=1GB
+    secrets:
+      - tls_cert
+      - tls_key
+    networks:
+      app-net:
+        aliases:
+          - brain-agent.internal
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+
+  coder-agent:
+    image: docker.io/w3lshdog/hypercode-coder-agent:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - SANDBOX_MODE=true
+      - CODE_REVIEW_REQUIRED=true
+      - AUTO_COMMIT=false
+    secrets:
+      - tls_cert
+      - tls_key
+      - github_token
+    networks:
+      app-net:
+        aliases:
+          - coder-agent.internal
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+
+  tips-tricks-writer:
+    image: docker.io/w3lshdog/hypercode-tips-tricks-agent:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - MARKDOWN_ONLY=true
+      - VAULT_SYNC=true
+    secrets:
+      - tls_cert
+      - tls_key
+    networks:
+      app-net:
+        aliases:
+          - tips-tricks-writer.internal
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # CORE SERVICE — PRODUCTION HARDENED
+  # ──────────────────────────────────────────────────────────────────────────────
+
+  hypercode-core:
+    image: docker.io/w3lshdog/hypercode-core:v2.4.2
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=WARNING
+      - ENABLE_MTLS=true
+      - RATE_LIMIT=1000/minute
+      - REQUEST_TIMEOUT=30
+      - SQL_ECHO=false
+      - ENABLE_PROFILING=false
+      - ENABLE_METRICS=true
+    secrets:
+      - tls_cert
+      - tls_key
+      - database_url
+      - api_key
+    networks:
+      app-net:
+        aliases:
+          - hypercode-core.internal
+      data-net:
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+      - /run
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+  # ──────────────────────────────────────────────────────────────────────────────
+  # DATABASE & CACHE — PRODUCTION HARDENED
+  # ──────────────────────────────────────────────────────────────────────────────
+
+  postgres:
+    environment:
+      - PGSSLMODE=require
+      - PGSSLCERT=/run/secrets/pg_cert
+      - PGSSLKEY=/run/secrets/pg_key
+      - PGSSLROOTCERT=/run/secrets/ca_cert
+    secrets:
+      - pg_cert
+      - pg_key
+      - ca_cert
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /run
+    cap_drop:
+      - ALL
+
+  redis:
+    command:
+      - redis-server
+      - "--tls-port"
+      - "6379"
+      - "--port"
+      - "0"
+      - "--tls-cert-file"
+      - "/run/secrets/redis_cert"
+      - "--tls-key-file"
+      - "/run/secrets/redis_key"
+      - "--tls-ca-cert-file"
+      - "/run/secrets/ca_cert"
+    secrets:
+      - redis_cert
+      - redis_key
+      - ca_cert
+    security_opt:
+      - no-new-privileges:true
+    read_only_root_filesystem: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+
+secrets:
+  tls_cert:
+    external: true
+  tls_key:
+    external: true
+  ca_cert:
+    external: true
+  pg_cert:
+    external: true
+  pg_key:
+    external: true
+  redis_cert:
+    external: true
+  redis_key:
+    external: true
+  database_url:
+    external: true
+  api_key:
+    external: true
+  github_token:
+    external: true
+
+networks:
+  app-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br_app
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+  data-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br_data
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+  obs-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br_obs
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+  agent-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br_agents
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16
+  agents-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br_agents2
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16

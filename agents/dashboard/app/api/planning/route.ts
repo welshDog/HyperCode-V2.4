@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { serviceAuthHeader } from '@/lib/server-auth'
 
 const CORE_URL = process.env.HYPERCODE_CORE_URL ?? 'http://hypercode-core:8000'
 
 /** POST /api/planning — proxy to core planning/generate */
 export async function POST(req: NextRequest) {
   try {
-    const token = req.headers.get('authorization') ?? ''
+    const token = req.headers.get('authorization') || serviceAuthHeader()
     const body = await req.json()
     const res = await fetch(`${CORE_URL}/api/v1/planning/generate`, {
       method: 'POST',

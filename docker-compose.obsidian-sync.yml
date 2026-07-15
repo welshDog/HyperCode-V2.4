@@ -1,0 +1,84 @@
+services:
+  obsidian-sync:
+    image: alpine:3.20
+    container_name: obsidian-sync
+    # Manual one-shot (used via `docker compose ... run --rm obsidian-sync`).
+    # Profiled so it does NOT auto-start when this file is included in the
+    # main stack; `run` ignores profiles, so manual invocation still works.
+    profiles: ["vault-sync"]
+    working_dir: /workspace/sync-env
+    entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
+    environment:
+      TZ: Europe/London
+      WORKSPACE_DIR: /workspace/sync-env
+      RESULTS_DIR: /results
+      HANDOVER_DIR: /handovers
+      VAULT_REPO: ${VAULT_REPO:-git@github.com:welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne.git}
+      DEFAULT_BRANCH: ${DEFAULT_BRANCH:-main}
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-BROski Bot}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-broski-bot@hyperfocus.zone}
+      GIT_COMMITTER_NAME: ${GIT_COMMITTER_NAME:-BROski Bot}
+      GIT_COMMITTER_EMAIL: ${GIT_COMMITTER_EMAIL:-broski-bot@hyperfocus.zone}
+      SYNC_MODE: ${SYNC_MODE:-manual}
+      SESSION_NOTE_PREFIX: ${SESSION_NOTE_PREFIX:-HYPERAGENT_LOOP}
+      SKILL_CATEGORY: ${SKILL_CATEGORY:-agents}
+      SKILL_FILE_BASENAME: ${SKILL_FILE_BASENAME:-HYPERAGENTLOOPSYNC}
+      SKILL_VERSION: ${SKILL_VERSION:-1}
+      DRY_RUN: ${DRY_RUN:-false}
+    volumes:
+      # Scripts — entrypoint needs this
+      - ./scripts:/workspace/scripts:ro
+      # SSH keys from host — read-only, script copies to writable /root/.ssh
+      - ~/.ssh:/root/.ssh-host:ro
+      # Results + handovers — writable so placeholders can be created
+      - ./results:/results
+      - ./rewrites:/handovers
+      # Ephemeral workspace
+      - obsidian-sync-workspace:/workspace/sync-env
+    restart: "no"
+    # No network needed — one-shot stateless sync. BROski♾️
+
+  # ── Auto-trigger watcher ─────────────────────────────────────────────────
+  # Long-running sidecar: watches the shared ./results dir and runs the sync
+  # on change. Decouples the loop from the orchestrator (which has no docker
+  # CLI/socket) — the orchestrator just writes results, this reacts + pushes.
+  # Start with:  docker compose -f docker-compose.obsidian-sync.yml up -d obsidian-watcher
+  obsidian-watcher:
+    image: alpine:3.20
+    container_name: obsidian-watcher
+    # Auto-starts with the crew (same profile as crew-orchestrator) so the
+    # vault-sync loop is autonomous whenever the agent stack is up.
+    profiles: ["agents"]
+    working_dir: /workspace/sync-env
+    entrypoint: ["/bin/sh", "/workspace/scripts/obsidian-sync.sh"]
+    environment:
+      TZ: Europe/London
+      WATCH_MODE: "true"
+      WATCH_INTERVAL: ${WATCH_INTERVAL:-15}
+      WORKSPACE_DIR: /workspace/sync-env
+      RESULTS_DIR: /results
+      HANDOVER_DIR: /handovers
+      VAULT_REPO: ${VAULT_REPO:-git@github.com:welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne.git}
+      DEFAULT_BRANCH: ${DEFAULT_BRANCH:-main}
+      GIT_AUTHOR_NAME: ${GIT_AUTHOR_NAME:-BROski Bot}
+      GIT_AUTHOR_EMAIL: ${GIT_AUTHOR_EMAIL:-broski-bot@hyperfocus.zone}
+      GIT_COMMITTER_NAME: ${GIT_COMMITTER_NAME:-BROski Bot}
+      GIT_COMMITTER_EMAIL: ${GIT_COMMITTER_EMAIL:-broski-bot@hyperfocus.zone}
+      SESSION_NOTE_PREFIX: ${SESSION_NOTE_PREFIX:-HYPERAGENT_LOOP}
+      SKILL_CATEGORY: ${SKILL_CATEGORY:-agents}
+      SKILL_FILE_BASENAME: ${SKILL_FILE_BASENAME:-HYPERAGENTLOOPSYNC}
+      SKILL_VERSION: ${SKILL_VERSION:-1}
+      DRY_RUN: ${DRY_RUN:-false}
+    volumes:
+      - ./scripts:/workspace/scripts:ro
+      - ~/.ssh:/root/.ssh-host:ro
+      - ./results:/results
+      - ./rewrites:/handovers
+      - obsidian-watch-workspace:/workspace/sync-env
+    restart: unless-stopped
+
+volumes:
+  obsidian-sync-workspace:
+    driver: local
+  obsidian-watch-workspace:
+    driver: local

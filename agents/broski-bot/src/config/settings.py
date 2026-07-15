@@ -14,7 +14,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Runs at import time, before Pydantic reads the environment.
 _SECRET_FILE_VARS = (
     "DISCORD_TOKEN",
-    "PERPLEXITY_API_KEY",
     "OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "SENTRY_DSN",
