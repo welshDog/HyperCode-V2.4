@@ -66,5 +66,5 @@ The added `default=` is a Python-side value generator: SQLAlchemy computes it an
 - Branch: create off `origin/main` (confirm exact name in the implementation plan).
 - Commit prefixes: `fix:` / `test:` / `docs:` only for this work.
 - Python: absolute imports, 4-space indent (repo convention).
-- Zero behavior change for Postgres/production — every change here is additive (`.with_variant()`, an extra `default=` alongside the existing `server_default`).
+- No output/format change for Postgres/production — `.with_variant()` leaves Postgres DDL byte-for-byte identical. The `GovernanceLedger.id` fix's extra client-side `default=` does move UUID generation from Postgres's `gen_random_uuid()` to Python's `uuid.uuid4()` for ORM inserts (both produce a valid random UUIDv4 string; `server_default` stays in the DDL for raw-SQL inserts) — see plan doc for the full note, accepted as intentional.
 - Run backend tests from the repo root with `PYTHONUTF8=1 python -m pytest backend/tests/<file> -v` (Windows dev-environment note, not a code change).
