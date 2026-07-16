@@ -1,0 +1,181 @@
+- generic [active] [ref=f24e1]:
+  - link "Skip to content" [ref=f24e2] [cursor=pointer]:
+    - /url: "#start-of-content"
+  - banner [ref=f24e5]:
+    - generic [ref=f24e6]:
+      - generic [ref=f24e7]:
+        - link "GitHub Support" [ref=f24e9] [cursor=pointer]:
+          - /url: /
+        - generic [ref=f24e17]:
+          - button "Open the enterprise essentials menu" [ref=f24e18] [cursor=pointer]:
+            - generic [ref=f24e19]: Enterprise essentials
+          - button "Open the product area menu" [ref=f24e21] [cursor=pointer]:
+            - generic [ref=f24e22]: Product area
+      - generic [ref=f24e24]:
+        - combobox "Search or ask Copilot" [ref=f24e29]
+        - link "Copilot in GitHub Support" [ref=f24e39] [cursor=pointer]:
+          - /url: /copilot
+        - link "My Tickets" [ref=f24e44] [cursor=pointer]:
+          - /url: /tickets/personal/0
+        - button "Open user account menu" [ref=f24e46] [cursor=pointer]:
+          - img "Your avatar image" [ref=f24e49]
+  - main [ref=f24e53]:
+    - generic [ref=f24e54]:
+      - generic [ref=f24e55]:
+        - link "Return to Tickets" [ref=f24e56] [cursor=pointer]:
+          - /url: /tickets/personal/0
+        - button "Refresh" [ref=f24e57] [cursor=pointer]
+      - 'heading "Account locked due to billing issue — Actions blocked on public repos (Billing and payments) #4575262" [level=1] [ref=f24e58]'
+      - generic [ref=f24e59]:
+        - generic [ref=f24e60]: Open
+        - generic [ref=f24e65]:
+          - text: Mr Lyndon Williams opened this ticket for
+          - strong [ref=f24e66]: welshDog
+          - text: Jul 16, 20268 minutes ago · 2 comments
+    - generic [ref=f24e69]:
+      - generic [ref=f24e70]:
+        - img "User avatar" [ref=f24e73]
+        - generic [ref=f24e75]:
+          - generic [ref=f24e76]:
+            - text: "To:"
+            - generic [ref=f24e77]: Mr Lyndon Williams
+            - generic [ref=f24e78]: GitHub Support
+          - generic [ref=f24e81]:
+            - generic [ref=f24e82]:
+              - generic [ref=f24e83]:
+                - tablist [ref=f24e84]:
+                  - tab "Write" [selected] [ref=f24e85] [cursor=pointer]
+                  - tab "Preview" [ref=f24e86] [cursor=pointer]
+                - toolbar "Composition" [ref=f24e87]:
+                  - generic [ref=f24e88]:
+                    - button "Add header text" [ref=f24e89] [cursor=pointer]
+                    - button "Add bold text <ctrl+b>" [ref=f24e92] [cursor=pointer]
+                    - button "Add italic text <ctrl+i>" [ref=f24e95] [cursor=pointer]
+                  - generic [ref=f24e98]:
+                    - button "Insert a quote" [ref=f24e99] [cursor=pointer]
+                    - button "Insert code" [ref=f24e102] [cursor=pointer]
+                    - button "Add a link" [ref=f24e105] [cursor=pointer]
+                  - generic [ref=f24e108]:
+                    - button "Add a bulleted list" [ref=f24e109] [cursor=pointer]
+                    - button "Add a numbered list" [ref=f24e112] [cursor=pointer]
+              - textbox "Add comment" [ref=f24e117]:
+                - /placeholder: Add a comment
+              - generic [ref=f24e118]:
+                - generic [ref=f24e120]:
+                  - button "Paste, drop, or click to add files" [ref=f24e121] [cursor=pointer]
+                  - generic [ref=f24e123]: Paste, drop, or click to add files
+                - alert [ref=f24e124]
+                - link "Styling with Markdown is supported, learn more here" [ref=f24e125] [cursor=pointer]:
+                  - /url: https://guides.github.com/features/mastering-markdown/
+              - separator [ref=f24e126]
+            - generic [ref=f24e127]:
+              - button "Close ticket" [ref=f24e128] [cursor=pointer]
+              - button "Comment" [disabled] [ref=f24e132]
+      - generic [ref=f24e134]:
+        - img "Mr Lyndon Williams" [ref=f24e137]
+        - generic [ref=f24e139]:
+          - heading "Mr Lyndon Williams commented Jul 16, 2026now" [level=3] [ref=f24e141]:
+            - strong [ref=f24e143]:
+              - generic [ref=f24e144]: Mr Lyndon Williams
+            - text: commented
+            - link "Jul 16, 2026now" [ref=f24e145] [cursor=pointer]:
+              - /url: "#tc-51398486288532"
+          - generic [ref=f24e147]:
+            - paragraph [ref=f24e148]: "Update with specifics after reviewing my billing pages:"
+            - list [ref=f24e149]:
+              - listitem [ref=f24e150]:
+                - text: The account is already fully on
+                - strong [ref=f24e151]: GitHub Free
+                - text: and
+                - strong [ref=f24e152]: Copilot Free
+                - text: "($0.00/month each) — there is nothing paid to downgrade, and the billing overview shows \"Next payment due: –\" (nothing currently owed on the ongoing plan)."
+              - listitem [ref=f24e153]:
+                - text: The lock traces to one unpaid invoice of
+                - strong [ref=f24e154]: $23.12
+                - text: "from September 2025: my Visa ending 0379 was declined on three retry attempts — 2025-08-26 (ID 1XLLEMNX), 2025-09-02 (ID 1QXKZ09N), and 2025-09-09 (ID 0OITCW98) — and the account has been locked since. That card is no longer usable and I don't currently have funds or a replacement card to settle it."
+              - listitem [ref=f24e155]: Current metered usage this month is $1.03 gross, fully covered by included free-tier discounts.
+            - paragraph [ref=f24e156]: Given the account is now entirely on Free plans and the only blocker is this single stale $23.12 balance from last year, could you please consider waiving or resetting it so free Actions on my public repositories can resume? Thank you!
+      - generic [ref=f24e158]:
+        - img "Mr Lyndon Williams" [ref=f24e161]
+        - generic [ref=f24e163]:
+          - heading "Mr Lyndon Williams commented Jul 16, 20268 minutes ago" [level=3] [ref=f24e165]:
+            - strong [ref=f24e167]:
+              - generic [ref=f24e168]: Mr Lyndon Williams
+            - text: commented
+            - link "Jul 16, 20268 minutes ago" [ref=f24e169] [cursor=pointer]:
+              - /url: "#tc-51398314592660"
+          - generic [ref=f24e171]:
+            - heading "Briefly describe your billing or payment issue." [level=4] [ref=f24e172]:
+              - link:
+                - /url: "#briefly-describe-your-billing-or-payment-issue"
+              - text: Briefly describe your billing or payment issue.
+            - paragraph [ref=f24e173]: "Hi — my personal account @welshDog is currently locked due to a billing issue. Every GitHub Actions job across my repositories fails instantly with:"
+            - blockquote [ref=f24e174]:
+              - paragraph [ref=f24e175]: "\"The job was not started because your account is locked due to a billing issue.\""
+            - paragraph [ref=f24e176]:
+              - text: The affected repositories are
+              - strong [ref=f24e177]: public
+              - text: (e.g.
+              - code [ref=f24e178]: welshDog/HyperCode-V2.4
+              - text: ), where Actions minutes should be free, so I believe the lock stems from an outstanding balance elsewhere on the account rather than Actions usage itself. I'm an individual open-source developer and I'm currently unable to pay an outstanding balance.
+            - paragraph [ref=f24e179]: "Could you please help me with:"
+            - list [ref=f24e180]:
+              - listitem [ref=f24e181]: What the outstanding balance is and which product/charge created it;
+              - listitem [ref=f24e182]: Whether it can be waived or reset given the account is used for public open-source work;
+              - listitem [ref=f24e183]: Downgrading anything paid on the account to the Free plan so this can't recur.
+            - paragraph [ref=f24e184]: I'm not asking for any paid features — just to restore free Actions on public repositories. Thanks very much for your time.
+            - heading "What is the name of the account, organization, or enterprise that you need help with?" [level=4] [ref=f24e185]:
+              - link:
+                - /url: "#what-is-the-name-of-the-account-organization-or-enterprise-that-you-need-help-with"
+              - text: What is the name of the account, organization, or enterprise that you need help with?
+            - paragraph [ref=f24e186]: "@welshDog"
+            - heading "What are you having trouble with?" [level=4] [ref=f24e187]:
+              - link:
+                - /url: "#what-are-you-having-trouble-with"
+              - text: What are you having trouble with?
+            - paragraph [ref=f24e188]: Making payment
+            - heading "Can you specify the product to which your billing or payment issue relates?" [level=4] [ref=f24e189]:
+              - link:
+                - /url: "#can-you-specify-the-product-to-which-your-billing-or-payment-issue-relates"
+              - text: Can you specify the product to which your billing or payment issue relates?
+            - paragraph [ref=f24e190]: I am not sure
+            - heading "Have you updated your payment information or card details recently?" [level=4] [ref=f24e191]:
+              - link:
+                - /url: "#have-you-updated-your-payment-information-or-card-details-recently"
+              - text: Have you updated your payment information or card details recently?
+            - paragraph [ref=f24e192]: "No"
+  - contentinfo [ref=f24e194]:
+    - contentinfo [ref=f24e197]:
+      - generic [ref=f24e199]:
+        - generic [ref=f24e200]:
+          - paragraph [ref=f24e201]: © 2026 GitHub, Inc.
+          - link "Terms" [ref=f24e202] [cursor=pointer]:
+            - /url: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+          - link "Privacy" [ref=f24e203] [cursor=pointer]:
+            - /url: https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement
+          - link "Contacting Support" [ref=f24e204] [cursor=pointer]:
+            - /url: https://docs.github.com/en/support/contacting-github-support
+          - link "Manage cookies" [ref=f24e205] [cursor=pointer]:
+            - /url: "#"
+        - generic [ref=f24e206]:
+          - link [ref=f24e207] [cursor=pointer]:
+            - /url: https://x.com/github
+            - img "X" [ref=f24e208]
+          - link [ref=f24e209] [cursor=pointer]:
+            - /url: https://www.facebook.com/GitHub
+            - img "Facebook" [ref=f24e210]
+          - link [ref=f24e211] [cursor=pointer]:
+            - /url: https://www.linkedin.com/company/github
+            - img "LinkedIn" [ref=f24e212]
+          - link [ref=f24e213] [cursor=pointer]:
+            - /url: https://youtube.com/github
+            - img "YouTube" [ref=f24e214]
+          - link [ref=f24e215] [cursor=pointer]:
+            - /url: https://www.twitch.tv/github
+            - img "Twitch" [ref=f24e216]
+          - link [ref=f24e217] [cursor=pointer]:
+            - /url: https://www.tiktok.com/@github
+            - img "TikTok" [ref=f24e218]
+          - link [ref=f24e219] [cursor=pointer]:
+            - /url: https://github.com/
+            - img "Github" [ref=f24e220]

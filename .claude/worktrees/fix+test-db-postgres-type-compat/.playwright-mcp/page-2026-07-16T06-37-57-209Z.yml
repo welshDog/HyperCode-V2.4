@@ -1,0 +1,477 @@
+- generic [ref=f21e2]:
+  - generic [ref=f21e3]:
+    - link "Skip to content" [ref=f21e4] [cursor=pointer]:
+      - /url: "#start-of-content"
+    - banner "Global navigation menu" [ref=f21e8]:
+      - generic [ref=f21e9]:
+        - generic [ref=f21e10]:
+          - button "Open menu" [ref=f21e12] [cursor=pointer]
+          - link "Homepage (g then d)" [ref=f21e15] [cursor=pointer]:
+            - /url: /
+        - generic [ref=f21e19]:
+          - button "Search or jump to…" [ref=f21e21] [cursor=pointer]:
+            - generic [ref=f21e23]:
+              - generic:
+                - text: Type
+                - generic: /
+                - text: to search
+          - button "Command palette" [ref=f21e25] [cursor=pointer]
+        - generic [ref=f21e28]:
+          - generic [ref=f21e29]:
+            - generic [ref=f21e32]:
+              - link "Chat with Copilot" [ref=f21e34] [cursor=pointer]:
+                - /url: /copilot
+              - button "Open Copilot…" [ref=f21e39] [cursor=pointer]
+            - button "Create new..." [ref=f21e41] [cursor=pointer]
+            - generic [ref=f21e43]:
+              - link "All issues (g then i)" [ref=f21e44] [cursor=pointer]:
+                - /url: /issues
+              - link "All pull requests (g then p)" [ref=f21e48] [cursor=pointer]:
+                - /url: /pulls
+              - link "All repositories" [ref=f21e51] [cursor=pointer]:
+                - /url: /repos
+          - link "You have unread notifications (g then n)" [ref=f21e54] [cursor=pointer]:
+            - /url: /notifications
+          - button "Open user navigation menu" [ref=f21e58] [cursor=pointer]:
+            - img "Mr Lyndon Williams" [ref=f21e59]
+  - main [ref=f21e62]:
+    - generic [ref=f21e63]:
+      - generic [ref=f21e64]:
+        - generic [ref=f21e65]:
+          - img "@welshDog" [ref=f21e66]
+          - generic [ref=f21e67]:
+            - heading "Mr Lyndon Williams (welshDog) settings" [level=1] [ref=f21e68]:
+              - link "Mr Lyndon Williams (welshDog)" [ref=f21e69] [cursor=pointer]:
+                - /url: /welshDog
+              - generic [ref=f21e70]: settings
+            - paragraph [ref=f21e72]: Your personal account
+        - link "Go to your personal profile" [ref=f21e74] [cursor=pointer]:
+          - /url: /welshDog
+      - generic [ref=f21e75]:
+        - navigation "User settings" [ref=f21e79]:
+          - list [ref=f21e81]:
+            - listitem [ref=f21e82]:
+              - link "Public profile" [ref=f21e83] [cursor=pointer]:
+                - /url: /settings/profile
+            - listitem [ref=f21e85]:
+              - link "Account" [ref=f21e86] [cursor=pointer]:
+                - /url: /settings/admin
+            - listitem [ref=f21e88]:
+              - link "Appearance" [ref=f21e89] [cursor=pointer]:
+                - /url: /settings/appearance
+            - listitem [ref=f21e91]:
+              - link "Accessibility" [ref=f21e92] [cursor=pointer]:
+                - /url: /settings/accessibility
+            - listitem [ref=f21e94]:
+              - link "Notifications" [ref=f21e95] [cursor=pointer]:
+                - /url: /settings/notifications
+            - listitem [ref=f21e97]
+            - listitem [ref=f21e98]:
+              - generic [ref=f21e101]:
+                - heading "Access" [level=2] [ref=f21e103]
+                - list "Access" [ref=f21e104]:
+                  - listitem [ref=f21e105]:
+                    - button "Billing and licensing" [expanded] [active] [ref=f21e106] [cursor=pointer]
+                    - list "Billing and licensing" [ref=f21e108]:
+                      - listitem [ref=f21e109]:
+                        - link "Overview" [ref=f21e110] [cursor=pointer]:
+                          - /url: https://github.com/settings/billing
+                      - listitem [ref=f21e112]:
+                        - link "Usage" [ref=f21e113] [cursor=pointer]:
+                          - /url: https://github.com/settings/billing/usage
+                      - listitem [ref=f21e115]:
+                        - link "AI usage" [ref=f21e116] [cursor=pointer]:
+                          - /url: /settings/billing/ai_usage
+                      - listitem [ref=f21e118]:
+                        - link "Budgets and alerts" [ref=f21e119] [cursor=pointer]:
+                          - /url: https://github.com/settings/billing/budgets
+                      - listitem [ref=f21e121]:
+                        - link "Licensing" [ref=f21e122] [cursor=pointer]:
+                          - /url: /settings/billing/licensing
+                      - listitem [ref=f21e124]:
+                        - link "Payment information" [ref=f21e125] [cursor=pointer]:
+                          - /url: /settings/billing/payment_information
+                      - listitem [ref=f21e127]:
+                        - link "Payment history" [ref=f21e128] [cursor=pointer]:
+                          - /url: https://github.com/account/billing/history
+                      - listitem [ref=f21e130]:
+                        - link "Additional billing details" [ref=f21e131] [cursor=pointer]:
+                          - /url: /settings/billing/subscriptions
+                      - listitem [ref=f21e133]:
+                        - link "Education benefits" [ref=f21e134] [cursor=pointer]:
+                          - /url: /settings/education/benefits
+                  - listitem [ref=f21e136]:
+                    - link "Emails" [ref=f21e137] [cursor=pointer]:
+                      - /url: /settings/emails
+                  - listitem [ref=f21e139]:
+                    - link "Password and authentication" [ref=f21e140] [cursor=pointer]:
+                      - /url: /settings/security
+                  - listitem [ref=f21e142]:
+                    - link "Sessions" [ref=f21e143] [cursor=pointer]:
+                      - /url: /settings/sessions
+                  - listitem [ref=f21e145]:
+                    - link "SSH and GPG keys" [ref=f21e146] [cursor=pointer]:
+                      - /url: /settings/keys
+                  - listitem [ref=f21e148]:
+                    - link "Credentials" [ref=f21e149] [cursor=pointer]:
+                      - /url: /settings/credentials
+                  - listitem [ref=f21e151]:
+                    - link "Organizations" [ref=f21e152] [cursor=pointer]:
+                      - /url: /settings/organizations
+                  - listitem [ref=f21e154]:
+                    - link "Enterprises" [ref=f21e155] [cursor=pointer]:
+                      - /url: /settings/enterprises
+                  - listitem [ref=f21e157]:
+                    - button "Moderation" [ref=f21e158] [cursor=pointer]
+            - listitem [ref=f21e160]
+            - listitem [ref=f21e161]:
+              - generic [ref=f21e164]:
+                - heading "Code, planning, and automation" [level=2] [ref=f21e166]
+                - list "Code, planning, and automation" [ref=f21e167]:
+                  - listitem [ref=f21e168]:
+                    - link "Repositories" [ref=f21e169] [cursor=pointer]:
+                      - /url: /settings/repositories
+                  - listitem [ref=f21e171]:
+                    - link "Codespaces" [ref=f21e172] [cursor=pointer]:
+                      - /url: /settings/codespaces
+                  - listitem [ref=f21e174]:
+                    - link "Models Preview feature" [ref=f21e175] [cursor=pointer]:
+                      - /url: /settings/models
+                      - generic [ref=f21e176]: Models
+                      - generic:
+                        - generic "Preview feature": Preview
+                  - listitem [ref=f21e177]:
+                    - link "Packages" [ref=f21e178] [cursor=pointer]:
+                      - /url: /settings/packages
+                  - listitem [ref=f21e180]:
+                    - button "Copilot" [ref=f21e181] [cursor=pointer]
+                  - listitem [ref=f21e183]:
+                    - link "Pages" [ref=f21e184] [cursor=pointer]:
+                      - /url: /settings/pages
+                  - listitem [ref=f21e186]:
+                    - link "Saved replies" [ref=f21e187] [cursor=pointer]:
+                      - /url: /settings/replies
+            - listitem [ref=f21e189]
+            - listitem [ref=f21e190]:
+              - generic [ref=f21e193]:
+                - heading "Security" [level=2] [ref=f21e195]
+                - list "Security" [ref=f21e196]:
+                  - listitem [ref=f21e197]:
+                    - link "Code security" [ref=f21e198] [cursor=pointer]:
+                      - /url: /settings/security_analysis
+            - listitem [ref=f21e200]
+            - listitem [ref=f21e201]:
+              - generic [ref=f21e204]:
+                - heading "Integrations" [level=3] [ref=f21e206]
+                - list "Integrations" [ref=f21e207]:
+                  - listitem [ref=f21e208]:
+                    - link "Applications" [ref=f21e209] [cursor=pointer]:
+                      - /url: /settings/installations
+                  - listitem [ref=f21e211]:
+                    - link "Scheduled reminders" [ref=f21e212] [cursor=pointer]:
+                      - /url: /settings/reminders
+            - listitem [ref=f21e214]
+            - listitem [ref=f21e215]:
+              - generic [ref=f21e218]:
+                - heading "Archives" [level=2] [ref=f21e220]
+                - list "Archives" [ref=f21e221]:
+                  - listitem [ref=f21e222]:
+                    - link "Security log" [ref=f21e223] [cursor=pointer]:
+                      - /url: /settings/security-log
+                  - listitem [ref=f21e225]:
+                    - link "Sponsorship log" [ref=f21e226] [cursor=pointer]:
+                      - /url: /settings/sponsors-log
+            - listitem [ref=f21e228]
+            - listitem [ref=f21e229]:
+              - link "Developer settings" [ref=f21e230] [cursor=pointer]:
+                - /url: /settings/apps
+        - generic [ref=f21e235]:
+          - heading "Payment history" [level=2] [ref=f21e237]
+          - generic [ref=f21e240]:
+            - generic [ref=f21e242]:
+              - generic [ref=f21e243]: Date
+              - generic [ref=f21e244]: ID
+              - generic [ref=f21e245]: Payment Method
+              - generic [ref=f21e246]: Amount
+              - generic [ref=f21e247]: Status
+              - generic [ref=f21e248]: Receipt
+              - generic [ref=f21e249]: Invoice
+            - list "Date ID Payment Method Amount Status Receipt Invoice" [ref=f21e250]:
+              - listitem [ref=f21e251]:
+                - generic [ref=f21e252]:
+                  - time [ref=f21e254]: 2025-09-09
+                  - code [ref=f21e256]: 0OITCW98
+                  - generic [ref=f21e257]: Visa ending in 0379
+                  - generic [ref=f21e261]: $23.12
+                  - generic "Declined" [ref=f21e263]
+                  - generic [ref=f21e264]: "-"
+                  - link "Download invoice(s)" [ref=f21e270] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e274]:
+                - generic [ref=f21e275]:
+                  - time [ref=f21e277]: 2025-09-02
+                  - code [ref=f21e279]: 1QXKZ09N
+                  - generic [ref=f21e280]: Visa ending in 0379
+                  - generic [ref=f21e284]: $23.12
+                  - generic "Declined" [ref=f21e286]
+                  - generic [ref=f21e287]: "-"
+                  - link "Download invoice(s)" [ref=f21e293] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e297]:
+                - generic [ref=f21e298]:
+                  - time [ref=f21e300]: 2025-08-26
+                  - code [ref=f21e302]: 1XLLEMNX
+                  - generic [ref=f21e303]: Visa ending in 0379
+                  - generic [ref=f21e307]: $23.12
+                  - generic "Declined" [ref=f21e309]
+                  - generic [ref=f21e310]: "-"
+                  - link "Download invoice(s)" [ref=f21e316] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e320]:
+                - generic [ref=f21e321]:
+                  - time [ref=f21e323]: 2025-07-27
+                  - code [ref=f21e325]: 1F8EWVIZ
+                  - generic [ref=f21e326]: Visa ending in 0379
+                  - generic [ref=f21e330]: $9.68
+                  - generic "Approved" [ref=f21e332]: Success
+                  - generic [ref=f21e333]:
+                    - link "Download receipt" [ref=f21e335] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RpStnJFr6CCHwIi1F8ewvIz
+                    - link "View receipt" [ref=f21e340] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RpStnJFr6CCHwIi1F8ewvIz.pdf
+                  - link "Download invoice(s)" [ref=f21e347] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e351]:
+                - generic [ref=f21e352]:
+                  - time [ref=f21e354]: 2025-07-26
+                  - code [ref=f21e356]: 0NCYNIQW
+                  - generic [ref=f21e357]: Visa ending in 0379
+                  - generic [ref=f21e361]: $43.00
+                  - generic "Declined" [ref=f21e363]
+                  - generic [ref=f21e364]: "-"
+                  - link "Download invoice(s)" [ref=f21e370] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e374]:
+                - generic [ref=f21e375]:
+                  - time [ref=f21e377]: 2025-07-19
+                  - code [ref=f21e379]: 0YUVUZOM
+                  - generic [ref=f21e380]: Visa ending in 0379
+                  - generic [ref=f21e384]: $43.00
+                  - generic "Declined" [ref=f21e386]
+                  - generic [ref=f21e387]: "-"
+                  - link "Download invoice(s)" [ref=f21e393] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e397]:
+                - generic [ref=f21e398]:
+                  - time [ref=f21e400]: 2025-07-12
+                  - code [ref=f21e402]: 0P7E9QRV
+                  - generic [ref=f21e403]: Visa ending in 0379
+                  - generic [ref=f21e407]: $43.00
+                  - generic "Declined" [ref=f21e409]
+                  - generic [ref=f21e410]: "-"
+                  - link "Download invoice(s)" [ref=f21e416] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e420]:
+                - generic [ref=f21e421]:
+                  - time [ref=f21e423]: 2025-06-23
+                  - code [ref=f21e425]: 1LTBXO6A
+                  - generic [ref=f21e426]: Visa ending in 0379
+                  - generic [ref=f21e430]: $18.37
+                  - generic "Approved" [ref=f21e432]: Success
+                  - generic [ref=f21e433]:
+                    - link "Download receipt" [ref=f21e435] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3Rd5LxJFr6CCHwIi1LTbXo6A
+                    - link "View receipt" [ref=f21e440] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3Rd5LxJFr6CCHwIi1LTbXo6A.pdf
+                  - link "Download invoice(s)" [ref=f21e447] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e451]:
+                - generic [ref=f21e452]:
+                  - time [ref=f21e454]: 2025-06-21
+                  - code [ref=f21e456]: 1N8JUJXY
+                  - generic [ref=f21e457]: Visa ending in 0379
+                  - generic [ref=f21e461]: $14.00
+                  - generic "Approved" [ref=f21e463]: Success
+                  - generic [ref=f21e464]:
+                    - link "Download receipt" [ref=f21e466] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RcZiDJFr6CCHwIi1n8juJxy
+                    - link "View receipt" [ref=f21e471] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RcZiDJFr6CCHwIi1n8juJxy.pdf
+                  - link "Download invoice(s)" [ref=f21e478] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e482]:
+                - generic [ref=f21e483]:
+                  - time [ref=f21e485]: 2025-06-19
+                  - code [ref=f21e487]: 0WGGGY8T
+                  - generic [ref=f21e488]: Visa ending in 0379
+                  - generic [ref=f21e492]: $14.00
+                  - generic "Declined" [ref=f21e494]
+                  - generic [ref=f21e495]: "-"
+                  - link "Download invoice(s)" [ref=f21e501] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e505]:
+                - generic [ref=f21e506]:
+                  - time [ref=f21e508]: 2025-06-12
+                  - code [ref=f21e510]: 0JCGV4LX
+                  - generic [ref=f21e511]: Visa ending in 0379
+                  - generic [ref=f21e515]: $14.00
+                  - generic "Declined" [ref=f21e517]
+                  - generic [ref=f21e518]: "-"
+                  - link "Download invoice(s)" [ref=f21e524] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e528]:
+                - generic [ref=f21e529]:
+                  - time [ref=f21e531]: 2025-06-06
+                  - code [ref=f21e533]: 1L4LK7DF
+                  - generic [ref=f21e534]: Visa ending in 0379
+                  - generic [ref=f21e538]: $0.77
+                  - generic "Approved" [ref=f21e540]: Success
+                  - generic [ref=f21e541]:
+                    - link "Download receipt" [ref=f21e543] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RWugGJFr6CCHwIi1L4LK7df
+                    - link "View receipt" [ref=f21e548] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RWugGJFr6CCHwIi1L4LK7df.pdf
+                  - link "Download invoice(s)" [ref=f21e555] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e559]:
+                - generic [ref=f21e560]:
+                  - time [ref=f21e562]: 2025-05-19
+                  - code [ref=f21e564]: 00CBQTNP
+                  - generic [ref=f21e565]: Visa ending in 0379
+                  - generic [ref=f21e569]: $10.00
+                  - generic "Approved" [ref=f21e571]: Success
+                  - generic [ref=f21e572]:
+                    - link "Download receipt" [ref=f21e574] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RQXpAJFr6CCHwIi00CbQTNP
+                    - link "View receipt" [ref=f21e579] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RQXpAJFr6CCHwIi00CbQTNP.pdf
+                  - link "Download invoice(s)" [ref=f21e586] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e590]:
+                - generic [ref=f21e591]:
+                  - time [ref=f21e593]: 2025-05-12
+                  - code [ref=f21e595]: 1NVHCYNV
+                  - generic [ref=f21e596]: Visa ending in 0379
+                  - generic [ref=f21e600]: $10.00
+                  - generic "Declined" [ref=f21e602]
+                  - generic [ref=f21e603]: "-"
+                  - link "Download invoice(s)" [ref=f21e609] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e613]:
+                - generic [ref=f21e614]:
+                  - time [ref=f21e616]: 2025-04-13
+                  - code [ref=f21e618]: 1WLSKQ07
+                  - generic [ref=f21e619]: Visa ending in 0379
+                  - generic [ref=f21e623]: $10.00
+                  - generic "Approved" [ref=f21e625]: Success
+                  - generic [ref=f21e626]:
+                    - link "Download receipt" [ref=f21e628] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RDDeSJFr6CCHwIi1wLSkq07
+                    - link "View receipt" [ref=f21e633] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3RDDeSJFr6CCHwIi1wLSkq07.pdf
+                  - link "Download invoice(s)" [ref=f21e640] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e644]:
+                - generic [ref=f21e645]:
+                  - time [ref=f21e647]: 2025-04-10
+                  - code [ref=f21e649]: 1Y9TYZ5Q
+                  - generic [ref=f21e650]: Visa ending in 0379
+                  - generic [ref=f21e654]: $10.00
+                  - generic "Declined" [ref=f21e656]
+                  - generic [ref=f21e657]: "-"
+                  - link "Download invoice(s)" [ref=f21e663] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e667]:
+                - generic [ref=f21e668]:
+                  - time [ref=f21e670]: 2025-04-03
+                  - code [ref=f21e672]: 0BZ9JBUZ
+                  - generic [ref=f21e673]: Visa ending in 0379
+                  - generic [ref=f21e677]: $10.00
+                  - generic "Declined" [ref=f21e679]
+                  - generic [ref=f21e680]: "-"
+                  - link "Download invoice(s)" [ref=f21e686] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e690]:
+                - generic [ref=f21e691]:
+                  - time [ref=f21e693]: 2025-03-27
+                  - code [ref=f21e695]: 1VJAHOAG
+                  - generic [ref=f21e696]: Visa ending in 0379
+                  - generic [ref=f21e700]: $10.00
+                  - generic "Declined" [ref=f21e702]
+                  - generic [ref=f21e703]: "-"
+                  - link "Download invoice(s)" [ref=f21e709] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e713]:
+                - generic [ref=f21e714]:
+                  - time [ref=f21e716]: 2025-02-27
+                  - code [ref=f21e718]: 1ROZ4EJA
+                  - generic [ref=f21e719]: Visa ending in 0379
+                  - generic [ref=f21e723]: $10.00
+                  - generic "Approved" [ref=f21e725]: Success
+                  - generic [ref=f21e726]:
+                    - link "Download receipt" [ref=f21e728] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3QxBHaJFr6CCHwIi1ROZ4eja
+                    - link "View receipt" [ref=f21e733] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3QxBHaJFr6CCHwIi1ROZ4eja.pdf
+                  - link "Download invoice(s)" [ref=f21e740] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e744]:
+                - generic [ref=f21e745]:
+                  - time [ref=f21e747]: 2025-02-12
+                  - code [ref=f21e749]: 1KNHYYLF
+                  - generic [ref=f21e750]: Visa ending in 0379
+                  - generic [ref=f21e754]: $7.10
+                  - generic "Approved" [ref=f21e756]: Success
+                  - generic [ref=f21e757]:
+                    - link "Download receipt" [ref=f21e759] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3QrkCNJFr6CCHwIi1kNHYYLf
+                    - link "View receipt" [ref=f21e764] [cursor=pointer]:
+                      - /url: /account/receipt/ch_3QrkCNJFr6CCHwIi1kNHYYLf.pdf
+                  - link "Download invoice(s)" [ref=f21e771] [cursor=pointer]:
+                    - /url: "#"
+              - listitem [ref=f21e775]:
+                - generic [ref=f21e776]:
+                  - time [ref=f21e778]: 2025-02-05
+                  - code [ref=f21e780]: 11AWVLCA
+                  - generic [ref=f21e781]: Visa ending in 0379
+                  - generic [ref=f21e785]: $7.10
+                  - generic "Declined" [ref=f21e787]
+                  - generic [ref=f21e788]: "-"
+                  - link "Download invoice(s)" [ref=f21e794] [cursor=pointer]:
+                    - /url: "#"
+          - paragraph [ref=f21e798]: Amounts shown in USD
+  - contentinfo [ref=f21e799]:
+    - heading "Footer" [level=2] [ref=f21e800]
+    - generic [ref=f21e801]:
+      - generic [ref=f21e802]:
+        - link "GitHub Homepage" [ref=f21e803] [cursor=pointer]:
+          - /url: https://github.com
+        - generic [ref=f21e806]: © 2026 GitHub, Inc.
+      - navigation "Footer" [ref=f21e807]:
+        - heading "Footer navigation" [level=3] [ref=f21e808]
+        - list "Footer navigation" [ref=f21e809]:
+          - listitem [ref=f21e810]:
+            - link "Terms" [ref=f21e811] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/github-terms/github-terms-of-service
+          - listitem [ref=f21e812]:
+            - link "Privacy" [ref=f21e813] [cursor=pointer]:
+              - /url: https://docs.github.com/site-policy/privacy-policies/github-privacy-statement
+          - listitem [ref=f21e814]:
+            - link "Security" [ref=f21e815] [cursor=pointer]:
+              - /url: https://github.com/security
+          - listitem [ref=f21e816]:
+            - link "Status" [ref=f21e817] [cursor=pointer]:
+              - /url: https://www.githubstatus.com/
+          - listitem [ref=f21e818]:
+            - link "Community" [ref=f21e819] [cursor=pointer]:
+              - /url: https://github.community/
+          - listitem [ref=f21e820]:
+            - link "Docs" [ref=f21e821] [cursor=pointer]:
+              - /url: https://docs.github.com/
+          - listitem [ref=f21e822]:
+            - link "Contact" [ref=f21e823] [cursor=pointer]:
+              - /url: https://support.github.com?tags=dotcom-footer
+          - listitem [ref=f21e824]:
+            - button "Manage cookies" [ref=f21e826] [cursor=pointer]
+          - listitem [ref=f21e827]:
+            - button "Do not share my personal information" [ref=f21e829] [cursor=pointer]

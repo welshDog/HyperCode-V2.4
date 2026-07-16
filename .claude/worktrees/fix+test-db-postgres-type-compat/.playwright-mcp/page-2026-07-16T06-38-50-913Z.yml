@@ -1,0 +1,105 @@
+- generic [active] [ref=f22e1]:
+  - link "Skip to content" [ref=f22e2] [cursor=pointer]:
+    - /url: "#start-of-content"
+  - main [ref=f22e6]:
+    - generic [ref=f22e7]:
+      - generic [ref=f22e8]:
+        - link "Return to Tickets" [ref=f22e9] [cursor=pointer]:
+          - /url: /tickets/personal/0
+        - button "Refresh" [ref=f22e10] [cursor=pointer]
+      - 'heading "Account locked due to billing issue — Actions blocked on public repos (Billing and payments) #4575262" [level=1] [ref=f22e11]'
+      - generic [ref=f22e12]:
+        - generic [ref=f22e13]: Open
+        - generic [ref=f22e18]:
+          - text: Mr Lyndon Williams opened this ticket for
+          - strong [ref=f22e19]: welshDog
+          - text: Jul 16, 20264 minutes ago · 1 comment
+    - generic [ref=f22e22]:
+      - generic [ref=f22e23]:
+        - img "User avatar" [ref=f22e26]
+        - generic [ref=f22e28]:
+          - generic [ref=f22e29]:
+            - text: "To:"
+            - generic [ref=f22e30]: Mr Lyndon Williams
+            - generic [ref=f22e31]: GitHub Support
+          - generic [ref=f22e34]:
+            - generic [ref=f22e35]:
+              - generic [ref=f22e36]:
+                - tablist [ref=f22e37]:
+                  - tab "Write" [selected] [ref=f22e38] [cursor=pointer]
+                  - tab "Preview" [ref=f22e39] [cursor=pointer]
+                - toolbar "Composition" [ref=f22e40]:
+                  - generic [ref=f22e41]:
+                    - button "Add header text" [ref=f22e42] [cursor=pointer]
+                    - button "Add bold text <ctrl+b>" [ref=f22e45] [cursor=pointer]
+                    - button "Add italic text <ctrl+i>" [ref=f22e48] [cursor=pointer]
+                  - generic [ref=f22e51]:
+                    - button "Insert a quote" [ref=f22e52] [cursor=pointer]
+                    - button "Insert code" [ref=f22e55] [cursor=pointer]
+                    - button "Add a link" [ref=f22e58] [cursor=pointer]
+                  - generic [ref=f22e61]:
+                    - button "Add a bulleted list" [ref=f22e62] [cursor=pointer]
+                    - button "Add a numbered list" [ref=f22e65] [cursor=pointer]
+              - textbox "Add comment" [ref=f22e70]:
+                - /placeholder: Add a comment
+              - generic [ref=f22e71]:
+                - generic [ref=f22e73]:
+                  - button "Paste, drop, or click to add files" [ref=f22e74] [cursor=pointer]
+                  - generic [ref=f22e76]: Paste, drop, or click to add files
+                - alert [ref=f22e77]
+                - link "Styling with Markdown is supported, learn more here" [ref=f22e78] [cursor=pointer]:
+                  - /url: https://guides.github.com/features/mastering-markdown/
+              - separator [ref=f22e79]
+            - generic [ref=f22e80]:
+              - button "Close ticket" [ref=f22e81] [cursor=pointer]
+              - button "Comment" [disabled] [ref=f22e85]
+      - generic [ref=f22e87]:
+        - img "Mr Lyndon Williams" [ref=f22e90]
+        - generic [ref=f22e92]:
+          - heading "Mr Lyndon Williams commented Jul 16, 20264 minutes ago" [level=3] [ref=f22e94]:
+            - strong [ref=f22e96]:
+              - generic [ref=f22e97]: Mr Lyndon Williams
+            - text: commented
+            - link "Jul 16, 20264 minutes ago" [ref=f22e98] [cursor=pointer]:
+              - /url: "#tc-51398314592660"
+          - generic [ref=f22e100]:
+            - heading "Briefly describe your billing or payment issue." [level=4] [ref=f22e101]:
+              - link:
+                - /url: "#briefly-describe-your-billing-or-payment-issue"
+              - text: Briefly describe your billing or payment issue.
+            - paragraph [ref=f22e102]: "Hi — my personal account @welshDog is currently locked due to a billing issue. Every GitHub Actions job across my repositories fails instantly with:"
+            - blockquote [ref=f22e103]:
+              - paragraph [ref=f22e104]: "\"The job was not started because your account is locked due to a billing issue.\""
+            - paragraph [ref=f22e105]:
+              - text: The affected repositories are
+              - strong [ref=f22e106]: public
+              - text: (e.g.
+              - code [ref=f22e107]: welshDog/HyperCode-V2.4
+              - text: ), where Actions minutes should be free, so I believe the lock stems from an outstanding balance elsewhere on the account rather than Actions usage itself. I'm an individual open-source developer and I'm currently unable to pay an outstanding balance.
+            - paragraph [ref=f22e108]: "Could you please help me with:"
+            - list [ref=f22e109]:
+              - listitem [ref=f22e110]: What the outstanding balance is and which product/charge created it;
+              - listitem [ref=f22e111]: Whether it can be waived or reset given the account is used for public open-source work;
+              - listitem [ref=f22e112]: Downgrading anything paid on the account to the Free plan so this can't recur.
+            - paragraph [ref=f22e113]: I'm not asking for any paid features — just to restore free Actions on public repositories. Thanks very much for your time.
+            - heading "What is the name of the account, organization, or enterprise that you need help with?" [level=4] [ref=f22e114]:
+              - link:
+                - /url: "#what-is-the-name-of-the-account-organization-or-enterprise-that-you-need-help-with"
+              - text: What is the name of the account, organization, or enterprise that you need help with?
+            - paragraph [ref=f22e115]: "@welshDog"
+            - heading "What are you having trouble with?" [level=4] [ref=f22e116]:
+              - link:
+                - /url: "#what-are-you-having-trouble-with"
+              - text: What are you having trouble with?
+            - paragraph [ref=f22e117]: Making payment
+            - heading "Can you specify the product to which your billing or payment issue relates?" [level=4] [ref=f22e118]:
+              - link:
+                - /url: "#can-you-specify-the-product-to-which-your-billing-or-payment-issue-relates"
+              - text: Can you specify the product to which your billing or payment issue relates?
+            - paragraph [ref=f22e119]: I am not sure
+            - heading "Have you updated your payment information or card details recently?" [level=4] [ref=f22e120]:
+              - link:
+                - /url: "#have-you-updated-your-payment-information-or-card-details-recently"
+              - text: Have you updated your payment information or card details recently?
+            - paragraph [ref=f22e121]: "No"
+  - contentinfo

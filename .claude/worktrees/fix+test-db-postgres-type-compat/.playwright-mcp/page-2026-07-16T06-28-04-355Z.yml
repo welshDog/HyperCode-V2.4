@@ -1,0 +1,79 @@
+- generic [active] [ref=f18e1]:
+  - link "Skip to content" [ref=f18e2] [cursor=pointer]:
+    - /url: "#start-of-content"
+  - generic [ref=f18e6]:
+    - banner [ref=f18e7]:
+      - banner [ref=f18e9]:
+        - generic [ref=f18e10]:
+          - generic [ref=f18e11]:
+            - link "GitHub Support" [ref=f18e13] [cursor=pointer]:
+              - /url: /
+            - generic [ref=f18e21]:
+              - button "Open the enterprise essentials menu" [ref=f18e22] [cursor=pointer]:
+                - generic [ref=f18e23]: Enterprise essentials
+              - button "Open the product area menu" [ref=f18e25] [cursor=pointer]:
+                - generic [ref=f18e26]: Product area
+          - generic [ref=f18e28]:
+            - link "Copilot in GitHub Support" [ref=f18e31] [cursor=pointer]:
+              - /url: /copilot
+            - link "My Tickets" [ref=f18e36] [cursor=pointer]:
+              - /url: /tickets/personal/0
+            - button "Open user account menu" [ref=f18e38] [cursor=pointer]:
+              - img "Your avatar image" [ref=f18e41]
+    - main [ref=f18e43]:
+      - generic [ref=f18e45]:
+        - generic [ref=f18e46]:
+          - navigation "Breadcrumbs" [ref=f18e105]:
+            - list [ref=f18e106]:
+              - listitem [ref=f18e107]:
+                - link "Select an account" [ref=f18e108] [cursor=pointer]:
+                  - /url: /contact-next
+              - listitem [ref=f18e109]:
+                - link "What do you need help with?" [ref=f18e110] [cursor=pointer]:
+                  - /url: /contact-next/product-selection
+              - listitem [ref=f18e171]:
+                - link "Billing and payments" [ref=f18e172] [cursor=pointer]:
+                  - /url: /contact-next/product-selection/billing-and-payments
+          - heading "Billing and payments" [level=1] [ref=f18e173]
+          - link [ref=f18e112] [cursor=pointer]:
+            - /url: /contact-next/product-selection
+        - generic [ref=f18e174]:
+          - heading "What do you need help with?" [level=2] [ref=f18e175]
+          - generic [ref=f18e176]:
+            - button "General billing and payments" [ref=f18e177] [cursor=pointer]
+            - button "Copilot billing and payments" [ref=f18e181] [cursor=pointer]
+    - contentinfo [ref=f18e79]:
+      - contentinfo [ref=f18e81]:
+        - generic [ref=f18e83]:
+          - generic [ref=f18e84]:
+            - paragraph [ref=f18e85]: © 2026 GitHub, Inc.
+            - link "Terms" [ref=f18e86] [cursor=pointer]:
+              - /url: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+            - link "Privacy" [ref=f18e87] [cursor=pointer]:
+              - /url: https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement
+            - link "Contacting Support" [ref=f18e88] [cursor=pointer]:
+              - /url: https://docs.github.com/en/support/contacting-github-support
+            - link "Manage cookies" [ref=f18e89] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=f18e90]:
+            - link [ref=f18e91] [cursor=pointer]:
+              - /url: https://x.com/github
+              - img "X" [ref=f18e92]
+            - link [ref=f18e93] [cursor=pointer]:
+              - /url: https://www.facebook.com/GitHub
+              - img "Facebook" [ref=f18e94]
+            - link [ref=f18e95] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/github
+              - img "LinkedIn" [ref=f18e96]
+            - link [ref=f18e97] [cursor=pointer]:
+              - /url: https://youtube.com/github
+              - img "YouTube" [ref=f18e98]
+            - link [ref=f18e99] [cursor=pointer]:
+              - /url: https://www.twitch.tv/github
+              - img "Twitch" [ref=f18e100]
+            - link [ref=f18e101] [cursor=pointer]:
+              - /url: https://www.tiktok.com/@github
+              - img "TikTok" [ref=f18e102]
+            - link [ref=f18e103] [cursor=pointer]:
+              - /url: https://github.com/
+              - img "Github" [ref=f18e104]

@@ -1,0 +1,20 @@
+- generic [active] [ref=f14e1]:
+  - link "Skip to content" [ref=f14e2] [cursor=pointer]:
+    - /url: "#start-of-content"
+  - contentinfo
+  - alert [ref=f14e5]:
+    - paragraph [ref=f14e10]:
+      - generic [ref=f14e11]: We use cookies to enhance your browsing experience, serve personalized content, and analyze site usage. By clicking "Accept", you consent to our use of cookies.
+      - generic [ref=f14e12]:
+        - link "How to manage cookie preferences" [ref=f14e13] [cursor=pointer]:
+          - /url: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-personal-account-settings/managing-your-cookie-preferences-for-githubs-enterprise-marketing-pages
+        - text: "|"
+        - link "Privacy Statement" [ref=f14e14] [cursor=pointer]:
+          - /url: https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement
+        - text: "|"
+        - link "Third-Party Cookies" [ref=f14e15] [cursor=pointer]:
+          - /url: https://docs.github.com/en/site-policy/privacy-policies/github-subprocessors-and-cookies
+    - generic [ref=f14e16]:
+      - button "Accept" [ref=f14e17] [cursor=pointer]
+      - button "Reject" [ref=f14e18] [cursor=pointer]
+      - button "Manage cookies" [ref=f14e19] [cursor=pointer]
