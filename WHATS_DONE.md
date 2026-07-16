@@ -4,6 +4,7 @@
 
 ## Done & Locked — Do NOT re-suggest
 
+- Backend test DB: JSONB/UUID columns (governance, hyperflow, identity models) made SQLite-compatible via with_variant() — full pytest suite runnable without a real Postgres instance
 - 48 Docker containers scaffolded and mapped
 - docker-ce-cli locked (NEVER docker.io)
 - Redis DB split: DB1=cache, DB2=rate limits
