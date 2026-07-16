@@ -419,7 +419,9 @@ print('OK — all tables created')
 "
 ```
 
-Expected: prints `OK — all tables created` with no traceback. (This mirrors what `conftest.py`'s `db` fixture does on every test.)
+Expected: prints `OK — all tables created` with no traceback.
+
+> ⚠️ **Correction from final whole-branch review:** this script is vacuous as written — `import app.models.models` only registers 4 of 20 tables (`users`, `projects`, `tasks`, `access_provisions`); the three fixed tables are registered only when `app.main` is imported, which is how `conftest.py` actually gets them. Do NOT copy-paste this script as a future regression check. The real whole-schema proof for this plan is Steps 2–3 below (the previously-erroring test files run through conftest's real `create_all`, which imports `app.main` and compiles all 20 tables). A future standalone regression test must use `from app.main import app` before `Base.metadata.create_all(...)`.
 
 - [ ] **Step 2: Run the full set of previously-erroring test files**
 
