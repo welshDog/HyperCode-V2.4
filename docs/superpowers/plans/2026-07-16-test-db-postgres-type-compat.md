@@ -1,0 +1,462 @@
+# Test DB Postgres-Type Compatibility Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Make three SQLAlchemy models compile against the SQLite engine `backend/tests/conftest.py` uses for tests, without changing anything about their behavior under Postgres/production.
+
+**Architecture:** Three model files (`governance.py`, `hyperflow.py`, `identity.py`) declare columns using `sqlalchemy.dialects.postgresql.JSONB` and `UUID`, which have no SQLite compiler support. `conftest.py`'s `db` fixture calls `Base.metadata.create_all(bind=engine)` before every test that needs the database — this call processes every registered table in one pass and aborts on the first one it can't compile, so the fix must land in all three files before any of the affected tests can pass. Each fix uses SQLAlchemy's `Type.with_variant(other_type, "sqlite")`, which is purely additive: Postgres keeps the exact type it already had, SQLite gets a compatible stand-in only for its own DDL compilation.
+
+**Tech Stack:** Python 3.13, SQLAlchemy 2.x (`Mapped`/`mapped_column` style), pytest, SQLite (test DB) / PostgreSQL (production DB).
+
+**Spec:** `docs/superpowers/specs/2026-07-16-test-db-postgres-type-compat-design.md`
+
+**Correction from spec:** the spec's guess at which test files were affected was wrong — `test_governance_write.py`, `test_hyperflow.py`, and `test_identity_agent.py` all use fake DB doubles and were never affected. Empirical verification found the *real* affected set is 8 files that use the real `client`/`db` fixture, all currently erroring with the same `CompileError`/`AttributeError` on `JSONB` or `UUID`:
+`test_api_endpoints.py`, `backend/tests/unit/test_discord_actions.py`, `backend/tests/unit/test_hypersplit.py`, `backend/tests/unit/test_broski_discord_balance.py`, `test_cache_response.py`, `test_events_agent_auth.py`, `backend/tests/unit/test_hypersync.py`, `backend/tests/unit/test_users_api.py` — 49 tests total (13 + 36) currently in ERROR state. This plan's verification tasks target the real list.
+
+## Global Constraints
+
+- Branch: `fix/test-db-postgres-type-compat`, created off `origin/main` (current HEAD `893e59e`).
+- Commit prefixes: `fix:` / `test:` / `docs:` only for this work.
+- Python: absolute imports, 4-space indent (repo convention, `CLAUDE.md` §4a).
+- Zero behavior change for Postgres/production: every change is additive (`.with_variant()`, an extra `default=` alongside the untouched existing `server_default`).
+- Run backend tests from the repo root with `PYTHONUTF8=1 python -m pytest backend/tests/<path> -v --no-cov` (Windows dev-environment note — `--no-cov` keeps output focused during these targeted runs; the final full-suite task omits it to match the project's normal invocation).
+- Do not modify migration files (`backend/alembic/versions/016_add_hyperflow_runs.py`, `017_add_broski_identity_agents.py`, `018_add_governance_ledger.py`) — production schema is correct as-is; only the Python-side type declarations used for SQLite DDL compilation change.
+
+---
+
+## File Structure
+
+- Modify: `backend/app/models/governance.py` — `GovernanceLedger.id` (UUID) and `.payload` (JSONB)
+- Modify: `backend/app/models/hyperflow.py` — `HyperFlowRun.state` (JSONB)
+- Modify: `backend/app/models/identity.py` — `BROskiIdentityAgent.state` (JSONB)
+- No test files are created or modified — the fix makes existing tests pass; no new behavior needs new tests.
+
+---
+
+### Task 1: Fix `governance.py` — JSONB and UUID/default
+
+**Files:**
+- Modify: `backend/app/models/governance.py` (full file, 37 lines)
+
+**Interfaces:**
+- Produces: `GovernanceLedger.__table__` must be creatable via `GovernanceLedger.__table__.create(bind=<sqlite engine>)` and via `Base.metadata.create_all(bind=<sqlite engine>)`. `GovernanceLedger.id` is populated automatically on ORM insert (no caller needs to supply it) on both SQLite and Postgres.
+- Consumes: nothing from other tasks (independent file).
+
+- [ ] **Step 1: Reproduce the current failure in isolation**
+
+Run this from the repo root to confirm the exact current failure, scoped to just this one table (no dependency on tasks 2/3):
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from app.models.governance import GovernanceLedger
+engine = create_engine('sqlite:///:memory:')
+GovernanceLedger.__table__.create(bind=engine)
+"
+```
+
+Expected: fails with `sqlalchemy.exc.CompileError: ... can't render element of type` (JSONB or UUID, whichever the compiler reaches first) or `AttributeError: 'SQLiteTypeCompiler' object has no attribute 'visit_JSONB'`/`visit_UUID`.
+
+- [ ] **Step 2: Rewrite `backend/app/models/governance.py`**
+
+Replace the entire file with:
+
+```python
+"""GovernanceLedger model — durable audit trail of high-impact actions (P1-2).
+
+The audit layer ON TOP of the durable economy tables (broski_wallets /
+broski_transactions). IdentityAgent.log_action() writes one row here per
+high-impact action. Schema created by migration 018_add_governance_ledger.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any, Optional
+
+from sqlalchemy import DateTime, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func, text
+
+from app.db.base_class import Base
+
+
+class GovernanceLedger(Base):
+    __tablename__ = "governance_ledger"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False).with_variant(String(36), "sqlite"),
+        primary_key=True,
+        default=lambda: str(uuid.uuid4()),
+        server_default=text("gen_random_uuid()"),
+    )
+    user_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    action: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    tool_used: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    payload: Mapped[Optional[dict[str, Any]]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=True
+    )
+    decision: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    agent_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+```
+
+Changes from the original: added `import uuid`; added `String` to the `sqlalchemy` import; added `from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON`; `id` column now uses `.with_variant(String(36), "sqlite")` on the type and gained `default=lambda: str(uuid.uuid4())`; `payload` column now uses `.with_variant(SQLiteJSON(), "sqlite")`. Nothing else changed.
+
+- [ ] **Step 3: Verify the table now creates, and insert works, on SQLite**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models.governance import GovernanceLedger
+engine = create_engine('sqlite:///:memory:')
+GovernanceLedger.__table__.create(bind=engine)
+Session = sessionmaker(bind=engine)
+db = Session()
+row = GovernanceLedger(user_id='u1', action='test.action', payload={'k': 'v'})
+db.add(row)
+db.commit()
+assert row.id is not None and len(row.id) == 36, row.id
+assert row.payload == {'k': 'v'}
+print('OK', row.id, row.payload)
+"
+```
+
+Expected: prints `OK <uuid-string> {'k': 'v'}` with no traceback.
+
+- [ ] **Step 4: Run the existing governance test file to confirm no regression**
+
+```bash
+PYTHONUTF8=1 python -m pytest backend/tests/test_governance_write.py -v --no-cov
+```
+
+Expected: `3 passed` (same as baseline — this file uses a fake DB double, so it was already green; this step just proves the model edit didn't break the import or the class itself).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/app/models/governance.py
+git commit -m "fix: make GovernanceLedger JSONB/UUID columns SQLite-compatible for tests"
+```
+
+---
+
+### Task 2: Fix `hyperflow.py` — JSONB
+
+**Files:**
+- Modify: `backend/app/models/hyperflow.py` (full file, 50 lines)
+
+**Interfaces:**
+- Produces: `HyperFlowRun.__table__` must be creatable via `HyperFlowRun.__table__.create(bind=<sqlite engine>)` and via `Base.metadata.create_all(bind=<sqlite engine>)`.
+- Consumes: nothing from other tasks (independent file).
+
+- [ ] **Step 1: Reproduce the current failure in isolation**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from app.models.hyperflow import HyperFlowRun
+engine = create_engine('sqlite:///:memory:')
+HyperFlowRun.__table__.create(bind=engine)
+"
+```
+
+Expected: fails with `sqlalchemy.exc.CompileError: (in table 'hyperflow_runs', column 'state'): Compiler ... can't render element of type JSONB` (this is the exact error already observed in this session for this table).
+
+- [ ] **Step 2: Rewrite `backend/app/models/hyperflow.py`**
+
+Replace the entire file with:
+
+```python
+"""HyperFlowRun model — persisted state of a mission-graph run (P0-1).
+
+One row per flow execution. ``state`` holds the full node-transition history as
+JSONB so a GET is always current even though the runner walks the graph in an
+in-core asyncio task. Schema created by migration 016_add_hyperflow_runs.
+"""
+
+from __future__ import annotations
+
+import enum
+from datetime import datetime
+from typing import Any, Optional
+
+from sqlalchemy import DateTime, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+
+from app.db.base_class import Base
+
+
+class HyperFlowRunStatus(str, enum.Enum):
+    RUNNING            = "running"
+    AWAITING_APPROVAL  = "awaiting_approval"
+    COMPLETED          = "completed"
+    FAILED             = "failed"
+
+
+class HyperFlowRun(Base):
+    __tablename__ = "hyperflow_runs"
+
+    id:           Mapped[str]           = mapped_column(String(36), primary_key=True)
+    flow_name:    Mapped[str]           = mapped_column(String(128), nullable=False, index=True)
+    flow_version: Mapped[int]           = mapped_column(Integer, nullable=False, default=1)
+    status:       Mapped[str]           = mapped_column(
+        String(24), nullable=False, server_default=HyperFlowRunStatus.RUNNING.value, index=True
+    )
+    current_node: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    # { "history": [ {node, type, status, result, ts}, ... ], "context": {...} }
+    state:        Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=False, default=dict
+    )
+    created_at:   Mapped[datetime]      = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at:   Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+```
+
+Changes from the original: added `from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON`; `state` column now uses `JSONB().with_variant(SQLiteJSON(), "sqlite")` instead of bare `JSONB`. Nothing else changed.
+
+- [ ] **Step 3: Verify the table now creates, and insert works, on SQLite**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models.hyperflow import HyperFlowRun
+engine = create_engine('sqlite:///:memory:')
+HyperFlowRun.__table__.create(bind=engine)
+Session = sessionmaker(bind=engine)
+db = Session()
+row = HyperFlowRun(id='r1', flow_name='test-flow', state={'history': []})
+db.add(row)
+db.commit()
+assert row.state == {'history': []}
+print('OK', row.state)
+"
+```
+
+Expected: prints `OK {'history': []}` with no traceback.
+
+- [ ] **Step 4: Run the existing hyperflow test file to confirm no regression**
+
+```bash
+PYTHONUTF8=1 python -m pytest backend/tests/test_hyperflow.py -v --no-cov
+```
+
+Expected: `14 passed` (same as baseline — this file uses fakes/mocks, so it was already green; this step proves the model edit didn't break the import or the class itself).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/app/models/hyperflow.py
+git commit -m "fix: make HyperFlowRun.state JSONB column SQLite-compatible for tests"
+```
+
+---
+
+### Task 3: Fix `identity.py` — JSONB
+
+**Files:**
+- Modify: `backend/app/models/identity.py` (full file, 40 lines)
+
+**Interfaces:**
+- Produces: `BROskiIdentityAgent.__table__` must be creatable via `BROskiIdentityAgent.__table__.create(bind=<sqlite engine>)` and via `Base.metadata.create_all(bind=<sqlite engine>)`.
+- Consumes: nothing from other tasks (independent file).
+
+- [ ] **Step 1: Reproduce the current failure in isolation**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from app.models.identity import BROskiIdentityAgent
+engine = create_engine('sqlite:///:memory:')
+BROskiIdentityAgent.__table__.create(bind=engine)
+"
+```
+
+Expected: fails with `sqlalchemy.exc.CompileError: (in table 'broski_identity_agents', column 'state'): Compiler ... can't render element of type JSONB` or the equivalent `AttributeError`.
+
+- [ ] **Step 2: Rewrite `backend/app/models/identity.py`**
+
+Replace the entire file with:
+
+```python
+"""BROskiIdentityAgent model — a resident agent object per user (P1-1).
+
+One row per user. ``state`` (JSONB) holds the user's resident agent state —
+course progress, tier, pet IDs, permissions, and a capped recent-actions log.
+Schema created by migration 017_add_broski_identity_agents.
+
+Note: the AGENT-START brief said "FK -> broski_wallets.discord_id", but that
+column does not exist (discord_id lives on users; broski_wallets keys on
+users.id). We FK to users.id — the real canonical key, consistent with
+broski_wallets — and denormalise discord_id for convenience.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, Optional
+
+from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+
+from app.db.base_class import Base
+
+
+class BROskiIdentityAgent(Base):
+    __tablename__ = "broski_identity_agents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("users.id"), unique=True, nullable=False, index=True
+    )
+    discord_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
+    # { tier, course_progress, pet_ids, permissions, recent_actions: [...] }
+    state: Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=False, default=dict
+    )
+    last_active: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+```
+
+Changes from the original: added `from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON`; `state` column now uses `JSONB().with_variant(SQLiteJSON(), "sqlite")` instead of bare `JSONB`. Nothing else changed.
+
+- [ ] **Step 3: Verify the table now creates, and insert works, on SQLite**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys
+sys.path.insert(0, 'backend')
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from app.models.identity import BROskiIdentityAgent
+engine = create_engine('sqlite:///:memory:')
+BROskiIdentityAgent.__table__.create(bind=engine)
+Session = sessionmaker(bind=engine)
+db = Session()
+row = BROskiIdentityAgent(user_id=1, state={'tier': 'free'})
+db.add(row)
+db.commit()
+assert row.state == {'tier': 'free'}
+print('OK', row.state)
+"
+```
+
+Expected: prints `OK {'tier': 'free'}` with no traceback.
+
+- [ ] **Step 4: Run the existing identity test file to confirm no regression**
+
+```bash
+PYTHONUTF8=1 python -m pytest backend/tests/test_identity_agent.py -v --no-cov
+```
+
+Expected: `7 passed` (same as baseline — this file uses fakes/mocks, so it was already green; this step proves the model edit didn't break the import or the class itself).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/app/models/identity.py
+git commit -m "fix: make BROskiIdentityAgent.state JSONB column SQLite-compatible for tests"
+```
+
+---
+
+### Task 4: Full verification and docs
+
+**Files:**
+- Modify: `WHATS_DONE.md` (append one line)
+- No other files (verification only, plus the docs line)
+
+**Interfaces:**
+- Consumes: all three fixes from Tasks 1–3 (this task only makes sense once all three are merged — `Base.metadata.create_all()` needs every table compilable in the same pass).
+
+- [ ] **Step 1: Confirm `Base.metadata.create_all()` now succeeds for the whole schema**
+
+```bash
+PYTHONUTF8=1 python -c "
+import sys, os
+sys.path.insert(0, 'backend')
+os.environ.setdefault('OTEL_SDK_DISABLED', 'true')
+os.environ['ENVIRONMENT'] = 'test'
+from sqlalchemy import create_engine
+from app.db.base_class import Base
+import app.models.models as _models
+del _models
+engine = create_engine('sqlite:///:memory:')
+Base.metadata.create_all(bind=engine)
+print('OK — all tables created')
+"
+```
+
+Expected: prints `OK — all tables created` with no traceback. (This mirrors what `conftest.py`'s `db` fixture does on every test.)
+
+- [ ] **Step 2: Run the full set of previously-erroring test files**
+
+```bash
+PYTHONUTF8=1 python -m pytest backend/tests/test_api_endpoints.py backend/tests/unit/test_discord_actions.py backend/tests/unit/test_hypersplit.py backend/tests/unit/test_broski_discord_balance.py backend/tests/test_cache_response.py backend/tests/test_events_agent_auth.py backend/tests/unit/test_hypersync.py backend/tests/unit/test_users_api.py -v --no-cov
+```
+
+Expected: all tests that were previously `ERROR` now `PASS` or `FAIL` on their actual assertions (not on fixture setup). If any show a genuine assertion failure unrelated to JSONB/UUID compilation, stop and report it — that is a pre-existing bug this plan does not fix, not something to patch over here.
+
+- [ ] **Step 3: Run the full backend suite to confirm no regressions**
+
+```bash
+PYTHONUTF8=1 python -m pytest backend/tests/ -q
+```
+
+Expected: no `AttributeError`/`CompileError` mentioning `JSONB` or `UUID` anywhere in the output. Record the final pass/fail/skip counts.
+
+- [ ] **Step 4: Add a line to `WHATS_DONE.md`**
+
+Open `WHATS_DONE.md` and add one line under `## Done & Locked — Do NOT re-suggest`:
+
+```
+- Backend test DB: JSONB/UUID columns (governance, hyperflow, identity models) made SQLite-compatible via with_variant() — full pytest suite runnable without a real Postgres instance
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add WHATS_DONE.md
+git commit -m "docs: record test-DB Postgres-type compatibility fix in WHATS_DONE"
+```
+
+---
+
+## Self-Review Notes
+
+- **Spec coverage:** all 4 columns from the spec (governance.id, governance.payload, hyperflow.state, identity.state) have a task. Testing section covered by Task 4. Out-of-scope items (full model audit, PYTHONUTF8 fix, Postgres test backend) are correctly excluded — no task attempts them.
+- **Placeholder scan:** none — every step has complete, runnable code and concrete expected output.
+- **Type consistency:** `JSON as SQLiteJSON` import alias is identical across all three files; `.with_variant(..., "sqlite")` pattern is identical; `String(36)` matches the existing convention already used for `HyperFlowRun.id` in `hyperflow.py:32`.
+- **Corrected blast radius:** the spec's guess (3 files, "almost certainly" affected) was empirically wrong; this plan uses the verified list of 8 real affected files instead, established by directly running them against baseline before writing this plan.
