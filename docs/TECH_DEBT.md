@@ -8,7 +8,7 @@
 |---|---|---|
 | Shop Fulfillment v2 not deployed | Deploy + run E2E (every category, buy-confirm, auto-refund, tier discounts) | 🔴 HIGH |
 | Guardian P3c smoke pending | Strike-sim; verify ban only on APPROVE; tune veto delay/button delivery | 🟡 MED |
-| GitHub Actions billing lock | Fix at github.com/settings/billing (human gate) | 🟡 MED |
+| GitHub Actions billing lock | Support ticket **#4575262** filed 2026-07-16 (waive/downgrade ask) — await reply at lyndzwills00001@hotmail.co.uk; also check github.com/settings/billing for balance + downgrade-to-Free. Lock blocks ONLY Actions CI — pushes/PR merges work (proven #386/#387) | 🟡 MED |
 | `/welcome` auth-gated | Decide: make public? Sponsors hit login wall from BUSINESS_PLAN | 🟡 |
 | `VITE_STRIPE_PAYMENT_LINK_URL` empty | Set in `.env.local` + Vercel env vars | 🟢 LOW |
 | `DISCORD_USER_ID` not set | Add to `.env` for `make calm` token awards | 🟢 LOW |
