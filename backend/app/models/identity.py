@@ -17,6 +17,7 @@ from typing import Any, Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -32,7 +33,9 @@ class BROskiIdentityAgent(Base):
     )
     discord_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True, index=True)
     # { tier, course_progress, pet_ids, permissions, recent_actions: [...] }
-    state: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    state: Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=False, default=dict
+    )
     last_active: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
