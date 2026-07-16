@@ -13,6 +13,7 @@ from typing import Any, Optional
 
 from sqlalchemy import DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -37,7 +38,9 @@ class HyperFlowRun(Base):
     )
     current_node: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     # { "history": [ {node, type, status, result, ts}, ... ], "context": {...} }
-    state:        Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    state:        Mapped[dict[str, Any]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=False, default=dict
+    )
     created_at:   Mapped[datetime]      = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
