@@ -1,0 +1,12 @@
+# HyperFocus Z0ne repo manifest - read by scripts/gen_repo_map.py
+# Edit this file, then re-run the generator. Never hand-edit the map.
+
+name: "HyperCode-V2.4"
+emoji: "🚀"
+tagline: "**The Platform** — production stack, ~30 containers running"
+category: "core"
+stack: "Python (FastAPI) + Docker + TS"
+first_doc: "CLAUDE.md"
+tier: "LIVE"
+url: ""
+notes: "29 compose files; profile-dependent"
