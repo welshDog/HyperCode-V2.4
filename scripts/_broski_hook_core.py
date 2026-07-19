@@ -249,6 +249,12 @@ def _publish_xp(channel: str, db: int, payload: dict) -> Optional[str]:
                 proc = subprocess.run(
                     ["docker", "exec", container, "redis-cli", "-n", str(db), "PUBLISH", channel, body],
                     capture_output=True, text=True, timeout=8,
+                    # text=True alone decodes with locale.getpreferredencoding(),
+                    # which is cp1252 on Windows -> UnicodeDecodeError traceback on
+                    # any non-ASCII byte from redis-cli. The publish still succeeds,
+                    # so this surfaced as noise on every commit. Mirror of the known
+                    # "force UTF-8 stdio when PRINTING emoji" gotcha, on the READ side.
+                    encoding="utf-8", errors="replace",
                 )
                 if proc.returncode == 0:
                     return "docker:" + container
