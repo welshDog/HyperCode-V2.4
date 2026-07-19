@@ -277,7 +277,9 @@ services:
     volumes:
       - ./monitoring/mcp-metrics:/var/lib/node_exporter/textfile_collector:ro
     ports:
-      - "9101:9100"
+      # SECURITY 2026-07-19: no bind address = 0.0.0.0. node-exporter leaks
+      # host-level metrics (kernel, filesystems, network) — keep it local.
+      - "127.0.0.1:9101:9100"
     networks:
       - backend-net
     healthcheck:

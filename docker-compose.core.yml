@@ -153,7 +153,11 @@ services:
       - data-net
       - agents-net
     ports:
-      - "0.0.0.0:8000:8000"
+      # SECURITY 2026-07-19: was 0.0.0.0 (all interfaces — reachable by anything
+      # on the LAN). Containers reach this via the internal network name
+      # (hypercode-core:8000), so the host bind only needs to serve YOUR browser.
+      # Docker Desktop/WSL2 forwards 127.0.0.1 to the Windows host fine.
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -184,7 +188,12 @@ services:
     volumes:
       - ollama-data:/root/.ollama
     ports:
-      - "0.0.0.0:11434:11434"
+      # SECURITY 2026-07-19: was 0.0.0.0. The Ollama API is UNAUTHENTICATED —
+      # anyone who could reach it could run inference on your machine, and
+      # pull or delete your models. Agents reach it via OLLAMA_HOST=
+      # http://hypercode-ollama:11434 (internal DNS), so this bind is only
+      # for your own local tools.
+      - "127.0.0.1:11434:11434"
     networks:
       - agents-net
     environment:

@@ -1,0 +1,162 @@
+# ══════════════════════════════════════════════════════════════════
+# 🧠 HOSTED LLM OVERRIDE — agents run on Claude, not local Ollama
+# ══════════════════════════════════════════════════════════════════
+# WHY
+#   HYPERFOCUSzone has 8GB physical RAM → 4GB to WSL2. Ollama alone needs
+#   ~2.5-3GB to serve a 3B model, i.e. ~75% of the entire WSL allocation.
+#   Result (verified 2026-07-19): `ollama ps` empty, inference died with
+#   `EOF` (OOM-killed). Every agent depending on local inference was a
+#   container that answered /health and did nothing else.
+#
+#   44 containers + local LLM does not fit in 8GB. That's arithmetic, not
+#   config. So: agents use the hosted Claude API; Ollama stays off.
+#
+# THIS IS ALREADY THE DESIGNED BEHAVIOUR
+#   agents/base-agent/agent.py :: _build_llm_client() —
+#     if ANTHROPIC_API_KEY is set  → AsyncAnthropic (Claude)
+#     else                         → _OllamaAdapter (local fallback)
+#   Only 5 of 42 services were being handed the key, so 37 silently fell
+#   back to Ollama. This override hands it to all of them.
+#
+#   It also matches the Agent Crew you teach in Course M3:
+#     "Claude = the strategist · Copilot = the sprinter · Ollama = local."
+#
+# USAGE
+#   docker compose -f docker-compose.core.yml \
+#                  -f docker-compose.agents.yml \
+#                  -f docker-compose.hosted-llm.yml up -d
+#
+#   To go back to local inference: just drop the -f for this file.
+#   Nothing in the original compose files was modified.
+#
+# PREREQ — set the key in .env (the value lives in secrets/anthropic_api_key.txt):
+#   ANTHROPIC_API_KEY=sk-ant-...
+#
+# 💰 COST — your sacred rule is "keep LLM costs low"
+#   Default here is HAIKU for routine specialist agents (cheap + fast) and
+#   SONNET only for the reasoning roles (orchestrator, architect, strategist).
+#   AGENT_MAX_TOKENS caps every response. Override per-run in .env:
+#     AGENT_MODEL=claude-haiku-4-5-20251001
+#     AGENT_MODEL_REASONING=claude-sonnet-4-6
+#     AGENT_MAX_TOKENS=1000
+# ══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Reasoning / orchestration roles → Sonnet (quality matters) ──────
+  crew-orchestrator:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL_REASONING:-claude-sonnet-4-6}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  hyper-architect:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL_REASONING:-claude-sonnet-4-6}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  project-strategist:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL_REASONING:-claude-sonnet-4-6}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  agent-x:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL_REASONING:-claude-sonnet-4-6}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  # ── Specialist agents → Haiku (fast, cheap, plenty for scoped tasks) ─
+  coder-agent:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  frontend-specialist:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  backend-specialist:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  database-architect:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  qa-engineer:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  devops-engineer:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  goal-keeper:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  safety-shepherd:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  nemoclaw-agent:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  hyper-observer:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  hyper-worker:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  ai-backend:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  # ── Already had the key — pinned here so the model choice is explicit ──
+  healer-agent:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  coder-studio:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-haiku-4-5-20251001}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-1000}
+
+  broski-pets-bridge:
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY in .env}
+      # pets uses its own PETS_ANTHROPIC_* vars; disable the Ollama fallback
+      # so a failure surfaces loudly instead of silently hitting a dead engine
+      PETS_ANTHROPIC_FALLBACK_OLLAMA: "false"

@@ -71,7 +71,9 @@ services:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     ports:
-      - "3001:3000"
+      # SECURITY 2026-07-19: no bind address = 0.0.0.0 (all interfaces).
+      # Grafana fronts every metric in the stack — keep it local.
+      - "127.0.0.1:3001:3000"
     networks:
       - obs-net
       - agents-net
@@ -107,7 +109,8 @@ services:
     container_name: loki
     profiles: ["observability"]
     ports:
-      - "3100:3100"
+      # SECURITY 2026-07-19: no bind address = 0.0.0.0. Loki holds your logs.
+      - "127.0.0.1:3100:3100"
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
