@@ -2,6 +2,7 @@
 # Add to root: include: docker-compose.brain.yml
 # Usage: docker compose --profile brain up -d
 
+
 services:
   hyper-brain:
     build:
@@ -148,6 +149,36 @@ services:
       - "com.hyperfocuszone.service=agent-mcp-bridge"
       - "com.hyperfocuszone.tier=brain-agent"
       - "com.hyperfocuszone.version=1.0.0"
+
+
+  agent-hyperfocus-copilot:
+    image: nginx:alpine
+    container_name: agent-hyperfocus-copilot
+    profiles: ["brain"]
+    restart: unless-stopped
+
+    ports:
+      - "3305:80"
+
+    volumes:
+      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/07-Co-Pilot/public:/usr/share/nginx/html:ro
+
+    networks:
+      - frontend-net
+      - agents-net
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
 
   agent-focus-tracker:
     profiles: ["brain-agents"]
