@@ -19,8 +19,7 @@ services:
       - GITHUB_PAT=${GITHUB_PAT}
       - ENVIRONMENT=${ENVIRONMENT:-development}
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/00-Inbox/GitHub:/vault/00-Inbox/GitHub:rw
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     networks:
       - agents-net
       - data-net
@@ -69,8 +68,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/00-Inbox/GitHub:/vault/00-Inbox/GitHub:rw
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
       - "127.0.0.1:3301:3301"
     networks:
@@ -117,8 +115,7 @@ services:
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://hypercode-ollama:11434}
       - OLLAMA_MODEL=${BRAIN_OLLAMA_MODEL:-tinyllama:latest}
     volumes:
-       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
-       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/06-AI-Context:/vault/06-AI-Context:rw
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
       - "127.0.0.1:3302:3302"
     networks:
@@ -161,8 +158,7 @@ services:
       - DATABASE_URL=postgresql://postgres:hypercode@postgres:5432/hypercode
       - OBSIDIAN_VAULT_PATH=/vault
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/05-Focus-Sessions:/vault/05-Focus-Sessions:rw
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
       - "127.0.0.1:3303:3303"
     networks:
@@ -205,8 +201,7 @@ services:
       - OBSIDIAN_VAULT_PATH=/vault
       - MCP_BRIDGE_URL=http://agent-mcp-bridge:3302
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/00-Inbox/Briefings:/vault/00-Inbox/Briefings:rw
+      - ${OBSIDIAN_VAULT_PATH:-H:/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault
     ports:
       - "127.0.0.1:3304:3304"
     networks:

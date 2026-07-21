@@ -48,6 +48,7 @@ client_secret.json
 .env.nemoclaw
 .env.production
 .env1
+.env.brain.local
 
 # IDE and Editor files
 .idea/
