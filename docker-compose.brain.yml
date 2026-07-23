@@ -120,6 +120,8 @@ services:
     volumes:
        - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
        - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/06-AI-Context:/vault/06-AI-Context:rw
+       # HYPER-SILLs (canonical agent_boot.py + loadout/registry) for the startup boot-check. Fail-open.
+       - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}:/hyper-sills:ro
     ports:
       - "127.0.0.1:3302:3302"
     networks:
@@ -197,6 +199,8 @@ services:
     volumes:
       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/05-Focus-Sessions:/vault/05-Focus-Sessions:rw
+      # HYPER-SILLs (canonical agent_boot.py + loadout/registry) for the startup boot-check. Fail-open.
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}:/hyper-sills:ro
     ports:
       - "127.0.0.1:3303:3303"
     networks:
@@ -241,6 +245,8 @@ services:
     volumes:
       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/00-Inbox/Briefings:/vault/00-Inbox/Briefings:rw
+      # HYPER-SILLs (canonical agent_boot.py + loadout/registry) for the startup boot-check. Fail-open.
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}:/hyper-sills:ro
     ports:
       - "127.0.0.1:3304:3304"
     networks:
