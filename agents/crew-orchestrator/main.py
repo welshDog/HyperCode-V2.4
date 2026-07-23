@@ -62,12 +62,15 @@ try:
 except ImportError:
     import safety_gate
 
-# Agent skill loadout injection — seeds every plan with the agent's mandatory
-# HYPER-SILLs skills before the routed situational ones. Fail-open.
-try:
-    from .loadout import resolve_loadout_skills, loadout_block, boot_check
-except ImportError:
-    from loadout import resolve_loadout_skills, loadout_block, boot_check
+# Agent skill loadout injection — shared module (agents/shared/loadout.py), so
+# every agent resolves loadouts from ONE implementation. The dir that contains
+# the `shared` package differs by context: /app in the container, agents/ on the
+# host test runner — insert both candidates, then import.
+_here = os.path.dirname(os.path.abspath(__file__))
+for _cand in (_here, os.path.dirname(_here)):
+    if _cand not in sys.path:
+        sys.path.insert(0, _cand)
+from shared.loadout import resolve_loadout_skills, loadout_block, boot_check
 
 # Configure Logging
 logging.basicConfig(level=settings.log_level)

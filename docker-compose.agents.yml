@@ -1234,6 +1234,11 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-}
     volumes:
       - .:/workspace:ro
+      # Shared loadout module + HYPER-SILLs loadout/registry for the startup
+      # boot-check. Fail-open if absent. Override base via HYPER_SILLS_PATH.
+      - ./agents/shared:/app/shared:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/agent-loadouts.json:/skills/agent-loadouts.json:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/skills-registry.json:/skills/skills-registry.json:ro
     ports:
       - "127.0.0.1:8099:8099"
     networks:

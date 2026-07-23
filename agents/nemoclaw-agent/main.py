@@ -24,6 +24,18 @@ from pydantic import BaseModel, Field
 from analyzer import NemoClaw
 from db import close_pool, get_pool, insert_scan, recent_scans
 
+# Skill loadout boot-check — shared module (agents/shared/loadout.py). The dir
+# holding the `shared` package is /app in-container and agents/ on the host.
+import sys
+_here = os.path.dirname(os.path.abspath(__file__))
+for _cand in (_here, os.path.dirname(_here)):
+    if _cand not in sys.path:
+        sys.path.insert(0, _cand)
+try:
+    from shared.loadout import boot_check
+except Exception:  # fail-open: loadout module unavailable -> skip the boot check
+    boot_check = None
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("nemoclaw.main")
 
@@ -176,6 +188,14 @@ async def health() -> dict[str, object]:
         "db_connected": db_ok,
         "api_key_configured": api_key_configured,
     }
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    # Confirm this agent's mandatory HYPER-SILLs skills are available (fail-open;
+    # LOADOUT_STRICT=true refuses boot on a missing required skill).
+    if boot_check:
+        boot_check("nemoclaw-agent")
 
 
 @app.on_event("shutdown")
