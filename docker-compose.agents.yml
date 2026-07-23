@@ -966,6 +966,11 @@ services:
       # result_writer.py writes crew results here (path resolves to /results
       # inside the container). Shared with obsidian-sync, which reads ./results.
       - ./results:/results
+      # HYPER-SILLs loadout + registry (read-only) so loadout.py can seed every
+      # plan with the agent's mandatory skills. Fail-open if the sibling repo
+      # is absent. Override the base with HYPER_SILLS_PATH.
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/agent-loadouts.json:/skills/agent-loadouts.json:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/skills-registry.json:/skills/skills-registry.json:ro
     networks:
       - agents-net
       - data-net

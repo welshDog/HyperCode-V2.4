@@ -62,6 +62,13 @@ try:
 except ImportError:
     import safety_gate
 
+# Agent skill loadout injection — seeds every plan with the agent's mandatory
+# HYPER-SILLs skills before the routed situational ones. Fail-open.
+try:
+    from .loadout import resolve_loadout_skills, loadout_block
+except ImportError:
+    from loadout import resolve_loadout_skills, loadout_block
+
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
@@ -670,6 +677,8 @@ async def execute_task(
     plan_description = task.description
     if rag_context:
         plan_description = f"{task.description}\n\n[Context]\n{rag_context[:500]}"
+    # Loadout first (agent's mandatory skills), then routed situational skills.
+    plan_description += loadout_block(resolve_loadout_skills(task.agent))
     plan_description += _routed_skills_block(routed_skills)
     logger.info(
         json.dumps(
@@ -896,7 +905,7 @@ async def dispatch_task(
 
     payload = {
         "id": task_id,
-        "task": task_text + _routed_skills_block(routed_skills),
+        "task": task_text + loadout_block(resolve_loadout_skills(agent_name)) + _routed_skills_block(routed_skills),
         "type": task_type,
         "context": request.context or {},
         "requires_approval": False,
