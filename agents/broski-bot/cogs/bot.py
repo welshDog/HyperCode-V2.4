@@ -13,6 +13,18 @@ import asyncio
 from dotenv import load_dotenv
 from core_client import CoreClient
 
+# Skill loadout boot-check — shared module (agents/shared/loadout.py). The dir
+# holding the `shared` package is /app in-container and agents/ on the host.
+import sys
+_here = os.path.dirname(os.path.abspath(__file__))
+for _cand in (_here, os.path.dirname(_here)):
+    if _cand not in sys.path:
+        sys.path.insert(0, _cand)
+try:
+    from shared.loadout import boot_check
+except Exception:  # fail-open: loadout module unavailable -> skip the boot check
+    boot_check = None
+
 load_dotenv()
 
 def _read_secret_file(path: str) -> str:
@@ -63,6 +75,9 @@ COGS = [
 
 @bot.event
 async def on_ready():
+    # Confirm this agent's mandatory HYPER-SILLs skills (fail-open; LOADOUT_STRICT=true refuses boot)
+    if boot_check:
+        boot_check("broski-bot")
     print(f"\n⚡ BROski Bot ALIVE — {bot.user} (ID: {bot.user.id})")
     print(f"   Guilds: {len(bot.guilds)}")
     print(f"   CoreClient → {os.getenv('HYPERCODE_API_URL', 'http://localhost:8000')}")

@@ -320,6 +320,11 @@ services:
       - broski-bot-db:/opt/hypercode/data/broski-bot/db
       - broski-bot-logs:/opt/hypercode/data/broski-bot/logs
       - broski-bot-backups:/opt/hypercode/data/broski-bot/backups
+      # Shared loadout module + HYPER-SILLs loadout/registry for the on_ready
+      # boot-check. Fail-open if absent. Override base via HYPER_SILLS_PATH.
+      - ./agents/shared:/app/shared:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/agent-loadouts.json:/skills/agent-loadouts.json:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/skills-registry.json:/skills/skills-registry.json:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import os; exit(0 if os.path.exists('/app/cogs/bot.py') else 1)"]
       interval: 30s
