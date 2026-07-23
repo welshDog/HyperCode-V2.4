@@ -59,7 +59,7 @@ SLO_QUERIES = [
 ]
 
 # Status classification.
-_COMPLETE = re.compile(r"\b(DONE|LIVE|IMPLEMENTED|BUILT|PUSHED|FIXED)\b", re.I)
+_COMPLETE = re.compile(r"\b(DONE|LIVE|IMPLEMENTED|BUILT|PUSHED|FIXED|COMPLETE)\b", re.I)
 _PENDING = re.compile(r"pending|todo|soon|partial|in progress|wip", re.I)
 
 
