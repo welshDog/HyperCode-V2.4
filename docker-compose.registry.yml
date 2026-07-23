@@ -69,6 +69,12 @@ services:
       - SPAWN_MODE=docker
       - DOCKER_READ_HOST=http://docker-socket-proxy:2375
       - DOCKER_WRITE_HOST=http://docker-socket-proxy-healer:2375
+    volumes:
+      # Shared loadout module + HYPER-SILLs loadout/registry for the startup
+      # boot-check. Fail-open if absent. Override base via HYPER_SILLS_PATH.
+      - ./agents/shared:/app/shared:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/agent-loadouts.json:/skills/agent-loadouts.json:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/skills-registry.json:/skills/skills-registry.json:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
       interval: 30s

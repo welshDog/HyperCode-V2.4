@@ -22,6 +22,18 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+# Skill loadout boot-check — shared module (agents/shared/loadout.py). The dir
+# holding the `shared` package is /app in-container and agents/ on the host.
+import sys
+_here = os.path.dirname(os.path.abspath(__file__))
+for _cand in (_here, os.path.dirname(_here)):
+    if _cand not in sys.path:
+        sys.path.insert(0, _cand)
+try:
+    from shared.loadout import boot_check
+except Exception:  # fail-open: loadout module unavailable -> skip the boot check
+    boot_check = None
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("agent-factory")
 
@@ -34,6 +46,9 @@ DOCKER_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Agent Factory initialized (mode={SPAWN_MODE})")
+    # Confirm this agent's mandatory HYPER-SILLs skills (fail-open; LOADOUT_STRICT=true refuses boot)
+    if boot_check:
+        boot_check("agent-factory")
     yield
     logger.info("Agent Factory shutting down")
 

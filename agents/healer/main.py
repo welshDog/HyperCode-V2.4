@@ -16,6 +16,16 @@ from urllib.parse import urlparse
 # 📍 Ensure /app/healer is on sys.path for absolute imports of mape_k_* modules
 sys.path.insert(0, os.path.dirname(__file__))
 
+# Skill loadout boot-check — shared module (agents/shared/loadout.py). Add the
+# dir holding the `shared` package (agents/ on host, /app/agents in-container).
+_agents_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _agents_dir not in sys.path:
+    sys.path.insert(0, _agents_dir)
+try:
+    from shared.loadout import boot_check
+except Exception:  # fail-open: loadout module unavailable -> skip the boot check
+    boot_check = None
+
 # Third party
 import httpx
 import redis.asyncio as redis
@@ -213,6 +223,10 @@ async def lifespan(app: FastAPI):
     redis_client = await redis.from_url(REDIS_URL, decode_responses=True)
     # FIX 2: Pass shared redis_client into DockerAdapter — avoids a second parallel connection
     docker_adapter = DockerAdapter(redis_client=redis_client)
+
+    # Confirm this agent's mandatory HYPER-SILLs skills (fail-open; LOADOUT_STRICT=true refuses boot)
+    if boot_check:
+        boot_check("healer-agent")
 
     # │ Phase 3 — Connect event bus │
     try:

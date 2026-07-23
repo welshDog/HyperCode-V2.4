@@ -177,6 +177,12 @@ services:
       DISCORD_OOM_WEBHOOK_URL: ${DISCORD_OOM_WEBHOOK_URL:-}
       DISCORD_ALERTS_WEBHOOK_URL: ${DISCORD_ALERTS_WEBHOOK_URL:-}
       RESTART_LOOP_THRESHOLD: ${RESTART_LOOP_THRESHOLD:-5}
+    volumes:
+      # Live shared loadout module (overrides the baked-in copy) + HYPER-SILLs
+      # loadout/registry for the startup boot-check. Fail-open if absent.
+      - ./agents/shared:/app/agents/shared:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/agent-loadouts.json:/skills/agent-loadouts.json:ro
+      - ${HYPER_SILLS_PATH:-../HYPER-SILLs-By-WelshDog}/skills-registry.json:/skills/skills-registry.json:ro
     deploy:
       resources:
         limits:
