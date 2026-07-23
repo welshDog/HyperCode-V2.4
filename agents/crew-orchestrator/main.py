@@ -65,9 +65,9 @@ except ImportError:
 # Agent skill loadout injection — seeds every plan with the agent's mandatory
 # HYPER-SILLs skills before the routed situational ones. Fail-open.
 try:
-    from .loadout import resolve_loadout_skills, loadout_block
+    from .loadout import resolve_loadout_skills, loadout_block, boot_check
 except ImportError:
-    from loadout import resolve_loadout_skills, loadout_block
+    from loadout import resolve_loadout_skills, loadout_block, boot_check
 
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
@@ -150,6 +150,11 @@ async def lifespan(app: FastAPI):
     # Startup
     redis_client = await get_redis_pool()
     logger.info("Redis connected")
+
+    # Skill-loadout boot gate — confirm this agent's mandatory HYPER-SILLs skills
+    # are available. strict (LOADOUT_STRICT) refuses boot on a missing required
+    # skill; fail-open if the /skills mount is absent so a misconfig can't brick it.
+    boot_check("crew-orchestrator")
 
     # Start background tasks
     monitor_task = asyncio.create_task(monitor_agent_health())

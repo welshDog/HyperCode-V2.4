@@ -6,7 +6,12 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from loadout import resolve_loadout_skills, loadout_block  # noqa: E402
+from loadout import (  # noqa: E402
+    resolve_loadout_skills,
+    loadout_block,
+    boot_check,
+    BootCheckError,
+)
 
 REGISTRY = {"skills": [
     {"id": "HS-098", "hero_name": "THE SACRED SIX", "emoji": "⚖️", "description": "6 laws", "status": "active"},
@@ -70,3 +75,28 @@ def test_block_renders_ids_and_header(files):
     block = loadout_block(resolve_loadout_skills("broski-bot", lo, reg))
     assert "HS-098" in block
     assert "Loadout" in block
+
+
+# ── boot_check (startup gate) ───────────────────────────────────────────────
+def test_boot_check_empty_when_all_present(files):
+    lo, reg = files
+    assert boot_check("broski-bot", strict=False, loadouts_path=lo, registry_path=reg) == []
+
+
+def test_boot_check_reports_missing_required(files):
+    lo, reg = files
+    # needs-dead requires HS-900 (deprecated) -> counts as missing
+    missing = boot_check("needs-dead", strict=False, loadouts_path=lo, registry_path=reg)
+    assert "HS-900" in missing
+
+
+def test_boot_check_strict_raises_on_missing(files):
+    lo, reg = files
+    with pytest.raises(BootCheckError):
+        boot_check("needs-dead", strict=True, loadouts_path=lo, registry_path=reg)
+
+
+def test_boot_check_fail_open_when_files_absent():
+    # No mount -> cannot determine -> never brick, even in strict mode.
+    assert boot_check("broski-bot", strict=True,
+                      loadouts_path="/nope/lo.json", registry_path="/nope/reg.json") == []
