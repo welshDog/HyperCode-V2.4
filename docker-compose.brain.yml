@@ -161,7 +161,10 @@ services:
       - "3305:80"
 
     volumes:
-      - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/07-Co-Pilot/public:/usr/share/nginx/html:ro
+      # Single source of truth: serve the standalone hyperfocus-copilot repo directly.
+      # The old vault path (07-Co-Pilot/public) was empty — nginx served nothing.
+      # One copy = no drift. Override with HYPERFOCUS_COPILOT_PATH if the repo moves.
+      - ${HYPERFOCUS_COPILOT_PATH:-H:/HYPERFOCUSZONE/HperCore/hyperfocus-copilot/public}:/usr/share/nginx/html:ro
 
     networks:
       - frontend-net
