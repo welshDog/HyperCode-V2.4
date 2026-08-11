@@ -4,7 +4,7 @@
 #   docker build -f Dockerfile.agents-test -t agents-test .
 #   docker run --rm agents-test
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 # Keep Python output unbuffered so pytest output streams in real-time
 ENV PYTHONUNBUFFERED=1 \

@@ -4,7 +4,7 @@
 ARG NODE_IMAGE=node:20.18.1-bookworm-slim
 FROM ${NODE_IMAGE} as node
 
-FROM python:3.11-slim-bookworm as base
+FROM python:3.14-slim-bookworm as base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
