@@ -1,0 +1,54 @@
+# Stripe MCP Server
+# Part of Track 1: Deep MCP Integration (Agent-Ready Architecture).
+
+services:
+  stripe-mcp:
+    build:
+      context: ./agents/stripe-mcp
+      dockerfile: Dockerfile
+    container_name: stripe-mcp
+    restart: unless-stopped
+    networks:
+      - agent-net
+      - data-net
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PRICE_STARTER=${STRIPE_PRICE_STARTER}
+      - STRIPE_PRICE_BUILDER=${STRIPE_PRICE_BUILDER}
+      - STRIPE_PRICE_HYPER=${STRIPE_PRICE_HYPER}
+      - STRIPE_PRICE_PRO_MONTHLY=${STRIPE_PRICE_PRO_MONTHLY}
+      - STRIPE_PRICE_PRO_YEARLY=${STRIPE_PRICE_PRO_YEARLY}
+      - STRIPE_PRICE_HYPER_MONTHLY=${STRIPE_PRICE_HYPER_MONTHLY}
+      - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY}
+      - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
+      - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+    secrets:
+      - database_url
+      - stripe_secret_key
+      - stripe_webhook_secret
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+secrets:
+  database_url:
+    file: ./secrets/database_url.txt
+  stripe_secret_key:
+    file: ./secrets/stripe_secret_key.txt
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret.txt
+
+networks:
+  agent-net:
+    external: true
+  data-net:
+    external: true
