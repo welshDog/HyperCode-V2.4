@@ -1,0 +1,37 @@
+# BROski Economy MCP Server
+# Part of Track 1: Deep MCP Integration (Agent-Ready Architecture).
+
+services:
+  broski-economy-mcp:
+    build:
+      context: ./agents/broski-economy-mcp
+      dockerfile: Dockerfile
+    container_name: broski-economy-mcp
+    restart: unless-stopped
+    networks:
+      - agent-net
+      - data-net
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    secrets:
+      - database_url
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8099/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+secrets:
+  database_url:
+    file: ./secrets/database_url.txt
+
+networks:
+  agent-net:
+    external: true
+  data-net:
+    external: true
