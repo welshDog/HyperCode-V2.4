@@ -58,6 +58,9 @@ async def create_run(
     name = payload.get("flow")
     description = payload.get("description")
 
+    if description is not None and not isinstance(description, str):
+        raise HTTPException(status_code=422, detail="'description' must be a string")
+
     if not name and not description:
         raise HTTPException(status_code=422, detail="'flow' or 'description' is required")
 

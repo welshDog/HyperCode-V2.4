@@ -3,6 +3,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 from app.api import deps
 from app.main import app
 
@@ -12,6 +14,11 @@ def _authed():
         return SimpleNamespace(id=1, is_superuser=False)
 
     app.dependency_overrides[deps.get_current_active_user] = _fake_user
+
+
+@pytest.fixture(autouse=True)
+def _default_threshold(monkeypatch):
+    monkeypatch.delenv("HYPERFLOW_MATCH_THRESHOLD", raising=False)
 
 
 def test_description_matches_and_runs_flow(client):
@@ -84,6 +91,16 @@ def test_neither_flow_nor_description_returns_422(client):
     _authed()
     try:
         resp = client.post("/api/v1/flows/runs", json={})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert resp.status_code == 422
+
+
+def test_non_string_description_returns_422(client):
+    _authed()
+    try:
+        resp = client.post("/api/v1/flows/runs", json={"description": 42})
     finally:
         app.dependency_overrides.clear()
 
