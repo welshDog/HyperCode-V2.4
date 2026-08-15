@@ -1,18 +1,29 @@
 """agent_policy_schema
 
-Revision ID: 010
-Revises: 009
+Revision ID: 019
+Revises: 018
 Create Date: 2026-08-14
 
 Part of Track 2: Policy-Aware Crew Orchestrator.
+
+Originally authored as revision "010" off "009", in parallel with
+010_add_access_provisions_event_id.py (also off "009") -- both branches
+merged to main without either being rebased, leaving two migrations
+claiming the same revision id and Alembic unable to resolve a single head
+("Multiple head revisions are present for given argument 'head'").
+Renumbered to 019 and re-chained after 018 (the actual tip of the other
+branch) to restore a single linear history. This migration is fully
+self-contained (agent_registry/policy_rules/audit_log, all new tables,
+no foreign keys outside itself) so moving it to the tail is safe -- no
+other migration references it.
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '010'
-down_revision = '009'
+revision = '019'
+down_revision = '018'
 branch_labels = None
 depends_on = None
 
