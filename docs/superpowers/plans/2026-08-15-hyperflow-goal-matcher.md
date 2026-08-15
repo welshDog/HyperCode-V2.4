@@ -90,7 +90,7 @@ intent: "Deterministic smoke test of the flow control plane using approval gates
 `backend/app/agents/hyperflow/flows/implement_new_agent.yml` — add after `entry: design_spec`:
 
 ```yaml
-intent: "Design and scaffold a new HyperCode agent from a spec, verify its health endpoint goes green"
+intent: "Design and scaffold a new agent from a spec, verify health"
 ```
 
 `backend/app/agents/hyperflow/flows/safety_demo.yml` — add after `entry: risky_action`:
