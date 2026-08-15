@@ -116,6 +116,35 @@ ROSTER: dict[str, dict[str, Any]] = {
 }
 
 _EXIT_CODE_RE = re.compile(r"Exited \((\d+)\)")
+_ROLE_PORT_RE = re.compile(r"port (\d+)")
+
+
+def _apply_manifest_defaults(roster: dict[str, dict[str, Any]]) -> None:
+    """Fill in the Phase 0.3 agent-manifest fields (capabilities, tools_exposed,
+    events_subscribed, health_endpoint, mcp, a2a) on every ROSTER entry.
+
+    Only derives a fact when it's already documented elsewhere in this same
+    dict — a port already written in `role`, or "mcp" already present in the
+    agent's name/role — rather than guessing. Everything else stays None so an
+    empty manifest field reads as "not yet known", not "verified absent".
+    """
+    for name, meta in roster.items():
+        meta.setdefault("capabilities", None)
+        meta.setdefault("tools_exposed", None)
+        meta.setdefault("events_subscribed", None)
+
+        port_match = _ROLE_PORT_RE.search(meta.get("role", ""))
+        meta.setdefault(
+            "health_endpoint",
+            f"http://{name}:{port_match.group(1)}/health" if port_match else None,
+        )
+
+        looks_like_mcp = "mcp" in name.lower() or "mcp" in meta.get("role", "").lower()
+        meta.setdefault("mcp", looks_like_mcp)
+        meta.setdefault("a2a", False)  # nothing implements A2A yet
+
+
+_apply_manifest_defaults(ROSTER)
 
 # ── Models ───────────────────────────────────────────────────────────────────
 
@@ -132,6 +161,15 @@ class AgentStatus(BaseModel):
     crashes_in_window: int = 0
     crash_loop: bool = False         # circuit breaker open
     auto_restarts_issued: int = 0
+
+    # Phase 0.3 agent manifest — static facts about the agent, not live state.
+    # None means "not yet known", not "verified absent".
+    capabilities: Optional[list[str]] = None
+    tools_exposed: Optional[list[str]] = None
+    events_subscribed: Optional[list[str]] = None
+    health_endpoint: Optional[str] = None
+    mcp: bool = False
+    a2a: bool = False
 
 
 class PingRequest(BaseModel):
@@ -425,6 +463,12 @@ async def _agent_status(name: str) -> AgentStatus:
         crashes_in_window=crashes,
         crash_loop=await _circuit_open(name),
         auto_restarts_issued=int(data.get("auto_restarts_issued", 0)),
+        capabilities=meta.get("capabilities"),
+        tools_exposed=meta.get("tools_exposed"),
+        events_subscribed=meta.get("events_subscribed"),
+        health_endpoint=meta.get("health_endpoint"),
+        mcp=meta.get("mcp", False),
+        a2a=meta.get("a2a", False),
     )
 
 
