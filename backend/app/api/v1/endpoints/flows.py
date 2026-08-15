@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.agents.hyperflow.goal_matcher import match_goal
 from app.agents.hyperflow.registry import available_flows, get_flow
 from app.agents.hyperflow_runner import (
     cache_redis_url,
@@ -55,15 +56,39 @@ async def create_run(
     current_user: Any = Depends(deps.get_current_active_user),
 ) -> Any:
     name = payload.get("flow")
+    description = payload.get("description")
+
+    if not name and not description:
+        raise HTTPException(status_code=422, detail="'flow' or 'description' is required")
+
+    match_score: float | None = None
     if not name:
-        raise HTTPException(status_code=422, detail="'flow' is required")
+        result = match_goal(description, available_flows())
+        if result.flow_name is None:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "no_confident_flow_match",
+                    "candidates": [
+                        {"flow": c.flow, "score": c.score, "intent": c.intent}
+                        for c in result.candidates
+                    ],
+                },
+            )
+        name = result.flow_name
+        match_score = result.score
+
     fd = get_flow(name)
     if fd is None:
         raise HTTPException(status_code=404, detail=f"Unknown flow '{name}'")
 
     run_id = str(uuid.uuid4())
     await start_flow_run(fd, run_id, user_id=getattr(current_user, "id", None))
-    return {"run_id": run_id, "flow": fd.name, "status": "running"}
+    response: dict[str, Any] = {"run_id": run_id, "flow": fd.name, "status": "running"}
+    if match_score is not None:
+        response["matched_flow"] = fd.name
+        response["match_score"] = match_score
+    return response
 
 
 def _serialize_run(run: HyperFlowRun) -> dict[str, Any]:
