@@ -149,8 +149,8 @@ async def require_mcp_token(authorization: str | None = Header(default=None)) ->
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
     token = authorization.removeprefix("Bearer ").strip()
-    expected = os.environ.get("BROSKI_ECONOMY_MCP_AUTH_TOKEN", "")
-    if not expected or not hmac.compare_digest(token, expected):
+    expected = os.environ.get("BROSKI_ECONOMY_MCP_AUTH_TOKEN", "").strip()
+    if not expected or not hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8")):
         raise HTTPException(status_code=403, detail="Invalid token")
 
 

@@ -76,3 +76,36 @@ def test_tool_call_valid_token_reaches_dispatcher(broski_economy_mcp_app):
     # implementation would return.
     assert resp.status_code == 200
     assert "Unknown tool" in resp.text
+
+
+def test_non_ascii_token_returns_403_not_500(broski_economy_mcp_app):
+    client = TestClient(broski_economy_mcp_app)
+    # Starlette decodes incoming header bytes as latin-1, so a header byte
+    # >= 0x80 on the wire becomes a non-ASCII str server-side. httpx's
+    # TestClient rejects non-ASCII *str* header values before they ever
+    # leave the client, so we pass the raw wire bytes directly (0xE9 =
+    # latin-1 "é") to reproduce what actually reaches the server.
+    resp = client.post(
+        "/mcp/tools/nonexistent_tool",
+        json={},
+        headers={"Authorization": b"Bearer \xe9\xe9\xe9-not-a-real-token"},
+    )
+    # Non-ASCII bearer tokens must be rejected as invalid credentials
+    # (403), not crash hmac.compare_digest into an unhandled 500.
+    assert resp.status_code == 403
+
+
+def test_secret_with_trailing_whitespace_still_matches(broski_economy_mcp_app, monkeypatch):
+    monkeypatch.setenv("BROSKI_ECONOMY_MCP_AUTH_TOKEN", "test-secret-token\n")
+    client = TestClient(broski_economy_mcp_app)
+    resp = client.post(
+        "/mcp/tools/nonexistent_tool",
+        json={},
+        headers={"Authorization": "Bearer test-secret-token"},
+    )
+    # A trailing newline in the provisioned secret must not break the
+    # otherwise-correct token. Same pre-existing tuple-return quirk as
+    # test_tool_call_valid_token_reaches_dispatcher above: the dispatcher
+    # serializes as 200 with "Unknown tool" body, not a true 404.
+    assert resp.status_code == 200
+    assert "Unknown tool" in resp.text

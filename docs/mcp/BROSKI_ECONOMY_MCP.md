@@ -57,7 +57,7 @@ Expected: `{"status":"ok"}`
 ### 4. Check MCP discovery
 
 ```powershell
-curl http://localhost:8099/.well-known/mcp
+curl http://localhost:8099/.well-known/mcp -H "Authorization: Bearer <your-token>"
 ```
 
 Expected: JSON with `tools` and `resources` matching the definitions in `server.py`.
@@ -69,6 +69,7 @@ Expected: JSON with `tools` and `resources` matching the definitions in `server.
 ```powershell
 curl -X POST http://localhost:8099/mcp/tools/get_balance `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"discord_id": "123456789012345678"}'
 ```
 
@@ -77,6 +78,7 @@ curl -X POST http://localhost:8099/mcp/tools/get_balance `
 ```powershell
 curl -X POST http://localhost:8099/mcp/tools/award_tokens `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"discord_id": "123456789012345678", "amount": 50, "reason": "Completed lesson 1"}'
 ```
 
@@ -85,6 +87,7 @@ curl -X POST http://localhost:8099/mcp/tools/award_tokens `
 ```powershell
 curl -X POST http://localhost:8099/mcp/tools/spend_tokens `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"discord_id": "123456789012345678", "amount": 100, "item_slug": "agent-sandbox-access"}'
 ```
 
@@ -93,13 +96,13 @@ curl -X POST http://localhost:8099/mcp/tools/spend_tokens `
 ### Balance resource
 
 ```powershell
-curl "http://localhost:8099/mcp/resources/broski://balance/123456789012345678"
+curl "http://localhost:8099/mcp/resources/broski://balance/123456789012345678" -H "Authorization: Bearer <your-token>"
 ```
 
 ### Transactions resource
 
 ```powershell
-curl "http://localhost:8099/mcp/resources/broski://transactions/123456789012345678?limit=5"
+curl "http://localhost:8099/mcp/resources/broski://transactions/123456789012345678?limit=5" -H "Authorization: Bearer <your-token>"
 ```
 
 ## Integrating with Agents
@@ -122,7 +125,7 @@ Later, you can wire this into MCP clients (Claude Desktop, VS Code, Cursor) by c
 
 - The server runs as non-root (`appuser`) following Phase 9 patterns.
 - It uses the shared `DATABASE_URL` secret; ensure DB user has appropriate permissions for `award_tokens` / `spend_tokens` functions.
-- Rate limiting and auth can be added at the API gateway / ingress layer if exposed externally.
+- Every route except `/health` requires `Authorization: Bearer <token>`, checked against the `BROSKI_ECONOMY_MCP_AUTH_TOKEN` env var — see this server's own README.md `## Authentication` section for details.
 
 ## Next Steps
 

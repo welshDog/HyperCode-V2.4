@@ -75,7 +75,7 @@ Expected: `{"status":"ok"}`
 ### 4. Check MCP discovery
 
 ```powershell
-curl http://localhost:8100/.well-known/mcp
+curl http://localhost:8100/.well-known/mcp -H "Authorization: Bearer <your-token>"
 ```
 
 Expected: JSON with `tools` and `resources` matching the definitions in `server.py`.
@@ -87,6 +87,7 @@ Expected: JSON with `tools` and `resources` matching the definitions in `server.
 ```powershell
 curl -X POST http://localhost:8100/mcp/tools/create_checkout `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"price_id": "starter", "user_id": "123456789012345678"}'
 ```
 
@@ -99,6 +100,7 @@ Use Stripe CLI to forward a test event, or manually POST a signed payload:
 ```powershell
 curl -X POST http://localhost:8100/mcp/tools/handle_webhook_event `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"payload": "{\"id\":\"evt_xxx\",\"type\":\"checkout.session.completed\"}", "sig_header": "t=xxx,v1=xxx"}'
 ```
 
@@ -109,6 +111,7 @@ Expected: `{"success": true, "event_type": "checkout.session.completed", ...}`
 ```powershell
 curl -X POST http://localhost:8100/mcp/tools/get_subscription `
   -H "Content-Type: application/json" `
+  -H "Authorization: Bearer <your-token>" `
   -d '{"user_id": "123456789012345678"}'
 ```
 
@@ -119,13 +122,13 @@ Expected: `{"user_id": "123456789012345678", "status": "active" | "none"}`
 ### Subscription resource
 
 ```powershell
-curl "http://localhost:8100/mcp/resources/stripe://subscription/123456789012345678"
+curl "http://localhost:8100/mcp/resources/stripe://subscription/123456789012345678" -H "Authorization: Bearer <your-token>"
 ```
 
 ### Plans resource
 
 ```powershell
-curl "http://localhost:8100/mcp/resources/stripe://plans"
+curl "http://localhost:8100/mcp/resources/stripe://plans" -H "Authorization: Bearer <your-token>"
 ```
 
 Expected: `["starter", "builder", "hyper", "pro_monthly", "pro_yearly", ...]`
@@ -150,7 +153,7 @@ Later, you can wire this into MCP clients (Claude Desktop, VS Code, Cursor) by c
 
 - The server runs as non-root (`appuser`) following Phase 9 patterns.
 - It uses shared secrets for DB and Stripe; ensure these are properly secured and rotated.
-- Rate limiting and auth can be added at the API gateway / ingress layer if exposed externally.
+- Every route except `/health` requires `Authorization: Bearer <token>`, checked against the `STRIPE_MCP_AUTH_TOKEN` env var — see this server's own README.md `## Authentication` section for details.
 
 ## Next Steps
 
