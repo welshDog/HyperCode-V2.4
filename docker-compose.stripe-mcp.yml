@@ -24,6 +24,7 @@ services:
       - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY}
       - STRIPE_SUCCESS_URL=${STRIPE_SUCCESS_URL}
       - STRIPE_CANCEL_URL=${STRIPE_CANCEL_URL}
+      - STRIPE_MCP_AUTH_TOKEN=${STRIPE_MCP_AUTH_TOKEN}
     secrets:
       - database_url
       - stripe_secret_key

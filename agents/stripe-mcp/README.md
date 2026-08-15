@@ -30,6 +30,14 @@ MCP server exposing Stripe checkout, webhooks, and subscriptions as tools and re
 - Uses Docker secrets for Stripe keys and DB credentials.
 - Exposes an MCP server over HTTP on port 8100.
 
+## Authentication
+
+Every route except `/health` requires `Authorization: Bearer <token>`,
+checked against the `STRIPE_MCP_AUTH_TOKEN` env var (constant-time
+comparison). Missing header → `401`. Wrong token → `403`. An unset or
+empty `STRIPE_MCP_AUTH_TOKEN` rejects every request — the server fails
+closed, never open, on misconfiguration.
+
 ## Deployment
 
 See `docker-compose.stripe-mcp.yml` in the repo root for the service definition.

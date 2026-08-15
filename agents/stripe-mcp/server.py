@@ -21,7 +21,7 @@ from contextlib import asynccontextmanager
 
 import asyncio
 from asyncpg import create_pool, Pool
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, Request, HTTPException, Header, Depends
 import uvicorn
 
 # ---------- Config ----------
@@ -35,6 +35,8 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL env var must be set")
 
 stripe.api_key = STRIPE_SECRET_KEY
+
+import hmac
 
 # Price map (mirrors stripe_service.py)
 PRICE_MAP = {
@@ -189,6 +191,15 @@ async def get_plans_resource() -> list:
     return list(PRICE_MAP.keys())
 
 
+async def require_mcp_token(authorization: str | None = Header(default=None)) -> None:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
+    token = authorization.removeprefix("Bearer ").strip()
+    expected = os.environ.get("STRIPE_MCP_AUTH_TOKEN", "")
+    if not expected or not hmac.compare_digest(token, expected):
+        raise HTTPException(status_code=403, detail="Invalid token")
+
+
 # ---------- MCP Server ----------
 
 app = FastAPI(title="Stripe MCP Server")
@@ -250,12 +261,12 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/.well-known/mcp")
+@app.get("/.well-known/mcp", dependencies=[Depends(require_mcp_token)])
 async def mcp_discovery():
     return {"tools": TOOLS, "resources": RESOURCES}
 
 
-@app.post("/mcp/tools/{tool_name}")
+@app.post("/mcp/tools/{tool_name}", dependencies=[Depends(require_mcp_token)])
 async def call_tool(tool_name: str, request: Request):
     body = await request.json()
 
@@ -277,12 +288,12 @@ async def call_tool(tool_name: str, request: Request):
     return {"result": result}
 
 
-@app.get("/mcp/resources/stripe://subscription/{user_id}")
+@app.get("/mcp/resources/stripe://subscription/{user_id}", dependencies=[Depends(require_mcp_token)])
 async def resource_subscription(user_id: str):
     return await get_subscription_resource(user_id)
 
 
-@app.get("/mcp/resources/stripe://plans")
+@app.get("/mcp/resources/stripe://plans", dependencies=[Depends(require_mcp_token)])
 async def resource_plans():
     return await get_plans_resource()
 
