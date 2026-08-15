@@ -300,7 +300,18 @@ def test_tool_call_valid_token_reaches_dispatcher(broski_economy_mcp_app):
         json={},
         headers={"Authorization": "Bearer test-secret-token"},
     )
-    assert resp.status_code == 404
+    # NOT 404. This file's unknown-tool branch (line ~239-240) does
+    # `return {"error": ...}, 404` — a plain tuple, which FastAPI does not
+    # special-case into an HTTP 404; it serializes as a 200 with a
+    # malformed JSON-array body `[{"error":...}, 404]`. Confirmed
+    # empirically before this task started. That's a pre-existing bug in
+    # the dispatcher, unrelated to auth and out of scope for this task —
+    # do not fix it here. This test only needs to prove the valid token
+    # reached the dispatcher at all (i.e. wasn't blocked by auth), so it
+    # asserts the actual current behavior, not the status code a correct
+    # implementation would return.
+    assert resp.status_code == 200
+    assert "Unknown tool" in resp.text
 ```
 
 Note: this file deliberately does NOT include a resource-route auth test
@@ -321,9 +332,11 @@ Run: `cd HyperCode-V2.4 && python -m pytest backend/tests/test_broski_economy_mc
 Expected: 3 of 5 FAIL (`test_well_known_mcp_requires_auth`,
 `test_tool_call_missing_auth_header_returns_401`,
 `test_tool_call_wrong_token_returns_403`) — same reasoning as Task 1:
-every route is currently open, so these get `200`/`404` instead of the
+every route is currently open, so these get `200` instead of the
 `401`/`403` expected. `test_health_requires_no_auth` and
-`test_tool_call_valid_token_reaches_dispatcher` already pass.
+`test_tool_call_valid_token_reaches_dispatcher` already pass (the latter
+asserts today's actual — buggy but out-of-scope — `200` response, not a
+`404`; see the comment in that test).
 
 - [ ] **Step 3: Add the auth dependency and gate every non-health route**
 
