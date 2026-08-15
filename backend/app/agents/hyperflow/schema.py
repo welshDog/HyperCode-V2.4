@@ -92,6 +92,7 @@ class FlowDefinition(BaseModel):
     name: str
     version: int = 1
     entry: str
+    intent: str = ""
     nodes: list[FlowNode]
     edges: list[FlowEdge] = Field(default_factory=list)
 

@@ -9,6 +9,7 @@
 name: hyperflow-smoke
 version: 1
 entry: ready
+intent: "Deterministic smoke test of the flow control plane using approval gates only, no external dependencies"
 
 nodes:
   - id: ready

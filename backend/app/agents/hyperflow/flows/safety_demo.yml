@@ -13,6 +13,7 @@
 name: safety-demo
 version: 1
 entry: risky_action
+intent: "Demonstrate Safety Shepherd escalation and approval for a privileged docker action"
 
 nodes:
   - id: risky_action

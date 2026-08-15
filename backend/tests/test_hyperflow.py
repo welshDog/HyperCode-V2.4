@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from app.agents.hyperflow.registry import FLOWS_DIR, get_flow
+from app.agents.hyperflow.registry import FLOWS_DIR, available_flows, get_flow
 from app.agents.hyperflow.schema import FlowDefinition, NodeType, load_flow
 from app.agents.hyperflow_runner import HyperFlowRunner
 from app.models.hyperflow import HyperFlowRunStatus
@@ -70,6 +70,15 @@ def test_example_flow_validates():
 def test_registry_loads_example():
     assert (FLOWS_DIR / "implement_new_agent.yml").exists()
     assert get_flow("does-not-exist") is None
+
+
+def available_flows_for_test():
+    return available_flows()
+
+
+def test_all_registered_flows_declare_intent():
+    for name, fd in available_flows_for_test().items():
+        assert fd.intent, f"flow '{name}' has no intent — needed for goal matching"
 
 
 def test_schema_rejects_bad_entry():

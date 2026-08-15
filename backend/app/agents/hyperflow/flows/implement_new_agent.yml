@@ -16,6 +16,7 @@
 name: implement-new-agent
 version: 1
 entry: design_spec
+intent: "Design and scaffold a new agent from a spec, verify health"
 
 nodes:
   - id: design_spec
