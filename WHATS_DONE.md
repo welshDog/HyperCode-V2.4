@@ -1,6 +1,25 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-07-10 (evening BST) by BROski AI ⚡
+> Last synced: 2026-08-15 by Claude Sonnet 5 ⚡
+
+## 2026-08-15 — Alembic duplicate-revision bug fixed (PR #425)
+
+Two migrations both claimed revision `"010"` (`down_revision "009"`) —
+`010_add_access_provisions_event_id.py` (the real chain) and
+`010_agent_policy_schema.py` (PR #424, "Policy Engine foundation", merged
+08-14 without being rebased against the already-merged `010`). Made
+`alembic upgrade head` fail outright on ANY fresh deploy with "Multiple
+head revisions are present." Found while standing up a fresh Railway
+deployment for the cross-repo `generate-v2-config` `V24_API_URL` P0 (see
+`NEXT_SESSION_HANDOVER_2026-08-15.md` for the full cross-repo context).
+
+`010_agent_policy_schema.py` is fully self-contained (3 brand-new tables,
+no FKs outside itself, nothing references it) — renamed to `019`,
+re-chained after `018` (the real tip). Verified locally (`alembic heads`
+→ single head, full linear `alembic history`) and confirmed live: the
+next Railway deploy attempt ran the full migration chain clean, zero
+errors. Deploy is now blocked on a separate, unrelated Redis connectivity
+issue — not yet diagnosed, see the handover doc.
 
 ## Done & Locked — Do NOT re-suggest
 
