@@ -15,6 +15,7 @@ Resources:
 
 import os
 import json
+import hmac
 from typing import Optional
 from contextlib import asynccontextmanager
 
@@ -138,10 +139,20 @@ async def get_transactions_resource(discord_id: str, limit: int = 10) -> list:
 # This is a simplified MCP-over-HTTP style server.
 # In a later iteration, this can be replaced/wrapped by the official MCP SDK.
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, Header, Depends, HTTPException
 import uvicorn
 
 app = FastAPI(title="BROski Economy MCP Server")
+
+
+async def require_mcp_token(authorization: str | None = Header(default=None)) -> None:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
+    token = authorization.removeprefix("Bearer ").strip()
+    expected = os.environ.get("BROSKI_ECONOMY_MCP_AUTH_TOKEN", "")
+    if not expected or not hmac.compare_digest(token, expected):
+        raise HTTPException(status_code=403, detail="Invalid token")
+
 
 TOOLS = {
     "award_tokens": {
@@ -202,7 +213,7 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/.well-known/mcp")
+@app.get("/.well-known/mcp", dependencies=[Depends(require_mcp_token)])
 async def mcp_discovery():
     """
     MCP discovery endpoint (simplified).
@@ -214,7 +225,7 @@ async def mcp_discovery():
     }
 
 
-@app.post("/mcp/tools/{tool_name}")
+@app.post("/mcp/tools/{tool_name}", dependencies=[Depends(require_mcp_token)])
 async def call_tool(tool_name: str, request: Request):
     """
     MCP tool invocation endpoint.
@@ -242,7 +253,7 @@ async def call_tool(tool_name: str, request: Request):
     return {"result": result}
 
 
-@app.get("/mcp/resources/broski://balance/{discord_id}")
+@app.get("/mcp/resources/broski://balance/{discord_id}", dependencies=[Depends(require_mcp_token)])
 async def resource_balance(discord_id: str):
     """
     MCP resource: broski://balance/{discord_id}
@@ -251,7 +262,7 @@ async def resource_balance(discord_id: str):
     return result
 
 
-@app.get("/mcp/resources/broski://transactions/{discord_id}")
+@app.get("/mcp/resources/broski://transactions/{discord_id}", dependencies=[Depends(require_mcp_token)])
 async def resource_transactions(discord_id: str, limit: int = 10):
     """
     MCP resource: broski://transactions/{discord_id}?limit=N

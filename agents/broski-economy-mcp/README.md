@@ -30,6 +30,14 @@ MCP server exposing the BROski$ token economy as tools and resources for AI agen
 - Uses Docker secrets for DB credentials.
 - Exposes an MCP server over stdio / HTTP (depending on deployment).
 
+## Authentication
+
+Every route except `/health` requires `Authorization: Bearer <token>`,
+checked against the `BROSKI_ECONOMY_MCP_AUTH_TOKEN` env var (constant-time
+comparison). Missing header → `401`. Wrong token → `403`. An unset or
+empty `BROSKI_ECONOMY_MCP_AUTH_TOKEN` rejects every request — the server
+fails closed, never open, on misconfiguration.
+
 ## Deployment
 
 See `docker-compose.broski-economy-mcp.yml` in the repo root for the service definition.
