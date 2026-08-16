@@ -1,6 +1,92 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-15 by Claude Sonnet 5 ⚡
+> Last synced: 2026-08-16 by Claude Sonnet 5 ⚡
+
+## 2026-08-16 — Evolution Plan Phase 0.3/1.3 + 3x MCP server auth gap closed
+
+Working from `🚀 HYPERCODE EVOLUTION PLAN — 2026 & BEYOND` (HperCore root).
+Corrected the plan's own Phase 0.1/1.1-1.3 assumptions against actual code
+before building anything (found HyperFlow already covers most of Phase
+1.3's "goal-based orchestration", MCP gateway is live infra not
+greenfield, ECOSYSTEM_TRUTH.md would duplicate the already-generated
+AGENT-START.md repo map) — see that file's inline annotations.
+
+- **Phase 0.3 — Agent registry manifest.** `agents/agent-registry/agent_registry.py`'s
+  `ROSTER` (43 agents) gained `capabilities`/`tools_exposed`/`events_subscribed`
+  (honestly `None` — no invented data), `health_endpoint` (derived only
+  from ports already documented in each agent's `role` string), `mcp`
+  (`True` for the 4 agents whose name/role already says MCP), `a2a`
+  (`False` for all — nothing implements it yet). Surfaced via the
+  existing `GET /agents/status` — no new endpoints. 6 new tests
+  (`backend/tests/test_agent_registry_manifest.py`).
+
+- **HyperFlow goal matcher (Phase 1.3 v1).** `POST /api/v1/flows/runs`
+  now accepts `{"description": "..."}` as an alternative to
+  `{"flow": "name"}` — deterministic keyword (Jaccard) matcher
+  (`app/agents/hyperflow/goal_matcher.py`) against each flow's
+  `name + intent`, env-tunable threshold (`HYPERFLOW_MATCH_THRESHOLD`,
+  default 0.4). Explicitly NOT an LLM-generated graph compiler — routes
+  only to existing, already-reviewed flows; a confident match runs the
+  exact same `start_flow_run` path an explicit `flow` name would.
+  Exact top-two tie → ambiguous, 422 (never silently picks one). Zero
+  changes to `HyperFlowRunner` or Safety Shepherd. Spec:
+  `docs/superpowers/specs/2026-08-15-hyperflow-goal-matcher-design.md`.
+
+- **MCP server auth — closed on all three internal MCP servers**, found
+  and fixed one at a time this session, each with zero application-level
+  auth before this (network-isolation-only):
+  - `agents/stripe-mcp/server.py` — creates real Stripe checkout sessions.
+  - `agents/broski-economy-mcp/server.py` — the serious one:
+    `award_tokens`/`spend_tokens` wrap `SECURITY DEFINER` SQL functions
+    with **no caller-identity check** before this fix; an unauthenticated
+    caller could have minted unlimited BROski$ or drained any account.
+  - `services/mcp-rest-adapter/app.py` — REST shim in front of the
+    generic `docker/mcp-gateway` (github/postgres/filesystem tools).
+    **Real live caller** (unlike the other two) — the dashboard's IDE
+    view proxies through it; the fix had to also teach
+    `agents/dashboard/app/api/mcp/[...path]/route.ts` to send the token,
+    or every IDE tool call would have silently 401'd while `/health`
+    kept reporting green.
+
+  All three: shared-secret `Authorization: Bearer <token>` per server
+  (`STRIPE_MCP_AUTH_TOKEN` / `BROSKI_ECONOMY_MCP_AUTH_TOKEN` /
+  `MCP_REST_ADAPTER_AUTH_TOKEN`, never shared across servers),
+  `hmac.compare_digest` on UTF-8-encoded bytes (not `str` — non-ASCII
+  tokens crash `compare_digest` on `str` args), both sides `.strip()`'d
+  (an unstripped secret rejects the *correct* token — real bug an
+  independent review caught live against the first two servers; baked
+  the fix into the third from the start). Fails closed: unset/empty
+  secret rejects everything. `/health` stays open on all three. 23 tests
+  across the three auth suites (`test_stripe_mcp_auth.py`,
+  `test_broski_economy_mcp_auth.py`, `test_mcp_rest_adapter_auth.py`).
+  Spec: `docs/superpowers/specs/2026-08-15-mcp-tool-server-auth-design.md`.
+
+- **`docs/MCP_TOOL_INVENTORY.md`** (new) — every tool across all four MCP
+  servers (the three above + the generic gateway's github/postgres/
+  filesystem), tagged read-only/write, auth status, actual reachability,
+  and a safe-to-expose-later classification. Corrected twice against the
+  real compose files after getting the reachability claims wrong on the
+  first two passes — `stripe-mcp`/`broski-economy-mcp` have **no**
+  `ports:`/`expose:` at all (network-only, more isolated than first
+  documented); `mcp-rest-adapter` is actually the *least* isolated of
+  the three (`ports: 127.0.0.1:8821:8821`), not "the same as the other
+  two" as a second draft claimed. Still-open: the `postgres:<action>`
+  passthrough on `mcp-rest-adapter` is unconstrained — auth now controls
+  *who* can call it, not *what* it's allowed to do (upstream gateway's
+  own `postgres` MCP server capabilities, unaudited, out of scope).
+
+- **`agents/shared/mcp_client.py`** — fixed a latent (currently dead-code,
+  nothing imports `MCPClient`) env var mismatch found while fixing
+  `mcp-rest-adapter`: it defaulted to that service's URL but read its
+  auth token from `MCP_GATEWAY_API_KEY` (a different service's
+  outbound-only token) instead of `MCP_REST_ADAPTER_AUTH_TOKEN`.
+
+⚠️ **Known-stale, not touched this session:** `docs/STATUS.md` (dated
+July 10, predates most of this file's own content) and
+`docs/NEXT_TASKS.md` (dated mid-July, doesn't reflect the Railway P0 or
+anything from August) — both need a real reconciliation pass, not
+attempted here since it's a bigger job than today's session and neither
+file's staleness was caused by today's work.
 
 ## 2026-08-15 — Alembic duplicate-revision bug fixed (PR #425)
 
