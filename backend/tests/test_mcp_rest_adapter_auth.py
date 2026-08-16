@@ -73,3 +73,34 @@ def test_tool_call_valid_token_reaches_handler(rest_adapter_app):
     # request reached _normalize_tool_call, which runs entirely locally
     # with no network call to the upstream gateway.
     assert resp.status_code == 400
+
+
+def test_non_ascii_token_returns_403_not_500(rest_adapter_app):
+    client = TestClient(rest_adapter_app)
+    # Starlette decodes incoming header bytes as latin-1, so a header byte
+    # >= 0x80 on the wire becomes a non-ASCII str server-side. httpx's
+    # TestClient rejects non-ASCII *str* header values before they ever
+    # leave the client, so we pass the raw wire bytes directly (0xE9 =
+    # latin-1 "é") to reproduce what actually reaches the server.
+    resp = client.post(
+        "/tools/call",
+        json={"tool": "not_a_real_tool"},
+        headers={"Authorization": b"Bearer \xe9\xe9\xe9-not-a-real-token"},
+    )
+    # Non-ASCII bearer tokens must be rejected as invalid credentials
+    # (403), not crash hmac.compare_digest into an unhandled 500.
+    assert resp.status_code == 403
+
+
+def test_secret_with_trailing_whitespace_still_matches(rest_adapter_app, monkeypatch):
+    monkeypatch.setenv("MCP_REST_ADAPTER_AUTH_TOKEN", "test-secret-token\n")
+    client = TestClient(rest_adapter_app)
+    resp = client.post(
+        "/tools/call",
+        json={"tool": "not_a_real_tool"},
+        headers={"Authorization": "Bearer test-secret-token"},
+    )
+    # A trailing newline in the provisioned secret must not break the
+    # otherwise-correct token — same outcome as the clean-secret case
+    # above: 400 (auth passed, dispatcher's format check reached).
+    assert resp.status_code == 400

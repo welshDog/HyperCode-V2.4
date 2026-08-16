@@ -16,6 +16,14 @@ const MCP_SSE_URL_CANDIDATES = [
   'http://localhost:8823/sse',
 ].filter(Boolean) as string[]
 
+// mcp-rest-adapter requires Bearer auth on every route except /health.
+// Without this header every non-health call 401s while /health (left
+// unauthenticated on purpose) keeps reporting the service as up.
+function authHeader(): Record<string, string> {
+  const token = process.env.MCP_REST_ADAPTER_AUTH_TOKEN
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function proxy(upstreamUrl: string, init?: RequestInit) {
   const upstream = await fetch(upstreamUrl, { cache: 'no-store', signal: AbortSignal.timeout(5000), ...init })
   const text = await upstream.text()
@@ -69,7 +77,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
     return await tryProxyFromBases(
       MCP_REST_BASE_CANDIDATES,
       `${upstreamPath}${req.nextUrl.search}`,
-      { method: 'GET', headers: { Accept: 'application/json' } }
+      { method: 'GET', headers: { Accept: 'application/json', ...authHeader() } }
     )
   } catch (err) {
     return NextResponse.json(
@@ -86,7 +94,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     const body = await req.text()
     return await tryProxyFromBases(MCP_REST_BASE_CANDIDATES, upstreamPath, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...authHeader() },
       body,
     })
   } catch (err) {

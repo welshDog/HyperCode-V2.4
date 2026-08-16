@@ -260,6 +260,11 @@ services:
       # X-Agent-Key and coder-studio rejects every request with 401.
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - STUDIO_AGENT_URL=http://coder-studio:8087
+      # MCP IDE view proxy → mcp-rest-adapter. The key must match
+      # mcp-rest-adapter's own (both resolve from ${MCP_REST_ADAPTER_AUTH_TOKEN});
+      # without it the proxy forwards no Authorization header and
+      # mcp-rest-adapter rejects every non-health request with 401.
+      - MCP_REST_ADAPTER_AUTH_TOKEN=${MCP_REST_ADAPTER_AUTH_TOKEN}
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000

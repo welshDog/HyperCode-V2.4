@@ -64,7 +64,11 @@ class MCPClient:
         self.gateway_url = gateway_url or os.getenv(
             "MCP_GATEWAY_URL", "http://mcp-rest-adapter:8821"
         )
-        self.api_key = api_key or os.getenv("MCP_GATEWAY_API_KEY", "")
+        # gateway_url defaults to mcp-rest-adapter, so its actual auth var
+        # is MCP_REST_ADAPTER_AUTH_TOKEN, not MCP_GATEWAY_API_KEY (that's a
+        # different service's outbound-only token) — mismatch found and
+        # fixed 2026-08-16 when mcp-rest-adapter gained inbound auth.
+        self.api_key = api_key or os.getenv("MCP_REST_ADAPTER_AUTH_TOKEN", "")
         self.fallback_to_direct = fallback_to_direct
         self.timeout = int(os.getenv("MCP_GATEWAY_TIMEOUT_SECONDS", "30"))
 

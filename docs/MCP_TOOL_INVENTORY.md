@@ -36,12 +36,14 @@ every route except `/health` — same mechanism, `BROSKI_ECONOMY_MCP_AUTH_TOKEN`
 
 ## mcp-rest-adapter
 
-**Reachability:** internal-only, and more isolated than the two servers
-above — `docker-compose.agents.yml` gives it `expose: "8821"` with **no**
-`ports:` mapping at all, so unlike stripe-mcp/broski-economy-mcp it isn't
-even published to the host; only sibling containers on the same Docker
-network can reach it. **Auth:** required on `/tools/discover` and
-`/tools/call` (`/health` stays open) — same mechanism as the other two,
+**Reachability:** internal-only, same as the other two —
+`docker-compose.agents.yml` gives it both `expose: "8821"` and a
+loopback-only `ports: 127.0.0.1:8821:8821` binding: reachable from the
+Docker host, not from the network. (Corrected 2026-08-16 — this doc
+originally claimed no `ports:` mapping existed at all; that was wrong,
+verified against the actual compose file after a review caught it.)
+**Auth:** required on `/tools/discover` and `/tools/call` (`/health`
+stays open) — same mechanism as the other two,
 `MCP_REST_ADAPTER_AUTH_TOKEN`. Closed 2026-08-16, same session as the
 other two — was the "Known Gap" this doc originally shipped with.
 
@@ -54,7 +56,7 @@ A thin REST shim in front of the generic third-party `docker/mcp-gateway`
 | `filesystem:read_file` / `read_text_file(path)` | read-only | Reads a text file, sandboxed to `/workspace`, 1MB cap |
 | `github:list_repos(owner)` | read-only | Adapter-local fallback; lists repos for a GitHub org/user |
 | `github:*` (dynamic, via upstream gateway) | read-only (typically) | Real GitHub MCP server tools (e.g. `search_repositories`), proxied live via `tools/list` — not enumerable statically, whatever the gateway's `github` server currently exposes |
-| `postgres:<action>` (dynamic passthrough) | **unknown — see Known Gap** | Any `action` string is passed straight through to the upstream `postgres` MCP server with no allow-list on this adapter's side |
+| `postgres:<action>` (dynamic passthrough) | **unknown — still unconstrained, see below** | Any `action` string is passed straight through to the upstream `postgres` MCP server with no allow-list on this adapter's side |
 
 `GET /tools/discover` aggregates all of the above (upstream `tools/list`
 plus the two local fallbacks) into one list. `POST /tools/call` is the
