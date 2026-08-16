@@ -1122,6 +1122,7 @@ services:
       - MCP_WORKSPACE_TARGET_PATH=/workspace
       - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4
       - MCP_LOCAL_WORKSPACE_ROOT=/workspace
+      - MCP_REST_ADAPTER_AUTH_TOKEN=${MCP_REST_ADAPTER_AUTH_TOKEN}
     volumes:
       - ./:/workspace:ro
     expose:

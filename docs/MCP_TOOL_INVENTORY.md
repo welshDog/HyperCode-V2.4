@@ -40,7 +40,10 @@ every route except `/health` — same mechanism, `BROSKI_ECONOMY_MCP_AUTH_TOKEN`
 above — `docker-compose.agents.yml` gives it `expose: "8821"` with **no**
 `ports:` mapping at all, so unlike stripe-mcp/broski-economy-mcp it isn't
 even published to the host; only sibling containers on the same Docker
-network can reach it. **Auth: none** — see Known Gap below.
+network can reach it. **Auth:** required on `/tools/discover` and
+`/tools/call` (`/health` stays open) — same mechanism as the other two,
+`MCP_REST_ADAPTER_AUTH_TOKEN`. Closed 2026-08-16, same session as the
+other two — was the "Known Gap" this doc originally shipped with.
 
 A thin REST shim in front of the generic third-party `docker/mcp-gateway`
 (`github`, `postgres`, `filesystem` servers) plus two local fallback tools.
@@ -57,22 +60,19 @@ A thin REST shim in front of the generic third-party `docker/mcp-gateway`
 plus the two local fallbacks) into one list. `POST /tools/call` is the
 single invocation endpoint for all of them.
 
-## Known Gap (found while writing this doc, not yet fixed)
+## Known Gap — RESOLVED 2026-08-16
 
-**`mcp-rest-adapter` has zero inbound authentication** on `/tools/discover`
-or `/tools/call` — confirmed by reading the full file, no `Depends`,
-`Header`, or middleware anywhere. `MCP_GATEWAY_AUTH_TOKEN` in this service
-is outbound-only (adapter → upstream gateway), not inbound caller auth.
+`mcp-rest-adapter` had zero inbound authentication on `/tools/discover` and
+`/tools/call` when this doc was first written (2026-08-15) — found while
+verifying the inventory, not assumed. Closed the same shared-secret
+Bearer-token pattern already proven on the other two servers;
+`mcp-rest-adapter`'s auth row above reflects the fix.
 
-Lower urgency than the two fixes already shipped this session — it's not
-host-reachable at all (Docker `expose`, no `ports:`), and its own tools are
-read-only except the unconstrained `postgres:<action>` passthrough, whose
-actual write capability depends entirely on what the upstream gateway's
-`postgres` MCP server allows (not verified in this pass — would need
-reading that image's own tool implementation, out of scope for this doc).
-Worth its own auth pass later, same shared-secret-Bearer-token pattern
-already proven on the other two servers — flagging here rather than
-silently leaving it out of the inventory.
+Still true and unresolved: the `postgres:<action>` passthrough remains
+unconstrained — the auth fix controls *who* can call it, not *what* it's
+allowed to do. Its actual write capability depends entirely on what the
+upstream gateway's `postgres` MCP server permits, which lives inside the
+third-party `docker/mcp-gateway` image and hasn't been audited.
 
 ## Safe-to-Expose-Later Classification
 

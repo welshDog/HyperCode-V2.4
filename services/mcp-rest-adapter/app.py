@@ -14,6 +14,7 @@ Handshake per call:
   4. DELETE the session           (best effort cleanup)
 """
 
+import hmac
 import json
 import os
 import uuid
@@ -21,7 +22,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 GATEWAY_BASE = os.getenv("MCP_GATEWAY_BASE_URL", "http://mcp-gateway:8820").rstrip("/")
@@ -57,6 +58,15 @@ def _derive_mcp_endpoint() -> str:
 MCP_ENDPOINT = _derive_mcp_endpoint()
 
 app = FastAPI()
+
+
+async def require_mcp_token(authorization: str | None = Header(default=None)) -> None:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
+    token = authorization.removeprefix("Bearer ").strip()
+    expected = os.environ.get("MCP_REST_ADAPTER_AUTH_TOKEN", "").strip()
+    if not expected or not hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8")):
+        raise HTTPException(status_code=403, detail="Invalid token")
 
 
 class ToolCallRequest(BaseModel):
@@ -255,7 +265,7 @@ async def health():
     return {"status": "ok", "transport": "streamable-http", "endpoint": MCP_ENDPOINT}
 
 
-@app.get("/tools/discover")
+@app.get("/tools/discover", dependencies=[Depends(require_mcp_token)])
 async def tools_discover():
     tools = await _jsonrpc("tools/list", {})
     tool_list = None
@@ -358,7 +368,7 @@ def _local_read_file(path: str) -> Dict[str, Any]:
     return {"path": str(path), "content": content}
 
 
-@app.post("/tools/call")
+@app.post("/tools/call", dependencies=[Depends(require_mcp_token)])
 async def tools_call(body: ToolCallRequest):
     normalized = _normalize_tool_call(body)
     tool = normalized["tool"]
