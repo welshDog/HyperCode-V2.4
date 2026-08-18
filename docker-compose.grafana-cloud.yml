@@ -4,6 +4,8 @@
 #         Loki (logs) → Grafana Cloud
 #         Tempo (traces) → Grafana Cloud
 #         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
+#
+# Usage: docker compose --profile grafana-cloud up -d
 # ═══════════════════════════════════════════════════════════════════
 networks:
   backend-net:
@@ -21,6 +23,7 @@ services:
   prometheus:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus-cloud
+    profiles: ["grafana-cloud"]
     volumes:
       - ./monitoring/prometheus/prometheus.cloud.local.yml:/etc/prometheus/prometheus.yml
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
@@ -58,6 +61,7 @@ services:
     # Supply-chain note: pin this via GRAFANA_AGENT_IMAGE (ideally with a digest) in .env.
     image: ${GRAFANA_AGENT_IMAGE:-grafana/agent:latest}
     container_name: grafana-agent
+    profiles: ["grafana-cloud"]
     volumes:
       - ./monitoring/grafana-agent/agent.river:/etc/agent/config.river
       - /var/lib/docker/containers:/var/lib/docker/containers:ro

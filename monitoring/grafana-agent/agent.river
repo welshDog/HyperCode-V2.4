@@ -1,0 +1,127 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# 🧠 Grafana Agent River Config — HyperCode V2.4
+# Scrapes local Prometheus and ships to Grafana Cloud
+# ═══════════════════════════════════════════════════════════════════════════
+
+// Environment variable expansion (set in docker-compose)
+// - GRAFANA_CLOUD_PROMETHEUS_URL: https://prometheus-blocks-prod-us-central1.grafana-net.com/api/prom/push
+// - GRAFANA_CLOUD_PROMETHEUS_USERNAME: your_org_id (numeric, e.g., "123456")
+// - GRAFANA_CLOUD_ACCESS_TOKEN: glc_... (API token)
+// - GRAFANA_CLOUD_LOKI_URL: https://logs-prod-us-central1.grafana-net.com/loki/api/v1/push
+// - GRAFANA_CLOUD_TEMPO_URL: https://tempo-blocks-prod-us-central1.grafana-net.com:443/api/traces
+
+// ─────────────────────────────────────────────────────────────────────────
+// METRICS PIPELINE: Prometheus → Grafana Cloud
+// ─────────────────────────────────────────────────────────────────────────
+
+prometheus.scrape "local_prometheus" {
+  targets    = [{"__address__" = "prometheus:9090"}]
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  job_name   = "prometheus"
+}
+
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_PROMETHEUS_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
+      password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
+    }
+    headers = {
+      "User-Agent" = "Grafana-Agent/HyperCode-V2.4",
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// LOGS PIPELINE: Docker container logs → Grafana Cloud Loki
+// ─────────────────────────────────────────────────────────────────────────
+
+loki.source.docker "containers" {
+  host             = "unix:///var/run/docker.sock"
+  targets          = discovery.docker.targets
+  forward_to       = [loki.process.docker_logs.receiver]
+  relabel_configs  = discovery.relabel.docker_labels.relabel_configs
+}
+
+discovery.docker "targets" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_labels" {
+  targets = discovery.docker.targets
+
+  // Add docker labels as loki labels
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_network_mode"]
+    target_label  = "network"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_status"]
+    target_label  = "status"
+  }
+}
+
+loki.process "docker_logs" {
+  stage.parse_json {}
+  stage.labels {
+    values = {
+      job = "docker",
+    }
+  }
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+loki.write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_LOKI_URL")
+    basic_auth {
+      username = env("GRAFANA_CLOUD_LOKI_USERNAME")
+      password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
+    }
+    headers = {
+      "User-Agent" = "Grafana-Agent/HyperCode-V2.4",
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TRACES PIPELINE: OTLP → Grafana Cloud Tempo
+// ─────────────────────────────────────────────────────────────────────────
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    traces = [otelcol.exporter.otlp.grafana_tempo.input]
+  }
+}
+
+otelcol.exporter.otlp "grafana_tempo" {
+  client {
+    endpoint = env("GRAFANA_CLOUD_TEMPO_URL")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
+  password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// HEALTH PROBE
+// ─────────────────────────────────────────────────────────────────────────
+
+local.file "health" {
+  filename = "/tmp/grafana-agent-healthy"
+  is_secret = false
+}
