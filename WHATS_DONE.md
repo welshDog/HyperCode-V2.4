@@ -2,6 +2,30 @@
 
 > Last synced: 2026-08-19 by Perplexity + welshDog ⚡
 
+---
+
+## 2026-08-19 — STATUS.md + NEXT_TASKS.md Reconciliation Pass
+
+Full docs reconciliation. Both files were stale (July 10 / mid-July). Now accurate and live.
+
+### ✅ docs/STATUS.md — Fully Updated
+
+- Bumped from **July 10 → August 19, 2026**
+- Full **25-agent fleet table** added (13 existing + 12 ghost agents)
+- Each agent shows port + live/building status
+- ⚠️ Known Risks section added: port clash, memory pressure, crew-orchestrator SPOF, JWT expiry
+- Commit: `da91777b`
+
+### ✅ docs/NEXT_TASKS.md — Fully Restructured
+
+- Restructured into priority tiers: 🔴 Immediate → 🟡 This Week → 🟢 Background
+- Pre-launch checklist (port check, resource limits, crew-orchestrator health, launch command) surfaced at top
+- August 2026 completions (ghost agent session) properly logged
+- Stale July items carried forward or marked done
+- Commit: `da91777b`
+
+---
+
 ## 2026-08-19 — 12 Ghost Agents Built + CI/CD Pipeline + AGENT-START v3.3
 
 Full ghost-agent fleet session. All 12 previously-missing agents identified, scaffolded, and registered. Full CI/CD pipeline created for parallel GHCR builds.
@@ -17,7 +41,7 @@ All 12 agents identified, port-mapped, and registered in compose + AGENT-START:
 | `tips-tricks-writer` | :8009 | 🔨 Building |
 | `throttle-agent` | :8014 | 🔨 Building |
 | `super-hyper-broski` | :8015 | 🔨 Building |
-| `test-agent` | :8080 | 🔨 Building |
+| `test-agent` | :8080 | 🔨 Building — ⚠️ check port clash |
 | `hyper-architect` | :8091 | 🔨 Building |
 | `hyper-observer` | :8092 | 🔨 Building |
 | `hyper-worker` | :8093 | 🔨 Building |
@@ -59,15 +83,6 @@ Three-job pipeline:
 Triggers:
 - Push to `main` (agent files / compose files changed)
 - `workflow_dispatch` (manual) — optionally target a single agent via `agent:` input
-
-### ⚠️ Known Open Items (NOT done — do not re-suggest)
-
-- GHCR package visibility: set packages public at `github.com/welshDog` → Packages
-- `mem_limit: 256m` + `cpus: "0.25"` — add to ALL new agent compose definitions before launch
-- Port `:8080` — verify test-agent doesn't conflict with any existing service
-- crew-orchestrator `/health` endpoint — confirm `restart: unless-stopped` is set
-- `docs/STATUS.md` — still stale (dated July 2026), needs reconciliation pass
-- `docs/NEXT_TASKS.md` — still stale (mid-July 2026), needs reconciliation pass
 
 ---
 
@@ -137,14 +152,15 @@ AGENT-START.md repo map) — see that file's inline annotations.
 
 - **`agents/shared/mcp_client.py`** — fixed a latent env var mismatch.
 
-⚠️ **Known-stale, not touched:** `docs/STATUS.md` (dated July 10) and
-`docs/NEXT_TASKS.md` (dated mid-July) — both need a real reconciliation pass.
+---
 
 ## 2026-08-15 — Alembic duplicate-revision bug fixed (PR #425)
 
 Two migrations both claimed revision `"010"` — made `alembic upgrade head`
 fail on fresh deploys. `010_agent_policy_schema.py` renamed to `019`,
 re-chained after `018`. Verified locally + live on Railway.
+
+---
 
 ## Done & Locked — Do NOT re-suggest
 
@@ -180,6 +196,10 @@ re-chained after `018`. Verified locally + live on Railway.
 - **HyperStudio Phase 2** — interactive ESCALATE approval (PR #316, `9f532fb`)
 - **AGENT-START.md v3.3** — full 25-agent fleet registered (commit `9e6a695`)
 - **ghost-agents-build.yml** — parallel CI/CD for 12 ghost agents (commit `d8a0f32`)
+- **docs/STATUS.md reconciliation** — fully updated Aug 19 2026 (commit `da91777b`)
+- **docs/NEXT_TASKS.md reconciliation** — fully restructured Aug 19 2026 (commit `da91777b`)
+
+---
 
 ## Sacred Rules (NEVER break)
 
