@@ -2,8 +2,41 @@
 # docker-compose.agents-full.yml
 # 🤖 25-AGENT FULL SQUAD DEPLOYMENT
 # Usage: docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d
-# Created: May 21, 2026
+# Updated: August 19, 2026 — port audit, orchestrator deps, healthcheck start_periods
 # ════════════════════════════════════════════════════════════════════════════════
+#
+# PORT MAP (host → container:8080)
+# ─────────────────────────────────
+# :8001  project-strategist
+# :8002  coder-agent
+# :8003  backend-specialist
+# :8004  database-architect
+# :8005  qa-engineer
+# :8006  devops-engineer
+# :8007  security-engineer
+# :8008  system-architect        ← was :8009 (clash fixed)
+# :8009  tips-tricks-writer      ← was :8011 (renumbered to match agent ID)
+# :8011  frontend-specialist     ← was :8012 (renumbered)
+# :8014  throttle-agent
+# :8015  super-hyper-broski-agent
+# :8020  business-agent
+# :8024  coderabbit-webhook
+# :8050  goal-keeper
+# :8081  crew-orchestrator
+# :8082  brain-agent
+# :8083  agent-x
+# :8091  hyper-architect
+# :8092  hyper-observer
+# :8093  hyper-worker
+# :8096  hyper-split-agent
+# :8097  session-snapshot
+# :8100  test-agent              ← safe, no clash
+# :8823  hypercode-mcp-server
+# ─────────────────────────────────
+# ✅ No duplicate host ports
+# ✅ All agents depend_on crew-orchestrator (healthy)
+# ✅ All healthchecks have start_period
+# ✅ Throttle-agent uses Redis DB 1 (rate limits) — SACRED RULE ✔
 
 version: "3.9"
 
@@ -22,6 +55,7 @@ services:
     ports:
       - "127.0.0.1:8081:8080"
     environment:
+      - AGENT_NAME=crew-orchestrator
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - ORCHESTRATOR_MODE=swarm
@@ -52,7 +86,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -67,6 +101,7 @@ services:
     ports:
       - "127.0.0.1:8083:8080"
     environment:
+      - AGENT_NAME=agent-x
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - DOCKER_HOST=unix:///var/run/docker.sock
@@ -86,6 +121,8 @@ services:
         condition: service_healthy
       docker-socket-proxy-healer:
         condition: service_started
+      crew-orchestrator:
+        condition: service_healthy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     deploy:
@@ -101,7 +138,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 15s
+      start_period: 20s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -116,6 +153,7 @@ services:
     ports:
       - "127.0.0.1:8082:8080"
     environment:
+      - AGENT_NAME=brain-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -136,6 +174,8 @@ services:
         condition: service_healthy
       chroma:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -149,7 +189,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -164,6 +204,7 @@ services:
     ports:
       - "127.0.0.1:8002:8080"
     environment:
+      - AGENT_NAME=coder-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -181,6 +222,8 @@ services:
         condition: service_healthy
       hypercode-core:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -194,7 +237,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -207,8 +250,9 @@ services:
       dockerfile: Dockerfile
     container_name: tips-tricks-writer
     ports:
-      - "127.0.0.1:8011:8080"
+      - "127.0.0.1:8009:8080"
     environment:
+      - AGENT_NAME=tips-tricks-writer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -223,6 +267,8 @@ services:
       redis:
         condition: service_healthy
       hypercode-core:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -254,8 +300,9 @@ services:
       dockerfile: Dockerfile
     container_name: frontend-specialist
     ports:
-      - "127.0.0.1:8012:8080"
+      - "127.0.0.1:8011:8080"
     environment:
+      - AGENT_NAME=frontend-specialist
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -267,6 +314,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -281,6 +330,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -295,6 +345,7 @@ services:
     ports:
       - "127.0.0.1:8003:8080"
     environment:
+      - AGENT_NAME=backend-specialist
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -310,6 +361,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -323,6 +376,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -337,6 +391,7 @@ services:
     ports:
       - "127.0.0.1:8004:8080"
     environment:
+      - AGENT_NAME=database-architect
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - DATABASE_URL=${DATABASE_URL}
@@ -348,6 +403,8 @@ services:
       - data-net
     depends_on:
       postgres:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -362,6 +419,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -376,6 +434,7 @@ services:
     ports:
       - "127.0.0.1:8005:8080"
     environment:
+      - AGENT_NAME=qa-engineer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -387,6 +446,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -401,6 +462,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -415,6 +477,7 @@ services:
     ports:
       - "127.0.0.1:8006:8080"
     environment:
+      - AGENT_NAME=devops-engineer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - DOCKER_SOCKET_PROXY=http://docker-socket-proxy:2375
@@ -426,6 +489,8 @@ services:
     depends_on:
       docker-socket-proxy:
         condition: service_started
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -439,6 +504,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -453,50 +519,16 @@ services:
     ports:
       - "127.0.0.1:8007:8080"
     environment:
+      - AGENT_NAME=security-engineer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=security"
-
-  system-architect:
-    image: hypercode-system-architect:latest
-    build:
-      context: ./agents/07-system-architect
-      dockerfile: Dockerfile
-    container_name: system-architect
-    ports:
-      - "127.0.0.1:8009:8080"
-    environment:
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
       - app-net
       - agent-net
       - agents-net
     depends_on:
-      redis:
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -511,6 +543,49 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=specialist"
+      - "com.hypercode.role=security"
+
+  system-architect:
+    image: hypercode-system-architect:latest
+    build:
+      context: ./agents/07-system-architect
+      dockerfile: Dockerfile
+    container_name: system-architect
+    ports:
+      - "127.0.0.1:8008:8080"
+    environment:
+      - AGENT_NAME=system-architect
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+    networks:
+      - app-net
+      - agent-net
+      - agents-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -525,6 +600,7 @@ services:
     ports:
       - "127.0.0.1:8001:8080"
     environment:
+      - AGENT_NAME=project-strategist
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -539,6 +615,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -552,6 +630,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -570,6 +649,7 @@ services:
     ports:
       - "127.0.0.1:8091:8080"
     environment:
+      - AGENT_NAME=hyper-architect
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -577,6 +657,9 @@ services:
       - app-net
       - agent-net
       - agents-net
+    depends_on:
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -590,6 +673,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -604,6 +688,7 @@ services:
     ports:
       - "127.0.0.1:8092:8080"
     environment:
+      - AGENT_NAME=hyper-observer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - PROMETHEUS_URL=http://prometheus:9090
@@ -617,6 +702,8 @@ services:
     depends_on:
       prometheus:
         condition: service_started
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -630,6 +717,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -644,6 +732,7 @@ services:
     ports:
       - "127.0.0.1:8093:8080"
     environment:
+      - AGENT_NAME=hyper-worker
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -654,6 +743,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -668,6 +759,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -682,6 +774,7 @@ services:
     ports:
       - "127.0.0.1:8050:8080"
     environment:
+      - AGENT_NAME=goal-keeper
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -696,6 +789,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -709,6 +804,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -723,9 +819,11 @@ services:
     ports:
       - "127.0.0.1:8014:8080"
     environment:
+      - AGENT_NAME=throttle-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/1
+      # ✅ SACRED RULE: Redis DB 1 = rate limits — NEVER change this
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
       - app-net
@@ -733,6 +831,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -747,6 +847,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -761,6 +862,7 @@ services:
     ports:
       - "127.0.0.1:8015:8080"
     environment:
+      - AGENT_NAME=super-hyper-broski-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -777,6 +879,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -790,6 +894,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 20s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -803,7 +908,9 @@ services:
     container_name: test-agent
     ports:
       - "127.0.0.1:8100:8080"
+      # ✅ Port :8100 — no clash with any other agent
     environment:
+      - AGENT_NAME=test-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -818,6 +925,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -831,6 +940,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 15s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -845,6 +955,7 @@ services:
     ports:
       - "127.0.0.1:8823:8080"
     environment:
+      - AGENT_NAME=hypercode-mcp-server
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
@@ -859,6 +970,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -872,6 +985,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -890,6 +1004,7 @@ services:
     ports:
       - "127.0.0.1:8097:8080"
     environment:
+      - AGENT_NAME=session-snapshot
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -904,6 +1019,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -917,6 +1034,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -931,6 +1049,7 @@ services:
     ports:
       - "127.0.0.1:8096:8080"
     environment:
+      - AGENT_NAME=hyper-split-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -942,6 +1061,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -956,6 +1077,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -970,6 +1092,7 @@ services:
     ports:
       - "127.0.0.1:8024:8080"
     environment:
+      - AGENT_NAME=coderabbit-webhook
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -982,6 +1105,8 @@ services:
       - agents-net
     depends_on:
       redis:
+        condition: service_healthy
+      crew-orchestrator:
         condition: service_healthy
     deploy:
       resources:
@@ -996,6 +1121,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -1010,6 +1136,7 @@ services:
     ports:
       - "127.0.0.1:8020:8080"
     environment:
+      - AGENT_NAME=business-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
@@ -1025,6 +1152,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -1038,6 +1167,7 @@ services:
       interval: 30s
       timeout: 3s
       retries: 3
+      start_period: 10s
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
