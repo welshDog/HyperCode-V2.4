@@ -137,17 +137,17 @@ jobs:
             context: ./agents/architect
             dockerfile: Dockerfile
           - agent: hyper-observer
-            context: ./agents/hyper-agents
-            dockerfile: Dockerfile.observer
+            context: ./agents/hyper-agents/observer
+            dockerfile: Dockerfile
           - agent: hyper-worker
-            context: ./agents/hyper-agents
-            dockerfile: Dockerfile.worker
+            context: ./agents/hyper-agents/worker
+            dockerfile: Dockerfile
           - agent: hyper-split-agent
-            context: ./agents/hyper-agents
-            dockerfile: Dockerfile.split
+            context: ./agents/hyper-split-agent
+            dockerfile: Dockerfile
           - agent: session-snapshot
-            context: ./agents/hyper-agents
-            dockerfile: Dockerfile.snapshot
+            context: ./agents/session-snapshot
+            dockerfile: Dockerfile
           - agent: throttle-agent
             context: ./agents/throttle-agent
             dockerfile: Dockerfile
@@ -160,6 +160,11 @@ jobs:
           - agent: goal-keeper
             context: ./agents/goal_keeper
             dockerfile: Dockerfile
+          # ⚠️ business-agent: no context fixed here — verified 2026-08-19 that no Dockerfile
+          # exists at ./agents/business-agent, ./agents/business, or anywhere sensible for it.
+          # ./agents/business/project-strategist/Dockerfile exists but looks like a stray/misplaced
+          # copy of the real 08-project-strategist agent, not a distinct "business-agent". Needs a
+          # human decision (build it for real, or drop this matrix entry) before this job is green.
           - agent: business-agent
             context: ./agents/business-agent
             dockerfile: Dockerfile
@@ -167,7 +172,7 @@ jobs:
             context: ./agents/coderabbit-webhook
             dockerfile: Dockerfile
           - agent: hypercode-mcp-server
-            context: ./agents/hypercode-mcp-server
+            context: ./services/hypercode-mcp-server
             dockerfile: Dockerfile
     permissions:
       contents: read

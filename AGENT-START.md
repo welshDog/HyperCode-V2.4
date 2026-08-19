@@ -80,49 +80,65 @@ All 25 agents ──▶ crew-orchestrator (:8100) — central routing + health c
 
 ## 🤖 THE FULL 25-AGENT FLEET (HyperCode-V2.4)
 
+> 🪤 **REWRITTEN 2026-08-19 — three different "25-agent fleet" docs existed the same day and
+> disagreed with each other.** This table originally listed `money-maker`/`client-liaison`/
+> `ai-gateway`/etc. — checked against `agents/` folder + all `docker-compose*.yml`: 12 of those 28
+> rows had zero trace anywhere. Meanwhile `.github/workflows/docker-push.yml` and `CLAUDE.md` (both
+> pushed the same day, commits `e764bf3b`/`8b70094`) each named a *third and fourth* roster, neither
+> matching this one or each other. Bro decided **`docker-push.yml`'s roster is canonical** — this
+> table now matches it. `CLAUDE.md` still needs the same correction (flagged there, not yet done as
+> of this edit). Full forensic trail in `DASHBOARD_STATUS_2026-08-19.md`.
+
 > Launch with: `docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
-> All agents route through **crew-orchestrator** at `:8100`.
+> All agents route through **crew-orchestrator** at `:8081` (not `:8100` — `:8100` is `hyper-brain`).
 
-### ✅ Original 13 Agents (Established)
+### ✅ Core Crew + Specialist Squad (13) — per `docker-push.yml`'s `push-agents` build matrix
 
-| # | Agent | Port | Role |
-|---|---|---|---|
-| 1 | `crew-orchestrator` | :8100 | 🎯 Master coordinator — routes all 25 agents |
-| 2 | `broski-bot` | :8001 | 🤖 Discord bot — `discord.py==2.4.0`, entrypoint: `python -u -m cogs.bot` |
-| 3 | `money-maker` | :8002 | 💰 Revenue + monetisation agent |
-| 4 | `client-liaison` | :8003 | 🤝 Client comms + relationship agent |
-| 5 | `content-creator` | :8004 | ✍️ Content + copywriting agent |
-| 6 | `analytics-agent` | :8005 | 📊 Data analysis + reporting |
-| 7 | `code-doctor` | :8006 | 🩺 Code review + refactoring |
-| 8 | `ai-gateway` | :8010 | 🌐 LLM routing + token cost management |
-| 9 | `redis-cache` | :6379 | ⚡ Cache (DB 1) + rate limits (DB 2) — NEVER mix |
-| 10 | `postgres-db` | :5432 | 🗄️ Main database |
-| 11 | `dashboard-api` | :8088 | 📈 HyperCode Dashboard backend |
-| 12 | `grafana` | :3001 | 📉 Metrics visualisation |
-| 13 | `prometheus` | :9090 | 🔍 Metrics scraping |
+| # | Agent | Real compose context | Port | Status (verified 08-19) |
+|---|---|---|---|---|
+| 1 | `crew-orchestrator` | `./agents/crew-orchestrator` | :8081 | ✅ LIVE |
+| 2 | `brain-agent` | `./agents/brain` | :8082 | 🟡 built, not running as this exact container (`hyper-brain`/`agent-hyper-brain-core` are live but separate) |
+| 3 | `coder` | `./agents/coder` | — | 🟡 built, not running under this name (`coder-agent` is live — likely the same code, different container_name) |
+| 4 | `agent-x` | `./agents/agent-x` | :8083 or :8084 (⚠️ two different compose files disagree — `agents.yml` vs `agents-full.yml`, not reconciled here) | 🟡 built, not running |
+| 5 | `frontend-specialist` (01) | `./agents/01-frontend-specialist` | :8012 | ✅ LIVE |
+| 6 | `backend-specialist` (02) | `./agents/02-backend-specialist` | :8003 | ✅ LIVE |
+| 7 | `database-architect` (03) | `./agents/03-database-architect` | :8004 | ✅ LIVE |
+| 8 | `qa-engineer` (04) | `./agents/04-qa-engineer` | :8005 | ✅ LIVE |
+| 9 | `devops-engineer` (05) | `./agents/05-devops-engineer` | :8006 | ✅ LIVE |
+| 10 | `security-engineer` (06) | `./agents/06-security-engineer` | :8007 | 🟡 built, not running |
+| 11 | `system-architect` (07) | `./agents/07-system-architect` | :8008 | 🟡 built, not running — ⚠️ collides with live `healer-agent :8008` |
+| 12 | `project-strategist` (08) | `./agents/08-project-strategist` | :8001 | 🟡 built, not running |
+| 13 | `tips-tricks-writer` (09) | `./agents/09-tips-tricks-writer` | :8009 | 🟡 built, not running |
 
-### 🔨 12 New Ghost Agents (Built 2026-08-19)
+> Plus `broski-bot`, `redis`, `postgres`, `grafana`, `prometheus`, `hypercode-dashboard` are also
+> live core infra — not in this specific CI matrix (they're built by the `push-backend` job or
+> pulled as base images) but part of the real running stack.
 
-| # | Agent | Port | Role |
-|---|---|---|---|
-| 14 | `security-engineer` | :8007 | 🔐 Security scanning, secrets audit, hardening |
-| 15 | `system-architect` | :8008 | 🏗️ Architecture decisions, infra design |
-| 16 | `tips-tricks-writer` | :8009 | 💡 ND-friendly tips, docs, onboarding content |
-| 17 | `ai-training-specialist` | :8011 | 🧪 Model fine-tuning, training pipeline management |
-| 18 | `performance-optimizer` | :8012 | ⚙️ Latency, throughput, container resource tuning |
-| 19 | `data-pipeline-engineer` | :8013 | 🔄 ETL pipelines, data flow orchestration |
-| 20 | `throttle-agent` | :8014 | 🚦 Rate limiting, API throttle management |
-| 21 | `super-hyper-broski` | :8015 | 🦸 BROski$ economy, rewards, Discord events |
-| 22 | `test-agent` | :8080 | 🧪 Automated testing, CI health checks |
-| 23 | `hyper-architect` | :8091 | 🧠 High-level system design + code scaffolding |
-| 24 | `hyper-observer` | :8092 | 👁️ System observability, log aggregation, alerts |
-| 25 | `hyper-worker` | :8093 | 🔧 Background jobs, queue processing, async tasks |
-| 26 | `hyper-split-agent` | :8096 | ✂️ Task decomposition, parallel sub-agent spawning |
-| 27 | `session-snapshot` | :8097 | 📸 Session state capture, handover doc generation |
-| 28 | `agent-x` | custom | 🕵️ Custom routing, experimental agent harness |
+### 🔨 12 Ghost Agents — per `docker-push.yml`'s `push-ghost-agents` build matrix
 
-> ⚠️ **Port :8080** — Test Agent. Double-check nothing else claims this (common default for dashboards/proxies).
+| # | Agent | Real compose context (fixed 08-19) | Port | Status (verified 08-19) |
+|---|---|---|---|---|
+| 14 | `hyper-architect` | `./agents/architect` | :8091 | 🟡 built, not running |
+| 15 | `hyper-observer` | `./agents/hyper-agents/observer` (was wrongly `./agents/hyper-agents` + `Dockerfile.observer` — fixed) | :8092 | 🟡 built, not running |
+| 16 | `hyper-worker` | `./agents/hyper-agents/worker` (same fix) | :8093 | 🟡 built, not running |
+| 17 | `hyper-split-agent` | `./agents/hyper-split-agent` (was wrongly under `./agents/hyper-agents` — fixed) | :8096 | 🟡 built, not running — ⚠️ collides with live `safety-shepherd :8096` |
+| 18 | `session-snapshot` | `./agents/session-snapshot` (same fix) | :8097 | 🟡 built, not running — ⚠️ collides with live `evolve-relay :8097` |
+| 19 | `throttle-agent` | `./agents/throttle-agent` | :8014 | 🟡 built, not running |
+| 20 | `super-hyper-broski-agent` | `./agents/super-hyper-broski-agent` | :8015 | 🟡 built, not running |
+| 21 | `test-agent` | `./agents/test-agent` | :8100 | 🟡 built, not running — ⚠️ collides with live `hyper-brain :8100` |
+| 22 | `goal-keeper` | `./agents/goal_keeper` | :8050 | ✅ LIVE |
+| 23 | `business-agent` | `./agents/business-agent` — ❌ **still broken**, no Dockerfile exists at this or any sensible path (`./agents/business/project-strategist/Dockerfile` exists but looks like a stray copy, not a real `business-agent`). Needs a human call. | — | ❌ blocked |
+| 24 | `coderabbit-webhook` | `./agents/coderabbit-webhook` | :8024 | 🟡 built, not running |
+| 25 | `hypercode-mcp-server` | `./services/hypercode-mcp-server` (was wrongly `./agents/hypercode-mcp-server` — fixed) | — | ⚠️ **name collision**: a *different*, already-live `hypercode-mcp-server` container exists at `:8823` (the real MCP gateway) — building this ghost-agent image under the same name will produce a same-named-but-different image. Needs reconciling, not just a build. |
+
+> ⚠️ **Port :8080** is `bropets_api` right now, not any agent in this table.
 > ⚠️ **crew-orchestrator is the SPOF** — must have `restart: unless-stopped` + `/health` endpoint. If it's down, ALL agents stall.
+> 🪤 **5 of 6 broken CI paths were fixed in `docker-push.yml` on 08-19** (`hyper-observer`,
+> `hyper-worker`, `hyper-split-agent`, `session-snapshot`, `hypercode-mcp-server`). `business-agent`
+> is still broken — no valid path exists, needs a real decision, not a path fix.
+> 🪤 **Launching `agents-full.yml` as-is will still hit 3 port-bind failures** (`system-architect`,
+> `test-agent`, `hyper-split-agent`/`session-snapshot`) against services already running. Not
+> resolved — resolving compose port collisions is a separate task from fixing CI build paths.
 
 ### Resource Limits (apply to all new agents)
 ```yaml

@@ -29,42 +29,49 @@
 
 ## 🚀 CURRENT STATE — 25-Agent Fleet (August 2026)
 
-### ✅ 13 Existing Agents (live)
+> 🪤 **Corrected 2026-08-19.** This section previously listed a fourth, independent roster
+> (`core-api`, `agent-spawner`, `mcp-gateway` as an agent, `test-agent :8080`) that matched neither
+> `AGENT-START.md`, `docker-push.yml`, nor `docker ps`. `docker-push.yml`'s build matrix is now
+> canonical (Bro's call) — this table matches it. Full detail + forensic trail:
+> `HperCore/DASHBOARD_STATUS_2026-08-19.md` + `AGENT-START.md`'s fleet section.
+
+### ✅ Core Crew + Specialist Squad (13)
 
 | Agent | Port | Status |
 |---|---|---|
-| `core-api` | :8000 | ✅ Live |
-| `dashboard` | :8088 | ✅ Live |
-| `crew-orchestrator` | :8001 | ✅ Live |
-| `agent-spawner` | :8002 | ✅ Live |
-| `mcp-gateway` | :8003 | ✅ Live |
-| `broski-bot` | :8004 | ✅ Live |
-| `github-sync` | :8005 | ✅ Live |
-| `celery-worker` | :8006 | ✅ Live |
-| `redis` | :6379 | ✅ Live |
-| `postgres` | :5432 | ✅ Live |
-| `prometheus` | :9090 | ✅ Live |
-| `grafana` | :3001 | ✅ Live |
-| `ollama` | :11434 | ✅ Live |
+| `crew-orchestrator` | :8081 | ✅ Live |
+| `brain-agent` | :8082 | 🟡 built, not running under this name |
+| `coder` | — | 🟡 built, not running under this name (`coder-agent` live, likely same code) |
+| `agent-x` | :8083/:8084 (two compose files disagree) | 🟡 built, not running |
+| `frontend-specialist` | :8012 | ✅ Live |
+| `backend-specialist` | :8003 | ✅ Live |
+| `database-architect` | :8004 | ✅ Live |
+| `qa-engineer` | :8005 | ✅ Live |
+| `devops-engineer` | :8006 | ✅ Live |
+| `security-engineer` | :8007 | 🟡 built, not running |
+| `system-architect` | :8008 | 🟡 built, not running — ⚠️ collides with live `healer-agent :8008` |
+| `project-strategist` | :8001 | 🟡 built, not running |
+| `tips-tricks-writer` | :8009 | 🟡 built, not running |
 
-### 🔨 12 Ghost Agents (building / CI/CD active)
+### 🔨 12 Ghost Agents
 
 | Agent | Port | Status |
 |---|---|---|
-| `security-engineer` | :8007 | ✅ Ready |
-| `system-architect` | :8008 | 🔨 Building |
-| `tips-tricks-writer` | :8009 | 🔨 Building |
-| `throttle-agent` | :8014 | 🔨 Building |
-| `super-hyper-broski` | :8015 | 🔨 Building |
-| `test-agent` | :8080 | 🔨 Building — ⚠️ check port clash |
-| `hyper-architect` | :8091 | 🔨 Building |
-| `hyper-observer` | :8092 | 🔨 Building |
-| `hyper-worker` | :8093 | 🔨 Building |
-| `hyper-split-agent` | :8096 | 🔨 Building |
-| `session-snapshot` | :8097 | 🔨 Building |
-| `agent-x` | custom | 🔨 Building |
+| `hyper-architect` | :8091 | 🟡 built, not running |
+| `hyper-observer` | :8092 | 🟡 built, not running (CI path fixed 08-19) |
+| `hyper-worker` | :8093 | 🟡 built, not running (CI path fixed 08-19) |
+| `hyper-split-agent` | :8096 | 🟡 built, not running — ⚠️ collides with live `safety-shepherd :8096` |
+| `session-snapshot` | :8097 | 🟡 built, not running — ⚠️ collides with live `evolve-relay :8097` |
+| `throttle-agent` | :8014 | 🟡 built, not running |
+| `super-hyper-broski-agent` | :8015 | 🟡 built, not running |
+| `test-agent` | :8100 (not :8080) | 🟡 built, not running — ⚠️ collides with live `hyper-brain :8100` |
+| `goal-keeper` | :8050 | ✅ Live |
+| `business-agent` | — | ❌ blocked — no Dockerfile exists anywhere sensible, needs a human decision |
+| `coderabbit-webhook` | :8024 | 🟡 built, not running |
+| `hypercode-mcp-server` | — | ⚠️ name collision with a different, already-live `hypercode-mcp-server` at `:8823` |
 
-**Total:** 25 agents coordinated through `crew-orchestrator`.
+**Total:** 25 agents in the canonical roster — 8 live, 15 built-not-running, 1 blocked, 1 name
+collision to resolve. Not "25 coordinated through `crew-orchestrator`" yet.
 
 ---
 
