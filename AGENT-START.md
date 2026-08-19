@@ -1,7 +1,7 @@
 # 🚀 AGENT-START.md — HyperFocus Z0ne MASTER Boot File
 > **For ANY AI, agent, or human joining the full HyperFocus Z0ne ecosystem.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **v3.2 (upgraded 2026-06-16)** · supersedes v3.1 (2026-06-07)
+> Built by @welshDog — **v3.3 (upgraded 2026-08-19)** · supersedes v3.2 (2026-06-16)
 
 > 📌 **Live truth ALWAYS wins:** Read the newest `DASHBOARD_STATUS_YYYY-MM-DD.md` + newest `NEXT_SESSION_HANDOVER_*.md` BEFORE anything else. **This file is the constitution, not the news.**
 
@@ -36,7 +36,7 @@ Workspace root: H:\HYPERFOCUSZONE\HperCore   (NOT a git repo — workspace only)
 
 | Repo | What it is | Stack | First doc |
 |---|---|---|---|
-| `HyperCode-V2.4` | 🧠 Core platform — **CANONICAL PRODUCTION** (~30 containers running, 80+ services defined across 20+ compose files) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
+| `HyperCode-V2.4` | 🧠 Core platform — **CANONICAL PRODUCTION** (25 agents, 48+ containers, 80+ services across 20+ compose files) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
 | `THE-HYPERCODE` | 🔬 **Next-gen / V3 EXPERIMENTAL** — successor to HyperCode-V2.4. NOT production, NOT canonical. Cold agents: use V2.4 as source of truth. | Python + Docker (evolving) | `README.md` |
 | `hyper-agents-ide` | 🎛️ Control room UI — agents, chat, skills dashboard | FastAPI + Vite/React | `README.md` |
 | `Hyper-Vibe-Coding-Course` | 🎓 ND-first AI education platform — Course + HyperLabs funnel | Vite + Supabase + Stripe | `CLAUDE.md` |
@@ -71,9 +71,67 @@ BROskiPets ──▶ agents-net (Docker profile: pets)
 Brain ──▶ agents-net (Docker profile: brain) + Obsidian Git
 HYPER-SILLs ──▶ ALL agents load skills from here
 Showcase ──▶ pulls status from ecosystem (public registry)
+All 25 agents ──▶ crew-orchestrator (:8100) — central routing + health coordination
 ```
 
 > 💡 Mission Control + Course share **one** Supabase project (`yhtmuibgdnxhbgboajhc`). Anything that breaks there breaks both.
+
+---
+
+## 🤖 THE FULL 25-AGENT FLEET (HyperCode-V2.4)
+
+> Launch with: `docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
+> All agents route through **crew-orchestrator** at `:8100`.
+
+### ✅ Original 13 Agents (Established)
+
+| # | Agent | Port | Role |
+|---|---|---|---|
+| 1 | `crew-orchestrator` | :8100 | 🎯 Master coordinator — routes all 25 agents |
+| 2 | `broski-bot` | :8001 | 🤖 Discord bot — `discord.py==2.4.0`, entrypoint: `python -u -m cogs.bot` |
+| 3 | `money-maker` | :8002 | 💰 Revenue + monetisation agent |
+| 4 | `client-liaison` | :8003 | 🤝 Client comms + relationship agent |
+| 5 | `content-creator` | :8004 | ✍️ Content + copywriting agent |
+| 6 | `analytics-agent` | :8005 | 📊 Data analysis + reporting |
+| 7 | `code-doctor` | :8006 | 🩺 Code review + refactoring |
+| 8 | `ai-gateway` | :8010 | 🌐 LLM routing + token cost management |
+| 9 | `redis-cache` | :6379 | ⚡ Cache (DB 1) + rate limits (DB 2) — NEVER mix |
+| 10 | `postgres-db` | :5432 | 🗄️ Main database |
+| 11 | `dashboard-api` | :8088 | 📈 HyperCode Dashboard backend |
+| 12 | `grafana` | :3001 | 📉 Metrics visualisation |
+| 13 | `prometheus` | :9090 | 🔍 Metrics scraping |
+
+### 🔨 12 New Ghost Agents (Built 2026-08-19)
+
+| # | Agent | Port | Role |
+|---|---|---|---|
+| 14 | `security-engineer` | :8007 | 🔐 Security scanning, secrets audit, hardening |
+| 15 | `system-architect` | :8008 | 🏗️ Architecture decisions, infra design |
+| 16 | `tips-tricks-writer` | :8009 | 💡 ND-friendly tips, docs, onboarding content |
+| 17 | `ai-training-specialist` | :8011 | 🧪 Model fine-tuning, training pipeline management |
+| 18 | `performance-optimizer` | :8012 | ⚙️ Latency, throughput, container resource tuning |
+| 19 | `data-pipeline-engineer` | :8013 | 🔄 ETL pipelines, data flow orchestration |
+| 20 | `throttle-agent` | :8014 | 🚦 Rate limiting, API throttle management |
+| 21 | `super-hyper-broski` | :8015 | 🦸 BROski$ economy, rewards, Discord events |
+| 22 | `test-agent` | :8080 | 🧪 Automated testing, CI health checks |
+| 23 | `hyper-architect` | :8091 | 🧠 High-level system design + code scaffolding |
+| 24 | `hyper-observer` | :8092 | 👁️ System observability, log aggregation, alerts |
+| 25 | `hyper-worker` | :8093 | 🔧 Background jobs, queue processing, async tasks |
+| 26 | `hyper-split-agent` | :8096 | ✂️ Task decomposition, parallel sub-agent spawning |
+| 27 | `session-snapshot` | :8097 | 📸 Session state capture, handover doc generation |
+| 28 | `agent-x` | custom | 🕵️ Custom routing, experimental agent harness |
+
+> ⚠️ **Port :8080** — Test Agent. Double-check nothing else claims this (common default for dashboards/proxies).
+> ⚠️ **crew-orchestrator is the SPOF** — must have `restart: unless-stopped` + `/health` endpoint. If it's down, ALL agents stall.
+
+### Resource Limits (apply to all new agents)
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 256m
+      cpus: "0.25"
+```
 
 ---
 
@@ -157,6 +215,8 @@ These get pasted into briefs as "sacred rules" but actually belong to ONE repo. 
 | `broski-bot: discord.py==2.4.0`, entrypoint `python -u -m cogs.bot` | **HyperCode-V2.4** (`agents/broski-bot/`) | MC has NO Python bot — its `/api/send-dm` calls Discord REST directly |
 | Stripe webhook is rate-limit-exempt | **HyperCode-V2.4 + Course** | — |
 | `mc_events` is append-only (UPDATE/DELETE blocked) | **MC** | — |
+| Redis DB 1=cache, DB 2=rate limits — NEVER mix | **HyperCode-V2.4** | — |
+| Python indent = 4 spaces, NEVER 3, NEVER mixed | **HyperCode-V2.4** | — |
 
 > 💡 **Cross-repo confusion guard:** When a session brief lists "sacred rules", check the **repo** named in the brief and only apply rules that match. A brief saying "FastAPI `main.py`" for MC is wrong — MC is Express.
 
@@ -164,11 +224,43 @@ These get pasted into briefs as "sacred rules" but actually belong to ONE repo. 
 
 ## 🧰 LOCAL ENDPOINTS (when running)
 
+### Core Services
 | Service | URL |
 |---|---|
 | HyperCode Dashboard | http://127.0.0.1:8088 |
 | Grafana | http://127.0.0.1:3001 |
 | Prometheus | http://127.0.0.1:9090 |
+| crew-orchestrator | http://127.0.0.1:8100 |
+| AI Gateway | http://127.0.0.1:8010 |
+
+### Original Agents
+| Agent | URL |
+|---|---|
+| broski-bot | http://127.0.0.1:8001 |
+| money-maker | http://127.0.0.1:8002 |
+| client-liaison | http://127.0.0.1:8003 |
+| content-creator | http://127.0.0.1:8004 |
+| analytics-agent | http://127.0.0.1:8005 |
+| code-doctor | http://127.0.0.1:8006 |
+
+### New Ghost Agents (live from 2026-08-19)
+| Agent | URL |
+|---|---|
+| security-engineer | http://127.0.0.1:8007 |
+| system-architect | http://127.0.0.1:8008 |
+| tips-tricks-writer | http://127.0.0.1:8009 |
+| throttle-agent | http://127.0.0.1:8014 |
+| super-hyper-broski | http://127.0.0.1:8015 |
+| test-agent | http://127.0.0.1:8080 |
+| hyper-architect | http://127.0.0.1:8091 |
+| hyper-observer | http://127.0.0.1:8092 |
+| hyper-worker | http://127.0.0.1:8093 |
+| hyper-split-agent | http://127.0.0.1:8096 |
+| session-snapshot | http://127.0.0.1:8097 |
+
+### Dev / Course / MC
+| Service | URL |
+|---|---|
 | Course (dev) | http://localhost:5173 |
 | Mission Control (dev SPA) | http://localhost:5174 |
 | Mission Control (dev API) | http://localhost:3011 |
@@ -222,6 +314,8 @@ stripe trigger checkout.session.completed
 | `Edit replace_all: true` rewrites `const X = ...` declaration too | `ReferenceError: Cannot access 'X' before initialization` (TDZ self-reference) at boot. `node --check` does NOT catch it. | Use targeted Edit on the declaration + `replace_all` only on the call sites separately |
 | "Stripe LIVE 💳" in CLAUDE.md was stale | TEST price IDs everywhere; LIVE checkouts (if any happened) would all fall through to `logUnmatchedPayment` | Always verify via the `/test/` segment in price dashboard URLs |
 | Parallel git workflow mid-push origin move | `git push` rejected as non-fast-forward despite a recent fetch — auto-commits land between fetch and push | `git fetch && git rebase origin/main && git push` (NEVER force-push). Should be reflexive. |
+| 25-agent stack memory pressure | One runaway agent can starve all others without resource limits | Add `mem_limit: 256m` + `cpus: "0.25"` to all new agent compose definitions before launch |
+| Port :8080 collision | Test Agent uses a very common default port — nginx, Traefik, and many dev servers default to :8080 | Run `grep -r "ports:" docker-compose*.yml \| grep 8080` to confirm no collision before launch |
 
 ---
 
