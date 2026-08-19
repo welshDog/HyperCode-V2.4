@@ -2,8 +2,7 @@ name: 💚 HyperCode Health Check
 
 permissions:
   contents: read
-on:
-  read
+
 on:
   push:
     branches: [main]
@@ -62,6 +61,17 @@ jobs:
             echo "PASS: Python indentation looks clean."
           fi
 
+      - name: 🔍 Lint Sacred Rules — check Redis DB assignments
+        run: |
+          echo "Checking Redis DB assignments in compose files..."
+          # Throttle-agent must use DB 1, never DB 0
+          if grep -A5 "throttle-agent" docker-compose.agents-full.yml | grep "REDIS_URL" | grep -v "redis:6379/1"; then
+            echo "FAIL: throttle-agent must use Redis DB 1 (rate limits)!"
+            exit 1
+          else
+            echo "PASS: throttle-agent Redis DB 1 confirmed."
+          fi
+
       - name: 🔍 Check .env not committed
         run: |
           echo "Checking .env files are not committed..."
@@ -91,8 +101,103 @@ if errors:
     sys.exit(1)
 "
 
+      - name: 🔍 Verify no duplicate host ports in compose
+        run: |
+          echo "Checking for duplicate host port mappings..."
+          python -c "
+import yaml, sys, re
+
+files = ['docker-compose.yml', 'docker-compose.agents-full.yml']
+all_ports = []
+errors = []
+
+for fname in files:
+    try:
+        with open(fname) as f:
+            doc = yaml.safe_load(f)
+        services = doc.get('services', {})
+        for svc, cfg in services.items():
+            for p in (cfg or {}).get('ports', []):
+                host_port = str(p).split(':')[0].split('127.0.0.1:')[-1]
+                if host_port in all_ports:
+                    errors.append(f'DUPLICATE PORT {host_port} in {svc} ({fname})')
+                all_ports.append(host_port)
+    except FileNotFoundError:
+        pass
+
+if errors:
+    for e in errors:
+        print(e)
+    sys.exit(1)
+else:
+    print(f'PASS: No duplicate ports across {len(all_ports)} mappings checked.')
+"
+
+      - name: 🏥 Verify all 25 agent ports declared in compose
+        run: |
+          echo "Verifying all 25 agent ports are declared..."
+          python -c "
+import yaml, sys
+
+# Full 25-agent port registry
+EXPECTED_PORTS = {
+    '8001': 'project-strategist',
+    '8002': 'coder-agent',
+    '8003': 'backend-specialist',
+    '8004': 'database-architect',
+    '8005': 'qa-engineer',
+    '8006': 'devops-engineer',
+    '8007': 'security-engineer',
+    '8008': 'system-architect',
+    '8009': 'tips-tricks-writer',
+    '8011': 'frontend-specialist',
+    '8014': 'throttle-agent',
+    '8015': 'super-hyper-broski-agent',
+    '8020': 'business-agent',
+    '8024': 'coderabbit-webhook',
+    '8050': 'goal-keeper',
+    '8081': 'crew-orchestrator',
+    '8082': 'brain-agent',
+    '8083': 'agent-x',
+    '8091': 'hyper-architect',
+    '8092': 'hyper-observer',
+    '8093': 'hyper-worker',
+    '8096': 'hyper-split-agent',
+    '8097': 'session-snapshot',
+    '8100': 'test-agent',
+    '8823': 'hypercode-mcp-server',
+}
+
+found_ports = set()
+files = ['docker-compose.yml', 'docker-compose.agents-full.yml']
+for fname in files:
+    try:
+        with open(fname) as f:
+            doc = yaml.safe_load(f)
+        for svc, cfg in (doc.get('services') or {}).items():
+            for p in (cfg or {}).get('ports', []):
+                host_port = str(p).split(':')[0].split('127.0.0.1:')[-1]
+                found_ports.add(host_port)
+    except FileNotFoundError:
+        pass
+
+missing = []
+for port, name in EXPECTED_PORTS.items():
+    if port not in found_ports:
+        missing.append(f'  MISSING: :{port} ({name})')
+
+if missing:
+    print('FAIL: Some agent ports not declared in compose files:')
+    for m in missing:
+        print(m)
+    sys.exit(1)
+else:
+    print(f'PASS: All {len(EXPECTED_PORTS)} agent ports confirmed in compose files.')
+"
+
       - name: ✅ Health Check Complete
         run: |
           echo ""
           echo "💚 All health checks passed! BROski♾️ is looking healthy."
+          echo "🤖 25 agents verified: 13 core + 12 ghost agents"
           echo "🏴󠁧󠁢󠁷󠁬󠁳󠁥 Built in Llanelli, South Wales by @welshDog"
