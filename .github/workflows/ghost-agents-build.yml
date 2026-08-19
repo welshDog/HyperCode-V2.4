@@ -1,0 +1,211 @@
+name: 👻 Ghost Agents — Build & Push (12 New Agents)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Trigger only when agent code or compose files change
+      - "agents/security-engineer/**"
+      - "agents/system-architect/**"
+      - "agents/tips-tricks-writer/**"
+      - "agents/throttle-agent/**"
+      - "agents/super-hyper-broski/**"
+      - "agents/test-agent/**"
+      - "agents/hyper-architect/**"
+      - "agents/hyper-observer/**"
+      - "agents/hyper-worker/**"
+      - "agents/hyper-split-agent/**"
+      - "agents/session-snapshot/**"
+      - "agents/agent-x/**"
+      - "docker-compose.agents-full.yml"
+      - ".github/workflows/ghost-agents-build.yml"
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: "Single agent to build (leave blank for all 12)"
+        required: false
+        default: ""
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/welshdog
+
+jobs:
+  # ──────────────────────────────────────────────
+  # PORT COLLISION CHECK — runs first, blocks all
+  # ──────────────────────────────────────────────
+  port-check:
+    name: 🔌 Port Collision Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for duplicate port mappings
+        run: |
+          echo "=== Scanning all docker-compose files for port mappings ==="
+          PORTS=$(grep -rh "\"[0-9]*:[0-9]*\"" docker-compose*.yml 2>/dev/null | \
+                  grep -oP '"\d+:\d+"' | sort)
+          DUPES=$(echo "$PORTS" | uniq -d)
+          if [ -n "$DUPES" ]; then
+            echo "❌ DUPLICATE PORTS FOUND:"
+            echo "$DUPES"
+            exit 1
+          else
+            echo "✅ No port collisions detected"
+            echo "$PORTS"
+          fi
+
+      - name: Warn if :8080 is claimed multiple times
+        run: |
+          COUNT=$(grep -r "8080" docker-compose*.yml 2>/dev/null | wc -l)
+          echo "Port :8080 references found: $COUNT"
+          if [ "$COUNT" -gt 1 ]; then
+            echo "⚠️  WARNING — port :8080 appears in multiple compose files. Verify test-agent doesn't conflict."
+          fi
+
+  # ──────────────────────────────────────────────
+  # BUILD MATRIX — all 12 ghost agents in parallel
+  # ──────────────────────────────────────────────
+  build-ghost-agents:
+    name: 🔨 Build ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    needs: port-check
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false   # Don't cancel all if one agent fails
+      matrix:
+        include:
+          - agent: security-engineer
+            port: 8007
+            context: ./agents/security-engineer
+          - agent: system-architect
+            port: 8008
+            context: ./agents/system-architect
+          - agent: tips-tricks-writer
+            port: 8009
+            context: ./agents/tips-tricks-writer
+          - agent: throttle-agent
+            port: 8014
+            context: ./agents/throttle-agent
+          - agent: super-hyper-broski
+            port: 8015
+            context: ./agents/super-hyper-broski
+          - agent: test-agent
+            port: 8080
+            context: ./agents/test-agent
+          - agent: hyper-architect
+            port: 8091
+            context: ./agents/hyper-architect
+          - agent: hyper-observer
+            port: 8092
+            context: ./agents/hyper-observer
+          - agent: hyper-worker
+            port: 8093
+            context: ./agents/hyper-worker
+          - agent: hyper-split-agent
+            port: 8096
+            context: ./agents/hyper-split-agent
+          - agent: session-snapshot
+            port: 8097
+            context: ./agents/session-snapshot
+          - agent: agent-x
+            port: 0
+            context: ./agents/agent-x
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Skip if workflow_dispatch targets a specific agent
+      - name: Check if this agent is targeted
+        if: ${{ github.event.inputs.agent != '' && github.event.inputs.agent != matrix.agent }}
+        run: |
+          echo "Skipping ${{ matrix.agent }} — not the targeted agent"
+          exit 0
+
+      - name: Check agent directory exists
+        id: check_dir
+        run: |
+          if [ -d "${{ matrix.context }}" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ ${{ matrix.agent }} directory found"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  ${{ matrix.agent }} directory not found — skipping build"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.check_dir.outputs.exists == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: steps.check_dir.outputs.exists == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        if: steps.check_dir.outputs.exists == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.agent }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push ${{ matrix.agent }}
+        if: steps.check_dir.outputs.exists == 'true'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.agent }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.agent }}
+          build-args: |
+            AGENT_NAME=${{ matrix.agent }}
+            AGENT_PORT=${{ matrix.port }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            GIT_SHA=${{ github.sha }}
+
+      - name: Summary
+        if: steps.check_dir.outputs.exists == 'true'
+        run: |
+          echo "### ✅ ${{ matrix.agent }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Port:** ${{ matrix.port }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`${{ env.IMAGE_PREFIX }}/${{ matrix.agent }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ──────────────────────────────────────────────
+  # FLEET STATUS — final summary after all builds
+  # ──────────────────────────────────────────────
+  fleet-status:
+    name: 🚀 Fleet Status
+    runs-on: ubuntu-latest
+    needs: build-ghost-agents
+    if: always()
+
+    steps:
+      - name: Fleet build summary
+        run: |
+          echo "## 👻 Ghost Agent Fleet — Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All 12 ghost agents processed. Check individual jobs above for status." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Launch command (after builds succeed):" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull latest images from GHCR:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "docker compose -f docker-compose.agents-full.yml pull" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
