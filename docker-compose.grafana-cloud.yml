@@ -20,7 +20,7 @@ services:
   # ─────────────────────────────────────────
   # 📡 PROMETHEUS — scrapes all agents + infra
   # ─────────────────────────────────────────
-  prometheus:
+  prometheus-cloud:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus-cloud
     profiles: ["grafana-cloud"]
@@ -83,7 +83,7 @@ services:
       - backend-net
     restart: unless-stopped
     depends_on:
-      - prometheus
+      - prometheus-cloud
     security_opt:
       - no-new-privileges:true
     logging:

@@ -20,17 +20,17 @@ FAIL=0
 
 log_pass() {
     echo -e "${GREEN}✓${NC} $*"
-    ((PASS++))
+    PASS=$((PASS+1))
 }
 
 log_warn() {
     echo -e "${YELLOW}⚠${NC} $*"
-    ((WARN++))
+    WARN=$((WARN+1))
 }
 
 log_fail() {
     echo -e "${RED}✗${NC} $*"
-    ((FAIL++))
+    FAIL=$((FAIL+1))
 }
 
 header() {
