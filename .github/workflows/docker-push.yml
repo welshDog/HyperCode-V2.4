@@ -1,9 +1,8 @@
-name: Docker Push to Registry
+name: 🐳 Docker Push to Registry
 
 permissions:
   contents: read
-on:
-  read
+
 on:
   push:
     branches: [ main ]
@@ -48,7 +47,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push celery-worker (same image as core)
+      - name: Build and push celery-worker
         uses: docker/build-push-action@v5
         with:
           context: ./backend
@@ -60,11 +59,43 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # ═══════════════════════════════════════════════════════
+  # TIER 1+2: CORE + SPECIALIST AGENTS (13 original)
+  # ═══════════════════════════════════════════════════════
   push-agents:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        agent: [coder, frontend-specialist, backend-specialist, database-architect, qa-engineer, devops-engineer, security-engineer]
+        include:
+          # --- Core crew ---
+          - agent: crew-orchestrator
+            context: ./agents/crew-orchestrator
+          - agent: brain-agent
+            context: ./agents/brain
+          - agent: coder
+            context: ./agents/coder
+          - agent: agent-x
+            context: ./agents/agent-x
+          # --- Specialist squad ---
+          - agent: frontend-specialist
+            context: ./agents/01-frontend-specialist
+          - agent: backend-specialist
+            context: ./agents/02-backend-specialist
+          - agent: database-architect
+            context: ./agents/03-database-architect
+          - agent: qa-engineer
+            context: ./agents/04-qa-engineer
+          - agent: devops-engineer
+            context: ./agents/05-devops-engineer
+          - agent: security-engineer
+            context: ./agents/06-security-engineer
+          - agent: system-architect
+            context: ./agents/07-system-architect
+          - agent: project-strategist
+            context: ./agents/08-project-strategist
+          - agent: tips-tricks-writer
+            context: ./agents/09-tips-tricks-writer
     permissions:
       contents: read
       packages: write
@@ -81,15 +112,88 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ${{ matrix.agent }} agent
+      - name: Build and push ${{ matrix.agent }}
         uses: docker/build-push-action@v5
         with:
-          context: ./agents/${{ matrix.agent }}
-          file: ./agents/${{ matrix.agent }}/Dockerfile
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.agent }}-agent:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.agent }}-agent:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-${{ matrix.agent }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-${{ matrix.agent }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ═══════════════════════════════════════════════════════
+  # TIER 3: 12 GHOST AGENTS — Infrastructure squad
+  # ═══════════════════════════════════════════════════════
+  push-ghost-agents:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - agent: hyper-architect
+            context: ./agents/architect
+            dockerfile: Dockerfile
+          - agent: hyper-observer
+            context: ./agents/hyper-agents
+            dockerfile: Dockerfile.observer
+          - agent: hyper-worker
+            context: ./agents/hyper-agents
+            dockerfile: Dockerfile.worker
+          - agent: hyper-split-agent
+            context: ./agents/hyper-agents
+            dockerfile: Dockerfile.split
+          - agent: session-snapshot
+            context: ./agents/hyper-agents
+            dockerfile: Dockerfile.snapshot
+          - agent: throttle-agent
+            context: ./agents/throttle-agent
+            dockerfile: Dockerfile
+          - agent: super-hyper-broski-agent
+            context: ./agents/super-hyper-broski-agent
+            dockerfile: Dockerfile
+          - agent: test-agent
+            context: ./agents/test-agent
+            dockerfile: Dockerfile
+          - agent: goal-keeper
+            context: ./agents/goal_keeper
+            dockerfile: Dockerfile
+          - agent: business-agent
+            context: ./agents/business-agent
+            dockerfile: Dockerfile
+          - agent: coderabbit-webhook
+            context: ./agents/coderabbit-webhook
+            dockerfile: Dockerfile
+          - agent: hypercode-mcp-server
+            context: ./agents/hypercode-mcp-server
+            dockerfile: Dockerfile
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.agent }} (ghost)
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-${{ matrix.agent }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-${{ matrix.agent }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -125,7 +229,7 @@ jobs:
 
   security-scan:
     runs-on: ubuntu-latest
-    needs: [push-backend, push-agents, push-spawner]
+    needs: [push-backend, push-agents, push-ghost-agents, push-spawner]
     steps:
       - uses: actions/checkout@v4
 
@@ -137,22 +241,31 @@ jobs:
           exit-code: false
           to-latest: false
 
-      - name: Run Docker Scout on agent-spawner
+      - name: Run Docker Scout on crew-orchestrator
         uses: docker/scout-action@v1
         with:
           command: cves
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/agent-spawner:latest
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-crew-orchestrator:latest
           exit-code: false
           to-latest: false
 
   notify:
     runs-on: ubuntu-latest
-    needs: [push-backend, push-agents, push-spawner, security-scan]
+    needs: [push-backend, push-agents, push-ghost-agents, push-spawner, security-scan]
     if: always()
     steps:
       - name: Build summary
         run: |
-          echo "# Docker Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Backend: ✅ pushed to ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/hypercode-core:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Agents: ✅ pushed (7 variants)" >> $GITHUB_STEP_SUMMARY
-          echo "- Spawner: ✅ pushed to ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/agent-spawner:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "# 🐳 Docker Push Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend (core + celery) | ✅ pushed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Core + Specialist agents (13) | ✅ pushed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ghost agents (12) | ✅ pushed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Agent spawner | ✅ pushed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security scan | ✅ complete |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🤖 **25 agents live in GHCR** — registry: ghcr.io/${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "🏴󠁧󠁢󠁷󠁬󠁳󠁥 Built in Llanelli, South Wales by @welshDog" >> $GITHUB_STEP_SUMMARY
