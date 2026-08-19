@@ -1,303 +1,184 @@
-# 🧠 HYPERFOCUS z0ne — Ecosystem Constitution (root CLAUDE.md)
-> **For ANY AI assistant — Claude, Perplexity, GPT, Gemini — read this first.**
-> Last updated: **June 15, 2026**
-> Lean rewrite: status, tasks, roadmap, achievements moved to `docs/` (see §0 for links).
+# 🧠 CLAUDE.md — HyperCode-V2.4 Constitution
+> **For ANY AI, agent, or human working on HyperCode-V2.4.**
+> Read this file FIRST. Every session. No exceptions.
+> Built by @welshDog — **Updated 2026-08-19**
 
 ---
 
-## 0. 📖 Read Order — Every Session
+## ⚡ WHO YOU'RE WORKING WITH
 
-1. **This file** — sacred rules, ecosystem map, architecture, commands
-2. **Live state** → `docs/STATUS.md` — current container/service health
-3. **Next tasks** → `docs/NEXT_TASKS.md` — what to build next
-4. **Working in the Course?** → `Hyper-Vibe-Coding-Course/CLAUDE.md` + `rewrites/NEXT_SESSION_HANDOVER_[latest].md`
-5. **Working in V2.4?** → `HyperCode-V2.4/CLAUDE.md` (this file IS that)
-6. **Check `WHATS_DONE.md`** — NEVER suggest anything already listed there
-7. **Touching DB?** → check `supabase/migrations/` for the latest migration number first
-8. **Then build.** Not before.
-
-> Repo-level SESSION_SNAPSHOT = living state. This file = constitution.
-> If they contradict, **surface it — don't silently pick one.**
-
-**Other docs:**
-- `docs/TECH_DEBT.md` — known issues + priorities
-- `docs/ROADMAP.md` — full phase history
-- `docs/ACHIEVEMENTS.md` — all-time wins log
+- **Name:** Lyndz Williams (@welshDog) — call them **Bro** or **BROski**
+- **Location:** Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁧
+- **Brain:** ADHD + Dyslexia + Autistic — hyperfocus is a SUPERPOWER ⚡
+- **Mission:** Building the world's first neurodivergent-first autonomous AI infrastructure platform
+- **Vibe:** Friendly, fast, casual. Short sentences. Celebrate every win.
 
 ---
 
-## 1. ⚡ Communication Rules (ALWAYS follow these)
+## 📋 STEP 1 — READ THESE FILES (in order, every session)
 
-- **Short sentences first** — offer deeper explanation only if asked
-- **Why → How → Ready-to-use example** structure
-- **Bullet points + headings** over walls of text
-- **Celebrate wins** — "Nice one BROski♾️!" is correct and encouraged
-- ADHD flow: chunk it, quick wins first, no overwhelm
-- If Lyndz goes quiet mid-task — check in gently, don't assume abandoned
-- **Surface contradictions** — correct the doc visibly, never silently pick a side
-- **Never say "human must test"** when Playwright applies (it's installed — use it)
-- **NEVER** produce walls of text unprompted
+1. `WHATS_DONE.md` → **"do not rebuild" list** — never suggest something already built
+2. `docs/STATUS.md` → **live fleet status** — 25 agents, ports, build state
+3. `docs/NEXT_TASKS.md` → **priority backlog** — what's next
+4. `AGENT-START.md` → **ecosystem constitution** — full repo map + sacred rules
+5. This file (`CLAUDE.md`) → **HyperCode-specific gotchas**
+
+> ⚠️ **Conflict rule:** Live status beats this file. `WHATS_DONE.md` beats everything. **Newest always wins.**
 
 ---
 
-## 2. 🌐 The 5-Repo Ecosystem
+## 🚀 CURRENT STATE — 25-Agent Fleet (August 2026)
 
-```
-Hyper-Vibe-Coding-Course     ──── manifest.json ────▶    HyperCode V2.4
-github.com/welshDog/             (hyper-agent-spec)       github.com/welshDog/
-Hyper-Vibe-Coding-Course                                  HyperCode-V2.4
-(Supabase + Vercel + Web3)             │                  (Docker, ~30 containers)
-Path: H:\Hyper-Vibe-Coding-Course      │
-⚠️ NOT H:\the hyper vibe coding hub    │
-   (that = archived typo repo)         │
-                              HyperAgent-SDK
-                          github.com/welshDog/HyperAgent-SDK
-                          npm: @w3lshdog/hyper-agent@0.1.7
-                          Path: H:\HyperAgent-SDK
-                                       │
-                         BROskiPets-LLM-dNFT
-                     github.com/welshDog/BROskiPets-LLM-dNFT
-                     Path: H:\dNFTpet\BROskiPets-LLM-dNFT
-                     (Pets · dNFT · port 8098)
-                                       │
-                      BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     github.com/welshDog/BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     Path: H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne
-                     (Second Brain vault — PARA + Dataview + GitHub bridge)
-```
+### ✅ 13 Existing Agents (live)
 
-> Aggregator root: `H:\HYPERFOCUSZONE\HperCore` — all 5 repos cloned as subdirectories.
-
-| Repo | Purpose | Local Path |
+| Agent | Port | Status |
 |---|---|---|
-| HyperCode-V2.4 | Core backend — ~30 containers (profile-dependent; 20 compose files) | `H:\HyperStation zone\HyperCode\HyperCode-V2.4` |
-| Hyper-Vibe-Coding-Course | Course + HyperLabs funnel — Supabase + Vercel + Web3 | `H:\Hyper-Vibe-Coding-Course` |
-| HyperAgent-SDK | npm agent framework (`@w3lshdog/hyper-agent`) | `H:\HyperAgent-SDK` |
-| BROskiPets-LLM-dNFT | Web3 NFT pet game — dNFTs + LLM | `H:\dNFTpet\BROskiPets-LLM-dNFT` |
-| BROski-Obsidian-Brain | Second Brain — PARA vault + GitHub bridge | `H:\BROski-Obsidian-Brain-for-HyperFocus-z0ne` |
+| `core-api` | :8000 | ✅ Live |
+| `dashboard` | :8088 | ✅ Live |
+| `crew-orchestrator` | :8001 | ✅ Live |
+| `agent-spawner` | :8002 | ✅ Live |
+| `mcp-gateway` | :8003 | ✅ Live |
+| `broski-bot` | :8004 | ✅ Live |
+| `github-sync` | :8005 | ✅ Live |
+| `celery-worker` | :8006 | ✅ Live |
+| `redis` | :6379 | ✅ Live |
+| `postgres` | :5432 | ✅ Live |
+| `prometheus` | :9090 | ✅ Live |
+| `grafana` | :3001 | ✅ Live |
+| `ollama` | :11434 | ✅ Live |
+
+### 🔨 12 Ghost Agents (building / CI/CD active)
+
+| Agent | Port | Status |
+|---|---|---|
+| `security-engineer` | :8007 | ✅ Ready |
+| `system-architect` | :8008 | 🔨 Building |
+| `tips-tricks-writer` | :8009 | 🔨 Building |
+| `throttle-agent` | :8014 | 🔨 Building |
+| `super-hyper-broski` | :8015 | 🔨 Building |
+| `test-agent` | :8080 | 🔨 Building — ⚠️ check port clash |
+| `hyper-architect` | :8091 | 🔨 Building |
+| `hyper-observer` | :8092 | 🔨 Building |
+| `hyper-worker` | :8093 | 🔨 Building |
+| `hyper-split-agent` | :8096 | 🔨 Building |
+| `session-snapshot` | :8097 | 🔨 Building |
+| `agent-x` | custom | 🔨 Building |
+
+**Total:** 25 agents coordinated through `crew-orchestrator`.
 
 ---
 
-## 3. 🏗️ Architecture Quick Ref (V2.4)
+## 🔴 SACRED RULES — NEVER BREAK THESE
 
-```
-Networks:
-  app-net     → core services (internal)
-  data-net    → redis, postgres, chroma, minio (internal)
-  obs-net     → prometheus, grafana, loki, tempo (internal)
-  agent-net   → all agents
-  agents-net  → broski-bot + hyper-agents
-
-Key ports:
-  8000  hypercode-core API       8081  crew-orchestrator
-  8088  hypercode-dashboard      8095  hyperhealth-api
-  8098  broski-pets-bridge       8099  nemoclaw-agent
-  9090  prometheus               3001  grafana
-  3100  loki                     3200  tempo
-  6379  redis                    5432  postgres
-```
+| Rule | Why |
+|---|---|
+| `docker-ce-cli` — NEVER `docker.io` for socket agents | Agent connectivity depends on it |
+| `from app.X import Y` — NEVER `from backend.app.X` | Import path convention |
+| `.env` files — NEVER committed to git | Secrets stay local |
+| Stripe webhook — rate-limit EXEMPT, always | Payment flow depends on it |
+| Python indent — 4 spaces, NEVER 3, NEVER mixed | `.pylintrc` enforces this |
+| Redis DB 1=cache, DB 2=rate limits. NEVER mix. | Data isolation |
+| `git fetch` BEFORE any push | Parallel auto-commit workflow — origin can move |
+| Nothing is done until committed + pushed | Saying "done" without a push = not done |
+| Check `WHATS_DONE.md` before suggesting anything | Never rebuild what's already built |
+| Short sentences first, detail after | ADHD-friendly communication |
+| Celebrate every milestone | "Nice one BROski♾️!" is always correct |
+| Surface contradictions visibly | If the brief / doc / code disagree, name the contradiction before acting |
 
 ---
 
-## 4. 🔒 Sacred Rules (NEVER debate, NEVER break)
+## 🐳 DOCKER & CI/CD — August 2026 Hardening
 
-### 4a. Ecosystem-wide / V2.4
+### ✅ CI/CD Workflows Live
 
-```
-✔ docker-ce-cli          — NEVER docker.io for socket agents
-✔ from app.X import Y    — NEVER from backend.app.X
-✔ FastAPI public routes   — BEFORE auth-gated routes
-✔ Stripe webhook          — rate-limit EXEMPT, always (NEVER add rate limiting)
-✔ data-net + obs-net      — internal: true, never external
-✔ .env files              — NEVER committed to git
-✔ Commits                 — feat: fix: docs: chore: only
-✔ Trivy target            — 0 CRITICAL per image
-✔ Import style            — absolute imports, sys.path.insert at top
-✔ Python indent           — 4 spaces, NEVER 3, NEVER mixed
-✔ Redis DB split          — DB 1 = cache, DB 2 = rate limits. NEVER mix.
-✔ hypercore healthcheck   — use localhost NOT 127.0.0.1 (IPv6 fix)
-✔ Supabase ↔ V2.4         — NEVER merge schemas
-✔ Guardian moderation     — ban/kick NEVER fully autonomous (P3c = veto-gated only)
-✔ NemoClaw/Guardian       — bot detects, Core decides + persists, bot renders (One Door)
-✔ Prometheus config       — monitoring/prometheus/prometheus.yml = ACTIVE. Root = STALE
-✔ minio                   — on both data-net AND obs-net — correct, intentional
-✔ Alembic                 — up to 015. If missing: alembic stamp <prev> → upgrade head
-✔ Socket-proxy split      — main=read-only, healer proxy=write (CONTAINERS+POST+PING)
-✔ Security headers        — frontend/vercel.json (NOT repo root)
-```
+- `.github/workflows/docker-push.yml` — Pushes **all 25 agents** to GHCR in parallel matrix (3 jobs, `fail-fast: false`)
+- `.github/workflows/ghost-agents-build.yml` — Port validation + parallel ghost-agent builds on push to `main`
+- `.github/workflows/health-check.yml` — All 25 agent ports + Sacred Rules lint on every PR
 
-### 4b. Course / HyperLabs (`Hyper-Vibe-Coding-Course`) — load-bearing gotchas
+### ⚠️ Port Validation (Mandatory)
 
-```
-✔ NEVER `supabase db push`  — local migration filenames desynced from remote
-                              schema_migrations. Deploy via Supabase MCP apply_migration
-✔ Web3 lazy + /pets ONLY    — NEVER import wagmi/rainbowkit globally / in funnel /
-                              in main.tsx. Re-bloats cold load ~900 kB (reverts Sprint 2).
-                              Only 4 files use wagmi — keep it that way.
-✔ NEVER `--no-verify`       — husky + lint-staged catches real ESLint errors.
-                              react-hooks/set-state-in-effect is an ERROR (derive or useRef)
-✔ NO orange in UI           — sacred HFZ brand rule (master palette only)
-✔ Three chrome systems      — funnel TopNav · course Navbar · VibeLabShell.
-                              No global shell. Funnel pages skip Layout.
-✔ award_tokens()            — ALWAYS pass a stable p_source_id (ledger dedup)
-✔ Pets.tsx @ts-nocheck      — pre-existing, non-blocking, money-path. Don't chase it.
-✔ Course dev (repo root)    — npm run dev:frontend  NOT npm run dev
-✔ NEVER curl-poll prod      — trips Vercel Attack Challenge Mode (403). Deploy-truth =
-                              Vercel MCP get_deployment
-✔ Playwright IS installed   — npm run test:e2e. Use it instead of "human must test"
-✔ Parallel git workflow     — ALWAYS git fetch + check origin/main before pushing.
-                              NEVER force-push.
-```
-
-### 4c. Genuinely human-only
-
-- MetaMask / wallet popups (browser-extension UI — cannot be automated)
-- Real Core Web Vitals (needs Vercel Speed Insights dashboard)
-- Visual QA on physical devices
-
----
-
-## 5. 🤖 ONE TRUE BOT — broski-bot
-
-**Location:** `agents/broski-bot/` — profile: `discord`
-⚠️ `discord-bot/` = LEGACY (reprofiled to `discord-lite`) — do NOT use
-⚠️ `agents/broski-bot/main.py` is ORPHANED — entrypoint is `python -u -m cogs.bot`
+Before launching the full stack:
 
 ```bash
-docker compose --profile discord up -d            # Bot + core
-docker compose --profile discord up -d broski-bot # Bot only
-docker compose --profile discord config           # Verify config
+grep -r "ports:" docker-compose*.yml | sort
 ```
 
-| Cog | Commands / Behaviour |
-|---|---|
-| `economy` | `/balance` `/daily` `/give` `/rich` |
-| `leaderboard` | `/top` `/rank` |
-| `ai` | `/ask` (→ Core orchestrator) |
-| `focus` | `/focus start\|stop` `/focusstats` (→ NemoClaw delta → BROski$) |
-| `missions` | `/missions` `/missions-claim` (focus-verified) |
-| `health_check` | `/health` (NemoClaw grade scan) |
-| `health_history` | `/health-history` (7-scan trend) |
-| `codehealth_voice` | `/health-pulse` (admin) + 24h auto-post on grade move |
-| `server_builder` | `/hyperfocus_setup` (admin, idempotent layout build) |
-| `digest` | `/digest` (admin) + weekly auto-DM to Lyndz |
-| `moderation` | passive auto-mod (spam/blocklist → timeout, reversible) |
-| `welcome` | passive on-join welcome + auto-role |
+**Watch for:** `:8080` collision risk (test-agent uses this common default port).
 
-**One Door actions:** `POST /api/v1/discord/actions`
-`economy.* daily.claim leaderboard.xp member.join ai.ask ai.chat`
-`focus.start focus.stop focus.stats missions.today missions.claim`
-`codehealth.pulse digest.weekly mod.assess`
+### 🧠 Resource Limits (Expected)
 
-**NemoClaw** (port 8099): L1 Heartbeat · L2 Memory · L3 Voice · L3.5 Focus→BROski$ loop
-**Guardian:** P1 auto-role · P2 weekly digest · P3a auto-mod · P3b raid-lock · P3c veto-ban (smoke pending)
+All agents in `docker-compose.agents-full.yml` should have:
 
-```powershell
-.\scripts\launch-bot.ps1                            # preflight → up
-docker compose --profile nemoclaw up -d nemoclaw-agent
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 256m
+      cpus: "0.25"
 ```
+
+Prevents one runaway agent from starving the whole fleet.
+
+### 🏥 crew-orchestrator Health Gate (Required)
+
+All 25 agents must depend on `crew-orchestrator` being healthy:
+
+```yaml
+depends_on:
+  crew-orchestrator:
+    condition: service_healthy
+```
+
+`crew-orchestrator` is the SPOF (single point of failure) — ensure it has `restart: unless-stopped` and a `/health` endpoint.
+
+### 🚀 Full Stack Launch Command
+
+Once builds complete (~30–60 min):
+
+```bash
+cd HyperCode-V2.4
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.agents-full.yml \
+  up -d
+```
+
+Then all 25 agents (13 existing + 12 ghost) will be live & coordinated.
 
 ---
 
-## 6. 📦 Key Files Quick Reference
+## 🔒 Security Hardening
 
-```
-ROOT (H:\HYPERFOCUSZONE\HperCore)
-  CLAUDE.md                     — THIS FILE (ecosystem constitution)
-  WHATS_DONE.md                 — NEVER suggest anything listed here
-  docs/STATUS.md                — live system health (updated each session)
-  docs/NEXT_TASKS.md            — active task list
-  docs/TECH_DEBT.md             — known issues
-  docs/ROADMAP.md               — full phase history
-  docs/ACHIEVEMENTS.md          — all-time wins
+### `.env.example` Scan (Pending)
 
-HyperCode-V2.4/
-  docker-compose.yml            — main stack
-  docker-compose.secrets.yml    — secrets injection (always alongside main)
-  backend/app/main.py           — FastAPI core app
-  agents/broski-bot/cogs/bot.py — ONE TRUE BOT entrypoint
-  agents/nemoclaw-agent/        — code-health sidecar (port 8099)
-  backend/app/api/v1/endpoints/discord_actions.py — One Door brain
-  scripts/env_check.py          — env preflight checker
-  monitoring/prometheus/        — ACTIVE Prometheus config
+Before full launch: scan `.env.example` to ensure no secrets or placeholder credentials are committed.
 
-Hyper-Vibe-Coding-Course/
-  CLAUDE.md                     — Course constitution (read for course work)
-  frontend/src/App.tsx          — all routes
-  supabase/migrations/          — latest: 20260518000035_claim_level_reward.sql
-  rewrites/                     — session snapshots + handovers
+### Secret Redaction Guard
 
-BROski-Obsidian-Brain.../
-  cluster.json + .agents/       — BROski Brain 4-agent cluster (3 LIVE: :3301/:3302/:3303 — profile brain-agents)
-```
+Workflow `.github/workflows/secret-redaction-guard.yml` blocks secrets hitting git — never bypass.
 
 ---
 
-## 7. 🧪 Essential Commands
+## 🧠 WHEN STUCK — QUICK TRIAGE
 
-```powershell
-# Env preflight — ALWAYS before docker compose up:
-python scripts/env_check.py --core --secrets --profile discord
-
-# ✅ CANONICAL COMPOSE WRAPPER (use this, not raw docker compose):
-.\hyperlaunch.ps1 up -d                           # always-on services
-.\hyperlaunch.ps1 --profile agents up -d          # + agents (crew, mcp-server, etc.)
-.\hyperlaunch.ps1 --profile discord up -d         # + discord bot
-.\hyperlaunch.ps1 --profile brain-agents up -d    # + brain agents
-.\hyperlaunch.ps1 up -d hypercode-core            # single service
-.\hyperlaunch.ps1 ps                              # status
-.\hyperlaunch.ps1 logs -f hypercode-mcp-server    # logs
-# ⚠️ Raw docker compose MUST use all 4 files — use hyperlaunch.ps1 instead:
-# docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
-#   -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml ...
-# ⚠️ NEVER pass -f docker-compose.agents.yml explicitly — already include:d by root
-
-pytest backend/tests/ -q                          # run tests
-curl http://localhost:8000/health                 # core
-curl http://localhost:8098/health                 # broski-pets-bridge
-curl http://localhost:8099/health                 # nemoclaw-agent
-docker compose exec hypercode-core alembic upgrade head   # migrations
-docker compose ps
-curl -X POST localhost:9090/-/reload              # Prometheus hot-reload
-
-# Course / HyperLabs:
-cd H:\Hyper-Vibe-Coding-Course && npm run dev:frontend    # NOT npm run dev
-npx tsc --noEmit && npx eslint . && npm run build         # pre-commit loop
-npm run test:e2e                                           # Playwright
-
-# Brain agents (profile: brain-agents — 3 live, morning-briefing gated by profile brain-briefing):
-docker compose --profile brain-agents up -d
-curl http://localhost:3301/health                 # agent-hyper-brain-core
-curl http://localhost:3302/health                 # agent-mcp-bridge
-curl http://localhost:3303/health                 # agent-focus-tracker
-
-# Brain vault sync:
-python scripts/github_to_obsidian.py
-```
+1. Reproduce once (don't guess)
+2. Capture the exact error message / output
+3. Find the owning repo + file
+4. Fix the **smallest** thing that makes the proof go green
+5. Commit + push immediately
 
 ---
 
-## 8. 👋 Quick-Start — Any New AI Session
+## 🏁 SESSION END CHECKLIST (MANDATORY)
 
-1. Read this file — sacred rules + ecosystem map
-2. Read `docs/STATUS.md` — live system state
-3. Read `docs/NEXT_TASKS.md` — what to build
-4. Check `WHATS_DONE.md` — NEVER re-suggest anything listed there
-5. Working in a repo? read that repo's `CLAUDE.md` + latest handover
-6. Env check first (V2.4) · never `db push` · never global wagmi · never `--no-verify`
-7. ONE TRUE BOT = `agents/broski-bot/` (profile:discord) — NOT `discord-bot/`
-8. Use Playwright instead of "human must test"
-9. Short sentences. BROski energy. Celebrate wins. Surface contradictions.
-10. Call them **"Bro"** 🤙
+- [ ] All changes committed + pushed (per-repo, **not** HperCore root)
+- [ ] `docs/NEXT_SESSION_HANDOVER_[DATE].md` created + pushed ← **most important step**
+- [ ] `WHATS_DONE.md` updated if new things were built
+- [ ] `docs/STATUS.md` updated if fleet state changed
+- [ ] Tell Lyndz the ONE next task (one sentence)
+- [ ] 🎉 Celebrate the wins — "Nice one BROski♾️!"
 
 ---
 
-<div align="center">
-
-**Built for ADHD brains. Fast feedback. Real tools. No fluff.** 🧠⚡
-
-*by @welshDog — Lyndz Williams, Llanelli, South Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁥*
-
-**A BROski is ride or die. We build this together. 🐶♾️🔥**
-
-</div>
+> 🐶♾️ Built by @welshDog · Llanelli, Wales
+> *"Stop apologising for your brain. Start building."*
