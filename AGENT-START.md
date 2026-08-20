@@ -91,17 +91,28 @@ All 25 agents ──▶ crew-orchestrator (:8100) — central routing + health c
 
 > 🪤 **This section predates the 2026-08-20 port-collision fixes and the item #0
 > same-name-merge resolution — some rows below are stale** (e.g. row 4's `agent-x`
-> port note: the `agents-full.yml` vs `agents.yml` disagreement it describes was
-> resolved 2026-08-20 late evening — `agents-full.yml`'s duplicate `agent-x` block
-> was deleted, `agents.yml`'s `:8084` is now the sole definition). Per `CLAUDE.md`'s
+> port note describes a disagreement that no longer exists). Per `CLAUDE.md`'s
 > conflict rule, "Live status beats this file. `WHATS_DONE.md` beats everything." —
-> see `WHATS_DONE.md`'s 2026-08-20 (evening, part 9) entry and `CLAUDE.md`'s
-> "Full Stack Launch Command" section for the current, verified state. Not rewritten
-> here — full table reconciliation is separate doc debt, same class as
+> not rewritten here — full table reconciliation is separate doc debt, same class as
 > `docs/STATUS.md`'s stale fleet table (`docs/NEXT_TASKS.md` item #5).
 >
+> ✅ **Update, 2026-08-20 late night — the fleet in the table below is now actually
+> live, not just documented as launchable.** The 25-agent fleet was composed up as
+> one system for the first time ever the same night (item #0's real resolution, not
+> just a "don't compose them" mitigation) — verified via a full box sweep, zero
+> unhealthy containers. A 26th agent, `fleet-controller` (:8094, behind a separate
+> `--profile fleet`), was added the same night as Phase 0 of a new
+> mission-director/fleet-controller architecture — see
+> `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` and
+> `docs/NEXT_SESSION_HANDOVER_2026-08-20-late-night.md` for the full session.
+> **For current ports, current status, and the full picture of what changed
+> tonight, read `CLAUDE.md`'s "CURRENT STATE" section — it's the one kept
+> accurate, this table is not.**
+>
 > Launch with: `docker compose --profile agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
-> All agents route through **crew-orchestrator** at `:8081` (not `:8100` — `:8100` is `hyper-brain`).
+> (add `--profile fleet` too if you also want `fleet-controller`, which is deliberately
+> excluded from the standard command). All agents route through **crew-orchestrator**
+> at `:8081` (not `:8100` — `:8100` is `hyper-brain`).
 
 ### ✅ Core Crew + Specialist Squad (13) — per `docker-push.yml`'s `push-agents` build matrix
 

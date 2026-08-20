@@ -1,7 +1,10 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **August 19, 2026**
+> Last updated: **August 20/21, 2026 (late night)**
 > For sacred rules + architecture → `CLAUDE.md`
+> For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
+> (kept accurate every session; this file's own fleet table below is not — see the
+> banner in that section).
 
 ---
 
@@ -23,8 +26,9 @@
 
 | Metric | Status |
 |---|---|
-| Containers | **25 agents** total (13 existing + 12 ghost agents building) 🔨 |
-| **Ghost Agent Fleet** | 12 new agents committed & building — see Agent Fleet table below |
+| Containers | **26 agents** total (13 core + 12 ghost + `fleet-controller`), **all live** — composed up as one system for the first time ever 2026-08-20 late night, 68 containers running fleet-wide, zero unhealthy ✅ |
+| **Ghost Agent Fleet** | All 12 built + launched + verified healthy — see `CLAUDE.md`'s fleet table (this file's own table below is stale, not rewritten — see banner) |
+| **Fleet Controller** | Phase 0 of a new mission-director/fleet-controller architecture LIVE 🛡️ — `fleet-controller` :8094, `--profile fleet`. Structurally incapable of executing anything (no Docker socket, no LLM client); fails closed if Safety Shepherd is down. Spec: `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` |
 | **HyperStudio** | agent write path LIVE 🏗️ — `coder-studio` :8087 (profiles `agents`/`studio`) |
 | Dashboard | celery-worker restored · `/docker-zone` · `/pricing` redirects LIVE ✅ |
 | Tests | 251 passed, 6 skipped ✅ |
@@ -46,16 +50,20 @@
 
 ---
 
-## 🤖 Agent Fleet — 25 Total
+## 🤖 Agent Fleet — 26 Total (25 canonical + `hypercode-mcp-server`)
 
-> 🔴 **STALE — this section's ports do not match reality.** It predates the
-> 2026-08-19/08-20 fleet reconciliation (`docker-push.yml` build matrix is
-> canonical — see `CLAUDE.md`'s "CURRENT STATE" section, kept current as of
-> 2026-08-20). Example: this table says `crew-orchestrator :8010` and
+> 🔴 **STALE — this section's ports do not match reality, and it now also
+> understates fleet status: every agent below is actually LIVE, not "building."**
+> It predates the 2026-08-19/08-20 fleet reconciliation, the 2026-08-20 late-night
+> real fleet launch (item #0 resolved for real, all 25 agents composed up as one
+> system, zero unhealthy across 68 containers), and the addition of a 26th agent,
+> `fleet-controller` (:8094, Phase 0 of a new mission-director architecture, behind
+> `--profile fleet`). Example: this table says `crew-orchestrator :8010` and
 > `safety-shepherd :8012`; the real, live values are `:8081` and `:8096`. Don't
-> trust the port numbers below — read `CLAUDE.md` instead. Left as-is rather than
-> silently rewritten, per "surface contradictions visibly" — needs a real pass,
-> not a drive-by fix. See `docs/NEXT_TASKS.md`.
+> trust the port numbers OR the "building" status below — read `CLAUDE.md`'s
+> "CURRENT STATE" section instead, kept accurate every session. Left as-is rather
+> than silently rewritten, per "surface contradictions visibly" — needs a real
+> pass, not a drive-by fix. See `docs/NEXT_TASKS.md` item #5.
 
 ### ✅ Existing Agents (13)
 > Core stack — live and stable
@@ -98,9 +106,10 @@
 
 ## ⚠️ Known Risks
 
-| Risk | Action |
+| Risk | Status |
 |---|---|
-| Port :8080 collision | Run `grep -r "ports:" docker-compose*.yml \| sort` before launch |
-| Memory pressure at 25 agents | Add `mem_limit: 256m` + `cpus: "0.25"` to new agent compose entries |
-| crew-orchestrator SPOF | Confirm `restart: unless-stopped` + `/health` endpoint live |
+| Port :8080 collision (container-internal) | ✅ Resolved 2026-08-20 — uniform `AGENT_PORT=8080` convention enforced across all 24 pre-existing agents (item #9) + `fleet-controller`. |
+| Memory pressure at 25+ agents | ✅ Proven, not just planned — 68 containers live simultaneously 2026-08-20 late night, zero unhealthy. `deploy.resources.limits` present on all new agents. |
+| crew-orchestrator SPOF | ✅ Confirmed live — `restart: unless-stopped` + `/health` verified during the 2026-08-20 launch. Still the SPOF architecturally; `fleet-controller` was deliberately built with **no** dependency on it (see `CLAUDE.md`'s Sacred Rules footnote) so it doesn't become a second one. |
+| `throttle-agent`'s `MemStream` dependency | 🟡 Open — a real, planned component (also depended on by `broski-bot`) that was never actually built anywhere in the compose stack. Not fatal (background polling loop). See `docs/NEXT_TASKS.md` item #2b. |
 | Service JWT expiry | `DASHBOARD_SERVICE_JWT` expires 2027-07-13 — re-mint before then |
