@@ -139,7 +139,11 @@ else:
           python -c "
 import yaml, sys
 
-# Full 25-agent port registry
+# Full agent port registry (docker-compose.agents-full.yml only — docker-compose.yml
+# is an `include:` wrapper with no services of its own, so it never contributes ports
+# here; that also means this gate can't see docker-compose.agents.yml's real, live
+# hypercode-mcp-server at :8823 — it's deliberately not in this list, see below).
+# Synced 2026-08-20 to agents-full.yml's post-collision-fix ports.
 EXPECTED_PORTS = {
     '8001': 'project-strategist',
     '8002': 'coder-agent',
@@ -148,11 +152,13 @@ EXPECTED_PORTS = {
     '8005': 'qa-engineer',
     '8006': 'devops-engineer',
     '8007': 'security-engineer',
-    '8008': 'system-architect',
     '8009': 'tips-tricks-writer',
+    '8010': 'system-architect',
     '8011': 'frontend-specialist',
+    '8013': 'hyper-split-agent',
     '8014': 'throttle-agent',
     '8015': 'super-hyper-broski-agent',
+    '8017': 'session-snapshot',
     '8020': 'business-agent',
     '8024': 'coderabbit-webhook',
     '8050': 'goal-keeper',
@@ -162,10 +168,10 @@ EXPECTED_PORTS = {
     '8091': 'hyper-architect',
     '8092': 'hyper-observer',
     '8093': 'hyper-worker',
-    '8096': 'hyper-split-agent',
-    '8097': 'session-snapshot',
     '8100': 'test-agent',
-    '8823': 'hypercode-mcp-server',
+    # hypercode-mcp-server (:8823) intentionally omitted: it's the real, live core
+    # service in docker-compose.agents.yml, not a ghost agent this ghost-roster gate
+    # tracks. A phantom duplicate of it in agents-full.yml was removed 2026-08-20.
 }
 
 found_ports = set()

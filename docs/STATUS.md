@@ -48,6 +48,15 @@
 
 ## 🤖 Agent Fleet — 25 Total
 
+> 🔴 **STALE — this section's ports do not match reality.** It predates the
+> 2026-08-19/08-20 fleet reconciliation (`docker-push.yml` build matrix is
+> canonical — see `CLAUDE.md`'s "CURRENT STATE" section, kept current as of
+> 2026-08-20). Example: this table says `crew-orchestrator :8010` and
+> `safety-shepherd :8012`; the real, live values are `:8081` and `:8096`. Don't
+> trust the port numbers below — read `CLAUDE.md` instead. Left as-is rather than
+> silently rewritten, per "surface contradictions visibly" — needs a real pass,
+> not a drive-by fix. See `docs/NEXT_TASKS.md`.
+
 ### ✅ Existing Agents (13)
 > Core stack — live and stable
 

@@ -1,39 +1,52 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # docker-compose.agents-full.yml
 # 🤖 25-AGENT FULL SQUAD DEPLOYMENT
-# Usage: docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d
-# Updated: August 19, 2026 — port audit, orchestrator deps, healthcheck start_periods
+# Usage: docker compose --profile agents -f docker-compose.yml -f docker-compose.agents-full.yml up -d
+#        ⚠️ --profile agents is REQUIRED. Without it, crew-orchestrator (defined with
+#        profiles:["agents"] in docker-compose.agents.yml, merged into this same key)
+#        is silently excluded and the merge hard-fails: "service ... depends on
+#        undefined service crew-orchestrator". Confirmed 2026-08-20 — the launch
+#        command as previously documented (no --profile flag) has never worked.
+# Updated: August 20, 2026 — real port-collision fixes verified via `docker compose
+# config`, not just grep. See NEXT_TASKS.md P1 "agents-full.yml name-collision audit".
 # ════════════════════════════════════════════════════════════════════════════════
 #
 # PORT MAP (host → container:8080)
 # ─────────────────────────────────
-# :8001  project-strategist
-# :8002  coder-agent
-# :8003  backend-specialist
-# :8004  database-architect
-# :8005  qa-engineer
-# :8006  devops-engineer
+# :8001  project-strategist      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8002  coder-agent             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8003  backend-specialist      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8004  database-architect      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8005  qa-engineer             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8006  devops-engineer         ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8007  security-engineer
-# :8008  system-architect        ← was :8009 (clash fixed)
-# :8009  tips-tricks-writer      ← was :8011 (renumbered to match agent ID)
-# :8011  frontend-specialist     ← was :8012 (renumbered)
+# :8009  tips-tricks-writer      ⚠️ collides with live `chroma` :8009 (docker-compose.observability.yml) — NOT fixed, needs decision
+# :8010  system-architect        ← moved off :8008 2026-08-20 (was colliding with live healer-agent)
+# :8011  frontend-specialist
+# :8013  hyper-split-agent       ← moved off :8096 2026-08-20 (was colliding with live safety-shepherd)
 # :8014  throttle-agent
 # :8015  super-hyper-broski-agent
-# :8020  business-agent
+# :8017  session-snapshot        ← moved off :8097 2026-08-20 (was colliding with live evolve-relay, --profile pets)
+# :8020  business-agent          ❌ no Dockerfile exists anywhere — human decision needed, see NEXT_TASKS.md P2-1
 # :8024  coderabbit-webhook
-# :8050  goal-keeper
-# :8081  crew-orchestrator
-# :8082  brain-agent
-# :8083  agent-x
-# :8091  hyper-architect
-# :8092  hyper-observer
-# :8093  hyper-worker
-# :8096  hyper-split-agent
-# :8097  session-snapshot
-# :8100  test-agent              ← safe, no clash
-# :8823  hypercode-mcp-server
+# :8050  goal-keeper             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8081  crew-orchestrator       ⚠️ also defined in docker-compose.agents.yml (profiles:["agents"]) — same-name merge, unaudited
+# :8082  brain-agent             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8083  agent-x                 ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8091  hyper-architect         ⚠️ also defined in docker-compose.agents.yml (profiles:["hyper"], DIFFERENT build context) — same-name merge, unaudited
+# :8092  hyper-observer          ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8093  hyper-worker            ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
+# :8100  test-agent              ⚠️ collides with live hyper-brain :8100 (--profile brain) AND also defined in docker-compose.agents.yml — NOT fixed, needs decision
+# (hypercode-mcp-server removed 2026-08-20 — was a phantom, see block comment below)
 # ─────────────────────────────────
-# ✅ No duplicate host ports
+# 🔴 14 of ~24 real agent names above are ALSO defined in docker-compose.agents.yml
+#    (or other base-included files) with different build contexts/ports/profiles.
+#    Same-named services across compose files MERGE, not error — the later -f file's
+#    build.context/image wins silently, list fields like `ports` get unioned. This
+#    means "launch the 25-agent fleet" has never deployed the roster this file
+#    describes for most of these agents — it deploys some unaudited hybrid. This is
+#    an architecture decision (rename scheme / dedupe / retire one side), not a port
+#    fix. Flagged as a new P1 in NEXT_TASKS.md 2026-08-20 — needs Bro's call.
 # ✅ All agents depend_on crew-orchestrator (healthy)
 # ✅ All healthchecks have start_period
 # ✅ Throttle-agent uses Redis DB 1 (rate limits) — SACRED RULE ✔
@@ -556,7 +569,7 @@ services:
       dockerfile: Dockerfile
     container_name: system-architect
     ports:
-      - "127.0.0.1:8008:8080"
+      - "127.0.0.1:8010:8080"
     environment:
       - AGENT_NAME=system-architect
       - LOG_LEVEL=INFO
@@ -946,50 +959,15 @@ services:
       - "com.hypercode.tier=infrastructure"
       - "com.hypercode.role=testing"
 
-  hypercode-mcp-server:
-    image: hypercode-mcp-server:latest
-    build:
-      context: ./agents/hypercode-mcp-server
-      dockerfile: Dockerfile
-    container_name: hypercode-mcp-server
-    ports:
-      - "127.0.0.1:8823:8080"
-    environment:
-      - AGENT_NAME=hypercode-mcp-server
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_CORE_URL=http://hypercode-core:8000
-      - REDIS_URL=redis://redis:6379/0
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      hypercode-core:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=infrastructure"
-      - "com.hypercode.role=mcp"
+  # hypercode-mcp-server intentionally NOT defined here.
+  # Removed 2026-08-20: this block pointed to ./agents/hypercode-mcp-server, which
+  # does not exist (never did — no Dockerfile anywhere under that path). It also
+  # reused container_name + host port :8823 already owned by the REAL, live
+  # hypercode-mcp-server in docker-compose.agents.yml (context ./services/hypercode-mcp-server).
+  # Composing the two merged into one service with build.context silently swapped to
+  # the nonexistent ghost path and two conflicting port entries for the same host
+  # port — guaranteed build/bind failure. This was never a distinct 25th agent;
+  # it was a phantom duplicate of an already-live core service. See NEXT_TASKS.md.
 
   # ══════════════════════════════════════════════════════════════════════════════
   # TIER 4: UTILITY AGENTS (4 agents) — SUPPORT SERVICES
@@ -1002,7 +980,7 @@ services:
       dockerfile: Dockerfile
     container_name: session-snapshot
     ports:
-      - "127.0.0.1:8097:8080"
+      - "127.0.0.1:8017:8080"
     environment:
       - AGENT_NAME=session-snapshot
       - LOG_LEVEL=INFO
@@ -1047,7 +1025,7 @@ services:
       dockerfile: Dockerfile
     container_name: hyper-split-agent
     ports:
-      - "127.0.0.1:8096:8080"
+      - "127.0.0.1:8013:8080"
     environment:
       - AGENT_NAME=hyper-split-agent
       - LOG_LEVEL=INFO

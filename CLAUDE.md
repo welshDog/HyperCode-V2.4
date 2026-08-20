@@ -49,9 +49,9 @@
 | `qa-engineer` | :8005 | ✅ Live |
 | `devops-engineer` | :8006 | ✅ Live |
 | `security-engineer` | :8007 | 🟡 built, not running |
-| `system-architect` | :8008 | 🟡 built, not running — ⚠️ collides with live `healer-agent :8008` |
+| `system-architect` | :8010 | 🟡 built, not running — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
 | `project-strategist` | :8001 | 🟡 built, not running |
-| `tips-tricks-writer` | :8009 | 🟡 built, not running |
+| `tips-tricks-writer` | :8009 | 🟡 built, not running — ⚠️ collides with live `chroma :8009` (found 2026-08-20, not fixed) |
 
 ### 🔨 12 Ghost Agents
 
@@ -60,18 +60,28 @@
 | `hyper-architect` | :8091 | 🟡 built, not running |
 | `hyper-observer` | :8092 | 🟡 built, not running (CI path fixed 08-19) |
 | `hyper-worker` | :8093 | 🟡 built, not running (CI path fixed 08-19) |
-| `hyper-split-agent` | :8096 | 🟡 built, not running — ⚠️ collides with live `safety-shepherd :8096` |
-| `session-snapshot` | :8097 | 🟡 built, not running — ⚠️ collides with live `evolve-relay :8097` |
+| `hyper-split-agent` | :8013 | 🟡 built, not running — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
+| `session-snapshot` | :8017 | 🟡 built, not running — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
 | `throttle-agent` | :8014 | 🟡 built, not running |
 | `super-hyper-broski-agent` | :8015 | 🟡 built, not running |
 | `test-agent` | :8100 (not :8080) | 🟡 built, not running — ⚠️ collides with live `hyper-brain :8100` |
 | `goal-keeper` | :8050 | ✅ Live |
 | `business-agent` | — | ❌ blocked — no Dockerfile exists anywhere sensible, needs a human decision |
 | `coderabbit-webhook` | :8024 | 🟡 built, not running |
-| `hypercode-mcp-server` | — | ⚠️ name collision with a different, already-live `hypercode-mcp-server` at `:8823` |
 
-**Total:** 25 agents in the canonical roster — 8 live, 15 built-not-running, 1 blocked, 1 name
-collision to resolve. Not "25 coordinated through `crew-orchestrator`" yet.
+> `hypercode-mcp-server` removed from this roster 2026-08-20 — it was a phantom: the
+> `agents-full.yml` block pointed at `./agents/hypercode-mcp-server`, which doesn't
+> exist. It's not a distinct 25th agent — it's the already-live MCP gateway defined
+> in `docker-compose.agents.yml` (`:8823`). The ghost duplicate was deleted, not
+> renamed. See `docs/NEXT_TASKS.md`.
+
+**Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
+counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked, 2 real
+port collisions still open (`tips-tricks-writer` vs `chroma`, `test-agent` vs
+`hyper-brain`). Not "25 coordinated through `crew-orchestrator`" yet. Also open: 14 of
+these agent names are *also* defined in `docker-compose.agents.yml` with different
+build contexts — an unaudited same-name merge across files, not confirmed to deploy
+what this table describes. See `docs/NEXT_TASKS.md` P1.
 
 ---
 
@@ -140,11 +150,26 @@ depends_on:
 
 ### 🚀 Full Stack Launch Command
 
+> ⚠️ **`--profile agents` is REQUIRED.** `crew-orchestrator` (the fleet's SPOF) is
+> defined with `profiles:["agents"]` in `docker-compose.agents.yml`; the two files
+> merge into one service definition, and without the flag it's silently excluded —
+> `docker compose config` hard-fails with "depends on undefined service
+> crew-orchestrator". Confirmed 2026-08-20 — the command below (without the flag)
+> has never actually worked.
+>
+> Not launch-ready yet regardless: `tips-tricks-writer` (:8009) collides with live
+> `chroma`, `test-agent` (:8100) collides with live `hyper-brain` (`--profile brain`),
+> `business-agent` has no Dockerfile, and 14 of ~24 agent names below are *also*
+> defined in `docker-compose.agents.yml` with different build contexts — an
+> unaudited same-name merge, not confirmed to deploy what this table describes.
+> See `docs/NEXT_TASKS.md` P1.
+
 Once builds complete (~30–60 min):
 
 ```bash
 cd HyperCode-V2.4
 docker compose \
+  --profile agents \
   -f docker-compose.yml \
   -f docker-compose.agents-full.yml \
   up -d
