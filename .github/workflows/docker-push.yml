@@ -176,6 +176,9 @@ jobs:
           - agent: coderabbit-webhook
             context: ./agents/coderabbit-webhook
             dockerfile: Dockerfile
+          - agent: fleet-controller
+            context: ./agents/fleet-controller
+            dockerfile: Dockerfile
           - agent: hypercode-mcp-server
             context: ./services/hypercode-mcp-server
             dockerfile: Dockerfile

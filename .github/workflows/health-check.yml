@@ -173,6 +173,7 @@ EXPECTED_PORTS = {
     '8091': 'hyper-architect',
     '8092': 'hyper-observer',
     '8093': 'hyper-worker',
+    '8094': 'fleet-controller',
     # hypercode-mcp-server (:8823) intentionally omitted: it's the real, live core
     # service in docker-compose.agents.yml, not a ghost agent this ghost-roster gate
     # tracks. A phantom duplicate of it in agents-full.yml was removed 2026-08-20.
@@ -205,9 +206,48 @@ else:
     print(f'PASS: All {len(EXPECTED_PORTS)} agent ports confirmed in compose files.')
 "
 
+      - name: 🔒 fleet-controller negative-capability check
+        run: |
+          echo "Checking fleet-controller's manifest grants no mutation authority..."
+          python -c "
+import yaml, sys
+
+with open('docker-compose.agents-full.yml') as f:
+    doc = yaml.safe_load(f)
+
+svc = (doc.get('services') or {}).get('fleet-controller')
+if svc is None:
+    print('FAIL: fleet-controller service not found in docker-compose.agents-full.yml')
+    sys.exit(1)
+
+errors = []
+
+for vol in (svc.get('volumes') or []):
+    if 'docker.sock' in str(vol):
+        errors.append(f'docker.sock mounted: {vol}')
+
+env = svc.get('environment') or []
+env_text = ' '.join(env) if isinstance(env, list) else ' '.join(f'{k}={v}' for k, v in env.items())
+for forbidden in ('DOCKER_HOST', 'ANTHROPIC_API_KEY', 'GITHUB_TOKEN', 'ORCHESTRATOR_API_KEY'):
+    if forbidden in env_text:
+        errors.append(f'forbidden env var present: {forbidden}')
+
+depends_on = svc.get('depends_on') or {}
+if 'crew-orchestrator' in depends_on:
+    errors.append('depends_on crew-orchestrator — fleet-controller should have no dispatch-path dependency in Phase 0')
+
+if errors:
+    print('FAIL: fleet-controller manifest grants excess capability:')
+    for e in errors:
+        print(f'  {e}')
+    sys.exit(1)
+else:
+    print('PASS: fleet-controller has no docker.sock, no forbidden env vars, no crew-orchestrator dependency.')
+"
+
       - name: ✅ Health Check Complete
         run: |
           echo ""
           echo "💚 All health checks passed! BROski♾️ is looking healthy."
-          echo "🤖 25 agents verified: 13 core + 12 ghost agents"
+          echo "🤖 26 agents verified: 13 core + 12 ghost + fleet-controller (Phase 0)"
           echo "🏴󠁧󠁢󠁷󠁬󠁳󠁥 Built in Llanelli, South Wales by @welshDog"

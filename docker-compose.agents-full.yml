@@ -570,6 +570,58 @@ services:
       - "com.hypercode.tier=utility"
       - "com.hypercode.role=business"
 
+  # ══════════════════════════════════════════════════════════════════════════════
+  # PHASE 0: FLEET CONTROLLER — structurally incapable of executing anything.
+  # No docker.sock, no DOCKER_HOST, no ORCHESTRATOR_API_KEY. Depends only on
+  # safety-shepherd (service_started, not service_healthy — Phase 0 must work
+  # *correctly because* Shepherd might be down). Deliberately NOT gated on
+  # crew-orchestrator: service_healthy (unlike every other agent in this file,
+  # and a named, confirmed exception to CLAUDE.md's general Sacred Rule) —
+  # fleet-controller holds no crew-orchestrator credential and no dispatch path
+  # through it, so that health gate would only couple this boundary-proving
+  # service to a second SPOF for no safety benefit. See
+  # docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md §7.
+  # ══════════════════════════════════════════════════════════════════════════════
+  fleet-controller:
+    profiles: ["fleet"]
+    image: hypercode-fleet-controller:latest
+    build:
+      context: ./agents/fleet-controller
+      dockerfile: Dockerfile
+    container_name: fleet-controller
+    ports:
+      - "127.0.0.1:8094:8080"
+    environment:
+      - AGENT_NAME=fleet-controller
+      - LOG_LEVEL=INFO
+      - API_KEY=${API_KEY:-dev}
+      - SAFETY_SHEPHERD_URL=http://safety-shepherd:8096
+      - CORE_URL=${CORE_URL:-http://hypercode-core:8000}
+      - CORE_AGENT_KEY=${FLEET_CONTROLLER_CORE_AGENT_KEY:-}
+    networks:
+      - agents-net
+    depends_on:
+      safety-shepherd:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256MB
+        reservations:
+          cpus: "0.1"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=fleet-control"
+
 networks:
   # app-net / agent-net (singular) were phantom — never created anywhere in
   # the real stack, found 2026-08-20 during the first real fleet launch

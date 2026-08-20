@@ -1,14 +1,24 @@
 #!/bin/bash
 # ============================================================================
-# 25-Agent Fleet Roster Check
+# 26-Agent Fleet Roster Check
 # ============================================================================
 # Checks each agent in the CANONICAL roster (docker-push.yml's build matrix,
 # reconciled 2026-08-19 — see AGENT-START.md + CLAUDE.md fleet sections) by
 # name and expected port. This is intentionally narrow: it does NOT duplicate
 # scripts/health-check.sh (disk/volumes/networks/resource checks) — it only
-# answers "is each of the 25 canonical agents running, and does its port
+# answers "is each of the 26 canonical agents running, and does its port
 # match what's expected" — all known real port collisions are fixed as of
-# 2026-08-20 evening.
+# 2026-08-20 evening. 26 = 25 in ROSTER[] below + hypercode-mcp-server
+# counted separately (real, live core service, not a ghost agent — see note
+# below the array).
+#
+# 2026-08-20 late night: added fleet-controller (Phase 0 of the mission-
+# director/fleet-controller architecture — see
+# docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md).
+# Structurally incapable of executing anything: no docker.sock, no
+# DOCKER_HOST, no crew-orchestrator credential. Behind a new --profile fleet,
+# not --profile agents/hyper — never launches with the existing full-fleet
+# command until that flag is added explicitly.
 #
 # 2026-08-20: verified against `docker compose config` (not just grep) —
 # system-architect/hyper-split-agent/session-snapshot/tips-tricks-writer/
@@ -82,13 +92,14 @@ ROSTER=(
     "goal-keeper|8050|"
     "business-agent|8020|built for real 2026-08-20 (was a mislabeled project-strategist clone, verified: builds + /health 200 + real identity)"
     "coderabbit-webhook|8024|"
+    "fleet-controller|8094|new 2026-08-20, Phase 0 — structurally incapable of executing anything, behind --profile fleet (not agents/hyper)"
 )
 # hypercode-mcp-server intentionally not in this roster: it is the real, live
 # MCP gateway defined in docker-compose.agents.yml (:8823), not a distinct 25th
 # agent. A phantom duplicate of it in agents-full.yml (pointing at a build
 # context that doesn't exist) was removed 2026-08-20 — see that file's header.
 
-header "25-AGENT FLEET ROSTER CHECK (canonical: docker-push.yml, reconciled 2026-08-19)"
+header "26-AGENT FLEET ROSTER CHECK (canonical: docker-push.yml, reconciled 2026-08-19)"
 
 printf "%-28s %-10s %-10s %s\n" "AGENT" "PORT" "STATUS" "NOTE"
 printf "%-28s %-10s %-10s %s\n" "-----" "----" "------" "----"
@@ -134,9 +145,9 @@ done
 
 header "SUMMARY"
 
-echo "Live now:            $LIVE / 24"
-echo "Built, not running:  $BUILT_NOT_RUNNING / 24"
-echo -e "${YELLOW}Blocked (needs a human decision): $BLOCKED / 24${NC}"
+echo "Live now:            $LIVE / 25"
+echo "Built, not running:  $BUILT_NOT_RUNNING / 25"
+echo -e "${YELLOW}Blocked (needs a human decision): $BLOCKED / 25${NC}"
 echo ""
 echo "Reminder: 'not running' agents are expected right now — nothing here is"
 echo "blocked anymore. Item #0 is resolved: agents-full.yml no longer duplicates"
@@ -144,6 +155,10 @@ echo "any agents.yml service name, verified via docker compose config with both"
 echo "files. It's safe to compose them together whenever you're ready to launch:"
 echo "  docker compose --profile agents --profile hyper \\"
 echo "    -f docker-compose.yml -f docker-compose.agents-full.yml up -d"
+echo ""
+echo "fleet-controller is separate, deliberately: it's behind its own"
+echo "--profile fleet and stays NOT RUNNING even with the command above."
+echo "Add --profile fleet explicitly to bring it up too."
 echo "See HyperCode-V2.4/AGENT-START.md fleet section for full detail."
 echo ""
 
