@@ -1,6 +1,78 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening, part 9) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (late evening, part 10) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (late evening, part 10) — 🚀 25-agent fleet actually launched, live, healthy
+
+Bro said "launch the fleet." Ran `docker compose --profile agents --profile
+hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d` for
+real, for the first time ever with the item #0 fix in place. Three more real
+bugs surfaced that no amount of `docker compose config` or standalone
+`docker build` verification could have caught — they only show up when
+containers actually try to start together:
+
+1. **`agent-x`/`hyper-architect`** (both `context: .` in `agents.yml`) hit
+   the exact same `.dockerignore` gap the `hyper-observer`/`hyper-worker` fix
+   covered earlier tonight — `/agents/` is broadly excluded and only
+   `observer/`/`worker/` had carve-outs. Added `architect/` and `agent-x/`
+   too.
+2. **`agents-full.yml`'s `test-agent`** used `context: ./agents/test-agent`,
+   but its Dockerfile `COPY`s a sibling `shared/` directory — the real
+   `agents/shared/agent_utils.py`, which `main.py` directly imports —
+   unreachable from that narrow context. Broadened to `context: ./agents`,
+   `dockerfile: test-agent/Dockerfile`.
+3. **The big one**: all 11 of `agents-full.yml`'s own ghost agents (the ones
+   I didn't touch during the item #0 fix, because they were never part of
+   the duplicate-name problem) referenced networks `app-net`/`agent-net`
+   (singular) that were **never created anywhere in the real stack** — only
+   `agents-net`/`data-net`/etc. (plural `agents`, defined for real in
+   `docker-compose.core.yml`) actually exist. Every one of these 11 agents
+   could build a perfectly good image but could never actually start a
+   container — `docker compose up` errored with "network agent-net declared
+   as external, but could not be found." Fixed via one `replace_all` across
+   all 11 service blocks: `[app-net, agent-net, agents-net]` →
+   `[agents-net, data-net]` (matching what `crew-orchestrator`/`redis` are
+   actually on), and rewrote the file's own `networks:` declaration block to
+   match.
+
+Also hit, mid-launch: `hypercode-core` had one transient restart under the
+heavy concurrent load of building/starting ~16 new containers at once,
+which cascaded a batch of "dependency failed to start" errors to everything
+waiting on it at that exact moment — confirmed it wasn't OOM-killed
+(`OOMKilled=false`), just a blip; re-ran `up -d` once it stabilized and
+everything came up clean. Separately, `project-strategist` came up crash-
+looping (`python: can't open file '/app/src/main.py'`) — turned out to be a
+**stale cached image** left over from before tonight's item #0 context
+repoint; `docker compose up -d` doesn't rebuild automatically on a changed
+`build.context`, so an explicit `docker compose build project-strategist`
+was needed before it would pick up the real code.
+
+**Final verified state**: polled every previously-blocked agent's Docker
+health status until none were `starting` — all 16 (the 11 true ghost agents
++ `agent-x`/`hyper-architect`/`hyper-observer`/`hyper-worker`) report
+`healthy`. `scripts/fleet-roster-check.sh` shows 23/24 LIVE (the 24th,
+`coder`, is an intentionally-nonexistent alias — `coder-agent` is the real
+live one, already documented). Swept the **entire** box for unhealthy
+containers: zero, across all 67 running. `throttle-agent` and
+`celery-worker` both briefly showed `unhealthy` during the congested
+startup window and self-recovered via their own `restart: unless-stopped` +
+healthcheck retry — confirmed via `RestartCount=0` and a clean current
+health status, not silently ignored.
+
+**New, separate finding logged, not fixed (`NEXT_TASKS.md` item #2a)**:
+`throttle-agent` can't reach the Docker socket (`agents-full.yml`'s
+definition has no `/var/run/docker.sock` mount) — its HTTP healthcheck still
+returns 200 so Docker shows it healthy, but its own internal status reports
+`"degraded"` and its resource-throttling feature likely isn't functioning.
+Pre-existing, unrelated to tonight's changes.
+
+Synced `docs/NEXT_TASKS.md` (item #0b for the 3 launch-time bugs, item #2
+marked launched, item #2a for the throttle-agent finding).
+
+**The 25-agent fleet is live. This is the first time it has ever actually
+been composed up as one system**, not just individually build-tested.
 
 ---
 

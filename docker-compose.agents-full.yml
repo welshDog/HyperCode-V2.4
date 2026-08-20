@@ -71,9 +71,8 @@ services:
       - DYSLEXIA_MODE=true
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -119,9 +118,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -168,9 +166,8 @@ services:
       - API_KEY=${API_KEY:-dev}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       crew-orchestrator:
         condition: service_healthy
@@ -208,9 +205,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -257,9 +253,8 @@ services:
       # ✅ SACRED RULE: Redis DB 1 = rate limits — NEVER change this
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -302,9 +297,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -334,8 +328,13 @@ services:
   test-agent:
     image: hypercode-test-agent:latest
     build:
-      context: ./agents/test-agent
-      dockerfile: Dockerfile
+      # context MUST be agents/, not agents/test-agent: the Dockerfile COPYs
+      # a sibling agents/shared/ (agent_utils.py etc.) that's unreachable from
+      # the narrower context — found 2026-08-20 during the first real fleet
+      # launch attempt, same bug class as the hyper-observer/worker/architect
+      # context fixes earlier the same day.
+      context: ./agents
+      dockerfile: test-agent/Dockerfile
     container_name: test-agent
     ports:
       - "127.0.0.1:8019:8080"
@@ -348,9 +347,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -407,9 +405,8 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -452,9 +449,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -496,9 +492,8 @@ services:
       - CODERABBIT_API_KEY=${CODERABBIT_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -540,9 +535,8 @@ services:
       - STRIPE_API_KEY=${STRIPE_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
-      - app-net
-      - agent-net
       - agents-net
+      - data-net
     depends_on:
       redis:
         condition: service_healthy
@@ -570,9 +564,13 @@ services:
       - "com.hypercode.role=business"
 
 networks:
-  app-net:
-    external: true
-  agent-net:
-    external: true
+  # app-net / agent-net (singular) were phantom — never created anywhere in
+  # the real stack, found 2026-08-20 during the first real fleet launch
+  # attempt (all 11 services here referenced them, so none of them could ever
+  # actually start a container, only build an image). The real shared
+  # networks crew-orchestrator/redis/postgres are on are agents-net and
+  # data-net (see docker-compose.core.yml, which creates them for real).
   agents-net:
+    external: true
+  data-net:
     external: true

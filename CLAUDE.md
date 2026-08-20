@@ -29,45 +29,46 @@
 
 ## 🚀 CURRENT STATE — 25-Agent Fleet (August 2026)
 
-> 🪤 **Corrected 2026-08-19.** This section previously listed a fourth, independent roster
-> (`core-api`, `agent-spawner`, `mcp-gateway` as an agent, `test-agent :8080`) that matched neither
-> `AGENT-START.md`, `docker-push.yml`, nor `docker ps`. `docker-push.yml`'s build matrix is now
-> canonical (Bro's call) — this table matches it. Full detail + forensic trail:
-> `HperCore/DASHBOARD_STATUS_2026-08-19.md` + `AGENT-START.md`'s fleet section.
+> 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening.** The full fleet below was composed
+> up as one system for the first time ever this session (`docker compose --profile
+> agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up
+> -d`) — previously every "Live" row in this table meant "already running under
+> `agents.yml` independently of this file," never a real joint launch. Full writeup:
+> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10) entry.
 
 ### ✅ Core Crew + Specialist Squad (13)
 
 | Agent | Port | Status |
 |---|---|---|
 | `crew-orchestrator` | :8081 | ✅ Live |
-| `brain-agent` | :8082 | 🟡 built, not running — real code shipped 2026-08-20 (was a missing directory), verified live via standalone `docker run` + `/health` 200 |
-| `coder` | — | 🟡 built, not running under this name (`coder-agent` live, likely same code) |
-| `agent-x` | :8084 | 🟡 built, not running — agents-full.yml's duplicate (:8083) deleted 2026-08-20, agents.yml's :8084 is now the sole definition |
+| `brain-agent` | :8082 | ✅ Live — real code shipped 2026-08-20 (was a missing directory) |
+| `coder` | — | 🟡 not running under this name (`coder-agent` live, likely same code) |
+| `agent-x` | :8084 | ✅ Live — agents-full.yml's duplicate (:8083) deleted 2026-08-20, agents.yml's :8084 is the sole definition |
 | `frontend-specialist` | :8012 | ✅ Live |
 | `backend-specialist` | :8003 | ✅ Live |
 | `database-architect` | :8004 | ✅ Live |
 | `qa-engineer` | :8005 | ✅ Live |
 | `devops-engineer` | :8006 | ✅ Live |
-| `security-engineer` | :8007 | 🟡 built, not running |
-| `system-architect` | :8010 | 🟡 built, not running — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
-| `project-strategist` | :8001 | 🟡 built, not running — context fixed 2026-08-20 (was pointing at a directory whose Dockerfile got deleted in the business-agent fix); also found missing its own `base_agent.py` (every sibling numbered agent has one), copied from the same clean template as brain-agent/business-agent, verified live via standalone `docker run` + `/health` 200 |
-| `tips-tricks-writer` | :8018 | 🟡 built, not running — moved off :8009 2026-08-20 (was colliding with `chroma`) |
+| `security-engineer` | :8007 | ✅ Live |
+| `system-architect` | :8010 | ✅ Live — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
+| `project-strategist` | :8001 | ✅ Live — context fixed 2026-08-20 (was pointing at a deleted directory), also missing `base_agent.py` (fixed); a stale cached image from before the fix crash-looped it once, `docker compose build project-strategist` fixed that too |
+| `tips-tricks-writer` | :8018 | ✅ Live — moved off :8009 2026-08-20 (was colliding with `chroma`) |
 
 ### 🔨 12 Ghost Agents
 
 | Agent | Port | Status |
 |---|---|---|
-| `hyper-architect` | :8091 | 🟡 built, not running |
-| `hyper-observer` | :8092 | 🟡 built, not running — build-context path bug fixed 2026-08-20, verified live via standalone `docker run` + `/health` 200 |
-| `hyper-worker` | :8093 | 🟡 built, not running — build-context path bug fixed 2026-08-20, verified live via standalone `docker run` + `/health` 200 |
-| `hyper-split-agent` | :8013 | 🟡 built, not running — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
-| `session-snapshot` | :8017 | 🟡 built, not running — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
-| `throttle-agent` | :8014 | 🟡 built, not running |
-| `super-hyper-broski-agent` | :8015 | 🟡 built, not running |
-| `test-agent` | :8019 (not :8080/:8100) | 🟡 built, not running — moved off :8100 2026-08-20 (was colliding with `hyper-brain`) |
+| `hyper-architect` | :8091 | ✅ Live — needed a `.dockerignore` carve-out (found during launch) |
+| `hyper-observer` | :8092 | ✅ Live — build-context path bug fixed 2026-08-20 |
+| `hyper-worker` | :8093 | ✅ Live — build-context path bug fixed 2026-08-20 |
+| `hyper-split-agent` | :8013 | ✅ Live — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
+| `session-snapshot` | :8017 | ✅ Live — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
+| `throttle-agent` | :8014 | ✅ Live — Docker healthcheck 200, but reports itself `"degraded"` (no docker.sock mount, separate pre-existing gap, see `NEXT_TASKS.md` item #2a) |
+| `super-hyper-broski-agent` | :8015 | ✅ Live |
+| `test-agent` | :8019 (not :8080/:8100) | ✅ Live — moved off :8100 2026-08-20; build context also needed broadening to `./agents` (found during launch, `shared/` was unreachable) |
 | `goal-keeper` | :8050 | ✅ Live |
-| `business-agent` | :8020 | 🟡 built, not running — real code built 2026-08-20 (was a mislabeled project-strategist clone); builds + `/health` 200 + real identity, verified via a standalone `docker run` |
-| `coderabbit-webhook` | :8024 | 🟡 built, not running |
+| `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled project-strategist clone) |
+| `coderabbit-webhook` | :8024 | ✅ Live |
 
 > `hypercode-mcp-server` removed from this roster 2026-08-20 — it was a phantom: the
 > `agents-full.yml` block pointed at `./agents/hypercode-mcp-server`, which doesn't
@@ -76,23 +77,17 @@
 > renamed. See `docs/NEXT_TASKS.md`.
 
 **Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
-counting it once, not as a ghost) — 8 live, 16 built-not-running, 0 blocked-on-Dockerfile.
-All real host-port-vs-differently-named-service collisions are fixed, `business-agent`
-has real code, and **as of 2026-08-20 late evening all 24 agents build and bind port
-`8080` correctly** — including the last 3 (`brain-agent`, `hyper-observer`,
-`hyper-worker`) which previously couldn't even build. Every one verified this session
-via standalone `docker build` + `docker run` + a live `/health` check returning 200,
-not just claimed. **Item #9 is fully closed.**
->
-> ✅ **Item #0 is ALSO resolved, 2026-08-20 late evening — for real, not just mitigated.**
-> 13 of these 24 agent names were duplicated in both `docker-compose.agents-full.yml`
-> and `docker-compose.agents.yml`; `agents.yml`'s versions were the real, live,
-> hardened ones (volume-mounted code, HYPER-SILLs loadout, `security_opt`) so their
-> duplicate blocks were deleted from `agents-full.yml` for good, which is now a clean
-> 11-agent ghost overlay. Verified via `docker compose config` with both files +
-> `--profile agents --profile hyper`: zero collisions, `crew-orchestrator`'s merged
-> definition confirmed as the real hardened one. **No known blocker remains before a
-> real fleet launch** — see `docs/NEXT_TASKS.md` item #0.
+counting it once, not as a ghost) — **24 live** (the 25th, `hypercode-mcp-server`,
+also live), 0 not running except the intentionally-nonexistent `coder` alias. Item #9
+(all 24 build + bind `8080`) and item #0 (the agents-full.yml/agents.yml same-name
+merge) are both fully closed. **The launch itself surfaced 3 more real bugs** that no
+amount of `docker compose config`/standalone `docker build` could have caught — see
+`docs/NEXT_TASKS.md` item #0b (`.dockerignore` gaps for `agent-x`/`hyper-architect`,
+`test-agent`'s build context, and — the big one — all 11 ghost agents referencing
+phantom networks `app-net`/`agent-net` that were never created anywhere in the real
+stack). Swept the whole box after launch: **zero unhealthy containers across all 67
+running.** `throttle-agent`'s Docker-socket gap (item #2a) is the one known,
+non-blocking loose end.
 
 ---
 
@@ -164,38 +159,43 @@ depends_on:
 
 ### 🚀 Full Stack Launch Command
 
-> ✅ **SAFE TO RUN — item #0 resolved for real, 2026-08-20 late evening.** 13 of the
-> ~24 agent names used to be duplicated in both `docker-compose.agents-full.yml` and
-> `docker-compose.agents.yml` with different build contexts/ports/profiles —
-> same-named services silently MERGE across `-f` files instead of erroring, proven
-> concretely on `hypercode-mcp-server` (a ghost block pointed at a nonexistent path)
-> and `hyper-architect` (a differently-pathed second definition). `agents.yml`'s
-> versions were the real, live, hardened ones (volume-mounted code, HYPER-SILLs
-> loadout, `security_opt`) — `agents-full.yml`'s copies were unused stubs. **Fix:**
-> deleted the 13 duplicate blocks from `agents-full.yml` for good — it's now a clean
-> 11-agent ghost-only overlay with zero name collisions against `agents.yml`.
-> Verified via `docker compose config` with both files + `--profile agents --profile
-> hyper`: no errors, and the merged `crew-orchestrator` confirmed to be the real
-> hardened definition (volumes/HYPER-SILLs/`security_opt` all present), not a stub.
+> 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening — this is now a proven command, not
+> just a verified-safe one.** Item #0 (13 duplicate agent names between
+> `agents-full.yml` and `agents.yml`) was resolved earlier the same session — `agents.yml`'s
+> versions (real, live, hardened: volume-mounted code, HYPER-SILLs loadout,
+> `security_opt`) stayed canonical, `agents-full.yml`'s 13 duplicate blocks were
+> deleted for good. `docker compose config` came back clean — but **actually running
+> it surfaced 3 more bugs that config validation can't catch**, because they only
+> matter once containers try to start together, not while parsing YAML:
 >
-> **Also fixed while resolving it:** `agents.yml`'s `project-strategist` pointed at
-> `agents/business/project-strategist` — a directory whose Dockerfile/code was
-> deleted by the business-agent fix earlier the same day, leaving only stray
-> untracked bind-mount folders. Repointed to the real `agents/08-project-strategist`,
-> which turned out to have its own separate, pre-existing bug: missing `base_agent.py`
-> entirely (every sibling numbered agent has one) — copied from the same clean
-> template used for brain-agent/business-agent. Verified via standalone `docker run`
-> + `curl /health` → 200 for both fixes. Full evidence: `docs/NEXT_TASKS.md` item #0
-> and `WHATS_DONE.md`.
+> 1. `agent-x`/`hyper-architect` (both `context: .`) hit the same `.dockerignore` gap
+>    `hyper-observer`/`hyper-worker` needed earlier — added `architect/`/`agent-x/`
+>    carve-outs.
+> 2. `agents-full.yml`'s `test-agent` used too narrow a build context
+>    (`./agents/test-agent`) to reach the sibling `agents/shared/agent_utils.py` its
+>    code directly imports — broadened to `context: ./agents`.
+> 3. **The big one**: all 11 of `agents-full.yml`'s own ghost agents referenced
+>    networks `app-net`/`agent-net` that were never created *anywhere* in the real
+>    stack — only `agents-net`/`data-net` (defined for real in `docker-compose.core.yml`)
+>    actually exist. Every one of these 11 could build a perfectly good image but
+>    could never start a container. Fixed via `replace_all`:
+>    `[app-net, agent-net, agents-net]` → `[agents-net, data-net]` across all 11.
 >
-> All real *host*-port collisions fixed 2026-08-20 evening: `tips-tricks-writer`
-> (:8009 → :8018), `test-agent` (:8100 → :8019), `agent-x` (duplicate :8083 deleted,
-> `agents.yml`'s :8084 is sole definition). `business-agent` also fixed the same
-> evening — real code now at `agents/business` (see `docs/NEXT_TASKS.md` P2-1).
+> Also hit mid-launch: one transient `hypercode-core` restart under the heavy
+> concurrent build/startup load (confirmed not OOM — `OOMKilled=false` — just a
+> blip) cascaded a batch of "dependency failed to start" errors; re-ran `up -d` once
+> it stabilized. `project-strategist` came up crash-looping on a **stale cached
+> image** left from before the item #0 context repoint — `up -d` doesn't rebuild on
+> a changed `build.context` automatically, needed an explicit `docker compose build
+> project-strategist` first.
 >
-> Item #9 (container-internal port audit — all 24 agents build + bind `8080`) is also
-> fully closed, see `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`. **No known blocker
-> remains before a real fleet launch.**
+> **Final state, verified not claimed**: polled every previously-blocked agent until
+> none reported `health: starting` — all 16 came back `healthy`. Swept the *entire*
+> box: zero unhealthy containers across all 67 running. One known, non-blocking loose
+> end: `throttle-agent` has no `/var/run/docker.sock` mount (pre-existing, unrelated
+> to tonight's changes) — its HTTP healthcheck passes but it reports itself
+> `"degraded"` internally, see `docs/NEXT_TASKS.md` item #2a. Full writeup:
+> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10) entry.
 
 ```bash
 cd HyperCode-V2.4
@@ -209,9 +209,8 @@ docker compose \
 
 `--profile hyper` is required alongside `--profile agents`: `agents.yml` gates
 `agent-x`/`hyper-architect`/`hyper-observer`/`hyper-worker` behind it. All 25 agents
-(13 existing + 12 ghost, `hypercode-mcp-server` counted once) will be live & coordinated.
-Not run this session (Bro's call, 2026-08-20) — files verified via `docker compose
-config`, launch is a separate step whenever ready.
+(13 existing + 12 ghost, `hypercode-mcp-server` counted once) are live & coordinated
+right now.
 
 ---
 

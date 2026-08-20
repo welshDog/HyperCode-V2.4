@@ -95,9 +95,18 @@ Thumbs.db
 
 # HyperCode BIG folders
 # Anchored to repo root (leading /) so it doesn't also catch src/agents/ —
-# hyper-observer/hyper-worker build with context: . and need both
-# agents/hyper-agents/{observer,worker}/ and src/agents/hyper_agents/ reachable.
+# hyper-architect/hyper-observer/hyper-worker/agent-x all build with
+# context: . and need their own agents/<name>/ (plus, for the hyper-agents
+# trio, src/agents/hyper_agents/) reachable. Found/fixed incrementally
+# 2026-08-20 during the first real fleet launch attempt — same bug class each
+# time, just missed on the agents this session hadn't build-tested standalone
+# before (agent-x/hyper-architect weren't part of the earlier item-#9 audit,
+# which only covered agents-full.yml's own definitions).
 /agents/
+!/agents/agent-x/
+!/agents/agent-x/**
+!/agents/hyper-agents/architect/
+!/agents/hyper-agents/architect/**
 !/agents/hyper-agents/observer/
 !/agents/hyper-agents/observer/**
 !/agents/hyper-agents/worker/
