@@ -252,6 +252,11 @@ services:
       - REDIS_URL=redis://redis:6379/1
       # ✅ SACRED RULE: Redis DB 1 = rate limits — NEVER change this
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
+      # docker-socket-proxy-healer's own header names it explicitly: "ONLY for
+      # healer + throttle-agent" — was never actually wired up until now.
+      # Never mount /var/run/docker.sock directly (Sacred Rule): route through
+      # the scoped, read+POST-only proxy instead, same as healer-agent.
+      - DOCKER_HOST=tcp://docker-socket-proxy-healer:2375
     networks:
       - agents-net
       - data-net
@@ -260,6 +265,8 @@ services:
         condition: service_healthy
       crew-orchestrator:
         condition: service_healthy
+      docker-socket-proxy-healer:
+        condition: service_started
     deploy:
       resources:
         limits:

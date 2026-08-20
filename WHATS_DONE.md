@@ -1,6 +1,49 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (late evening, part 10) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (late evening, part 11) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (late evening, part 11) — throttle-agent's Docker socket fixed
+
+Bro asked to fix throttle-agent's missing Docker socket access (the one
+known loose end from the fleet launch). Checked `agents/throttle-agent/main.py`
+first: it uses `docker.from_env()` (respects `DOCKER_HOST`) to pause/unpause
+containers by tier for rate limiting — a real, legitimate need, not a
+misconfiguration to remove.
+
+Found the fix was already half-built: `docker-compose.agents.yml` runs a
+`docker-socket-proxy-healer` service whose own comment reads **"Dedicated
+write-enabled proxy — ONLY for healer + throttle-agent. Scoped tight:
+CONTAINERS + POST + PING only."** — the infrastructure was built with
+throttle-agent explicitly in mind, it just never got wired up.
+`docker-compose.agents-full.yml`'s `throttle-agent` block had no
+`DOCKER_HOST` env var and no `depends_on` on the proxy at all.
+
+Fixed by mirroring `healer-agent`'s exact pattern (never mounting
+`/var/run/docker.sock` directly — the whole point of the proxy is to avoid
+that): added `DOCKER_HOST=tcp://docker-socket-proxy-healer:2375` to
+`throttle-agent`'s environment and `docker-socket-proxy-healer: condition:
+service_started` to its `depends_on`. Recreated just that one container
+(`docker compose up -d --no-deps throttle-agent`, no rebuild needed — only
+compose config changed). **Verified live**: `curl /health` now returns
+`{"status":"healthy","agent":"throttle-agent","docker":"ok","healer_ok":true,...}`
+— was `"docker":"error"` before. Re-swept the whole box: still zero
+unhealthy containers across all 67 running.
+
+**Second, separate finding surfaced while in there (not fixed, logged as
+`NEXT_TASKS.md` item #2b)**: throttle-agent also logs `[Throttle] MemStream
+unreachable` every 10s. `MEMSTREAM_URL` defaults to `http://127.0.0.1:8010`
+— inside the container that only ever points at itself. Checked every
+`docker-compose*.yml` in the repo: there is no "MemStream" service defined
+anywhere. Unlike the Docker socket (real infra existed, just unwired), this
+looks like a genuinely missing dependency — either never built or dead code
+left over from an earlier design. Needs Bro's call (build it for real, or
+strip the polling loop out of `throttle-agent`), not a wiring fix — left
+alone rather than guessing which.
+
+Synced `CLAUDE.md`'s fleet table + launch-command section, `docs/NEXT_TASKS.md`
+(item #2a marked fixed, new item #2b for MemStream).
 
 ---
 

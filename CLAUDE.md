@@ -63,7 +63,7 @@
 | `hyper-worker` | :8093 | ✅ Live — build-context path bug fixed 2026-08-20 |
 | `hyper-split-agent` | :8013 | ✅ Live — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
 | `session-snapshot` | :8017 | ✅ Live — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
-| `throttle-agent` | :8014 | ✅ Live — Docker healthcheck 200, but reports itself `"degraded"` (no docker.sock mount, separate pre-existing gap, see `NEXT_TASKS.md` item #2a) |
+| `throttle-agent` | :8014 | ✅ Live — Docker socket access fixed 2026-08-20 via `docker-socket-proxy-healer` (`"docker":"ok"` now); still logs `MemStream unreachable` — a separate, unbuilt dependency, see `NEXT_TASKS.md` item #2b |
 | `super-hyper-broski-agent` | :8015 | ✅ Live |
 | `test-agent` | :8019 (not :8080/:8100) | ✅ Live — moved off :8100 2026-08-20; build context also needed broadening to `./agents` (found during launch, `shared/` was unreachable) |
 | `goal-keeper` | :8050 | ✅ Live |
@@ -86,8 +86,10 @@ amount of `docker compose config`/standalone `docker build` could have caught �
 `test-agent`'s build context, and — the big one — all 11 ghost agents referencing
 phantom networks `app-net`/`agent-net` that were never created anywhere in the real
 stack). Swept the whole box after launch: **zero unhealthy containers across all 67
-running.** `throttle-agent`'s Docker-socket gap (item #2a) is the one known,
-non-blocking loose end.
+running.** `throttle-agent`'s Docker-socket gap is also now fixed (wired to the
+already-built `docker-socket-proxy-healer`, which its own comment says was meant
+for exactly this) — the one remaining loose end is that agent's separate,
+unbuilt `MemStream` dependency, `docs/NEXT_TASKS.md` item #2b.
 
 ---
 
@@ -191,11 +193,13 @@ depends_on:
 >
 > **Final state, verified not claimed**: polled every previously-blocked agent until
 > none reported `health: starting` — all 16 came back `healthy`. Swept the *entire*
-> box: zero unhealthy containers across all 67 running. One known, non-blocking loose
-> end: `throttle-agent` has no `/var/run/docker.sock` mount (pre-existing, unrelated
-> to tonight's changes) — its HTTP healthcheck passes but it reports itself
-> `"degraded"` internally, see `docs/NEXT_TASKS.md` item #2a. Full writeup:
-> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10) entry.
+> box: zero unhealthy containers across all 67 running. `throttle-agent`'s Docker
+> socket gap (found right after launch) is fixed too — wired to
+> `docker-socket-proxy-healer`, an already-built proxy whose own comment names
+> throttle-agent as an intended consumer that was just never wired up; `curl /health`
+> now shows `"docker":"ok"`. Its separate `MemStream` dependency is still unbuilt —
+> `docs/NEXT_TASKS.md` item #2b, needs a decision not a wiring fix. Full writeup:
+> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10/11) entries.
 
 ```bash
 cd HyperCode-V2.4
