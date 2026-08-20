@@ -7,17 +7,16 @@
 # name and expected port. This is intentionally narrow: it does NOT duplicate
 # scripts/health-check.sh (disk/volumes/networks/resource checks) — it only
 # answers "is each of the 25 canonical agents running, and does its port
-# match what's expected, including the 2 remaining known collisions".
+# match what's expected, including the 1 remaining known collision".
 #
 # 2026-08-20: verified against `docker compose config` (not just grep) —
-# system-architect/hyper-split-agent/session-snapshot moved to free ports;
-# hypercode-mcp-server phantom (nonexistent build context) removed from
-# agents-full.yml entirely — it was never a distinct 25th agent. New finding:
-# tips-tricks-writer collides with live `chroma` :8009 (missed 08-19). Also:
-# 14 of ~24 real agent names in agents-full.yml are ALSO defined in
-# docker-compose.agents.yml with different build contexts — same-name merge,
-# unaudited, likely deploys a hybrid of both definitions for most agents.
-# See NEXT_TASKS.md P1 "agents-full.yml name-collision audit".
+# system-architect/hyper-split-agent/session-snapshot/tips-tricks-writer all
+# moved to free ports; hypercode-mcp-server phantom (nonexistent build
+# context) removed from agents-full.yml entirely — it was never a distinct
+# 25th agent. Also: 14 of ~24 real agent names in agents-full.yml are ALSO
+# defined in docker-compose.agents.yml with different build contexts —
+# same-name merge. Bro's call: don't compose the two files together until
+# that's resolved for real. See NEXT_TASKS.md item #0.
 #
 # Usage: bash scripts/fleet-roster-check.sh
 # ============================================================================
@@ -56,7 +55,7 @@ ROSTER=(
     "security-engineer|8007|"
     "system-architect|8010|moved off :8008 2026-08-20 (was colliding with healer-agent)"
     "project-strategist|8001|"
-    "tips-tricks-writer|8009|KNOWN COLLISION: chroma already binds :8009 — found 2026-08-20, not yet fixed"
+    "tips-tricks-writer|8018|moved off :8009 2026-08-20 (was colliding with chroma)"
     "hyper-architect|8091|"
     "hyper-observer|8092|"
     "hyper-worker|8093|"
@@ -102,7 +101,6 @@ done
 header "KNOWN PORT COLLISIONS (if the missing agents above are ever launched)"
 
 COLLISIONS=(
-    "tips-tricks-writer:8009|chroma"
     "test-agent:8100|hyper-brain"
 )
 
@@ -127,10 +125,10 @@ echo "Reminder: 'not running' agents are expected right now — Bro's call 2026-
 echo "evening is DON'T compose agents-full.yml with the base stack at all yet. 14"
 echo "agent names in this roster silently merge with different definitions in"
 echo "docker-compose.agents.yml (9 of them are live right now via THAT file, not"
-echo "this one) — see NEXT_TASKS.md item #0. Also still open: tips-tricks-writer"
-echo "vs live chroma, test-agent vs live hyper-brain, and --profile agents is"
-echo "required on the compose command whenever item #0 is resolved for real. See"
-echo "HyperCode-V2.4/AGENT-START.md fleet section for full detail."
+echo "this one) — see NEXT_TASKS.md item #0. Also still open: test-agent vs live"
+echo "hyper-brain, and --profile agents is required on the compose command"
+echo "whenever item #0 is resolved for real. See HyperCode-V2.4/AGENT-START.md"
+echo "fleet section for full detail."
 echo ""
 
 if [ "$BLOCKED" -gt 0 ]; then

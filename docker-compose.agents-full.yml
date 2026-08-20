@@ -28,14 +28,14 @@
 # :8005  qa-engineer             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8006  devops-engineer         ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8007  security-engineer
-# :8009  tips-tricks-writer      ⚠️ collides with live `chroma` :8009 (docker-compose.observability.yml) — NOT fixed, needs decision
 # :8010  system-architect        ← moved off :8008 2026-08-20 (was colliding with live healer-agent)
 # :8011  frontend-specialist
 # :8013  hyper-split-agent       ← moved off :8096 2026-08-20 (was colliding with live safety-shepherd)
 # :8014  throttle-agent
 # :8015  super-hyper-broski-agent
 # :8017  session-snapshot        ← moved off :8097 2026-08-20 (was colliding with live evolve-relay, --profile pets)
-# :8020  business-agent          ❌ no Dockerfile exists anywhere — human decision needed, see NEXT_TASKS.md P2-1
+# :8018  tips-tricks-writer      ← moved off :8009 2026-08-20 (was colliding with live chroma, docker-compose.observability.yml)
+# :8020  business-agent          ⚠️ Dockerfile exists but builds mislabeled project-strategist code, not real business-agent logic — human decision needed, see NEXT_TASKS.md P2-1
 # :8024  coderabbit-webhook
 # :8050  goal-keeper             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8081  crew-orchestrator       ⚠️ also defined in docker-compose.agents.yml (profiles:["agents"]) — same-name merge, unaudited
@@ -272,7 +272,7 @@ services:
       dockerfile: Dockerfile
     container_name: tips-tricks-writer
     ports:
-      - "127.0.0.1:8009:8080"
+      - "127.0.0.1:8018:8080"
     environment:
       - AGENT_NAME=tips-tricks-writer
       - LOG_LEVEL=INFO

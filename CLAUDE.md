@@ -51,7 +51,7 @@
 | `security-engineer` | :8007 | 🟡 built, not running |
 | `system-architect` | :8010 | 🟡 built, not running — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
 | `project-strategist` | :8001 | 🟡 built, not running |
-| `tips-tricks-writer` | :8009 | 🟡 built, not running — ⚠️ collides with live `chroma :8009` (found 2026-08-20, not fixed) |
+| `tips-tricks-writer` | :8018 | 🟡 built, not running — moved off :8009 2026-08-20 (was colliding with `chroma`) |
 
 ### 🔨 12 Ghost Agents
 
@@ -76,12 +76,12 @@
 > renamed. See `docs/NEXT_TASKS.md`.
 
 **Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
-counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked, 2 real
-port collisions still open (`tips-tricks-writer` vs `chroma`, `test-agent` vs
-`hyper-brain`). Not "25 coordinated through `crew-orchestrator`" yet. Also open: 14 of
-these agent names are *also* defined in `docker-compose.agents.yml` with different
-build contexts — an unaudited same-name merge across files, not confirmed to deploy
-what this table describes. See `docs/NEXT_TASKS.md` P1.
+counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked, 1 real
+port collision still open (`test-agent` vs `hyper-brain`). Not "25 coordinated through
+`crew-orchestrator`" yet. Also open: 14 of these agent names are *also* defined in
+`docker-compose.agents.yml` with different build contexts — Bro's call (2026-08-20) is
+to not compose the two files together until that's resolved for real. See
+`docs/NEXT_TASKS.md` item #0.
 
 ---
 
@@ -167,10 +167,10 @@ depends_on:
 > then, this file is a standalone reference, not a launchable overlay. See
 > `docs/NEXT_TASKS.md` item #0.
 >
-> Also still open regardless: `tips-tricks-writer` (:8009) collides with live
-> `chroma`, `test-agent` (:8100) collides with live `hyper-brain` (`--profile brain`),
-> `business-agent`'s only Dockerfile builds mislabeled project-strategist code, not
-> real business-agent logic (see `docs/NEXT_TASKS.md` P2-1).
+> Also still open regardless: `test-agent` (:8100) collides with live `hyper-brain`
+> (`--profile brain`), and `business-agent`'s only Dockerfile builds mislabeled
+> project-strategist code, not real business-agent logic (see `docs/NEXT_TASKS.md`
+> P2-1). `tips-tricks-writer` (:8009 → :8018) fixed 2026-08-20.
 
 Command preserved for reference only — **do not run until the above is resolved**:
 
