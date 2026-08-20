@@ -1,62 +1,43 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # docker-compose.agents-full.yml
-# 🤖 25-AGENT FULL SQUAD DEPLOYMENT
+# 🤖 GHOST-AGENT OVERLAY — the 11 agents unique to this file
 #
-# 🔴 DO NOT `-f` this together with docker-compose.yml right now — decided 2026-08-20.
-# 14 of the ~24 agent names below are ALSO defined in docker-compose.agents.yml (or
-# other base-included files) with different build contexts/ports/profiles. Compose
-# merges same-named services across files instead of erroring, and 9 of these 14
-# names are confirmed LIVE right now via the base stack (docker ps + container
-# labels) — not via this file, which has never actually been composed up. Until the
-# overlap is resolved for real (rename one side / retire duplicates / distinct
-# names — undecided), this file is a standalone reference only. See NEXT_TASKS.md
-# item #0 and CLAUDE.md's "Full Stack Launch Command" section.
+# ✅ RESOLVED 2026-08-20 (item #0, for real this time). This file used to duplicate
+# 13 agent names that docker-compose.agents.yml already owns (crew-orchestrator,
+# coder-agent, backend/frontend-specialist, database-architect, qa-engineer,
+# devops-engineer, goal-keeper, project-strategist, agent-x, hyper-architect,
+# hyper-observer, hyper-worker) — same-named services silently MERGE across `-f`
+# files instead of erroring, and agents.yml's versions were the real, live,
+# hardened ones (volume-mounted code, HYPER-SILLs loadout, security_opt) while
+# this file's copies were unused stubs. Decision: agents.yml stays canonical for
+# all 13 — their duplicate blocks are deleted from this file for good, not just
+# "don't compose them together." This file now defines ONLY the 11 agents that
+# have no home anywhere else. Composing it with the base stack is safe: zero
+# service-name collisions, verified via `docker compose config`.
 #
-# (Historical usage, once the above is resolved: `docker compose --profile agents
-# -f docker-compose.yml -f docker-compose.agents-full.yml up -d` — --profile agents
-# is required or crew-orchestrator silently drops from the merge. Confirmed 08-20.)
-# Updated: August 20, 2026 — real port-collision fixes verified via `docker compose
-# config`, not just grep. See NEXT_TASKS.md P1 "agents-full.yml name-collision audit".
+# Launch command: `docker compose --profile agents --profile hyper \
+#   -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
+# (--profile agents activates most of this fleet; the 4 agents.yml defines under
+# profiles:["hyper"] — agent-x, hyper-architect, hyper-observer, hyper-worker —
+# need --profile hyper too. This file's own 11 agents have no profiles: key, so
+# they're always included regardless of which --profile flags are passed.)
 # ════════════════════════════════════════════════════════════════════════════════
 #
-# PORT MAP (host → container:8080)
+# PORT MAP (host → container:8080) — this file's 11 agents only
 # ─────────────────────────────────
-# :8001  project-strategist      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8002  coder-agent             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8003  backend-specialist      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8004  database-architect      ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8005  qa-engineer             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8006  devops-engineer         ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8007  security-engineer
 # :8010  system-architect        ← moved off :8008 2026-08-20 (was colliding with live healer-agent)
-# :8011  frontend-specialist
 # :8013  hyper-split-agent       ← moved off :8096 2026-08-20 (was colliding with live safety-shepherd)
 # :8014  throttle-agent
 # :8015  super-hyper-broski-agent
 # :8017  session-snapshot        ← moved off :8097 2026-08-20 (was colliding with live evolve-relay, --profile pets)
 # :8018  tips-tricks-writer      ← moved off :8009 2026-08-20 (was colliding with live chroma, docker-compose.observability.yml)
 # :8019  test-agent              ← moved off :8100 2026-08-20 (was colliding with live hyper-brain, --profile brain)
-# :8020  business-agent          ⚠️ Dockerfile exists but builds mislabeled project-strategist code, not real business-agent logic — human decision needed, see NEXT_TASKS.md P2-1
+# :8020  business-agent
 # :8024  coderabbit-webhook
-# :8050  goal-keeper             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8081  crew-orchestrator       ⚠️ also defined in docker-compose.agents.yml (profiles:["agents"]) — same-name merge, unaudited
-# :8082  brain-agent             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8083  agent-x                 ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8091  hyper-architect         ⚠️ also defined in docker-compose.agents.yml (profiles:["hyper"], DIFFERENT build context) — same-name merge, unaudited
-# :8092  hyper-observer          ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8093  hyper-worker            ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# (hypercode-mcp-server removed 2026-08-20 — was a phantom, see block comment below)
+# :8082  brain-agent
 # ─────────────────────────────────
-# 🔴 14 of ~24 real agent names above are ALSO defined in docker-compose.agents.yml
-#    (or other base-included files) with different build contexts/ports/profiles.
-#    Same-named services across compose files MERGE, not error — the later -f file's
-#    build.context/image wins silently, list fields like `ports` get unioned. This
-#    means "launch the 25-agent fleet" has never deployed the roster this file
-#    describes for most of these agents — it deploys some unaudited hybrid.
-#    DECIDED 2026-08-20 (Bro's call): don't compose this file together with the base
-#    stack until the overlap is fixed for real — see the block at the top of this
-#    file. The rename/retire/distinct-names choice is still open.
-# ✅ All agents depend_on crew-orchestrator (healthy)
+# ✅ All agents depend_on crew-orchestrator (healthy) — via docker-compose.agents.yml
 # ✅ All healthchecks have start_period
 # ✅ Throttle-agent uses Redis DB 1 (rate limits) — SACRED RULE ✔
 
@@ -65,106 +46,10 @@ version: "3.9"
 services:
 
   # ══════════════════════════════════════════════════════════════════════════════
-  # TIER 1: CORE CREW (5 agents) — ORCHESTRATION BRAIN
+  # TIER 1: CORE CREW (2 agents) — ORCHESTRATION BRAIN
+  # (crew-orchestrator, agent-x, coder-agent moved to docker-compose.agents.yml —
+  #  see item #0 resolution note at the top of this file)
   # ══════════════════════════════════════════════════════════════════════════════
-
-  crew-orchestrator:
-    image: hypercode-crew-orchestrator:latest
-    build:
-      context: ./agents/crew-orchestrator
-      dockerfile: Dockerfile
-    container_name: crew-orchestrator
-    ports:
-      - "127.0.0.1:8081:8080"
-    environment:
-      - AGENT_NAME=crew-orchestrator
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - ORCHESTRATOR_MODE=swarm
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      hypercode-core:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 1.5GB
-        reservations:
-          cpus: "1"
-          memory: 1GB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 15s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=core"
-      - "com.hypercode.role=orchestrator"
-
-  agent-x:
-    image: hypercode-agent-x:latest
-    build:
-      context: ./agents/agent-x
-      dockerfile: Dockerfile
-    container_name: agent-x
-    ports:
-      - "127.0.0.1:8083:8080"
-    environment:
-      - AGENT_NAME=agent-x
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - DOCKER_SOCKET_PROXY=http://docker-socket-proxy-healer:2375
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OLLAMA_HOST=http://hypercode-ollama:11434
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      docker-socket-proxy-healer:
-        condition: service_started
-      crew-orchestrator:
-        condition: service_healthy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2GB
-        reservations:
-          cpus: "1"
-          memory: 1.5GB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 20s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=core"
-      - "com.hypercode.role=meta-architect"
 
   brain-agent:
     image: hypercode-brain-agent:latest
@@ -217,54 +102,6 @@ services:
       - "com.hypercode.tier=core"
       - "com.hypercode.role=memory"
 
-  coder-agent:
-    image: hypercode-coder-agent:latest
-    build:
-      context: ./agents/coder
-      dockerfile: Dockerfile
-    container_name: coder-agent
-    ports:
-      - "127.0.0.1:8002:8080"
-    environment:
-      - AGENT_NAME=coder-agent
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OLLAMA_HOST=http://hypercode-ollama:11434
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      hypercode-core:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1.5"
-          memory: 1.5GB
-        reservations:
-          cpus: "1"
-          memory: 1GB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 15s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=core"
-      - "com.hypercode.role=coder"
-
   tips-tricks-writer:
     image: hypercode-tips-tricks-agent:latest
     build:
@@ -312,225 +149,10 @@ services:
       - "com.hypercode.role=documentation"
 
   # ══════════════════════════════════════════════════════════════════════════════
-  # TIER 2: SPECIALIST SQUAD (8 agents) — DEVELOPMENT CREW
+  # TIER 2: SPECIALIST SQUAD (2 agents) — DEVELOPMENT CREW
+  # (frontend/backend-specialist, database-architect, qa-engineer,
+  #  devops-engineer, project-strategist moved to docker-compose.agents.yml)
   # ══════════════════════════════════════════════════════════════════════════════
-
-  frontend-specialist:
-    image: hypercode-frontend-specialist:latest
-    build:
-      context: ./agents/01-frontend-specialist
-      dockerfile: Dockerfile
-    container_name: frontend-specialist
-    ports:
-      - "127.0.0.1:8011:8080"
-    environment:
-      - AGENT_NAME=frontend-specialist
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1GB
-        reservations:
-          cpus: "0.5"
-          memory: 512MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=frontend"
-
-  backend-specialist:
-    image: hypercode-backend-specialist:latest
-    build:
-      context: ./agents/02-backend-specialist
-      dockerfile: Dockerfile
-    container_name: backend-specialist
-    ports:
-      - "127.0.0.1:8003:8080"
-    environment:
-      - AGENT_NAME=backend-specialist
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1GB
-        reservations:
-          cpus: "0.5"
-          memory: 512MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=backend"
-
-  database-architect:
-    image: hypercode-database-architect:latest
-    build:
-      context: ./agents/03-database-architect
-      dockerfile: Dockerfile
-    container_name: database-architect
-    ports:
-      - "127.0.0.1:8004:8080"
-    environment:
-      - AGENT_NAME=database-architect
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-      - data-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=database"
-
-  qa-engineer:
-    image: hypercode-qa-engineer:latest
-    build:
-      context: ./agents/04-qa-engineer
-      dockerfile: Dockerfile
-    container_name: qa-engineer
-    ports:
-      - "127.0.0.1:8005:8080"
-    environment:
-      - AGENT_NAME=qa-engineer
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1GB
-        reservations:
-          cpus: "0.5"
-          memory: 512MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=qa"
-
-  devops-engineer:
-    image: hypercode-devops-engineer:latest
-    build:
-      context: ./agents/05-devops-engineer
-      dockerfile: Dockerfile
-    container_name: devops-engineer
-    ports:
-      - "127.0.0.1:8006:8080"
-    environment:
-      - AGENT_NAME=devops-engineer
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - DOCKER_SOCKET_PROXY=http://docker-socket-proxy:2375
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      docker-socket-proxy:
-        condition: service_started
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1GB
-        reservations:
-          cpus: "0.5"
-          memory: 512MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=devops"
 
   security-engineer:
     image: hypercode-security-engineer:latest
@@ -613,228 +235,11 @@ services:
       - "com.hypercode.tier=specialist"
       - "com.hypercode.role=system-design"
 
-  project-strategist:
-    image: hypercode-project-strategist:latest
-    build:
-      context: ./agents/08-project-strategist
-      dockerfile: Dockerfile
-    container_name: project-strategist
-    ports:
-      - "127.0.0.1:8001:8080"
-    environment:
-      - AGENT_NAME=project-strategist
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=specialist"
-      - "com.hypercode.role=strategy"
-
   # ══════════════════════════════════════════════════════════════════════════════
-  # TIER 3: INFRASTRUCTURE AGENTS (8 agents) — SYSTEM COORDINATION
+  # TIER 3: INFRASTRUCTURE AGENTS (3 agents) — SYSTEM COORDINATION
+  # (hyper-architect, hyper-observer, hyper-worker, goal-keeper moved to
+  #  docker-compose.agents.yml)
   # ══════════════════════════════════════════════════════════════════════════════
-
-  hyper-architect:
-    image: hypercode-hyper-architect:latest
-    build:
-      context: ./agents/architect
-      dockerfile: Dockerfile
-    container_name: hyper-architect
-    ports:
-      - "127.0.0.1:8091:8080"
-    environment:
-      - AGENT_NAME=hyper-architect
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=infrastructure"
-      - "com.hypercode.role=architecture"
-
-  hyper-observer:
-    image: hypercode-hyper-observer:latest
-    build:
-      # context MUST be repo root: the Dockerfile COPYs both
-      # agents/hyper-agents/observer/* and the shared src/agents/hyper_agents/
-      # package, neither of which is reachable from a narrower context.
-      context: .
-      dockerfile: agents/hyper-agents/observer/Dockerfile
-    container_name: hyper-observer
-    ports:
-      - "127.0.0.1:8092:8080"
-    environment:
-      - AGENT_NAME=hyper-observer
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - PROMETHEUS_URL=http://prometheus:9090
-      - GRAFANA_URL=http://grafana:3000
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-      - obs-net
-    depends_on:
-      prometheus:
-        condition: service_started
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=infrastructure"
-      - "com.hypercode.role=monitoring"
-
-  hyper-worker:
-    image: hypercode-hyper-worker:latest
-    build:
-      # context MUST be repo root — same reason as hyper-observer above.
-      context: .
-      dockerfile: agents/hyper-agents/worker/Dockerfile
-    container_name: hyper-worker
-    ports:
-      - "127.0.0.1:8093:8080"
-    environment:
-      - AGENT_NAME=hyper-worker
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=infrastructure"
-      - "com.hypercode.role=execution"
-
-  goal-keeper:
-    image: hypercode-goal-keeper:latest
-    build:
-      context: ./agents/goal_keeper
-      dockerfile: Dockerfile
-    container_name: goal-keeper
-    ports:
-      - "127.0.0.1:8050:8080"
-    environment:
-      - AGENT_NAME=goal-keeper
-      - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=${DATABASE_URL}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
-    networks:
-      - app-net
-      - agent-net
-      - agents-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      crew-orchestrator:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 512MB
-        reservations:
-          cpus: "0.5"
-          memory: 256MB
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-    labels:
-      - "com.hypercode.tier=infrastructure"
-      - "com.hypercode.role=goals"
 
   throttle-agent:
     image: hypercode-throttle-agent:latest
@@ -1170,8 +575,4 @@ networks:
   agent-net:
     external: true
   agents-net:
-    external: true
-  obs-net:
-    external: true
-  data-net:
     external: true

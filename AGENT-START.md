@@ -89,7 +89,18 @@ All 25 agents ──▶ crew-orchestrator (:8100) — central routing + health c
 > table now matches it. `CLAUDE.md` still needs the same correction (flagged there, not yet done as
 > of this edit). Full forensic trail in `DASHBOARD_STATUS_2026-08-19.md`.
 
-> Launch with: `docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
+> 🪤 **This section predates the 2026-08-20 port-collision fixes and the item #0
+> same-name-merge resolution — some rows below are stale** (e.g. row 4's `agent-x`
+> port note: the `agents-full.yml` vs `agents.yml` disagreement it describes was
+> resolved 2026-08-20 late evening — `agents-full.yml`'s duplicate `agent-x` block
+> was deleted, `agents.yml`'s `:8084` is now the sole definition). Per `CLAUDE.md`'s
+> conflict rule, "Live status beats this file. `WHATS_DONE.md` beats everything." —
+> see `WHATS_DONE.md`'s 2026-08-20 (evening, part 9) entry and `CLAUDE.md`'s
+> "Full Stack Launch Command" section for the current, verified state. Not rewritten
+> here — full table reconciliation is separate doc debt, same class as
+> `docs/STATUS.md`'s stale fleet table (`docs/NEXT_TASKS.md` item #5).
+>
+> Launch with: `docker compose --profile agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
 > All agents route through **crew-orchestrator** at `:8081` (not `:8100` — `:8100` is `hyper-brain`).
 
 ### ✅ Core Crew + Specialist Squad (13) — per `docker-push.yml`'s `push-agents` build matrix

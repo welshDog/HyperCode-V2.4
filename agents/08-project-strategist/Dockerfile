@@ -64,6 +64,7 @@ RUN pip install --no-cache-dir /wheels/* && \
 
 # Copy application code (after deps for better caching)
 COPY agent.py .
+COPY base_agent.py .
 COPY config.json .
 
 # Mount point for Hive Mind

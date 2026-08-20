@@ -1444,7 +1444,12 @@ services:
   project-strategist:
     profiles: ["agents"]
     build:
-      context: ./agents/business/project-strategist
+      # context was ./agents/business/project-strategist — that directory's
+      # Dockerfile/agent.py/config.json were deleted 2026-08-20 when the real
+      # business-agent was built (commit 0c2f4fd6); only stray untracked
+      # bind-mount folders (hive_mind/memory/shared/src) were left behind.
+      # Repointed to the real, still-existing agent 2026-08-20 (item #0 fix).
+      context: ./agents/08-project-strategist
       dockerfile: Dockerfile
     container_name: project-strategist
     environment:
@@ -1456,7 +1461,7 @@ services:
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
-      - ./agents/business/project-strategist:/app
+      - ./agents/08-project-strategist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
       - ./agents/shared:/app/shared:ro
       - ./agents/HYPER-AGENT-BIBLE.md:/app/HYPER-AGENT-BIBLE.md:ro

@@ -139,11 +139,15 @@ else:
           python -c "
 import yaml, sys
 
-# Full agent port registry (docker-compose.agents-full.yml only — docker-compose.yml
-# is an `include:` wrapper with no services of its own, so it never contributes ports
-# here; that also means this gate can't see docker-compose.agents.yml's real, live
-# hypercode-mcp-server at :8823 — it's deliberately not in this list, see below).
-# Synced 2026-08-20 to agents-full.yml's post-collision-fix ports.
+# Full canonical 24-agent port registry. Item #0 resolved 2026-08-20 late
+# evening: 13 of these (project-strategist through hyper-worker below) are now
+# defined ONLY in docker-compose.agents.yml — their duplicate blocks were
+# deleted from docker-compose.agents-full.yml, which now owns just the
+# remaining 11 (security-engineer through business-agent below). This dict
+# intentionally still tracks all 24 regardless of which file defines each one
+# (docker-compose.yml itself is an `include:` wrapper with no services of its
+# own). hypercode-mcp-server (:8823, the real live core service, not a ghost
+# agent) stays deliberately omitted — see below.
 EXPECTED_PORTS = {
     '8001': 'project-strategist',
     '8002': 'coder-agent',
@@ -165,7 +169,7 @@ EXPECTED_PORTS = {
     '8050': 'goal-keeper',
     '8081': 'crew-orchestrator',
     '8082': 'brain-agent',
-    '8083': 'agent-x',
+    '8084': 'agent-x',
     '8091': 'hyper-architect',
     '8092': 'hyper-observer',
     '8093': 'hyper-worker',

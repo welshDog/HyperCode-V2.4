@@ -1,6 +1,73 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening, part 8) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (evening, part 9) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening, part 9) — Item #0 resolved for real: agents-full.yml/agents.yml merge conflict deleted, not just avoided
+
+Bro asked to finally resolve item #0 — the last blocker before a real 25-agent
+fleet launch. Re-derived the actual name overlap directly from each compose
+file's `services:` block (the previously-cited "14" included 2 spurious
+network names from a broader `comm` sweep) — found **13 real overlapping
+agent names**: `crew-orchestrator`, `coder-agent`, `backend-specialist`,
+`frontend-specialist`, `database-architect`, `qa-engineer`, `devops-engineer`,
+`goal-keeper`, `project-strategist`, `agent-x`, `hyper-architect`,
+`hyper-observer`, `hyper-worker`.
+
+Compared both files' definitions per agent: `docker-compose.agents.yml`'s
+versions are the real, live, hardened ones (e.g. `crew-orchestrator` has
+volume-mounted live code, the HYPER-SILLs loadout, `security_opt`, real
+API-key wiring) — `docker-compose.agents-full.yml`'s copies were unused
+stubs, never actually composed up. **Decision: `agents.yml` stays canonical
+for all 13 — deleted their duplicate blocks from `agents-full.yml` for
+good**, not just "don't compose the files together." `agents-full.yml` is
+now a clean 11-agent ghost-only overlay. Rewrote its header/port-map comment
+block and fixed the TIER 1/2/3 section headers' agent counts to match.
+
+**Verified, not just edited**: `docker compose config` with both files +
+`--profile agents --profile hyper` resolves cleanly (46 services, zero
+errors) — grepped the merged output for `crew-orchestrator` and confirmed
+its `volumes`/`hive_mind`/`security_opt` fields are present (the real
+definition, not the deleted stub).
+
+**Second bug found and fixed in the same pass**: `agents.yml`'s
+`project-strategist` pointed at `agents/business/project-strategist` — a
+directory whose Dockerfile/code was deleted the same day by the
+business-agent fix (commit `0c2f4fd6`); only stray untracked bind-mount
+folders remained. Repointed to the real `agents/08-project-strategist`,
+which turned out to have its *own* separate, pre-existing bug: missing
+`base_agent.py` entirely (every sibling numbered agent 01–07/09 has one,
+`agent.py` imports it and would crash on boot without it). Copied the same
+clean template used for brain-agent/business-agent
+(`agents/09-tips-tricks-writer/base_agent.py`), added the missing
+`COPY base_agent.py .` to the Dockerfile, and fixed `requirements.txt` (was
+missing `httpx`/`anthropic`/`openai`, all needed by the copied template).
+**Verified by building + running standalone**: `docker build` succeeded,
+`docker run` + `curl /health` → `{"status":"healthy","agent":"project-strategist"}`
+(200).
+
+**Found, NOT fixed (separate, logged as new item `#0a`)**: `agent.py`'s
+`plan()`/`delegate_tasks()` — the actual specialist-delegation logic this
+agent exists for — are dead code. `ProjectStrategist` never overrides
+`process_task`, so `/execute` silently falls through to the generic
+inherited handler; the two methods also call the async LLM client and async
+redis client without `await`, and reference a nonexistent
+`self.config.core_url`. Not a boot-blocker — the container runs fine via the
+generic fallback — a real-behavior gap, not urgent, out of scope for item #0.
+
+Also synced: `scripts/fleet-roster-check.sh` (header comment, `agent-x`'s
+port note now `:8084`, `project-strategist`'s note, summary reminder text —
+re-ran, still exits 0), `.github/workflows/health-check.yml`'s
+`EXPECTED_PORTS` (comment + `agent-x` `:8083`→`:8084`), `CLAUDE.md`'s fleet
+table + "Full Stack Launch Command" section (now unblocked, `--profile
+hyper` added as a documented requirement alongside `--profile agents`),
+`docs/NEXT_TASKS.md` (item #0 marked resolved, new item #0a for the
+delegation-logic gap, item #2's launch status updated).
+
+**Item #0 is resolved. Item #9 was already resolved. No known blocker
+remains before a real 25-agent fleet launch** — launching it was explicitly
+scoped out of this session (Bro's call: fix the files, don't launch yet).
 
 ---
 

@@ -16,10 +16,22 @@
 # (nonexistent build context) removed from agents-full.yml entirely — it was
 # never a distinct 25th agent; business-agent's mislabeled project-strategist
 # clone replaced with real code at agents/business (built + ran + curled
-# /health + /execute, not just claimed). Also: 14 of ~24 real agent names in
-# agents-full.yml are ALSO defined in docker-compose.agents.yml with
-# different build contexts — same-name merge. Bro's call: don't compose the
-# two files together until that's resolved for real. See NEXT_TASKS.md item #0.
+# /health + /execute, not just claimed).
+#
+# ✅ Item #0 RESOLVED 2026-08-20 late evening: 13 agent names that used to be
+# duplicated in both agents-full.yml and docker-compose.agents.yml (with
+# different build contexts) are now defined in agents.yml ONLY — their
+# duplicate blocks were deleted from agents-full.yml, which is a clean
+# ghost-agents-only overlay now. Verified via `docker compose config` with
+# both files + --profile agents --profile hyper: zero collisions, real
+# crew-orchestrator (volumes/HYPER-SILLs/security_opt intact) confirmed in
+# the merged output. Also fixed while in there: agents.yml's project-strategist
+# pointed at a directory whose Dockerfile had been deleted by the business-agent
+# fix — repointed to the real agents/08-project-strategist, plus that
+# directory was itself missing base_agent.py (a separate pre-existing bug,
+# every sibling numbered agent has one) — copied from the same clean template
+# used for brain-agent/business-agent, verified via standalone docker run +
+# /health 200.
 #
 # Usage: bash scripts/fleet-roster-check.sh
 # ============================================================================
@@ -49,7 +61,7 @@ ROSTER=(
     "crew-orchestrator|8081|"
     "brain-agent|8082|not running under this name (hyper-brain/agent-hyper-brain-core are separate live containers)"
     "coder|-|not running under this name (coder-agent is live, likely same code)"
-    "agent-x|8083|two compose files disagree on this port (agents.yml=8084, agents-full.yml=8083) — unreconciled"
+    "agent-x|8084|agents-full.yml's duplicate (8083) deleted 2026-08-20 — agents.yml's :8084 is now the sole definition"
     "frontend-specialist|8012|"
     "backend-specialist|8003|"
     "database-architect|8004|"
@@ -57,7 +69,7 @@ ROSTER=(
     "devops-engineer|8006|"
     "security-engineer|8007|"
     "system-architect|8010|moved off :8008 2026-08-20 (was colliding with healer-agent)"
-    "project-strategist|8001|"
+    "project-strategist|8001|context fixed 2026-08-20 — was pointing at a deleted directory, repointed to agents/08-project-strategist (also missing base_agent.py, fixed)"
     "tips-tricks-writer|8018|moved off :8009 2026-08-20 (was colliding with chroma)"
     "hyper-architect|8091|"
     "hyper-observer|8092|"
@@ -126,13 +138,12 @@ echo "Live now:            $LIVE / 24"
 echo "Built, not running:  $BUILT_NOT_RUNNING / 24"
 echo -e "${YELLOW}Blocked (needs a human decision): $BLOCKED / 24${NC}"
 echo ""
-echo "Reminder: 'not running' agents are expected right now — Bro's call 2026-08-20"
-echo "evening is DON'T compose agents-full.yml with the base stack at all yet. 14"
-echo "agent names in this roster silently merge with different definitions in"
-echo "docker-compose.agents.yml (9 of them are live right now via THAT file, not"
-echo "this one) — see NEXT_TASKS.md item #0. All real port-vs-differently-named-"
-echo "service collisions are fixed as of 2026-08-20 evening. --profile agents is"
-echo "still required on the compose command whenever item #0 is resolved for real."
+echo "Reminder: 'not running' agents are expected right now — nothing here is"
+echo "blocked anymore. Item #0 is resolved: agents-full.yml no longer duplicates"
+echo "any agents.yml service name, verified via docker compose config with both"
+echo "files. It's safe to compose them together whenever you're ready to launch:"
+echo "  docker compose --profile agents --profile hyper \\"
+echo "    -f docker-compose.yml -f docker-compose.agents-full.yml up -d"
 echo "See HyperCode-V2.4/AGENT-START.md fleet section for full detail."
 echo ""
 
