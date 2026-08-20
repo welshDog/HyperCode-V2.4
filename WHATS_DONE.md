@@ -1,6 +1,51 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-19 by Perplexity + welshDog ⚡
+> Last synced: 2026-08-20 (evening) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening) — agents-full.yml Real Collision Fixes + Architecture Audit
+
+Verified the 08-20 morning session's "3 port collisions" claim against the actual
+merge (`docker compose config`), not just grep — found the real picture was worse.
+Commit: `e9638019`.
+
+### ✅ Fixed & pushed
+- `hypercode-mcp-server` phantom ghost block **deleted** from `docker-compose.agents-full.yml`
+  — pointed at `./agents/hypercode-mcp-server`, which never existed; was silently
+  swapping the real live service's build context on merge. Not a 25th agent to rename.
+- 3 real port collisions fixed, each verified against a live container:
+  `system-architect` 8008→8010 (was `healer-agent`), `hyper-split-agent` 8096→8013
+  (was `safety-shepherd`), `session-snapshot` 8097→8017 (was `evolve-relay`).
+- Documented launch command was missing `--profile agents` — without it
+  `crew-orchestrator` silently drops from the merge and the compose project is
+  invalid. Fixed in `CLAUDE.md` + the compose file's own header.
+- Synced `scripts/fleet-roster-check.sh` (24-entry roster now, re-ran it, exit 0)
+  and `.github/workflows/health-check.yml`'s `EXPECTED_PORTS` dict.
+
+### 🔴 Found, not fixed — needs Bro's call
+- **14 of ~24 agent names in `agents-full.yml` are also defined in
+  `docker-compose.agents.yml`** with different build contexts/ports/profiles.
+  Same-name services merge silently across compose files instead of erroring —
+  proven on `hypercode-mcp-server` and `hyper-architect`. Most of "the 25-agent
+  fleet" launch has never deployed what the docs describe. This is an
+  architecture decision (rename scheme / dedupe / retire one side), not a port
+  patch. Logged as `NEXT_TASKS.md` item #0.
+- `tips-tricks-writer` (:8009) collides with live `chroma` — new, not in the
+  original list.
+- `test-agent` (:8100) still collides with live `hyper-brain` — entangled with
+  the item-#0 decision, not just a port move.
+- `business-agent` still has no Dockerfile anywhere (pre-existing, unchanged).
+- `docs/STATUS.md`'s "Agent Fleet — 25 Total" table is stale (predates the
+  08-19/08-20 reconciliation) — flagged with a banner in place, not rewritten.
+- `.github/workflows/ghost-agents-build.yml`'s build matrix `context:` paths are
+  wrong for most of its 12 entries (point at directories that don't exist).
+- Two pre-existing, always-broken CI checks found (not caused tonight): the
+  `port-check` job's dedup regex in `ghost-agents-build.yml`, and the port
+  parser in `health-check.yml`'s `EXPECTED_PORTS` gate — both would fail to
+  ever correctly extract a real host port from `"127.0.0.1:PORT:PORT"` syntax.
+
+Full detail + evidence commands: `docs/NEXT_TASKS.md` items #0, 1a, 1b, 5–8.
 
 ---
 
