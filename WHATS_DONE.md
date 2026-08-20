@@ -1,6 +1,36 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (evening, part 5) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening, part 5) — business-agent, test-agent, tips-tricks-writer all fixed for real
+
+Finished the `agents-full.yml` collision-fix arc from earlier tonight. Commits:
+`161d747a` (tips-tricks-writer), `bd57cfc9` (test-agent), `0c2f4fd6` (business-agent).
+
+- **`tips-tricks-writer`**: moved :8009→:8018 (was colliding with live `chroma`).
+- **`test-agent`**: moved :8100→:8019 (was colliding with live `hyper-brain`). Also
+  self-corrected an earlier mistake in this same session — `test-agent` had been
+  mis-filed as one of the item-#0 same-name-merge cases; re-checked against the true
+  base-include file set and it wasn't, just a plain port collision.
+- **`business-agent`**: built for real. The only Dockerfile that existed
+  (`agents/business/project-strategist/`) built code that was, by its own config
+  file, still `"Project Strategist"` — a stray clone, never customized, and its
+  `EXPOSE 8019` matched neither compose's `:8020` host port nor its `:8080`
+  container port. Deleted it (`git rm -r`), wrote real code flattened to
+  `agents/business/`: billing/subscription/revenue framing, a read-only Stripe
+  balance+recent-charges snapshot as LLM grounding (never writes/mutates payment
+  state — that stays in `agents/stripe-mcp`). Fixed `docker-push.yml`'s CI matrix
+  too (pointed at a third, different, nonexistent path). **Verified by actually
+  running it**: `docker build` succeeded, `docker run` + `curl /health` returned
+  `{"status":"healthy","agent":"business-agent"}`, `/execute` and its auth
+  middleware both worked correctly.
+
+**All of NEXT_TASKS.md's original P1/P2 launch-blocker list is now closed.** Only
+item #0 (the 14-name same-name-merge architecture decision, already mitigated by
+not composing `agents-full.yml` with the base stack) remains before a real fleet
+launch is possible.
 
 ---
 
