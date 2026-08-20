@@ -1,18 +1,57 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 19, 2026**
+> Last updated: **August 20, 2026**
 
 ---
 
 ## 🔥 Immediate — Do These First
 
+> ⚠️ **"Launch 25-agent fleet" below is NOT ready.** Item #1's port-clash check was actually run
+> 2026-08-20 — it found 3 real collisions (see next section). Fix those + the 2 items below before
+> attempting `agents-full.yml` up, or the launch will fail partway.
+
 | # | Task | Priority |
 |---|---|---|
-| 1 | **Verify no port clashes** — `grep -r "ports:" docker-compose*.yml \| sort` | 🔴 Before launch |
-| 2 | **Launch 25-agent fleet** — `docker compose -f docker-compose.yml -f docker-compose.agents-full.yml up -d` | 🔴 After builds complete (~30–60 min) |
+| 1 | ~~Verify no port clashes~~ ✅ **Done 2026-08-20** — found 3 real ones, see "P1/P2 to-do" below | done, action items below |
+| 2 | **Launch 25-agent fleet** — blocked until port clashes + `business-agent` + `hypercode-mcp-server` name collision are resolved | 🔴 blocked, not ready |
 | 3 | **Add resource limits** to all 12 new agents (`mem_limit: 256m`, `cpus: "0.25"`) | 🔴 Before launch |
 | 4 | **Verify crew-orchestrator** has `restart: unless-stopped` + `/health` endpoint | 🔴 Before launch |
+
+---
+
+## 🪤 From the 2026-08-20 fleet-reconciliation + Docker health + dashboard playtest session
+
+> Full write-up + evidence: `HperCore/NEXT_SESSION_HANDOVER_2026-08-20.md` and the published
+> session-report artifact linked there. This table is the actionable subset — the fast version.
+
+### Priority 1 — silently wrong, not just incomplete
+
+| # | Task | Where |
+|---|---|---|
+| P1-1 | **High-Contrast theme toggle is a no-op** — selects itself active, changes nothing (pixel-identical to Default) | dashboard top-bar theme switcher |
+| P1-2 | **`hypercode-mcp-server` ghost-agent build shares its name with a different, already-live core service** on `:8823`. Path was fixed 08-19; the name collision wasn't. Needs a rename. | `.github/workflows/docker-push.yml` |
+
+### Priority 2 — real, actionable, not urgent
+
+| # | Task | Where |
+|---|---|---|
+| P2-1 | **Decide `business-agent`'s fate** — no Dockerfile exists anywhere sensible. Build it for real or drop the CI matrix entry. | `agents/` |
+| P2-2 | **Resolve 3 port collisions** before `agents-full.yml` ever launches: `system-architect` vs live `healer-agent :8008`; `test-agent` vs live `hyper-brain :8100`; `hyper-split-agent`/`session-snapshot` vs live `safety-shepherd :8096`/`evolve-relay :8097` | `docker-compose.agents-full.yml` |
+| P2-3 | **`/agents` dashboard page shows 3 agents; real fleet is 42** — it reads the BROski XP table, not the live container list. `/control` (Mission Control) gets it right, one click away. | dashboard `/agents` |
+| P2-4 | **`/health` dashboard page's ghost-agent ports are stale** — Test Agent and Agent X both still show `:8080` (pre-reconciliation number; real ports are `:8100` and `:8083`/`:8084`). Hardcoded in dashboard source, doesn't read compose. | dashboard `/health` |
+| P2-5 | **Hyperfocus Universe's GitHub sync is broken** — every one of 84 worlds shows "Updated 1 month ago" incl. repos pushed today. The site's own quest log names the cause: Vercel's GitHub App was never granted repo access. | `Hyperfocus-Universe-The-Living-Hub` Vercel project settings |
+| P2-6 | **Hyperfocus Universe's quest-log filename check is wrong** — looks for `WHATS-DONE.md` (hyphenated); every real repo uses `WHATS_DONE.md` (underscored). Can never detect a signal that already exists. | `Hyperfocus-Universe-The-Living-Hub` quest-detection logic |
+
+### Priority 3 — worth doing, low stakes
+
+| # | Task | Where |
+|---|---|---|
+| P3-1 | Point Docker Zone's one-click "Send" launch commands at `hyperlaunch.ps1` instead of a bare `docker compose -f ... up --watch` that skips the 3 required files | dashboard `/docker-zone` |
+| P3-2 | Stop treating `/api/ops/dlq` 400s as an error-rate signal — DLQ is deliberately superuser-gated; the home screen's "Error Rate 28.57%" is just this gate polling forever (same class as the existing perma-red note below) | dashboard Hyper Station metrics |
+| P3-3 | Add `hyper-auto-assistant` (port `:8016`) to the roster docs — Mission Control already tracks it, it's agent 26, not a bug | `AGENT-START.md` |
+| P3-4 | Make the Universe 3D view's planets actually clickable — "pick a world to descend into it" doesn't currently open anything (tried 3 large centered planets, no panel, no console error) | `Hyperfocus-Universe-The-Living-Hub` 3D view |
+| P3-5 | Grafana embed has no SSO — real login wall every visit, no session handoff from the dashboard | dashboard `/grafana` |
 
 ---
 
@@ -47,9 +86,26 @@
 | Item | Date | Action |
 |---|---|---|
 | Service JWT (`DASHBOARD_SERVICE_JWT`) | Expires **2027-07-13** | Re-mint via `create_access_token(1, timedelta(days=365))` — symptom = 401s |
-| Metrics error-rate cosmetics | — | "Error Rate ~54%" perma-red — fix when next touching metrics |
+| Metrics error-rate cosmetics | — | confirmed 2026-08-20: it's `/api/ops/dlq` 400s from the deliberate superuser gate, not real errors — see P3-2 above |
 
 ---
+
+## ✅ Completed — 2026-08-20 Session (fleet reconciliation + health + playtest)
+
+| Done | Commit |
+|---|---|
+| Root doc chain repaired (`DASHBOARD_STATUS`/`NEXT_SESSION_HANDOVER` `LATEST` pointers, both were stale/broken) | workspace root, not git |
+| 4 conflicting "25-agent fleet" rosters (`AGENT-START.md`, `CLAUDE.md`, `docker-push.yml`, + original) reconciled to one | `0ad90a14` |
+| 5 of 6 broken `docker-push.yml` ghost-agent CI build paths fixed | `0ad90a14` |
+| `scripts/fleet-roster-check.sh` shipped — narrow live/built/blocked check for the canonical 25-agent roster | `fb696851` |
+| `health-check.sh` fixed — was dying after line 1 on every run (`set -e` + `((PASS++))` bug) | `e1d1456f` |
+| Real compose validation failure fixed — `prometheus` defined twice across `docker-compose.observability.yml` + `docker-compose.grafana-cloud.yml` | `e1d1456f` |
+| `agent-hyperfocus-copilot` unhealthy → healthy (stale volume mount, container recreated) | runtime, no diff |
+| `project-strategist` restarted (had exited 16h earlier, never came back) | runtime, no diff |
+| `github-sync-brain` healthcheck fixed for real (`pgrep` → `/proc/1/comm`) | `f87370e1` |
+| 7 trivial dangling volumes removed (~80KB); ~2GB of real observability/Supabase data left untouched | docker, no diff |
+| Full stack confirmed healthy: 51/51 running, 0 stopped, 0 unhealthy | verified twice |
+| Dashboard, Constellation, Hyperfocus Universe playtested live — 13 findings logged above | see P1-P3 tables |
 
 ## ✅ Completed — August 2026 Session
 
