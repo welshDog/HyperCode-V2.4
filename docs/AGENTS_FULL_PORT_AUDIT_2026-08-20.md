@@ -12,8 +12,26 @@
 > fixed** — each Dockerfile's baked port (and, for `tips-tricks-writer`, a
 > hardcoded override in `agent.py` itself) changed to `8080` to match compose's
 > uniform healthcheck. `business-agent` was already fixed in an earlier pass the
-> same day. The 3 agents that can't even build are still open — this was a build-
-> context path bug, not a port bug, and needs a path decision, not a port bake.
+> same day.
+>
+> **Second update, same night (commit `84fa5a2d`): the last 3 (`brain-agent`,
+> `hyper-observer`, `hyper-worker`) are now fixed too.** `brain-agent` got a
+> real implementation at `agents/brain/` (was a missing directory). `hyper-observer`
+> and `hyper-worker`'s compose `context:`/`dockerfile:` were repointed to repo
+> root (their Dockerfiles `COPY` shared `src/agents/hyper_agents/` code that
+> isn't reachable from the narrower `./agents/hyper-agents` context they used
+> to declare), and `.dockerignore` was fixed to stop excluding the `agents/`
+> paths those builds need. All three Dockerfiles now bake port `8080`. **Verified
+> by building + running all three standalone** (not just `docker build`):
+> `brain-agent` → `curl /health` → `{"status":"healthy","agent":"brain-agent"}`
+> (200); `hyper-observer` → `{"name":"hyper-observer","status":"ready",...}`
+> (200); `hyper-worker` → `{"name":"hyper-worker","status":"ready",...}` (200).
+> `redis_unavailable`/`Crew registration failed` warnings in their logs are
+> expected for a standalone container with no `crew-orchestrator`/redis on the
+> network — same as every other agent verified this session. **Item #9 is now
+> fully closed — 24/24 agents build and bind port `8080` correctly. Item #0 (the
+> 14-name same-name-merge decision) is the only remaining blocker before a real
+> fleet launch.**
 
 ## Method
 
@@ -55,19 +73,19 @@ rescues a mismatched agent.
 Repo-wide grep across all 17 for any remaining non-`8080` `AGENT_PORT=`/`PORT=`/
 `EXPOSE`/healthcheck/CMD-port reference came back empty after the fix.
 
-## 🔴 Can't even build (3) — build-context path bug, same class as the `hypercode-mcp-server` phantom fixed earlier tonight
+## ✅ Fixed same night, second pass (3) — was "can't even build"
 
-| Agent | Problem |
+| Agent | Fix |
 |---|---|
-| `brain-agent` | `context: ./agents/brain` — this directory does not exist at all. `docker compose build` would fail immediately with no such context. |
-| `hyper-observer` | `context: ./agents/hyper-agents`, `dockerfile: Dockerfile.observer` — no such file at that path. The real Dockerfile exists one level deeper: `agents/hyper-agents/observer/Dockerfile`. Once (if) the path is fixed, it *also* has a port mismatch: `ENV AGENT_PORT=8092`. |
-| `hyper-worker` | Same shape as `hyper-observer`: real file at `agents/hyper-agents/worker/Dockerfile`, and once reachable, `ENV AGENT_PORT=8093` — also mismatched. |
+| `brain-agent` | `agents/brain/` didn't exist — wrote a real implementation (`agent.py`/`base_agent.py`/`config.json`/`Dockerfile`/`requirements.txt`/`HYPER-AGENT-BIBLE.md`), `AGENT_PORT=8080` baked in. Verified: build + standalone `docker run` + `curl /health` → 200. |
+| `hyper-observer` | Compose `context:`/`dockerfile:` repointed to repo root (`context: .`, `dockerfile: agents/hyper-agents/observer/Dockerfile`) — the real Dockerfile `COPY`s shared `src/agents/hyper_agents/` code unreachable from the old narrower context. `.dockerignore` fixed to stop excluding what the build needs. Verified: build + standalone `docker run` + `curl /health` → 200. |
+| `hyper-worker` | Same fix shape as `hyper-observer`. Verified: build + standalone `docker run` + `curl /health` → 200. |
+
+Commit: `84fa5a2d`.
 
 ## Tally
 
-24 total — **21 fine (was 4), 3 still can't build.** 18 of the 24 have now been
-fixed (`business-agent` earlier, 17 more this pass). This is independent of
-`NEXT_TASKS.md` item #0 (the 14-name same-name-merge decision) — item #0 is
-still the other open blocker, but the fleet is no longer double-blocked: only
-`brain-agent`/`hyper-observer`/`hyper-worker` (build-context path bug) and
-item #0 remain before a real launch is possible.
+24 total — **24/24 fine.** All agents build and bind port `8080` correctly.
+This closes item #9 for good. `NEXT_TASKS.md` item #0 (the 14-name
+same-name-merge decision) is now the **only** remaining blocker before a real
+fleet launch.

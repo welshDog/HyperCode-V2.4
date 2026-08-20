@@ -1,6 +1,40 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening, part 7) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (evening, part 8) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening, part 8) — Last 3 item-#9c agents fixed + verified live
+
+Bro asked to keep going on the port audit's final 3 (`brain-agent`,
+`hyper-observer`, `hyper-worker` — the ones that couldn't even build, item
+#9c). All three fixed in commit `84fa5a2d`:
+
+- **`brain-agent`**: `agents/brain/` never existed. Wrote a real implementation
+  — swarm memory agent backed by `chroma` (semantic recall/storage over prior
+  agent-swarm activity), `AGENT_PORT=8080` baked into the Dockerfile.
+- **`hyper-observer`** / **`hyper-worker`**: their Dockerfiles `COPY` shared
+  `src/agents/hyper_agents/` code that was unreachable from the narrow
+  `./agents/hyper-agents` build context `agents-full.yml` declared. Repointed
+  both services' `context:` to repo root (`.`) with an explicit `dockerfile:`
+  path, and fixed `.dockerignore`, which was excluding paths those builds need.
+
+**Verified by actually running all three, not just building.** Docker Desktop
+wasn't running at the start of this pass — started it, waited for the daemon,
+then: `docker build` succeeded for all 3; ran each standalone (`docker run` +
+`curl /health`) — `brain-agent` → `{"status":"healthy","agent":"brain-agent"}`
+(200), `hyper-observer` → `{"name":"hyper-observer","status":"ready",...}`
+(200), `hyper-worker` → `{"name":"hyper-worker","status":"ready",...}` (200).
+Logged `redis_unavailable`/`Crew registration failed` warnings in their
+startup output are expected for a standalone container with no
+`crew-orchestrator`/redis on the network — same as every other agent verified
+this session, not a real problem. Test containers/images removed after.
+
+**Item #9 (container-internal port audit) is now fully closed — 24/24 agents
+build and bind `8080` correctly.** `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`,
+`docs/NEXT_TASKS.md` (items #2/#9/#9c), and `CLAUDE.md`'s fleet table + launch
+warning all updated to match. **Item #0 (the 14-name same-name-merge decision)
+is now the only remaining blocker before a real 24-agent fleet launch.**
 
 ---
 
