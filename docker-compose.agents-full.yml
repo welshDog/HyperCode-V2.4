@@ -35,6 +35,7 @@
 # :8015  super-hyper-broski-agent
 # :8017  session-snapshot        ← moved off :8097 2026-08-20 (was colliding with live evolve-relay, --profile pets)
 # :8018  tips-tricks-writer      ← moved off :8009 2026-08-20 (was colliding with live chroma, docker-compose.observability.yml)
+# :8019  test-agent              ← moved off :8100 2026-08-20 (was colliding with live hyper-brain, --profile brain)
 # :8020  business-agent          ⚠️ Dockerfile exists but builds mislabeled project-strategist code, not real business-agent logic — human decision needed, see NEXT_TASKS.md P2-1
 # :8024  coderabbit-webhook
 # :8050  goal-keeper             ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
@@ -44,7 +45,6 @@
 # :8091  hyper-architect         ⚠️ also defined in docker-compose.agents.yml (profiles:["hyper"], DIFFERENT build context) — same-name merge, unaudited
 # :8092  hyper-observer          ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
 # :8093  hyper-worker            ⚠️ also defined in docker-compose.agents.yml — same-name merge, unaudited
-# :8100  test-agent              ⚠️ collides with live hyper-brain :8100 (--profile brain) AND also defined in docker-compose.agents.yml — NOT fixed, needs decision
 # (hypercode-mcp-server removed 2026-08-20 — was a phantom, see block comment below)
 # ─────────────────────────────────
 # 🔴 14 of ~24 real agent names above are ALSO defined in docker-compose.agents.yml
@@ -929,8 +929,8 @@ services:
       dockerfile: Dockerfile
     container_name: test-agent
     ports:
-      - "127.0.0.1:8100:8080"
-      # ✅ Port :8100 — no clash with any other agent
+      - "127.0.0.1:8019:8080"
+      # moved off :8100 2026-08-20 (was colliding with live hyper-brain, --profile brain)
     environment:
       - AGENT_NAME=test-agent
       - LOG_LEVEL=INFO

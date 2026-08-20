@@ -159,6 +159,7 @@ EXPECTED_PORTS = {
     '8015': 'super-hyper-broski-agent',
     '8017': 'session-snapshot',
     '8018': 'tips-tricks-writer',
+    '8019': 'test-agent',
     '8020': 'business-agent',
     '8024': 'coderabbit-webhook',
     '8050': 'goal-keeper',
@@ -168,7 +169,6 @@ EXPECTED_PORTS = {
     '8091': 'hyper-architect',
     '8092': 'hyper-observer',
     '8093': 'hyper-worker',
-    '8100': 'test-agent',
     # hypercode-mcp-server (:8823) intentionally omitted: it's the real, live core
     # service in docker-compose.agents.yml, not a ghost agent this ghost-roster gate
     # tracks. A phantom duplicate of it in agents-full.yml was removed 2026-08-20.

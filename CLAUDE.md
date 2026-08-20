@@ -64,7 +64,7 @@
 | `session-snapshot` | :8017 | 🟡 built, not running — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
 | `throttle-agent` | :8014 | 🟡 built, not running |
 | `super-hyper-broski-agent` | :8015 | 🟡 built, not running |
-| `test-agent` | :8100 (not :8080) | 🟡 built, not running — ⚠️ collides with live `hyper-brain :8100` |
+| `test-agent` | :8019 (not :8080/:8100) | 🟡 built, not running — moved off :8100 2026-08-20 (was colliding with `hyper-brain`) |
 | `goal-keeper` | :8050 | ✅ Live |
 | `business-agent` | — | ❌ blocked — no Dockerfile exists anywhere sensible, needs a human decision |
 | `coderabbit-webhook` | :8024 | 🟡 built, not running |
@@ -76,12 +76,12 @@
 > renamed. See `docs/NEXT_TASKS.md`.
 
 **Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
-counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked, 1 real
-port collision still open (`test-agent` vs `hyper-brain`). Not "25 coordinated through
-`crew-orchestrator`" yet. Also open: 14 of these agent names are *also* defined in
-`docker-compose.agents.yml` with different build contexts — Bro's call (2026-08-20) is
-to not compose the two files together until that's resolved for real. See
-`docs/NEXT_TASKS.md` item #0.
+counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked. All real
+port-vs-differently-named-service collisions are fixed as of 2026-08-20 evening. Not
+"25 coordinated through `crew-orchestrator`" yet. Still open: 14 of these agent names
+are *also* defined in `docker-compose.agents.yml` with different build contexts —
+Bro's call (2026-08-20) is to not compose the two files together until that's resolved
+for real. See `docs/NEXT_TASKS.md` item #0.
 
 ---
 
@@ -120,7 +120,10 @@ Before launching the full stack:
 grep -r "ports:" docker-compose*.yml | sort
 ```
 
-**Watch for:** `:8080` collision risk (test-agent uses this common default port).
+**Watch for:** same-named-service collisions across compose files — `grep` alone won't
+catch them reliably (compose merges same-named services instead of erroring); use
+`docker compose config` and check for duplicate `published:` ports per the method in
+`docs/NEXT_TASKS.md` item #0. `test-agent` moved off :8080/:8100 2026-08-20, now :8019.
 
 ### 🧠 Resource Limits (Expected)
 
@@ -167,10 +170,10 @@ depends_on:
 > then, this file is a standalone reference, not a launchable overlay. See
 > `docs/NEXT_TASKS.md` item #0.
 >
-> Also still open regardless: `test-agent` (:8100) collides with live `hyper-brain`
-> (`--profile brain`), and `business-agent`'s only Dockerfile builds mislabeled
+> Also still open regardless: `business-agent`'s only Dockerfile builds mislabeled
 > project-strategist code, not real business-agent logic (see `docs/NEXT_TASKS.md`
-> P2-1). `tips-tricks-writer` (:8009 → :8018) fixed 2026-08-20.
+> P2-1). All real port collisions fixed 2026-08-20 evening: `tips-tricks-writer`
+> (:8009 → :8018), `test-agent` (:8100 → :8019).
 
 Command preserved for reference only — **do not run until the above is resolved**:
 
