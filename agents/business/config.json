@@ -1,0 +1,12 @@
+{
+  "agent_name": "business-agent",
+  "role": "Business Operations",
+  "specializations": [
+    "Billing & Subscription Health",
+    "Revenue Reporting",
+    "Cost Review",
+    "Financial Impact Assessment"
+  ],
+  "notes": "Read-only against Stripe (balance + recent charges) when STRIPE_API_KEY is set. Never writes/mutates payment state — that stays in agents/stripe-mcp and hypercode-core's stripe_service.",
+  "model": "claude-sonnet-4-6"
+}

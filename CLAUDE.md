@@ -66,7 +66,7 @@
 | `super-hyper-broski-agent` | :8015 | 🟡 built, not running |
 | `test-agent` | :8019 (not :8080/:8100) | 🟡 built, not running — moved off :8100 2026-08-20 (was colliding with `hyper-brain`) |
 | `goal-keeper` | :8050 | ✅ Live |
-| `business-agent` | — | ❌ blocked — no Dockerfile exists anywhere sensible, needs a human decision |
+| `business-agent` | :8020 | 🟡 built, not running — real code built 2026-08-20 (was a mislabeled project-strategist clone); builds + `/health` 200 + real identity, verified via a standalone `docker run` |
 | `coderabbit-webhook` | :8024 | 🟡 built, not running |
 
 > `hypercode-mcp-server` removed from this roster 2026-08-20 — it was a phantom: the
@@ -76,12 +76,13 @@
 > renamed. See `docs/NEXT_TASKS.md`.
 
 **Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
-counting it once, not as a ghost) — 8 live, 15 built-not-running, 1 blocked. All real
-port-vs-differently-named-service collisions are fixed as of 2026-08-20 evening. Not
-"25 coordinated through `crew-orchestrator`" yet. Still open: 14 of these agent names
-are *also* defined in `docker-compose.agents.yml` with different build contexts —
-Bro's call (2026-08-20) is to not compose the two files together until that's resolved
-for real. See `docs/NEXT_TASKS.md` item #0.
+counting it once, not as a ghost) — 8 live, 16 built-not-running, 0 blocked. All real
+port-vs-differently-named-service collisions are fixed, and `business-agent` (the last
+blocked entry) has real code as of 2026-08-20 evening. Not "25 coordinated through
+`crew-orchestrator`" yet. Still open: 14 of these agent names are *also* defined in
+`docker-compose.agents.yml` with different build contexts — Bro's call (2026-08-20) is
+to not compose the two files together until that's resolved for real. See
+`docs/NEXT_TASKS.md` item #0.
 
 ---
 
@@ -170,10 +171,9 @@ depends_on:
 > then, this file is a standalone reference, not a launchable overlay. See
 > `docs/NEXT_TASKS.md` item #0.
 >
-> Also still open regardless: `business-agent`'s only Dockerfile builds mislabeled
-> project-strategist code, not real business-agent logic (see `docs/NEXT_TASKS.md`
-> P2-1). All real port collisions fixed 2026-08-20 evening: `tips-tricks-writer`
-> (:8009 → :8018), `test-agent` (:8100 → :8019).
+> All real port collisions fixed 2026-08-20 evening: `tips-tricks-writer`
+> (:8009 → :8018), `test-agent` (:8100 → :8019). `business-agent` also fixed the same
+> evening — real code now at `agents/business` (see `docs/NEXT_TASKS.md` P2-1).
 
 Command preserved for reference only — **do not run until the above is resolved**:
 

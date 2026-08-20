@@ -160,13 +160,12 @@ jobs:
           - agent: goal-keeper
             context: ./agents/goal_keeper
             dockerfile: Dockerfile
-          # ⚠️ business-agent: no context fixed here — verified 2026-08-19 that no Dockerfile
-          # exists at ./agents/business-agent, ./agents/business, or anywhere sensible for it.
-          # ./agents/business/project-strategist/Dockerfile exists but looks like a stray/misplaced
-          # copy of the real 08-project-strategist agent, not a distinct "business-agent". Needs a
-          # human decision (build it for real, or drop this matrix entry) before this job is green.
+          # business-agent: built for real 2026-08-20, replacing the mislabeled
+          # project-strategist clone that lived at ./agents/business/project-strategist.
+          # Real code now lives directly at ./agents/business (flattened to match this
+          # context path, no more nesting). See docs/NEXT_TASKS.md P2-1.
           - agent: business-agent
-            context: ./agents/business-agent
+            context: ./agents/business
             dockerfile: Dockerfile
           - agent: coderabbit-webhook
             context: ./agents/coderabbit-webhook

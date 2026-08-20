@@ -14,7 +14,9 @@
 # system-architect/hyper-split-agent/session-snapshot/tips-tricks-writer/
 # test-agent all moved to free ports; hypercode-mcp-server phantom
 # (nonexistent build context) removed from agents-full.yml entirely — it was
-# never a distinct 25th agent. Also: 14 of ~24 real agent names in
+# never a distinct 25th agent; business-agent's mislabeled project-strategist
+# clone replaced with real code at agents/business (built + ran + curled
+# /health + /execute, not just claimed). Also: 14 of ~24 real agent names in
 # agents-full.yml are ALSO defined in docker-compose.agents.yml with
 # different build contexts — same-name merge. Bro's call: don't compose the
 # two files together until that's resolved for real. See NEXT_TASKS.md item #0.
@@ -66,7 +68,7 @@ ROSTER=(
     "super-hyper-broski-agent|8015|"
     "test-agent|8019|moved off :8100 2026-08-20 (was colliding with hyper-brain)"
     "goal-keeper|8050|"
-    "business-agent|-|BLOCKED: Dockerfile exists but builds mislabeled project-strategist code (agents/business/project-strategist/), not real business-agent logic — needs a human decision"
+    "business-agent|8020|built for real 2026-08-20 (was a mislabeled project-strategist clone, verified: builds + /health 200 + real identity)"
     "coderabbit-webhook|8024|"
 )
 # hypercode-mcp-server intentionally not in this roster: it is the real, live
