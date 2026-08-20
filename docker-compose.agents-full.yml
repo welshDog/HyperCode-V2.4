@@ -704,8 +704,11 @@ services:
   hyper-observer:
     image: hypercode-hyper-observer:latest
     build:
-      context: ./agents/hyper-agents
-      dockerfile: Dockerfile.observer
+      # context MUST be repo root: the Dockerfile COPYs both
+      # agents/hyper-agents/observer/* and the shared src/agents/hyper_agents/
+      # package, neither of which is reachable from a narrower context.
+      context: .
+      dockerfile: agents/hyper-agents/observer/Dockerfile
     container_name: hyper-observer
     ports:
       - "127.0.0.1:8092:8080"
@@ -748,8 +751,9 @@ services:
   hyper-worker:
     image: hypercode-hyper-worker:latest
     build:
-      context: ./agents/hyper-agents
-      dockerfile: Dockerfile.worker
+      # context MUST be repo root — same reason as hyper-observer above.
+      context: .
+      dockerfile: agents/hyper-agents/worker/Dockerfile
     container_name: hyper-worker
     ports:
       - "127.0.0.1:8093:8080"

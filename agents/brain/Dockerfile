@@ -1,0 +1,72 @@
+# Brain Agent — multi-stage build, hardened (pattern matches agents/07-system-architect)
+
+# ========================================
+# Stage 1: Builder
+# ========================================
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        ca-certificates && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --no-cache-dir --no-deps --wheel-dir /wheels -r requirements.txt
+
+# ========================================
+# Stage 2: Runtime
+# ========================================
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update --allow-releaseinfo-change && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        libexpat1 \
+        openssl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    AGENT_NAME=brain-agent \
+    AGENT_ROLE="Swarm Memory" \
+    AGENT_MODEL=claude-sonnet-4-6 \
+    AGENT_PORT=8080
+
+COPY --from=builder /wheels /wheels
+RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
+
+COPY agent.py .
+COPY base_agent.py .
+COPY config.json .
+
+# Non-root user — security hardening
+RUN groupadd -r appuser && useradd -r -g appuser appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+    CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1
+
+CMD ["python", "agent.py"]

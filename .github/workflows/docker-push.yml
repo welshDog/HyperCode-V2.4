@@ -136,12 +136,18 @@ jobs:
           - agent: hyper-architect
             context: ./agents/architect
             dockerfile: Dockerfile
+          # context MUST be repo root: both Dockerfiles COPY from
+          # agents/hyper-agents/{observer,worker}/ AND the shared
+          # src/agents/hyper_agents/ package, unreachable from a narrower
+          # context. Fixed 2026-08-20 alongside docker-compose.agents-full.yml
+          # — .dockerignore also had a blanket `agents/` exclusion that
+          # blocked this even with the right context; see .dockerignore.
           - agent: hyper-observer
-            context: ./agents/hyper-agents/observer
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: agents/hyper-agents/observer/Dockerfile
           - agent: hyper-worker
-            context: ./agents/hyper-agents/worker
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: agents/hyper-agents/worker/Dockerfile
           - agent: hyper-split-agent
             context: ./agents/hyper-split-agent
             dockerfile: Dockerfile

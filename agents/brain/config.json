@@ -1,0 +1,11 @@
+{
+  "agent_name": "brain-agent",
+  "role": "Swarm Memory",
+  "specializations": [
+    "Semantic Recall",
+    "Cross-Agent Memory Storage",
+    "ADHD/Dyslexia-Aware Output Formatting"
+  ],
+  "notes": "ChromaDB-backed memory (host/port via CHROMA_HOST/CHROMA_PORT). Stores each task+response pair it handles and recalls semantically-relevant prior entries for future tasks. Not the same thing as hyper-brain (docker-compose.brain.yml) — that's the separate Obsidian-vault knowledge system.",
+  "model": "claude-sonnet-4-6"
+}

@@ -94,7 +94,14 @@ Thumbs.db
 *.temp
 
 # HyperCode BIG folders
-agents/
+# Anchored to repo root (leading /) so it doesn't also catch src/agents/ —
+# hyper-observer/hyper-worker build with context: . and need both
+# agents/hyper-agents/{observer,worker}/ and src/agents/hyper_agents/ reachable.
+/agents/
+!/agents/hyper-agents/observer/
+!/agents/hyper-agents/observer/**
+!/agents/hyper-agents/worker/
+!/agents/hyper-agents/worker/**
 backend/
 frontend/node_modules/
 celery/

@@ -44,7 +44,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     AGENT_NAME=sys-observer-01 \
-    AGENT_PORT=8092 \
+    AGENT_PORT=8080 \
     OBSERVER_WINDOW_SIZE=200
 
 # Install pre-built wheels from builder stage
@@ -66,7 +66,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8092
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1
