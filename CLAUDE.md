@@ -77,16 +77,18 @@
 
 **Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
 counting it once, not as a ghost) — 8 live, 16 built-not-running, 0 blocked-on-Dockerfile.
-All real host-port-vs-differently-named-service collisions are fixed, and
-`business-agent` has real code as of 2026-08-20 evening. Not "25 coordinated through
-`crew-orchestrator`" yet, and further than that from ready than the "built" column
-implies: **of the 16 built-not-running, 13 build fine but would be unreachable via
-their host port (own Dockerfile binds a different internal port than this file's
-uniform `:8080` mapping), and 3 can't even build (missing/misplaced Dockerfile)** —
-see `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`, item #9. Also still open: 14 of these
-agent names are *also* defined in `docker-compose.agents.yml` with different build
-contexts — Bro's call (2026-08-20) is to not compose the two files together until
-that's resolved for real. See `docs/NEXT_TASKS.md` item #0.
+All real host-port-vs-differently-named-service collisions are fixed, `business-agent`
+has real code, and **as of 2026-08-20 late evening all 17 container-internal port
+mismatches found in the item-#9 audit are also fixed** — every agent's own Dockerfile
+now binds `8080` internally, matching this file's uniform healthcheck. Verified via
+`docker build` + `docker run` on a sample from each fix pattern, not just claimed.
+**Only 3 of the 16 built-not-running agents remain unable to build at all**
+(`brain-agent`, `hyper-observer`, `hyper-worker` — missing/misplaced Dockerfile, a
+path problem, not a port problem) — see `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`,
+item #9. Also still open: 14 of these agent names are *also* defined in
+`docker-compose.agents.yml` with different build contexts — Bro's call (2026-08-20) is
+to not compose the two files together until that's resolved for real. See
+`docs/NEXT_TASKS.md` item #0.
 
 ---
 
@@ -179,14 +181,17 @@ depends_on:
 > (:8009 → :8018), `test-agent` (:8100 → :8019). `business-agent` also fixed the same
 > evening — real code now at `agents/business` (see `docs/NEXT_TASKS.md` P2-1).
 >
-> 🔴 **A THIRD blocker, independent of item #0, confirmed fleet-wide 2026-08-20 late
-> evening:** most agents' own Dockerfiles bake an internal port that doesn't match
-> this file's uniform `HOST:8080` mapping — 17 of 24 agents build fine but would be
-> unreachable via their host port, and 3 more (`brain-agent`, `hyper-observer`,
-> `hyper-worker`) can't even build (missing/misplaced Dockerfile). Only
-> `business-agent` is fixed. Full per-agent evidence:
-> `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`, tracked as `docs/NEXT_TASKS.md`
-> item #9. **Fixing item #0 alone would not make this file launchable.**
+> ✅ **A THIRD blocker, independent of item #0, found AND fixed 2026-08-20 late
+> evening:** most agents' own Dockerfiles baked an internal port that didn't match
+> this file's uniform `HOST:8080` mapping — 17 of 24 agents built fine but would
+> have been unreachable via their host port. All 17 now bake `8080` internally
+> (`tips-tricks-writer` also needed a hardcoded `config.port` override removed from
+> its Python code, not just a Dockerfile fix). Verified via `docker build` + `docker
+> run` on a sample from each fix pattern. **Still open: 3 agents can't even build**
+> (`brain-agent`, `hyper-observer`, `hyper-worker` — missing/misplaced Dockerfile, a
+> path problem). Full per-agent evidence: `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`,
+> tracked as `docs/NEXT_TASKS.md` item #9. **Item #0 is now the only remaining
+> blocker for the 21 agents that build and bind correctly.**
 
 Command preserved for reference only — **do not run until the above is resolved**:
 

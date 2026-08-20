@@ -55,7 +55,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     AGENT_NAME=project-strategist \
     AGENT_ROLE="Project Strategist" \
     AGENT_MODEL=claude-3-opus-20240229 \
-    AGENT_PORT=8001
+    AGENT_PORT=8080
 
 # Install wheels from builder
 COPY --from=builder /wheels /wheels
@@ -74,7 +74,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8001
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1

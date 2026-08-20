@@ -42,7 +42,8 @@ RUN pip install --upgrade --no-cache-dir \
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    AGENT_PORT=8080
 
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
@@ -56,8 +57,8 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
 USER appuser
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8009/health || exit 1
+    CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1
 
-EXPOSE 8009
+EXPOSE 8080
 
 CMD ["python", "agent.py"]

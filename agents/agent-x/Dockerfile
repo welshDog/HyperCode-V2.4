@@ -59,7 +59,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     AGENT_NAME=agent-x-01 \
-    AGENT_PORT=8000 \
+    AGENT_PORT=8080 \
     OLLAMA_HOST=http://hypercode-ollama:11434 \
     OLLAMA_MODEL=tinyllama:latest \
     WORKSPACE_PATH=/workspace \
@@ -83,7 +83,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1

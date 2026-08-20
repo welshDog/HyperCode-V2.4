@@ -2,6 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+ENV PORT=8080
+
 # OS package hardening — upgrade all + force-install patched packages
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
@@ -35,10 +37,10 @@ COPY --chown=broski:broski main.py .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD curl -f http://localhost:8015/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Expose port
-EXPOSE 8015
+EXPOSE 8080
 
 # Run
 CMD ["python", "main.py"]

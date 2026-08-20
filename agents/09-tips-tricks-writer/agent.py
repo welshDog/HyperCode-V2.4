@@ -89,10 +89,11 @@ class TipsTricksWriterAgent(BaseAgent):
 
 if __name__ == "__main__":
     config = AgentConfig()
-    # Override defaults for this specific agent
+    # Override defaults for this specific agent — port comes from AGENT_PORT
+    # (baked into the Dockerfile as 8080, matching agents-full.yml's compose
+    # healthcheck), never hardcoded here again after the 2026-08-20 port audit.
     config.name = "tips-tricks-writer"
     config.role = "Tips & Tricks Writer"
-    config.port = 8009
-    
+
     agent = TipsTricksWriterAgent(config)
     agent.run()

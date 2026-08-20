@@ -8,8 +8,12 @@
 > the container against whatever port the app really uses — so a mismatched agent
 > still reports "healthy" while being completely unreachable via its host-mapped port).
 >
-> Nothing in this file was fixed as part of this audit — see `NEXT_TASKS.md` item #9
-> for status. `business-agent` was already fixed in an earlier pass the same day.
+> **Update, later the same evening: the 17 port-mismatched agents below are now
+> fixed** — each Dockerfile's baked port (and, for `tips-tricks-writer`, a
+> hardcoded override in `agent.py` itself) changed to `8080` to match compose's
+> uniform healthcheck. `business-agent` was already fixed in an earlier pass the
+> same day. The 3 agents that can't even build are still open — this was a build-
+> context path bug, not a port bug, and needs a path decision, not a port bake.
 
 ## Method
 
@@ -22,40 +26,34 @@ via any service's own `environment:` block (`grep -n "AGENT_PORT"
 docker-compose.agents-full.yml` → zero matches), so nothing at compose level
 rescues a mismatched agent.
 
-## ✅ Fine (4) — container port genuinely matches compose's `:8080`
+## ✅ Fine (21, was 4) — container port genuinely matches compose's `:8080`
 
 | Agent | Evidence |
 |---|---|
 | `crew-orchestrator` | `CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]` — hardcoded, `EXPOSE 8080`, healthcheck curls `8080` |
 | `hyper-architect` | Node app, `ENV PORT=8080`, `EXPOSE 8080`, healthcheck curls `8080` |
 | `test-agent` | Healthcheck already curls `8080` |
-| `business-agent` | Fixed earlier the same day — `AGENT_PORT=8080` baked into the Dockerfile, verified live via `docker run` + `curl /health` |
+| `business-agent` | Fixed in an earlier pass the same day — `AGENT_PORT=8080` baked into the Dockerfile, verified live via `docker run` + `curl /health` |
+| `project-strategist` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8001`) |
+| `coder-agent` | **Fixed this pass** — added `ENV AGENT_PORT=8080` (was defaulting to `8000` via `${AGENT_PORT:-8000}`, nothing set it); added `EXPOSE 8080` for consistency. `FROM agent-base:latest` confirmed present locally already (built from `agents/agent-base.Dockerfile`) — a build-order dependency, not currently broken. |
+| `frontend-specialist` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8002`) |
+| `backend-specialist` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8003`) |
+| `database-architect` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8004`) |
+| `qa-engineer` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8005`) |
+| `devops-engineer` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8006`) |
+| `security-engineer` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8007`) |
+| `system-architect` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8008`). Verified: `docker build` succeeded. |
+| `agent-x` | **Fixed this pass** — `ENV AGENT_PORT=8080` (was `8000`) |
+| `throttle-agent` | **Fixed this pass** — `CMD`'s hardcoded `--port` flag, `EXPOSE`, and healthcheck all changed to `8080` (was `8014`) |
+| `super-hyper-broski-agent` | **Fixed this pass** — added `ENV PORT=8080` (was defaulting to `8015` via `main.py`'s `os.getenv("PORT", 8015)`, nothing set it); `EXPOSE`/healthcheck also fixed |
+| `tips-tricks-writer` | **Fixed this pass** — `ENV AGENT_PORT=8080` added to the Dockerfile, **and** a hardcoded `config.port = 8009` override removed from `agent.py`'s `__main__` block (the Dockerfile fix alone would not have been enough — the Python code was overriding it back to `8009` regardless of the env var). Verified: `docker build` succeeded. |
+| `hyper-split-agent` | **Fixed this pass** — `ENV PORT=8080` (was `8096`), `CMD`'s hardcoded `--port` flag also changed. Verified: `docker build` succeeded. |
+| `session-snapshot` | **Fixed this pass** — `ENV PORT=8080` (was `8097`), `CMD`'s hardcoded `--port` flag also changed |
+| `goal-keeper` | **Fixed this pass** — added `ENV AGENT_PORT=8080` (was defaulting to `8050` via `main.py`'s `os.getenv("AGENT_PORT", "8050")`, nothing set it); `EXPOSE`/healthcheck also added/fixed. Verified: `docker build` succeeded. |
+| `coderabbit-webhook` | **Fixed this pass** — `ENV PORT=8080` (was `8000`); also fixed a stale `logger.info("...started on port 8000")` log message to report the real port dynamically |
 
-## 🔴 Port-mismatched (17) — builds fine, but the app binds to its own old port, not 8080
-
-Every one of these bakes its **pre-reconciliation host port** as its internal
-bind port — strong evidence these Dockerfiles predate `agents-full.yml`
-standardizing on `HOST:8080`, and were never updated when that convention landed.
-
-| Agent | Actual bind port | Source |
-|---|---|---|
-| `project-strategist` | 8001 | `ENV AGENT_PORT=8001` |
-| `coder-agent` | 8000 (default) | healthcheck: `${AGENT_PORT:-8000}`, no `ENV AGENT_PORT` set — also `FROM agent-base:latest`, a locally-built base image (`agents/agent-base.Dockerfile`); present locally already, but a build-order dependency worth knowing about |
-| `frontend-specialist` | 8002 | `ENV AGENT_PORT=8002` |
-| `backend-specialist` | 8003 | `ENV AGENT_PORT=8003` |
-| `database-architect` | 8004 | `ENV AGENT_PORT=8004` |
-| `qa-engineer` | 8005 | `ENV AGENT_PORT=8005` |
-| `devops-engineer` | 8006 | `ENV AGENT_PORT=8006` |
-| `security-engineer` | 8007 | `ENV AGENT_PORT=8007` |
-| `system-architect` | 8008 | `ENV AGENT_PORT=8008` (found in the original port-collision pass) |
-| `agent-x` | 8000 | `ENV AGENT_PORT=8000` |
-| `throttle-agent` | 8014 | healthcheck curls `8014` |
-| `super-hyper-broski-agent` | 8015 | healthcheck curls `8015` |
-| `tips-tricks-writer` | 8000 (default) | `base_agent.py`'s own default, no `ENV AGENT_PORT` set — Dockerfile healthchecks `8009` (a *fourth*, separate value — three-way disagreement, not just two) |
-| `hyper-split-agent` | 8096 | healthcheck curls `8096` |
-| `session-snapshot` | 8097 | healthcheck curls `8097` |
-| `goal-keeper` | 8050 (default) | `main.py`: `os.getenv("AGENT_PORT", "8050")`, no `ENV AGENT_PORT` set in the Dockerfile |
-| `coderabbit-webhook` | 8000 | `ENV PORT=8000`, healthcheck curls `8000` |
+Repo-wide grep across all 17 for any remaining non-`8080` `AGENT_PORT=`/`PORT=`/
+`EXPOSE`/healthcheck/CMD-port reference came back empty after the fix.
 
 ## 🔴 Can't even build (3) — build-context path bug, same class as the `hypercode-mcp-server` phantom fixed earlier tonight
 
@@ -67,7 +65,9 @@ standardizing on `HOST:8080`, and were never updated when that convention landed
 
 ## Tally
 
-24 total — 4 fine, 17 port-mismatched, 3 can't build. Only `business-agent`
-(1 of the 24) has been fixed. This is independent of `NEXT_TASKS.md` item #0
-(the 14-name same-name-merge decision) — fixing item #0 alone would still leave
-20 of 24 agents either failing to build or unreachable via their host port.
+24 total — **21 fine (was 4), 3 still can't build.** 18 of the 24 have now been
+fixed (`business-agent` earlier, 17 more this pass). This is independent of
+`NEXT_TASKS.md` item #0 (the 14-name same-name-merge decision) — item #0 is
+still the other open blocker, but the fleet is no longer double-blocked: only
+`brain-agent`/`hyper-observer`/`hyper-worker` (build-context path bug) and
+item #0 remain before a real launch is possible.

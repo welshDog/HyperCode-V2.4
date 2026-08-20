@@ -18,7 +18,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8096
+    PORT=8080
 
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
@@ -42,9 +42,9 @@ COPY . .
 RUN groupadd -r appuser && useradd -r -g appuser appuser && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8096
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
-    CMD curl -f http://localhost:8096/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8096"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -2,6 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+ENV AGENT_PORT=8080
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -21,8 +23,10 @@ RUN useradd -m -u 1000 goalkeeper
 USER goalkeeper
 
 # Health check
+EXPOSE 8080
+
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8050/health || exit 1
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Run
 CMD ["python", "main.py"]

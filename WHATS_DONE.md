@@ -1,6 +1,44 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening, part 6) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (evening, part 7) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening, part 7) — All 17 item-#9 port-mismatched agents fixed
+
+Bro asked to fix the 17 agents flagged in the container-port audit (part 6).
+Baked `AGENT_PORT=8080` (or `PORT=8080` for the 2 that use that env var name)
+into each agent's Dockerfile, matching `agents-full.yml`'s uniform compose-level
+healthcheck (`curl http://localhost:8080/health`, identical across all 24
+services). Full evidence: `docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md` (updated
+in place, not a new file).
+
+Fixed: `project-strategist`, `coder-agent`, `frontend-specialist`,
+`backend-specialist`, `database-architect`, `qa-engineer`, `devops-engineer`,
+`security-engineer`, `system-architect`, `agent-x`, `throttle-agent`,
+`super-hyper-broski-agent`, `tips-tricks-writer`, `hyper-split-agent`,
+`session-snapshot`, `goal-keeper`, `coderabbit-webhook`.
+
+One agent needed more than a Dockerfile edit: `tips-tricks-writer`'s `agent.py`
+hardcoded `config.port = 8009` directly in its `__main__` block — the env var
+fix alone would have been silently overridden back to `8009` at runtime.
+Removed the hardcode so it falls through to `AgentConfig`'s own
+`AGENT_PORT`-driven default. Also fixed a stale "started on port 8000" log
+message in `coderabbit-webhook/main.py` while in the file.
+
+**Verified, not just written**: built 4 representative images (one per fix
+pattern — `system-architect`, `tips-tricks-writer`, `goal-keeper`,
+`hyper-split-agent`), all succeeded. Ran `tips-tricks-writer` (the one requiring
+a code change, highest risk of a silent regression) standalone: logs showed
+`Uvicorn running on http://0.0.0.0:8080`, `curl /health` returned
+`{"status":"healthy","agent":"tips-tricks-writer"}` (200). A repo-wide grep
+across all 17 for any remaining non-`8080` port reference came back empty.
+Test containers/images removed after.
+
+**Fleet status: 21 of 24 agents now build correctly and bind the right port.**
+Only 3 can't build at all (`brain-agent`, `hyper-observer`, `hyper-worker` —
+a build-context path bug, not a port bug — see item #9c, not fixed this pass)
+and item #0 (the 14-name same-name-merge decision) remain before a real launch.
 
 ---
 

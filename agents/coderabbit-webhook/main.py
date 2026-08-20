@@ -49,7 +49,7 @@ class AutoFixTask(BaseModel):
 
 @app.on_event("startup")
 async def startup():
-    logger.info("CodeRabbit Webhook Agent started on port 8000")
+    logger.info(f"CodeRabbit Webhook Agent started on port {os.getenv('PORT', '8000')}")
 
 
 @app.get("/health")

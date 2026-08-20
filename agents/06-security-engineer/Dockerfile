@@ -55,7 +55,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     AGENT_NAME=security-engineer \
     AGENT_ROLE="Security Engineer" \
     AGENT_MODEL=claude-3-5-sonnet-20241022 \
-    AGENT_PORT=8007
+    AGENT_PORT=8080
 
 # Install wheels from builder
 COPY --from=builder /wheels /wheels
@@ -75,7 +75,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser \
     && chown -R appuser:appuser /app
 USER appuser
 
-EXPOSE 8007
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD curl -f http://localhost:${AGENT_PORT}/health || exit 1
