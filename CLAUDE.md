@@ -27,7 +27,7 @@
 
 ---
 
-## 🚀 CURRENT STATE — 25-Agent Fleet (August 2026)
+## 🚀 CURRENT STATE — 26-Agent Fleet (August 2026)
 
 > 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening.** The full fleet below was composed
 > up as one system for the first time ever this session (`docker compose --profile
@@ -70,26 +70,44 @@
 | `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled project-strategist clone) |
 | `coderabbit-webhook` | :8024 | ✅ Live |
 
+### 🛡️ Phase 0: Fleet Controller (1, behind `--profile fleet`)
+
+| Agent | Port | Status |
+|---|---|---|
+| `fleet-controller` | :8094 | ✅ Live — new 2026-08-20 late night. First piece of a multi-phase mission-director/fleet-controller architecture (see `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`). Structurally incapable of executing anything: no Docker socket, no `DOCKER_HOST`, no crew-orchestrator credential, no LLM client. Fails **closed** (not open, unlike `safety_gate.py`) if Safety Shepherd is unreachable. Behind its own `--profile fleet`, not `agents`/`hyper` — never launches with the standard fleet command above until that flag is added explicitly. |
+
+> `fleet-controller` deliberately has no `crew-orchestrator: condition: service_healthy`
+> dependency, unlike every other agent — a named, confirmed exception to the Sacred
+> Rules table below (it holds no crew-orchestrator credential and has no dispatch
+> path through it in Phase 0). Full smoke-test proof (valid plan → real Shepherd
+> `ESCALATE` for the `docker` category, Shepherd killed mid-request → `BLOCK`
+> fail-closed, denied profile → `422` before Shepherd is ever contacted, confirmed via
+> Shepherd's own logs) in `WHATS_DONE.md`.
+
 > `hypercode-mcp-server` removed from this roster 2026-08-20 — it was a phantom: the
 > `agents-full.yml` block pointed at `./agents/hypercode-mcp-server`, which doesn't
 > exist. It's not a distinct 25th agent — it's the already-live MCP gateway defined
 > in `docker-compose.agents.yml` (`:8823`). The ghost duplicate was deleted, not
 > renamed. See `docs/NEXT_TASKS.md`.
 
-**Total:** 24 distinct agents in this roster (the real `hypercode-mcp-server` makes 25
-counting it once, not as a ghost) — **24 live** (the 25th, `hypercode-mcp-server`,
+**Total:** 25 distinct agents in this roster (the real `hypercode-mcp-server` makes 26
+counting it once, not as a ghost) — **25 live** (the 26th, `hypercode-mcp-server`,
 also live), 0 not running except the intentionally-nonexistent `coder` alias. Item #9
-(all 24 build + bind `8080`) and item #0 (the agents-full.yml/agents.yml same-name
-merge) are both fully closed. **The launch itself surfaced 3 more real bugs** that no
-amount of `docker compose config`/standalone `docker build` could have caught — see
-`docs/NEXT_TASKS.md` item #0b (`.dockerignore` gaps for `agent-x`/`hyper-architect`,
-`test-agent`'s build context, and — the big one — all 11 ghost agents referencing
-phantom networks `app-net`/`agent-net` that were never created anywhere in the real
-stack). Swept the whole box after launch: **zero unhealthy containers across all 67
-running.** `throttle-agent`'s Docker-socket gap is also now fixed (wired to the
-already-built `docker-socket-proxy-healer`, which its own comment says was meant
-for exactly this) — the one remaining loose end is that agent's separate,
-unbuilt `MemStream` dependency, `docs/NEXT_TASKS.md` item #2b.
+(all 24 pre-existing agents build + bind `8080`) and item #0 (the
+agents-full.yml/agents.yml same-name merge) are both fully closed. **The launch
+itself surfaced 3 more real bugs** that no amount of `docker compose
+config`/standalone `docker build` could have caught — see `docs/NEXT_TASKS.md` item
+#0b (`.dockerignore` gaps for `agent-x`/`hyper-architect`, `test-agent`'s build
+context, and — the big one — all 11 ghost agents referencing phantom networks
+`app-net`/`agent-net` that were never created anywhere in the real stack). Swept the
+whole box after launch: **zero unhealthy containers across all 67 running.**
+`throttle-agent`'s Docker-socket gap is also now fixed (wired to the already-built
+`docker-socket-proxy-healer`, which its own comment says was meant for exactly
+this) — its separate, unbuilt `MemStream` dependency (`docs/NEXT_TASKS.md` item
+#2b) remains the one loose end from the launch. `fleet-controller` (Phase 0, the
+25th agent, built + smoke-tested 2026-08-20 late night) added zero risk to any of
+this — it was verified in isolation and the rest of the fleet stayed at zero
+unhealthy throughout.
 
 ---
 
@@ -116,7 +134,7 @@ unbuilt `MemStream` dependency, `docs/NEXT_TASKS.md` item #2b.
 
 ### ✅ CI/CD Workflows Live
 
-- `.github/workflows/docker-push.yml` — Pushes **all 25 agents** to GHCR in parallel matrix (3 jobs, `fail-fast: false`)
+- `.github/workflows/docker-push.yml` — Pushes **all 25 pre-existing agents + `fleet-controller`** to GHCR in parallel matrix (3 jobs, `fail-fast: false`)
 - `.github/workflows/ghost-agents-build.yml` — Port validation + parallel ghost-agent builds on push to `main`
 - `.github/workflows/health-check.yml` — All 25 agent ports + Sacred Rules lint on every PR
 
@@ -149,7 +167,7 @@ Prevents one runaway agent from starving the whole fleet.
 
 ### 🏥 crew-orchestrator Health Gate (Required)
 
-All 25 agents must depend on `crew-orchestrator` being healthy:
+All agents must depend on `crew-orchestrator` being healthy:
 
 ```yaml
 depends_on:
@@ -158,6 +176,16 @@ depends_on:
 ```
 
 `crew-orchestrator` is the SPOF (single point of failure) — ensure it has `restart: unless-stopped` and a `/health` endpoint.
+
+> **One named exception, confirmed 2026-08-20 late night**: `fleet-controller`
+> (Phase 0 of the mission-director/fleet-controller architecture) deliberately does
+> **not** depend on `crew-orchestrator`. It holds no crew-orchestrator credential and
+> has no dispatch path through it — the only thing it depends on is `safety-shepherd:
+> condition: service_started`. Gating it on crew-orchestrator's health would only
+> couple a service whose entire job is proving a containment boundary to a second
+> SPOF, for zero safety benefit. This exception was asked and confirmed explicitly
+> before building — not a silent violation. See
+> `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` §7.
 
 ### 🚀 Full Stack Launch Command
 
@@ -212,9 +240,12 @@ docker compose \
 ```
 
 `--profile hyper` is required alongside `--profile agents`: `agents.yml` gates
-`agent-x`/`hyper-architect`/`hyper-observer`/`hyper-worker` behind it. All 25 agents
-(13 existing + 12 ghost, `hypercode-mcp-server` counted once) are live & coordinated
-right now.
+`agent-x`/`hyper-architect`/`hyper-observer`/`hyper-worker` behind it. All 25 of
+these agents (13 existing + 12 ghost, `hypercode-mcp-server` counted once) are live
+& coordinated right now. `fleet-controller` (the 26th, Phase 0) is intentionally
+**not** part of this command — it needs a separate `--profile fleet` flag added
+explicitly, so the standard launch never accidentally brings it up. See the
+"Phase 0: Fleet Controller" section above.
 
 ---
 

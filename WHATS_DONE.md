@@ -1,6 +1,123 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (late evening, part 11) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (late night, part 12) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (late night, part 12) — fleet-controller Phase 0 shipped, live, smoke-tested
+
+Bro asked to brainstorm the most ambitious version of a 5-idea infra
+roadmap (combining a "mission-director" LLM planner with "HyperBrain"-style
+skill routing). Because self-triggered missions + real Docker control +
+LLM-driven decisions add up to a system that can notice a problem and act
+on real infrastructure on its own initiative — close to the exact shape
+the roadmap doc's own header disclaimed ("we wont AGI BROski") — went
+through a full brainstorming pass (multiple AskUserQuestion rounds, three
+detailed design documents Bro shared, each verified against the live
+codebase rather than taken on faith) and converged on **Approach C**: hard
+separation between a planner that can think but never act, and a
+deterministic controller that can act but never interprets natural
+language. Governing rule: **no component may both interpret LLM output and
+possess infrastructure mutation authority.**
+
+Wrote the full design spec (`docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`,
+commit `a85c4a84`) covering only Phase 0 — prove the containment boundary
+exists, before any capability is added. Then, via `/plan` mode: an Explore
+pass confirmed the exact test pattern to mirror
+(`agents/crew-orchestrator/tests/test_safety_gate.py` — the only real
+fail-closed-testing precedent in this repo), the CI/doc touchpoints, and a
+free port (8094); a Plan pass turned the spec into a concrete file-by-file
+implementation plan, catching a real conflict (CLAUDE.md's Sacred Rule says
+every agent depends on crew-orchestrator's health — fleet-controller
+deliberately doesn't, confirmed explicitly with Bro before building, not a
+silent violation) plus two things the spec's original scope didn't cover
+(Governance Ledger auth needs a seeded key; Safety Shepherd's env-var
+fallback default doesn't match `agents-full.yml`'s, which would have made
+the smoke test misleadingly read `BLOCK` for the wrong reason).
+
+**Built**: `agents/fleet-controller/` — `main.py`, `models.py` (pydantic
+schema with a closed `Literal` action-kind set, rejects anything
+unrecognized at the wire level before any handler runs), `plan_validator.py`
+(hard-denies `prod`/`gpu` regardless of what a caller's own constraints
+claim), `safety_client.py` (the module that matters most — every Shepherd
+failure mode, not just "down", returns the same frozen fail-closed result;
+no `off`/`monitor`/`enforce` mode concept at all, unlike the existing
+`crew-orchestrator/safety_gate.py`, which fails *open* by deliberate design
+for a different use case and was **not** touched), `ledger_client.py`
+(fire-and-forget, mirrors `safety-shepherd`'s own `_spawn_ledger_push`
+pattern). 26 unit tests across `tests/test_validation.py`,
+`test_hashing.py`, `test_safety_unavailable.py`, `test_no_execution.py` —
+all passing.
+
+**Verified at every layer, not just claimed**:
+- `docker build` + standalone `docker run` + `curl /health` and
+  `curl -X POST /v1/plans/preview` before touching compose at all — a
+  denied-profile plan correctly `422`'d, an unreachable-Shepherd plan
+  correctly `BLOCK`'d.
+- `docker compose config` with the new `fleet-controller` service block
+  (behind a new `--profile fleet`, deliberately not part of the standard
+  `--profile agents --profile hyper` launch) — confirmed in the *rendered*
+  merged manifest: `agents-net` only (no `data-net`), no `docker.sock`
+  anywhere, `depends_on: safety-shepherd: condition: service_started`, no
+  `crew-orchestrator` dependency.
+- Added a CI negative-capability check to `.github/workflows/health-check.yml`,
+  matching that workflow's existing pure-YAML-parsing style (no Docker
+  daemon needed in CI) — asserts the raw compose YAML has no `docker.sock`
+  mount and none of `DOCKER_HOST`/`ANTHROPIC_API_KEY`/`GITHUB_TOKEN`/
+  `ORCHESTRATOR_API_KEY` in `fleet-controller`'s environment. Ran the exact
+  check logic locally first to confirm it actually catches what it claims to
+  (hit a Windows-only cp1252 default-encoding artifact running it locally —
+  confirmed a non-issue for the real CI runner, which defaults to UTF-8;
+  left the workflow file matching its own established no-explicit-encoding
+  style).
+- **Then actually launched it into the live 68-container fleet** and ran
+  all three of the plan's smoke-test cases against real Safety Shepherd:
+  1. Valid plan, Shepherd up → `{"decision":"ESCALATE","reason":"dangerous
+     category 'docker' needs explicit grant","rule":"dangerous_ungranted"}`
+     — Shepherd's real, *unmodified* policy engine correctly classified it
+     (category `"docker"` is already in Shepherd's `DANGEROUS` set), zero
+     Shepherd-side changes needed for this to work correctly.
+  2. `docker stop safety-shepherd`, same plan → `BLOCK`,
+     `shepherd_available: false`, `reason: "Safety Shepherd unavailable;
+     fail-closed"`.
+  3. Plan with `profile: "prod"` → `422`, confirmed via Shepherd's own
+     container logs (line count before/after, grepped for
+     `fleet-controller`) that Shepherd never received an `/evaluate` call
+     for it at all — the pre-Shepherd rejection genuinely runs first.
+  `execution.performed` was `false` in every single response across all
+  three cases and every test — there is no code path anywhere in the
+  service capable of setting it `true`.
+- Swept the whole box before and after every step: zero unhealthy
+  containers across all 68 running, throughout.
+
+**Operational step done carefully, not just run blindly**: `fleet-controller`
+needed a Governance Ledger write key. `scripts/seed_agent_api_keys.py`'s
+`SERVICES` list got `("fleet-controller", 200)` added — but running the
+script itself regenerates **every** existing agent's key (a full
+`ON CONFLICT DO UPDATE` batch across all 14 entries), which would have
+silently invalidated 14 other live agents' ledger-write auth against the
+running database while their containers still held the old keys. Instead:
+ran the script once to get fleet-controller's generated `key_prefix`/
+`key_hash`, then hand-wrote and applied a **single-row, scoped** `INSERT
+... ON CONFLICT` targeting only `agent_name = 'fleet-controller'` — verified
+after with a `SELECT` that all 16 pre-existing rows were untouched. The
+script's side effect of overwriting `secrets/*.txt` for those 14 agents on
+disk is real but low-risk: `secrets/` is entirely gitignored (confirmed via
+`git check-ignore`), so nothing was committed, and nothing in the running
+stack auto-reloads those files after container start — they're just
+locally out of sync with the DB now, harmless unless someone manually
+re-loads them later.
+
+Synced `CLAUDE.md` (new fleet table section, Sacred Rules footnote for the
+crew-orchestrator exception, "25/26-agent" counts throughout),
+`docs/NEXT_TASKS.md` (new item #2c), `scripts/fleet-roster-check.sh`
+(new roster line, `/24`→`/25` denominators, "26-agent" header),
+`.github/workflows/docker-push.yml` (new matrix entry).
+
+**Mission-director (the LLM planner) and every phase after Phase 0 —
+capability tokens, human approval, live execution — remain unbuilt, exactly
+as designed.** Phase 0's entire job was proving the containment boundary is
+real before any capability gets added to it. It's real.
 
 ---
 
