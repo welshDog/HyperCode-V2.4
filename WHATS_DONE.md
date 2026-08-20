@@ -1,6 +1,32 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (evening, part 5) by Claude + welshDog ⚡
+> Last synced: 2026-08-20 (evening, part 6) by Claude + welshDog ⚡
+
+---
+
+## 2026-08-20 (evening, part 6) — Full container-port audit across agents-full.yml
+
+Bro asked to audit item #9 (the container-port mismatch found while fixing
+business-agent) across all remaining agents. Checked all 24 — full evidence in
+`docs/AGENTS_FULL_PORT_AUDIT_2026-08-20.md`.
+
+- **4 fine**: `crew-orchestrator`, `hyper-architect`, `test-agent`, `business-agent`
+  genuinely listen on the `:8080` compose expects.
+- **17 port-mismatched**: every one bakes its own old, pre-reconciliation host
+  port as its internal bind port (`project-strategist`→8001,
+  `frontend-specialist`→8002, ... `hyper-split-agent`→8096,
+  `session-snapshot`→8097, etc.) — builds fine, healthchecks itself fine, but
+  is completely unreachable via the host port compose maps to it.
+- **3 can't even build**: `brain-agent` (`agents/brain/` doesn't exist),
+  `hyper-observer`/`hyper-worker` (Dockerfiles exist but one directory deeper
+  than compose's `context`+`dockerfile:` combo looks — same misplaced-nesting
+  bug class as the old `business-agent` scaffold).
+
+**Audit only — nothing fixed this pass** (that wasn't asked for). Confirms
+fixing item #0 (the 14-name merge decision) alone would not make the fleet
+launchable — item #9 is a separate, additional blocker underneath it.
+Documented in `NEXT_TASKS.md` items #9/#9a/#9b/#9c, `CLAUDE.md`'s launch-command
+warning, and the new standalone audit doc.
 
 ---
 
