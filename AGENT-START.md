@@ -1,7 +1,7 @@
 # 🚀 AGENT-START.md — HyperFocus Z0ne MASTER Boot File
 > **For ANY AI, agent, or human joining the full HyperFocus Z0ne ecosystem.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **v3.3 (upgraded 2026-08-19)** · supersedes v3.2 (2026-06-16)
+> Built by @welshDog — **v3.4 (upgraded 2026-08-21)** · supersedes v3.3 (2026-08-19)
 
 > 📌 **Live truth ALWAYS wins:** Read the newest `DASHBOARD_STATUS_YYYY-MM-DD.md` + newest `NEXT_SESSION_HANDOVER_*.md` BEFORE anything else. **This file is the constitution, not the news.**
 
@@ -36,7 +36,7 @@ Workspace root: H:\HYPERFOCUSZONE\HperCore   (NOT a git repo — workspace only)
 
 | Repo | What it is | Stack | First doc |
 |---|---|---|---|
-| `HyperCode-V2.4` | 🧠 Core platform — **CANONICAL PRODUCTION** (25 agents, 48+ containers, 80+ services across 20+ compose files) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
+| `HyperCode-V2.4` | 🧠 Core platform — **CANONICAL PRODUCTION** (26 agents, 68+ containers, 80+ services across 20+ compose files) | Python (FastAPI) + Docker + TS | `CLAUDE.md` |
 | `THE-HYPERCODE` | 🔬 **Next-gen / V3 EXPERIMENTAL** — successor to HyperCode-V2.4. NOT production, NOT canonical. Cold agents: use V2.4 as source of truth. | Python + Docker (evolving) | `README.md` |
 | `hyper-agents-ide` | 🎛️ Control room UI — agents, chat, skills dashboard | FastAPI + Vite/React | `README.md` |
 | `Hyper-Vibe-Coding-Course` | 🎓 ND-first AI education platform — Course + HyperLabs funnel | Vite + Supabase + Stripe | `CLAUDE.md` |
@@ -71,96 +71,85 @@ BROskiPets ──▶ agents-net (Docker profile: pets)
 Brain ──▶ agents-net (Docker profile: brain) + Obsidian Git
 HYPER-SILLs ──▶ ALL agents load skills from here
 Showcase ──▶ pulls status from ecosystem (public registry)
-All 25 agents ──▶ crew-orchestrator (:8100) — central routing + health coordination
+All agents ──▶ crew-orchestrator (:8081) — central routing + health coordination (:8100 is hyper-brain, a separate service — do not confuse the two)
 ```
 
 > 💡 Mission Control + Course share **one** Supabase project (`yhtmuibgdnxhbgboajhc`). Anything that breaks there breaks both.
 
 ---
 
-## 🤖 THE FULL 25-AGENT FLEET (HyperCode-V2.4)
+## 🤖 THE FULL 26-AGENT FLEET (HyperCode-V2.4)
 
-> 🪤 **REWRITTEN 2026-08-19 — three different "25-agent fleet" docs existed the same day and
-> disagreed with each other.** This table originally listed `money-maker`/`client-liaison`/
-> `ai-gateway`/etc. — checked against `agents/` folder + all `docker-compose*.yml`: 12 of those 28
-> rows had zero trace anywhere. Meanwhile `.github/workflows/docker-push.yml` and `CLAUDE.md` (both
-> pushed the same day, commits `e764bf3b`/`8b70094`) each named a *third and fourth* roster, neither
-> matching this one or each other. Bro decided **`docker-push.yml`'s roster is canonical** — this
-> table now matches it. `CLAUDE.md` still needs the same correction (flagged there, not yet done as
-> of this edit). Full forensic trail in `DASHBOARD_STATUS_2026-08-19.md`.
-
-> 🪤 **This section predates the 2026-08-20 port-collision fixes and the item #0
-> same-name-merge resolution — some rows below are stale** (e.g. row 4's `agent-x`
-> port note describes a disagreement that no longer exists). Per `CLAUDE.md`'s
-> conflict rule, "Live status beats this file. `WHATS_DONE.md` beats everything." —
-> not rewritten here — full table reconciliation is separate doc debt, same class as
-> `docs/STATUS.md`'s stale fleet table (`docs/NEXT_TASKS.md` item #5).
+> ✅ **Fully rewritten 2026-08-21, matching `CLAUDE.md`'s verified-live table exactly** —
+> this section previously predated the 2026-08-20 real fleet launch and was actively
+> wrong (ports, statuses, even a fictional roster from an even older rewrite). The
+> fleet below was composed up as one system for the first time ever 2026-08-20 late
+> night — item #0 (a compose same-name-merge risk) resolved for real, not just
+> mitigated — verified via a full box sweep, zero unhealthy containers. A 26th agent,
+> `fleet-controller`, was added the same night as Phase 0 of a new mission-director
+> architecture — see `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`
+> and `docs/NEXT_SESSION_HANDOVER_2026-08-20-late-night.md` for the full session.
 >
-> ✅ **Update, 2026-08-20 late night — the fleet in the table below is now actually
-> live, not just documented as launchable.** The 25-agent fleet was composed up as
-> one system for the first time ever the same night (item #0's real resolution, not
-> just a "don't compose them" mitigation) — verified via a full box sweep, zero
-> unhealthy containers. A 26th agent, `fleet-controller` (:8094, behind a separate
-> `--profile fleet`), was added the same night as Phase 0 of a new
-> mission-director/fleet-controller architecture — see
-> `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` and
-> `docs/NEXT_SESSION_HANDOVER_2026-08-20-late-night.md` for the full session.
-> **For current ports, current status, and the full picture of what changed
-> tonight, read `CLAUDE.md`'s "CURRENT STATE" section — it's the one kept
-> accurate, this table is not.**
+> Launch with: `docker compose --profile agents --profile hyper -f docker-compose.yml
+> -f docker-compose.agents-full.yml up -d` (add `--profile fleet` too for
+> `fleet-controller`, deliberately excluded from the standard command). All agents
+> route through **crew-orchestrator** at `:8081` (not `:8100` — that's `hyper-brain`,
+> a separate service).
 >
-> Launch with: `docker compose --profile agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d`
-> (add `--profile fleet` too if you also want `fleet-controller`, which is deliberately
-> excluded from the standard command). All agents route through **crew-orchestrator**
-> at `:8081` (not `:8100` — `:8100` is `hyper-brain`).
+> `CLAUDE.md`'s "CURRENT STATE" section is the one updated every session — if the two
+> ever disagree again, trust that one and flag it here, per "surface contradictions
+> visibly."
 
-### ✅ Core Crew + Specialist Squad (13) — per `docker-push.yml`'s `push-agents` build matrix
+### ✅ Core Crew + Specialist Squad (13)
 
-| # | Agent | Real compose context | Port | Status (verified 08-19) |
-|---|---|---|---|---|
-| 1 | `crew-orchestrator` | `./agents/crew-orchestrator` | :8081 | ✅ LIVE |
-| 2 | `brain-agent` | `./agents/brain` | :8082 | 🟡 built, not running as this exact container (`hyper-brain`/`agent-hyper-brain-core` are live but separate) |
-| 3 | `coder` | `./agents/coder` | — | 🟡 built, not running under this name (`coder-agent` is live — likely the same code, different container_name) |
-| 4 | `agent-x` | `./agents/agent-x` | :8083 or :8084 (⚠️ two different compose files disagree — `agents.yml` vs `agents-full.yml`, not reconciled here) | 🟡 built, not running |
-| 5 | `frontend-specialist` (01) | `./agents/01-frontend-specialist` | :8012 | ✅ LIVE |
-| 6 | `backend-specialist` (02) | `./agents/02-backend-specialist` | :8003 | ✅ LIVE |
-| 7 | `database-architect` (03) | `./agents/03-database-architect` | :8004 | ✅ LIVE |
-| 8 | `qa-engineer` (04) | `./agents/04-qa-engineer` | :8005 | ✅ LIVE |
-| 9 | `devops-engineer` (05) | `./agents/05-devops-engineer` | :8006 | ✅ LIVE |
-| 10 | `security-engineer` (06) | `./agents/06-security-engineer` | :8007 | 🟡 built, not running |
-| 11 | `system-architect` (07) | `./agents/07-system-architect` | :8008 | 🟡 built, not running — ⚠️ collides with live `healer-agent :8008` |
-| 12 | `project-strategist` (08) | `./agents/08-project-strategist` | :8001 | 🟡 built, not running |
-| 13 | `tips-tricks-writer` (09) | `./agents/09-tips-tricks-writer` | :8009 | 🟡 built, not running |
+| Agent | Port | Status |
+|---|---|---|
+| `crew-orchestrator` | :8081 | ✅ Live |
+| `brain-agent` | :8082 | ✅ Live — real code shipped 2026-08-20 (was a missing directory) |
+| `coder` | — | 🟡 not running under this name (`coder-agent` live, likely same code) |
+| `agent-x` | :8084 | ✅ Live — `agents-full.yml`'s duplicate (:8083) deleted 2026-08-20, `agents.yml`'s :8084 is the sole definition |
+| `frontend-specialist` | :8012 | ✅ Live |
+| `backend-specialist` | :8003 | ✅ Live |
+| `database-architect` | :8004 | ✅ Live |
+| `qa-engineer` | :8005 | ✅ Live |
+| `devops-engineer` | :8006 | ✅ Live |
+| `security-engineer` | :8007 | ✅ Live |
+| `system-architect` | :8010 | ✅ Live — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
+| `project-strategist` | :8001 | ✅ Live — context fixed 2026-08-20 (was pointing at a deleted directory), also missing `base_agent.py` (fixed) |
+| `tips-tricks-writer` | :8018 | ✅ Live — moved off :8009 2026-08-20 (was colliding with `chroma`) |
 
 > Plus `broski-bot`, `redis`, `postgres`, `grafana`, `prometheus`, `hypercode-dashboard` are also
-> live core infra — not in this specific CI matrix (they're built by the `push-backend` job or
-> pulled as base images) but part of the real running stack.
+> live core infra — not agents in this table, part of the real running stack.
 
-### 🔨 12 Ghost Agents — per `docker-push.yml`'s `push-ghost-agents` build matrix
+### 🔨 12 Ghost Agents
 
-| # | Agent | Real compose context (fixed 08-19) | Port | Status (verified 08-19) |
-|---|---|---|---|---|
-| 14 | `hyper-architect` | `./agents/architect` | :8091 | 🟡 built, not running |
-| 15 | `hyper-observer` | `./agents/hyper-agents/observer` (was wrongly `./agents/hyper-agents` + `Dockerfile.observer` — fixed) | :8092 | 🟡 built, not running |
-| 16 | `hyper-worker` | `./agents/hyper-agents/worker` (same fix) | :8093 | 🟡 built, not running |
-| 17 | `hyper-split-agent` | `./agents/hyper-split-agent` (was wrongly under `./agents/hyper-agents` — fixed) | :8096 | 🟡 built, not running — ⚠️ collides with live `safety-shepherd :8096` |
-| 18 | `session-snapshot` | `./agents/session-snapshot` (same fix) | :8097 | 🟡 built, not running — ⚠️ collides with live `evolve-relay :8097` |
-| 19 | `throttle-agent` | `./agents/throttle-agent` | :8014 | 🟡 built, not running |
-| 20 | `super-hyper-broski-agent` | `./agents/super-hyper-broski-agent` | :8015 | 🟡 built, not running |
-| 21 | `test-agent` | `./agents/test-agent` | :8100 | 🟡 built, not running — ⚠️ collides with live `hyper-brain :8100` |
-| 22 | `goal-keeper` | `./agents/goal_keeper` | :8050 | ✅ LIVE |
-| 23 | `business-agent` | `./agents/business-agent` — ❌ **still broken**, no Dockerfile exists at this or any sensible path (`./agents/business/project-strategist/Dockerfile` exists but looks like a stray copy, not a real `business-agent`). Needs a human call. | — | ❌ blocked |
-| 24 | `coderabbit-webhook` | `./agents/coderabbit-webhook` | :8024 | 🟡 built, not running |
-| 25 | `hypercode-mcp-server` | `./services/hypercode-mcp-server` (was wrongly `./agents/hypercode-mcp-server` — fixed) | — | ⚠️ **name collision**: a *different*, already-live `hypercode-mcp-server` container exists at `:8823` (the real MCP gateway) — building this ghost-agent image under the same name will produce a same-named-but-different image. Needs reconciling, not just a build. |
+| Agent | Port | Status |
+|---|---|---|
+| `hyper-architect` | :8091 | ✅ Live — needed a `.dockerignore` carve-out (found during the 2026-08-20 launch) |
+| `hyper-observer` | :8092 | ✅ Live — build-context path bug fixed 2026-08-20 |
+| `hyper-worker` | :8093 | ✅ Live — build-context path bug fixed 2026-08-20 |
+| `hyper-split-agent` | :8013 | ✅ Live — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
+| `session-snapshot` | :8017 | ✅ Live — moved off :8097 2026-08-20 (was colliding with `evolve-relay`) |
+| `throttle-agent` | :8014 | ✅ Live — Docker socket access fixed 2026-08-20 via `docker-socket-proxy-healer`; still logs `MemStream unreachable`, a separate unbuilt dependency |
+| `super-hyper-broski-agent` | :8015 | ✅ Live |
+| `test-agent` | :8019 | ✅ Live — moved off :8100 2026-08-20 (was colliding with `hyper-brain`) |
+| `goal-keeper` | :8050 | ✅ Live |
+| `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled `project-strategist` clone) |
+| `coderabbit-webhook` | :8024 | ✅ Live |
 
-> ⚠️ **Port :8080** is `bropets_api` right now, not any agent in this table.
-> ⚠️ **crew-orchestrator is the SPOF** — must have `restart: unless-stopped` + `/health` endpoint. If it's down, ALL agents stall.
-> 🪤 **5 of 6 broken CI paths were fixed in `docker-push.yml` on 08-19** (`hyper-observer`,
-> `hyper-worker`, `hyper-split-agent`, `session-snapshot`, `hypercode-mcp-server`). `business-agent`
-> is still broken — no valid path exists, needs a real decision, not a path fix.
-> 🪤 **Launching `agents-full.yml` as-is will still hit 3 port-bind failures** (`system-architect`,
-> `test-agent`, `hyper-split-agent`/`session-snapshot`) against services already running. Not
-> resolved — resolving compose port collisions is a separate task from fixing CI build paths.
+### 🛡️ Phase 0: Fleet Controller (1, behind `--profile fleet`)
+
+| Agent | Port | Status |
+|---|---|---|
+| `fleet-controller` | :8094 | ✅ Live — new 2026-08-20 late night, Phase 0 of a mission-director/fleet-controller architecture. Structurally incapable of executing anything: no Docker socket, no `DOCKER_HOST`, no crew-orchestrator credential, no LLM client. Fails **closed** if Safety Shepherd is unreachable. Behind its own `--profile fleet`, never launches with the standard command. |
+
+> `hypercode-mcp-server` is not in this roster — it's the real, live MCP gateway
+> defined in `docker-compose.agents.yml` (`:8823`), not a distinct 25th/26th agent. A
+> phantom duplicate of it in `agents-full.yml` was deleted 2026-08-20.
+>
+> **Total: 26 agents in this roster — 26 live**, 0 not running except the
+> intentionally-nonexistent `coder` alias. `crew-orchestrator` is the SPOF (single
+> point of failure) — has `restart: unless-stopped` + `/health`, confirmed live.
 
 ### Resource Limits (apply to all new agents)
 ```yaml
@@ -262,39 +251,43 @@ These get pasted into briefs as "sacred rules" but actually belong to ONE repo. 
 
 ## 🧰 LOCAL ENDPOINTS (when running)
 
+> ✅ **Rewritten 2026-08-21.** This section previously listed an "Original Agents"
+> roster (`money-maker`, `client-liaison`, `content-creator`, `analytics-agent`,
+> `code-doctor`) and an `AI Gateway` service — neither exists anywhere in any
+> `docker-compose*.yml` in this repo (confirmed by grep before rewriting), same
+> fictional-roster class this file's own banner already disclaimed for the fleet
+> table above. Also had `crew-orchestrator` at `:8100` (wrong — that's `hyper-brain`)
+> and several ghost-agent ports from before the 2026-08-20 collision fixes. Full,
+> always-current per-agent table: `CLAUDE.md`'s "CURRENT STATE" section.
+
 ### Core Services
 | Service | URL |
 |---|---|
 | HyperCode Dashboard | http://127.0.0.1:8088 |
 | Grafana | http://127.0.0.1:3001 |
 | Prometheus | http://127.0.0.1:9090 |
-| crew-orchestrator | http://127.0.0.1:8100 |
-| AI Gateway | http://127.0.0.1:8010 |
+| crew-orchestrator | http://127.0.0.1:8081 |
+| hyper-brain (not crew-orchestrator — common mix-up) | http://127.0.0.1:8100 |
+| safety-shepherd | http://127.0.0.1:8096 |
+| fleet-controller (Phase 0, `--profile fleet`) | http://127.0.0.1:8094 |
 
-### Original Agents
-| Agent | URL |
-|---|---|
-| broski-bot | http://127.0.0.1:8001 |
-| money-maker | http://127.0.0.1:8002 |
-| client-liaison | http://127.0.0.1:8003 |
-| content-creator | http://127.0.0.1:8004 |
-| analytics-agent | http://127.0.0.1:8005 |
-| code-doctor | http://127.0.0.1:8006 |
-
-### New Ghost Agents (live from 2026-08-19)
+### Ghost Agents (live from 2026-08-20)
 | Agent | URL |
 |---|---|
 | security-engineer | http://127.0.0.1:8007 |
-| system-architect | http://127.0.0.1:8008 |
-| tips-tricks-writer | http://127.0.0.1:8009 |
+| system-architect | http://127.0.0.1:8010 |
+| tips-tricks-writer | http://127.0.0.1:8018 |
 | throttle-agent | http://127.0.0.1:8014 |
-| super-hyper-broski | http://127.0.0.1:8015 |
-| test-agent | http://127.0.0.1:8080 |
+| super-hyper-broski-agent | http://127.0.0.1:8015 |
+| test-agent | http://127.0.0.1:8019 |
 | hyper-architect | http://127.0.0.1:8091 |
 | hyper-observer | http://127.0.0.1:8092 |
 | hyper-worker | http://127.0.0.1:8093 |
-| hyper-split-agent | http://127.0.0.1:8096 |
-| session-snapshot | http://127.0.0.1:8097 |
+| hyper-split-agent | http://127.0.0.1:8013 |
+| session-snapshot | http://127.0.0.1:8017 |
+| goal-keeper | http://127.0.0.1:8050 |
+| business-agent | http://127.0.0.1:8020 |
+| coderabbit-webhook | http://127.0.0.1:8024 |
 
 ### Dev / Course / MC
 | Service | URL |
@@ -352,8 +345,8 @@ stripe trigger checkout.session.completed
 | `Edit replace_all: true` rewrites `const X = ...` declaration too | `ReferenceError: Cannot access 'X' before initialization` (TDZ self-reference) at boot. `node --check` does NOT catch it. | Use targeted Edit on the declaration + `replace_all` only on the call sites separately |
 | "Stripe LIVE 💳" in CLAUDE.md was stale | TEST price IDs everywhere; LIVE checkouts (if any happened) would all fall through to `logUnmatchedPayment` | Always verify via the `/test/` segment in price dashboard URLs |
 | Parallel git workflow mid-push origin move | `git push` rejected as non-fast-forward despite a recent fetch — auto-commits land between fetch and push | `git fetch && git rebase origin/main && git push` (NEVER force-push). Should be reflexive. |
-| 25-agent stack memory pressure | One runaway agent can starve all others without resource limits | Add `mem_limit: 256m` + `cpus: "0.25"` to all new agent compose definitions before launch |
-| Port :8080 collision | Test Agent uses a very common default port — nginx, Traefik, and many dev servers default to :8080 | Run `grep -r "ports:" docker-compose*.yml \| grep 8080` to confirm no collision before launch |
+| 26-agent stack memory pressure | One runaway agent can starve all others without resource limits | ✅ Proven safe, not just planned — 68 containers ran simultaneously 2026-08-20, zero unhealthy. Still add `mem_limit: 256m` + `cpus: "0.25"` to any new agent compose definition. |
+| Port :8080 collision (host port) | Test Agent used to sit on a very common default port | ✅ Resolved 2026-08-20 — every agent's *container-internal* port is now uniformly `8080` (never a host port), and all real host-port collisions were fixed the same night. Still run `grep -r "ports:" docker-compose*.yml \| sort` before adding a new agent's host port. |
 
 ---
 
