@@ -308,7 +308,9 @@ services:
           cpus: "0.05"
           memory: 64M
     healthcheck:
-      test: ["CMD", "pgrep", "cron"]
+      # python:3.11-slim has no pgrep/ps — cron is PID 1 in this container, so read
+      # /proc/1/comm directly instead. See AGENT-START.md "Recently-Bitten Gotchas".
+      test: ["CMD-SHELL", "grep -q cron /proc/1/comm"]
       interval: 60s
       timeout: 10s
       retries: 3
