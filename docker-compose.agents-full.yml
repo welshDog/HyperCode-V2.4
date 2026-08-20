@@ -1,12 +1,20 @@
 # ════════════════════════════════════════════════════════════════════════════════
 # docker-compose.agents-full.yml
 # 🤖 25-AGENT FULL SQUAD DEPLOYMENT
-# Usage: docker compose --profile agents -f docker-compose.yml -f docker-compose.agents-full.yml up -d
-#        ⚠️ --profile agents is REQUIRED. Without it, crew-orchestrator (defined with
-#        profiles:["agents"] in docker-compose.agents.yml, merged into this same key)
-#        is silently excluded and the merge hard-fails: "service ... depends on
-#        undefined service crew-orchestrator". Confirmed 2026-08-20 — the launch
-#        command as previously documented (no --profile flag) has never worked.
+#
+# 🔴 DO NOT `-f` this together with docker-compose.yml right now — decided 2026-08-20.
+# 14 of the ~24 agent names below are ALSO defined in docker-compose.agents.yml (or
+# other base-included files) with different build contexts/ports/profiles. Compose
+# merges same-named services across files instead of erroring, and 9 of these 14
+# names are confirmed LIVE right now via the base stack (docker ps + container
+# labels) — not via this file, which has never actually been composed up. Until the
+# overlap is resolved for real (rename one side / retire duplicates / distinct
+# names — undecided), this file is a standalone reference only. See NEXT_TASKS.md
+# item #0 and CLAUDE.md's "Full Stack Launch Command" section.
+#
+# (Historical usage, once the above is resolved: `docker compose --profile agents
+# -f docker-compose.yml -f docker-compose.agents-full.yml up -d` — --profile agents
+# is required or crew-orchestrator silently drops from the merge. Confirmed 08-20.)
 # Updated: August 20, 2026 — real port-collision fixes verified via `docker compose
 # config`, not just grep. See NEXT_TASKS.md P1 "agents-full.yml name-collision audit".
 # ════════════════════════════════════════════════════════════════════════════════
@@ -44,9 +52,10 @@
 #    Same-named services across compose files MERGE, not error — the later -f file's
 #    build.context/image wins silently, list fields like `ports` get unioned. This
 #    means "launch the 25-agent fleet" has never deployed the roster this file
-#    describes for most of these agents — it deploys some unaudited hybrid. This is
-#    an architecture decision (rename scheme / dedupe / retire one side), not a port
-#    fix. Flagged as a new P1 in NEXT_TASKS.md 2026-08-20 — needs Bro's call.
+#    describes for most of these agents — it deploys some unaudited hybrid.
+#    DECIDED 2026-08-20 (Bro's call): don't compose this file together with the base
+#    stack until the overlap is fixed for real — see the block at the top of this
+#    file. The rename/retire/distinct-names choice is still open.
 # ✅ All agents depend_on crew-orchestrator (healthy)
 # ✅ All healthchecks have start_period
 # ✅ Throttle-agent uses Redis DB 1 (rate limits) — SACRED RULE ✔

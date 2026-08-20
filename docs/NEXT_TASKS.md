@@ -11,15 +11,17 @@
 > A second 2026-08-20 pass verified the actual merge with `docker compose config` (not just grep)
 > and found the real picture is worse than the morning session's port-clash list: one phantom
 > agent, a missing required flag that's broken the documented launch command outright, and a
-> same-name-merge problem across 14 agent definitions. Full detail in item #0 below.
+> same-name-merge problem across 14 agent definitions. **Bro's decision (evening pass): don't
+> compose `docker-compose.agents-full.yml` with the base stack at all until that's fixed for
+> real.** Full detail in item #0 below.
 
 | # | Task | Priority |
 |---|---|---|
-| 0 | **NEW, most important finding of the day — read before touching agents-full.yml again**: 14 of ~24 agent names in `docker-compose.agents-full.yml` are *also* defined in `docker-compose.agents.yml` (or other base-included files) with **different build contexts, ports, or profiles**. Compose merges same-named services across `-f` files instead of erroring — the later file's `build.context`/`image` wins silently, and list fields like `ports` get unioned. Proven on two: `hypercode-mcp-server`'s ghost definition silently swapped the real service's build context to a nonexistent path (`./agents/hypercode-mcp-server` — never existed), and `hyper-architect` has a second definition in `agents.yml` (`profiles:["hyper"]`, different Dockerfile path) that made it vanish from the merge entirely under `--profile agents`. This means "launch the 25-agent fleet" has never deployed the roster `agents-full.yml`/`CLAUDE.md` describe for most of these agents — it deploys some unaudited hybrid. **This needs a decision (rename scheme, dedupe, or retire one side), not a per-port patch — Bro's call.** Evidence: `comm -12 <(grep names from agents-full.yml) <(grep names from agents.yml+core+observability+brain+bropets+obsidian-sync+grafana-cloud)` → 14 real agent names + 3 shared network names. | 🔴 architecture decision needed |
-| 1 | ~~Verify no port clashes~~ ✅ Done 2026-08-20 morning pass — found 3; ✅ **all 3 fixed** 2026-08-20 evening pass (see Completed table). **2 more found** the same evening pass that weren't in the morning's list: `tips-tricks-writer` vs live `chroma` (:8009), and the launch command itself is missing a required `--profile agents` flag (separate from ports — without it, `crew-orchestrator` silently drops from the merge and the whole thing hard-fails). Neither fixed yet. | see rows below |
-| 1a | **`tips-tricks-writer` (:8009) collides with live `chroma`** — not in the original P2-2 list, found via `docker compose config`, not grep | 🔴 blocks launch |
-| 1b | **`test-agent` (:8100) collides with live `hyper-brain`** (`--profile brain`) — also one of the 14 same-name-merge cases (item #0), so a port move alone may not be the right fix | 🔴 blocks launch, entangled with #0 |
-| 2 | **Launch 25-agent fleet** — blocked until item #0 (architecture decision), 1a, 1b, and `business-agent` are resolved | 🔴 blocked, not ready |
+| 0 | **DECIDED 2026-08-20 evening (Bro's call): don't compose `docker-compose.agents-full.yml` together with the base stack at all**, until the underlying overlap is fixed for real. Background: 14 of ~24 agent names in `agents-full.yml` are *also* defined in `docker-compose.agents.yml` (or other base-included files) with **different build contexts, ports, or profiles**. Compose merges same-named services across `-f` files instead of erroring — the later file's `build.context`/`image` wins silently, list fields like `ports` get unioned. Proven on two: `hypercode-mcp-server`'s ghost definition silently swapped the real service's build context to a nonexistent path, and `hyper-architect` has a second definition in `agents.yml` (`profiles:["hyper"]`, different Dockerfile path) that vanishes from the merge under `--profile agents`. 9 of the 14 overlapping names are confirmed live right now via the base stack (`docker ps` + container labels), not via `agents-full.yml`, which has never actually been composed up. **The permanent fix (rename one side / retire duplicates / distinct service names) is still undecided** — this entry only closes the "don't silently merge them" risk, documented in `CLAUDE.md`'s launch command and `agents-full.yml`'s own header. Evidence: `comm -12 <(grep names from agents-full.yml) <(grep names from agents.yml+core+observability+brain+bropets+obsidian-sync+grafana-cloud)` → 14 real agent names + 3 shared network names. | 🟡 mitigated, permanent fix still open |
+| 1 | ~~Verify no port clashes~~ ✅ Done 2026-08-20 morning pass — found 3; ✅ **all 3 fixed** 2026-08-20 evening pass (see Completed table). **2 more found** the same evening pass that weren't in the morning's list: `tips-tricks-writer` vs live `chroma` (:8009), and the launch command itself is missing a required `--profile agents` flag (separate from ports — without it, `crew-orchestrator` silently drops from the merge and the whole thing hard-fails). Neither fixed — moot until item #0's permanent fix lands, since the file isn't meant to be composed with the base stack right now anyway. | see rows below |
+| 1a | **`tips-tricks-writer` (:8009) collides with live `chroma`** — not in the original P2-2 list, found via `docker compose config`, not grep | 🔴 blocks eventual launch |
+| 1b | **`test-agent` (:8100) collides with live `hyper-brain`** (`--profile brain`) — also one of the 14 same-name-merge cases (item #0), so a port move alone may not be the right fix | 🔴 blocks eventual launch, entangled with #0 |
+| 2 | **Launch 25-agent fleet** — blocked: item #0's permanent fix (rename/retire/distinct-names decision), 1a, 1b, and `business-agent` all need resolving first, and item #0 currently means "don't even try" | 🔴 blocked, not ready |
 | 3 | **Add resource limits** to all 12 new agents (`mem_limit: 256m`, `cpus: "0.25"`) | 🔴 Before launch |
 | 4 | **Verify crew-orchestrator** has `restart: unless-stopped` + `/health` endpoint | 🔴 Before launch |
 | 5 | **`docs/STATUS.md`'s "Agent Fleet — 25 Total" section is stale** — predates the 08-19/08-20 reconciliation, still shows the old wrong ports (e.g. `crew-orchestrator :8010` instead of the real `:8081`). Flagged with a banner in-place 2026-08-20, not rewritten — needs a real pass. | 🟡 doc debt |
@@ -45,7 +47,7 @@
 
 | # | Task | Where |
 |---|---|---|
-| P2-1 | **Decide `business-agent`'s fate** — no Dockerfile exists anywhere sensible. Build it for real or drop the CI matrix entry. | `agents/` |
+| P2-1 | **Decide `business-agent`'s fate** — refined 2026-08-20 evening, was mis-stated: a Dockerfile *does* exist, at `agents/business/project-strategist/Dockerfile` (one directory level deeper than compose's `context: ./agents/business` looks). But it's not real business-agent code — its own `config/business-agent.json` says `"name": "Project Strategist"` / `"role": "Strategist"` (roadmap/milestone/risk capabilities), and its `EXPOSE 8019` doesn't match compose's `:8020`. This looks like a project-strategist directory that was cloned as a business-agent starting scaffold and never customized. Pointing compose at it would silently deploy mislabeled project-strategist code under the business-agent name — worse than the current failure, so deliberately NOT wired up. Still needs a human decision: write real business-agent logic, or drop the CI matrix entry. | `agents/business/project-strategist/` |
 | P2-2 | ✅ **3 of 4 fixed 2026-08-20 evening**, verified via `docker compose config` (not grep): `system-architect` :8008→:8010 (was colliding with live `healer-agent`), `hyper-split-agent` :8096→:8013 (was colliding with live `safety-shepherd`), `session-snapshot` :8097→:8017 (was colliding with live `evolve-relay`, `--profile pets`). ❌ **`test-agent` vs `hyper-brain` (:8100) left open** — it's also one of the 14 same-name-merge cases in item #0 above, so it needs that decision first, not just a port move. **2 new collisions found the same pass, not in this original list**: `tips-tricks-writer` vs live `chroma` (:8009), and the launch command's missing `--profile agents` flag (not a port issue — see item #0/#1 above). | `docker-compose.agents-full.yml` |
 | P2-3 | **`/agents` dashboard page shows 3 agents; real fleet is 42** — it reads the BROski XP table, not the live container list. `/control` (Mission Control) gets it right, one click away. | dashboard `/agents` |
 | P2-4 | **`/health` dashboard page's ghost-agent ports are stale** — Test Agent and Agent X both still show `:8080` (pre-reconciliation number; real ports are `:8100` and `:8083`/`:8084`). Hardcoded in dashboard source, doesn't read compose. | dashboard `/health` |
@@ -98,6 +100,26 @@
 | Metrics error-rate cosmetics | — | confirmed 2026-08-20: it's `/api/ops/dlq` 400s from the deliberate superuser gate, not real errors — see P3-2 above |
 
 ---
+
+## ✅ Completed — 2026-08-20 Evening Session, part 2 (fleet dedupe decision)
+
+Presented Bro 4 options for the 14-name overlap (item #0): retire agents-full.yml's
+duplicates in favor of agents.yml, rename agents-full.yml's versions, give
+agents-full.yml distinct service names, or stop composing the two files together.
+**Decision: stop composing them together** — leaves both files' content intact
+(nothing deleted), kills the silent-merge risk immediately, fully reversible. The
+permanent fix (which side ultimately owns these 14 agents) is still open — this
+only stops the accidental hybrid-merge hazard. Documented in `CLAUDE.md`'s launch
+command, `agents-full.yml`'s own header, and item #0 above.
+
+Also corrected `business-agent`'s status while looking at the same file: a
+Dockerfile *does* exist (`agents/business/project-strategist/Dockerfile`, one
+directory level deeper than compose's `context:` looks) — but its own
+`config/business-agent.json` identifies itself as `"Project Strategist"`, and it
+exposes `:8019` not compose's `:8020`. Looks like a project-strategist directory
+cloned as a business-agent starting scaffold and never customized. Did NOT wire
+compose to point at it — that would silently deploy mislabeled code under the
+business-agent name. P2-1 still needs a human decision, just a more precise one now.
 
 ## ✅ Completed — 2026-08-20 Evening Session (agents-full.yml collision fixes + architecture audit)
 

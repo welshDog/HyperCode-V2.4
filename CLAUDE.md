@@ -150,21 +150,29 @@ depends_on:
 
 ### 🚀 Full Stack Launch Command
 
-> ⚠️ **`--profile agents` is REQUIRED.** `crew-orchestrator` (the fleet's SPOF) is
-> defined with `profiles:["agents"]` in `docker-compose.agents.yml`; the two files
-> merge into one service definition, and without the flag it's silently excluded —
-> `docker compose config` hard-fails with "depends on undefined service
-> crew-orchestrator". Confirmed 2026-08-20 — the command below (without the flag)
-> has never actually worked.
+> 🔴 **DO NOT run this command as written — decided 2026-08-20, standing until the
+> item-#0 overlap is resolved for real.** 14 of the ~24 agent names in
+> `docker-compose.agents-full.yml` are *also* defined in `docker-compose.agents.yml`
+> (or other base-included files) with different build contexts/ports/profiles.
+> Same-named services silently MERGE across `-f` files instead of erroring — proven
+> concretely on `hypercode-mcp-server` (a ghost block pointed at a nonexistent path,
+> silently swapping the real live service's build context on merge) and
+> `hyper-architect` (a second, differently-pathed definition that vanishes from the
+> merge under a mismatched profile). 9 of the 14 overlapping names are confirmed
+> live right now via `docker ps` + container labels — and NOT via this file, which
+> has never actually been composed up. **Bro's call (2026-08-20): stop composing
+> `docker-compose.agents-full.yml` together with the base stack at all, until the
+> overlap is fixed for real** (rename one side, retire the duplicates, or give
+> `agents-full.yml`'s versions distinct service names — undecided which). Until
+> then, this file is a standalone reference, not a launchable overlay. See
+> `docs/NEXT_TASKS.md` item #0.
 >
-> Not launch-ready yet regardless: `tips-tricks-writer` (:8009) collides with live
+> Also still open regardless: `tips-tricks-writer` (:8009) collides with live
 > `chroma`, `test-agent` (:8100) collides with live `hyper-brain` (`--profile brain`),
-> `business-agent` has no Dockerfile, and 14 of ~24 agent names below are *also*
-> defined in `docker-compose.agents.yml` with different build contexts — an
-> unaudited same-name merge, not confirmed to deploy what this table describes.
-> See `docs/NEXT_TASKS.md` P1.
+> `business-agent`'s only Dockerfile builds mislabeled project-strategist code, not
+> real business-agent logic (see `docs/NEXT_TASKS.md` P2-1).
 
-Once builds complete (~30–60 min):
+Command preserved for reference only — **do not run until the above is resolved**:
 
 ```bash
 cd HyperCode-V2.4
@@ -175,7 +183,7 @@ docker compose \
   up -d
 ```
 
-Then all 25 agents (13 existing + 12 ghost) will be live & coordinated.
+Once it's safe to run, all 25 agents (13 existing + 12 ghost) will be live & coordinated.
 
 ---
 

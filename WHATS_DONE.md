@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-08-20 (evening, part 2) — Fleet Dedupe Decision
+
+Asked Bro to pick between 4 options for the item-#0 finding below (retire
+agents-full.yml's 14 duplicate agent definitions / rename them / give them
+distinct names / stop composing the two files together). **Decision: stop
+composing them together** — nothing deleted, fully reversible, kills the
+silent-merge hazard immediately. The permanent fix (who owns these 14 agents
+long-term) is still open. Documented in `CLAUDE.md`, `agents-full.yml`'s header,
+`NEXT_TASKS.md` item #0, and `fleet-roster-check.sh`.
+
+While in the same area: corrected `business-agent`'s status. It does have a
+Dockerfile (`agents/business/project-strategist/Dockerfile`), but the code it
+builds identifies itself as `"Project Strategist"` and exposes the wrong port —
+a project-strategist directory cloned as a starting scaffold, never customized.
+Did not wire compose to it. `NEXT_TASKS.md` P2-1 updated with the precise finding.
+
+---
+
 ## 2026-08-20 (evening) — agents-full.yml Real Collision Fixes + Architecture Audit
 
 Verified the 08-20 morning session's "3 port collisions" claim against the actual
