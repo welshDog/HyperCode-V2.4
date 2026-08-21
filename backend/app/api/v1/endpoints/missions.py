@@ -1,0 +1,136 @@
+"""
+Mission Director Phase 1 -- human-facing surface.
+
+Both routes here are the ONLY sanctioned way to reach mission-director's
+propose/review flow: they reuse deps.get_current_active_user literally,
+unmodified, which is what makes "human-submitted only, no self-triggering"
+a structural fact rather than a documented convention -- no agent identity
+in this repo can authenticate as a user. mission-director itself
+(agents/mission-director/) holds no auth of its own; its /v1/plan route is
+reachable only inside the docker network, mirroring fleet-controller's own
+zero-auth /v1/plans/preview precedent. See
+docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md and
+docs/superpowers/plans/2026-08-21-mission-director-phase1-plan.md's
+"Deviations from the spec" section for why the routes live here instead
+of inside the mission-director container as the spec originally sketched.
+"""
+from __future__ import annotations
+
+import os
+import uuid
+from typing import Any, Literal
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from app.api import deps
+from app.db.session import get_db
+from app.models import models
+from app.models.governance import GovernanceLedger
+from app.services import mission_store
+
+router = APIRouter()
+
+
+def _mission_director_url() -> str:
+    return (os.getenv("MISSION_DIRECTOR_URL") or "http://mission-director:8080").rstrip("/")
+
+
+class ProposeRequest(BaseModel):
+    goal: str
+
+
+class ReviewRequest(BaseModel):
+    decision: Literal["approve", "reject"]
+
+
+def _serialize(row) -> dict[str, Any]:
+    return {
+        "mission_id": row.mission_id,
+        "status": row.status,
+        "goal": row.goal,
+        "truth_snapshot_ref": row.truth_snapshot_ref,
+        "plan": row.plan,
+        "plan_response": row.plan_response,
+        "superseded_from": row.superseded_from,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+@router.post("/propose", status_code=200)
+async def propose_mission(
+    body: ProposeRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    mission_id = f"mission_{uuid.uuid4().hex[:12]}"
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http_client:
+            resp = await http_client.post(
+                f"{_mission_director_url()}/v1/plan",
+                json={"mission_id": mission_id, "goal": body.goal},
+            )
+        resp.raise_for_status()
+        proposal = resp.json()
+    except Exception:
+        proposal = {
+            "schema_version": 1,
+            "mission_id": mission_id,
+            "goal": body.goal,
+            "truth_snapshot_ref": None,
+            "rationale": None,
+            "plan": None,
+            "plan_response": None,
+            "status": "preview_unavailable",
+            "superseded_from": None,
+        }
+
+    row = mission_store.create(
+        db,
+        mission_id=proposal["mission_id"],
+        status=proposal["status"],
+        goal=proposal["goal"],
+        truth_snapshot_ref=proposal.get("truth_snapshot_ref"),
+        plan=proposal.get("plan"),
+        plan_response=proposal.get("plan_response"),
+        superseded_from=proposal.get("superseded_from"),
+    )
+    return _serialize(row)
+
+
+@router.post("/{mission_id}/review", status_code=200)
+def review_mission(
+    mission_id: str,
+    body: ReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    row = mission_store.get_by_id(db, mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    if row.status != "previewed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"mission status is {row.status!r}, must be 'previewed' to review",
+        )
+
+    new_status = "approved" if body.decision == "approve" else "rejected"
+    updated = mission_store.update_status(db, mission_id, new_status)
+
+    ledger_row = GovernanceLedger(
+        user_id=str(current_user.id),
+        action="mission.review",
+        tool_used=None,
+        payload={"mission_id": mission_id, "decision": body.decision},
+        decision=new_status,
+        agent_name="mission-director",
+        approved_by=str(current_user.id),
+    )
+    db.add(ledger_row)
+    db.commit()
+
+    return _serialize(updated)

@@ -49,6 +49,15 @@ except Exception as _e:
     _log.getLogger(__name__).warning("Governance endpoints unavailable (old image): %s", _e)
     _HAS_GOVERNANCE = False
 
+# P1-3 Mission Director Phase 1 (requires the mission_proposals model/migration)
+try:
+    from app.api.v1.endpoints import missions
+    _HAS_MISSIONS = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Mission Director endpoints unavailable (old image): %s", _e)
+    _HAS_MISSIONS = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -76,6 +85,8 @@ if _HAS_IDENTITY:
     api_router.include_router(identity.router, prefix="/identity", tags=["identity"])   # P1-1: Identity Agents
 if _HAS_GOVERNANCE:
     api_router.include_router(governance.router, prefix="/governance", tags=["governance"])  # P1-2: Audit Ledger
+if _HAS_MISSIONS:
+    api_router.include_router(missions.router, prefix="/missions", tags=["missions"])  # P1-3: Mission Director
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics
