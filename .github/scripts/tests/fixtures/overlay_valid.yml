@@ -1,0 +1,5 @@
+roster:
+  - service-a
+  - service-b
+allowed_collisions:
+  "9001": [service-a, service-c]

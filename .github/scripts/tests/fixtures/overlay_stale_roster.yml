@@ -1,0 +1,4 @@
+roster:
+  - service-a
+  - service-does-not-exist
+allowed_collisions: {}

@@ -1,0 +1,13 @@
+services:
+  service-a:
+    profiles: ["agents"]
+    ports:
+      - "127.0.0.1:9001:8080"
+  service-b:
+    profiles: ["agents"]
+    ports:
+      - "9002:8080"
+  service-c:
+    profiles: ["other"]
+    ports:
+      - "127.0.0.1:9001:8080"

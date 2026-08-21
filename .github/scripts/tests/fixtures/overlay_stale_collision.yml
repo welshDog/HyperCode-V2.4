@@ -1,0 +1,4 @@
+roster:
+  - service-a
+allowed_collisions:
+  "9001": [service-a, service-that-does-not-exist]
