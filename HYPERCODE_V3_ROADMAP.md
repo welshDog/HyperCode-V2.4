@@ -211,7 +211,7 @@ track real progress rather than busywork.
 
 | Dropped | Why |
 |---|---|
-| LangGraph | Zero prior art in this codebase (one unused hand-rolled stand-in). Would replace a live, proven 68-container orchestration layer for no demonstrated need. |
+| LangGraph | Zero prior art in this codebase (one unused hand-rolled stand-in). Would replace a live, proven orchestration layer — a profile-dependent Docker platform with 20+ compose files and a large service fleet — for no demonstrated need. |
 | A2A protocol | A single unset placeholder field exists; nothing implements it. No external agent (Copilot/Cursor/Devin) integration is currently needed. |
 | Pydantic AI 2.0 memory migration | Pinned in an unused requirements file, zero real usage. `Configuration_Kit`/context-key memory already works. |
 | Multi-provider router (Grok 4.5, Kimi K3) | Zero references anywhere in this codebase before the original draft. `crew_v2.py` already has a tier-mapping pattern (Opus/Sonnet/Haiku) — extend that later with real cost evidence if needed, rather than adopting untested providers upfront. |
@@ -251,7 +251,10 @@ sections → written spec → self-review → implementation plan).
 
 > **HyperCode V3 is not just an upgrade — it's proof that increasing
 > autonomy and hard containment aren't in tension.**
-> Where V2.4 orchestrated containers, V3 orchestrates **bounded autonomous
+> HyperCode-V2.4 is a profile-dependent Docker platform with 20+ compose
+> files and a large service fleet; V3 extends its **agent-control plane**
+> rather than replacing its container foundation. Where V2.4 orchestrates
+> containers, V3 orchestrates **bounded autonomous
 > intelligence** — agents that propose, get checked, get approved, and
 > only then act, while preserving the hyperfocus flows that make BROski
 > brains unstoppable.
