@@ -14,6 +14,7 @@ from app.models.hyperflow import HyperFlowRun  # P0-1: HyperFlow mission graphs
 from app.models.identity import BROskiIdentityAgent  # P1-1: resident agent per user
 from app.models.governance import GovernanceLedger  # P1-2: audit ledger
 from app.models.mission import MissionProposal  # Mission Director Phase 1
+from app.models.mission_evaluation import MissionEvaluation  # Mission Evaluator v1
 
 __all__ = [
     "Base",
@@ -32,4 +33,5 @@ __all__ = [
     "BROskiIdentityAgent",
     "GovernanceLedger",
     "MissionProposal",
+    "MissionEvaluation",
 ]
