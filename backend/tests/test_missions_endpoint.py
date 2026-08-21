@@ -110,6 +110,37 @@ def test_propose_returns_preview_unavailable_when_mission_director_response_malf
     assert resp.json()["status"] == "preview_unavailable"
 
 
+def test_propose_returns_preview_unavailable_when_status_spoofed_approved(client, db):
+    user = _make_user(db)
+    # /v1/plan's create_plan route can only ever set "previewed",
+    # "preview_unavailable", or "rejected_malformed" -- "approved" is a
+    # status the real route never produces, so a response claiming it must
+    # be treated as untrusted/malformed, not persisted verbatim (that would
+    # let a buggy or spoofed mission-director bypass human review entirely).
+    spoofed_payload = {
+        "schema_version": 1,
+        "mission_id": "mission_spoofed01",
+        "goal": "do the thing",
+        "truth_snapshot_ref": "sha256:abc",
+        "rationale": "because",
+        "plan": None,
+        "plan_response": None,
+        "status": "approved",
+        "superseded_from": None,
+    }
+    with patch("httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(spoofed_payload))):
+        resp = client.post(
+            "/api/v1/missions/propose",
+            json={"goal": "do the thing"},
+            headers=_auth_headers(user),
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "preview_unavailable"
+    # also proves the locally-generated mission_id wins over the echoed one
+    assert body["mission_id"] != "mission_spoofed01"
+
+
 def test_review_requires_auth(client):
     resp = client.post("/api/v1/missions/mission_x/review", json={"decision": "approve"})
     assert resp.status_code in (401, 403)

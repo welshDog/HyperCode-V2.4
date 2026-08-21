@@ -33,6 +33,12 @@ from app.services import mission_store
 
 router = APIRouter()
 
+# The only three statuses /v1/plan's create_plan route ever actually sets
+# (agents/mission-director/main.py) -- anything else (or a missing/wrong-typed
+# "status") means the response is untrusted, spoofed, or from a buggy build,
+# and must be treated exactly like the existing malformed-response fallback.
+_VALID_PLAN_STATUSES = {"previewed", "preview_unavailable", "rejected_malformed"}
+
 
 def _mission_director_url() -> str:
     return (os.getenv("MISSION_DIRECTOR_URL") or "http://mission-director:8080").rstrip("/")
@@ -78,6 +84,12 @@ async def propose_mission(
         proposal = resp.json()
         if not isinstance(proposal, dict) or "status" not in proposal or "mission_id" not in proposal or "goal" not in proposal:
             raise ValueError("malformed response from mission-director: missing required fields")
+        if proposal.get("status") not in _VALID_PLAN_STATUSES:
+            raise ValueError("malformed response from mission-director: unrecognized status")
+        plan_response = proposal.get("plan_response")
+        if plan_response is not None:
+            if not isinstance(plan_response, dict) or plan_response.get("execution", {}).get("performed") is not False:
+                raise ValueError("malformed response from mission-director: execution.performed not False")
     except Exception:
         proposal = {
             "schema_version": 1,
@@ -91,9 +103,12 @@ async def propose_mission(
             "superseded_from": None,
         }
 
+    # Always persist and return the LOCALLY-generated mission_id, never the
+    # value echoed back by mission-director -- a buggy or spoofed response
+    # could otherwise overwrite it and collide with a different real mission.
     row = mission_store.create(
         db,
-        mission_id=proposal["mission_id"],
+        mission_id=mission_id,
         status=proposal["status"],
         goal=proposal["goal"],
         truth_snapshot_ref=proposal.get("truth_snapshot_ref"),
