@@ -4,6 +4,100 @@
 
 ---
 
+## 2026-08-21 — Mission Director Phase 1 live: goal → previewed, reviewable plan
+
+Implemented `docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md`
+via subagent-driven-development (6 tasks, 2 fix rounds — both plan-mandated
+test-coverage/error-handling gaps the controller's own brief had left,
+caught by review, closed in one round each), following the fleet truth
+registry the same session. A human-submitted goal can now become a
+previewed, audited, human-reviewable infrastructure-change plan, with
+zero possibility of live mutation anywhere in the path.
+
+**Two structural deviations from the spec, ruled during planning (not
+silent)**: the spec sketched both human-facing routes
+(`propose`/`review`) living inside a new `agents/mission-director/`
+container, gated by `deps.get_current_active_user`. That dependency
+needs a live SQLAlchemy session + a real DB user lookup — it can't be
+ported into a separate container without dragging in the backend's full
+DB layer, and no agent container in this repo does real JWT verification.
+So (1) the two routes live in `backend/app/api/v1/endpoints/missions.py`
+instead, reusing the dependency literally, unmodified; mission-director's
+own `/v1/plan` route is unauthenticated, mirroring fleet-controller's own
+`/v1/plans/preview` precedent (containment via capability absence, not
+access control) — only the backend is a sanctioned caller. And (2)
+`mission_proposals` is a backend-owned table, not one mission-director
+connects to directly — mission-director stays fully stateless (matches
+fleet-controller's own zero-persistence precedent); the review endpoint's
+point-lookup/status-transition happens entirely in-process in the
+backend, since review never needs to call mission-director again ("approving
+performs nothing live").
+
+**Built**: `agents/mission-director/` (new container, `:8086` — the
+plan's original `:8097` was found stale during Task 6, already claimed
+by `evolve-relay` + `docker-compose.trae.yml`'s `agent-training-api`;
+internal container port unaffected, still `8080`, DNS-resolved for all
+service-to-service traffic) — `models.py` (file-copied from
+`agents/fleet-controller/models.py` per this repo's no-cross-agent-import
+convention, plus new `MissionProposal`/`ReviewDecision` types),
+`local_validator.py` (fast well-formedness gate, not a safety decision),
+`truth_snapshot.py` (a deterministic `sha256:`-prefixed hash of the live
+fleet registry — same canonical-JSON convention as fleet-controller's
+`canonical_hash`; reads the truth-registry's `fleet_registry.py` +
+compose files via read-only bind mounts, never bakes a stale snapshot
+into the image), `plan_generator.py` (Anthropic tool-use, forced
+structured output, no retry/coercion on malformed output), `fleet_client.py`
+(httpx client to fleet-controller's real, unmodified `/v1/plans/preview`),
+`ledger_client.py` (fire-and-forget, byte-for-byte mirrors
+fleet-controller's own pattern). `backend/app/models/mission.py` +
+`backend/app/services/mission_store.py` + migration `020` (new
+`mission_proposals` table — backend's own point-lookup store, NOT a
+replacement for the Governance Ledger). `backend/app/api/v1/endpoints/missions.py`
+(`POST /missions/propose`, `POST /missions/{id}/review`, both authed).
+One new scoped Governance Ledger key for `mission-director` (single-row
+insert, never the batch reseed script — same care fleet-controller's key
+got).
+
+**Verified live, not just unit-tested** (25 tests total across the 6
+tasks, all passing, plus this): rebuilt & recreated `hypercode-core` to
+pick up the new backend code (was still serving Task-1-4's changes from a
+stale pre-existing image — confirmed via `_HAS_MISSIONS` being absent
+from the running module before the rebuild, present after), then ran the
+real HTTP contract against the live stack with a real, validly-signed JWT
+minted via the backend's own `security.create_access_token`:
+- `POST /missions/propose` unauthenticated → `401`.
+- `POST /missions/propose` authed, real call → `200`,
+  `status: "preview_unavailable"`, `truth_snapshot_ref` populated (the
+  truth-registry hash generation worked correctly) — root cause
+  independently diagnosed by calling `plan_generator.generate()` directly
+  inside the running container: the repo's configured `ANTHROPIC_API_KEY`
+  is rejected by Anthropic with a real `401 authentication_error`, an
+  environment/credentials problem, not a code defect. This is exactly the
+  fail-closed behavior the whole feature exists to guarantee — a broken
+  LLM credential degrades cleanly to a terminal status, never a fake
+  success or an unhandled 500.
+- **Real ESCALATE round-trip, proven independently of the API-key
+  issue**: called mission-director's own `fleet_client.preview()` code
+  directly (not a mock) against the real, running `fleet-controller`,
+  which called the real, running Safety Shepherd —
+  `safety.decision: "ESCALATE"`, `safety.reason: "dangerous category
+  'docker' needs explicit grant"`, `safety.shepherd_available: true`,
+  `execution.performed: false`. This is the exact round-trip the spec
+  named as its explicit proof requirement.
+- `POST /missions/{id}/review` on the real `preview_unavailable` mission
+  → `409`, `"mission status is 'preview_unavailable', must be
+  'previewed' to review"`.
+- `POST /missions/{id}/review` on an unknown mission id → `404`.
+- Full-box sweep: zero unhealthy containers across all 68 running, before
+  and after.
+
+**Out of scope, documented not built** (per spec): capability tokens,
+live execution, the mission evaluator, a review UI. `ANTHROPIC_API_KEY`'s
+real-world validity is a separate, pre-existing environment item — not
+something this feature can fix from inside the repo.
+
+---
+
 ## 2026-08-21 — Fleet truth registry live: `EXPECTED_PORTS`/`ALLOWED_COLLISIONS` retired
 
 Implemented `docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md`

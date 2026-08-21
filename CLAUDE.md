@@ -70,11 +70,12 @@
 | `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled project-strategist clone) |
 | `coderabbit-webhook` | :8024 | ✅ Live |
 
-### 🛡️ Phase 0: Fleet Controller (1, behind `--profile fleet`)
+### 🛡️ Phase 0-1: Fleet Controller + Mission Director (2, behind `--profile fleet`)
 
 | Agent | Port | Status |
 |---|---|---|
 | `fleet-controller` | :8094 | ✅ Live — new 2026-08-20 late night. First piece of a multi-phase mission-director/fleet-controller architecture (see `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`). Structurally incapable of executing anything: no Docker socket, no `DOCKER_HOST`, no crew-orchestrator credential, no LLM client. Fails **closed** (not open, unlike `safety_gate.py`) if Safety Shepherd is unreachable. Behind its own `--profile fleet`, not `agents`/`hyper` — never launches with the standard fleet command above until that flag is added explicitly. |
+| `mission-director` | :8086 | ✅ Live — Phase 1, 2026-08-21. Turns a human goal into a previewed, human-reviewable plan via an Anthropic tool-use call + a real (unmodified) `fleet-controller` preview. Fully stateless — no DB, no user-auth of its own; the human-facing `propose`/`review` endpoints live in `hypercode-core` (`backend/app/api/v1/endpoints/missions.py`), the only sanctioned caller of this agent's unauthenticated `/v1/plan` route (same containment-via-capability-absence precedent as fleet-controller's own zero-auth route). Live-verified: real ESCALATE round-trip through the real Safety Shepherd, real 401/404/409 contract behavior, real fail-closed degrade on an invalid `ANTHROPIC_API_KEY` (a separate, pre-existing environment issue — not a code defect). See `docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md` + `docs/superpowers/plans/2026-08-21-mission-director-phase1-plan.md`. |
 
 > `fleet-controller` deliberately has no `crew-orchestrator: condition: service_healthy`
 > dependency, unlike every other agent — a named, confirmed exception to the Sacred

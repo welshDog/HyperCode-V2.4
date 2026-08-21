@@ -137,11 +137,12 @@ All agents ──▶ crew-orchestrator (:8081) — central routing + health coor
 | `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled `project-strategist` clone) |
 | `coderabbit-webhook` | :8024 | ✅ Live |
 
-### 🛡️ Phase 0: Fleet Controller (1, behind `--profile fleet`)
+### 🛡️ Phase 0-1: Fleet Controller + Mission Director (2, behind `--profile fleet`)
 
 | Agent | Port | Status |
 |---|---|---|
 | `fleet-controller` | :8094 | ✅ Live — new 2026-08-20 late night, Phase 0 of a mission-director/fleet-controller architecture. Structurally incapable of executing anything: no Docker socket, no `DOCKER_HOST`, no crew-orchestrator credential, no LLM client. Fails **closed** if Safety Shepherd is unreachable. Behind its own `--profile fleet`, never launches with the standard command. |
+| `mission-director` | :8086 | ✅ Live — Phase 1, 2026-08-21. Goal → previewed, reviewable plan via a real (unmodified) fleet-controller preview call. Fully stateless; human-facing propose/review endpoints live in `hypercode-core`, not this container. Live-verified real ESCALATE round-trip + fail-closed behavior. See `WHATS_DONE.md`'s 2026-08-21 entry. |
 
 > `hypercode-mcp-server` is not in this roster — it's the real, live MCP gateway
 > defined in `docker-compose.agents.yml` (`:8823`), not a distinct 25th/26th agent. A

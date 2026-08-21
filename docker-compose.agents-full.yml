@@ -622,6 +622,83 @@ services:
       - "com.hypercode.tier=infrastructure"
       - "com.hypercode.role=fleet-control"
 
+  # ══════════════════════════════════════════════════════════════════════════════
+  # mission-director — Phase 1. Turns a human goal into a previewed,
+  # reviewable plan via the real (unmodified) fleet-controller. Holds no DB
+  # connection and no user-auth capability of its own — the human-facing
+  # propose/review endpoints live in hypercode-core
+  # (backend/app/api/v1/endpoints/missions.py), which is the only
+  # sanctioned caller of this service's /v1/plan route. See
+  # docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md and
+  # docs/superpowers/plans/2026-08-21-mission-director-phase1-plan.md.
+  # No depends_on: crew-orchestrator (same named exception fleet-controller
+  # already has — no crew-orchestrator credential, no dispatch path
+  # through it) and no depends_on: safety-shepherd either — unlike
+  # fleet-controller, mission-director never talks to Shepherd directly,
+  # only transitively through fleet-controller.
+  #
+  # PORT DEVIATION from the Task 6 plan: the plan specified host port
+  # :8097. Re-verified live during Task 6 (Step 1) and found NOT free —
+  # evolve-relay (docker-compose.bropets.yml) is live and healthy on
+  # 127.0.0.1:8097 right now, and docker-compose.trae.yml's
+  # agent-training-api also statically claims :8097 (both grep-invisible to
+  # the plan's earlier same-day check because it only grepped
+  # docker-compose*.yml at a moment before those two docs-only commits
+  # landed, or simply missed non-agents-full files). Moved to host port
+  # :8086 instead, following this session's own established convention
+  # (see session-snapshot's :8097→:8017 move, same reason, same day, in
+  # CLAUDE.md). :8086 confirmed free: absent from every docker-compose*.yml,
+  # every live/stopped container, and every top-level doc. Internal
+  # container port is unaffected (still 8080); this only changes the host
+  # curl entrypoint used for the container's own healthcheck convenience,
+  # not any service-to-service traffic (backend and fleet-controller both
+  # reach this container over agents-net DNS, never via the host port).
+  # ══════════════════════════════════════════════════════════════════════════════
+  mission-director:
+    profiles: ["fleet"]
+    image: hypercode-mission-director:latest
+    build:
+      context: ./agents/mission-director
+      dockerfile: Dockerfile
+    container_name: mission-director
+    ports:
+      - "127.0.0.1:8086:8080"
+    environment:
+      - AGENT_NAME=mission-director
+      - LOG_LEVEL=INFO
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AGENT_MODEL=${AGENT_MODEL:-claude-sonnet-4-6}
+      - FLEET_CONTROLLER_URL=http://fleet-controller:8080
+      - CORE_URL=${CORE_URL:-http://hypercode-core:8000}
+      - CORE_AGENT_KEY=${MISSION_DIRECTOR_CORE_AGENT_KEY:-}
+    volumes:
+      - ./.github/scripts/fleet_registry.py:/app/truth/fleet_registry.py:ro
+      - ./.github/scripts/fleet_overlay.yml:/app/truth/fleet_overlay.yml:ro
+      - ./docker-compose.agents.yml:/app/truth/docker-compose.agents.yml:ro
+      - ./docker-compose.agents-full.yml:/app/truth/docker-compose.agents-full.yml:ro
+      - ./docker-compose.bropets.yml:/app/truth/docker-compose.bropets.yml:ro
+      - ./docker-compose.brain.yml:/app/truth/docker-compose.brain.yml:ro
+    networks:
+      - agents-net
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256MB
+        reservations:
+          cpus: "0.1"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=mission-planning"
+
 networks:
   # app-net / agent-net (singular) were phantom — never created anywhere in
   # the real stack, found 2026-08-20 during the first real fleet launch
