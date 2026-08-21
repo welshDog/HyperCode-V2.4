@@ -33,6 +33,7 @@ SERVICES: list[tuple[str, int]] = [
     ("throttle-agent",           1000),
     ("tips-tricks-writer",       200),
     ("fleet-controller",         200),
+    ("mission-director",         200),
 ]
 
 
