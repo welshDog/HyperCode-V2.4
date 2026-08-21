@@ -38,3 +38,12 @@ def test_check_expected_ports_script_passes():
         check_expected_ports.main()
     except SystemExit as e:
         raise AssertionError(f"check_expected_ports.py failed: exit code {e.code}")
+
+
+def test_check_duplicate_ports_script_passes():
+    import check_duplicate_ports
+
+    try:
+        check_duplicate_ports.main()
+    except SystemExit as e:
+        raise AssertionError(f"check_duplicate_ports.py failed: exit code {e.code}")
