@@ -4,6 +4,62 @@
 
 ---
 
+## 2026-08-21 — Fleet truth registry live: `EXPECTED_PORTS`/`ALLOWED_COLLISIONS` retired
+
+Implemented `docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md`
+(spec'd earlier the same session) via subagent-driven development — 4 fresh
+implementer subagents, one per task, each with an independent task review
+before the next task started. Zero fix rounds needed across all 4 tasks;
+every review came back spec-compliant with either zero findings or
+Minor-only findings.
+
+**Built**: `.github/scripts/fleet_registry.py` — a shared module that parses
+the 4 fleet compose files (`docker-compose.agents.yml`, `-full.yml`,
+`bropets.yml`, `brain.yml`) into a `FleetRegistry`, merges in
+`.github/scripts/fleet_overlay.yml` (a 25-name roster + a 2-entry collision
+allowlist — the only hand-maintained file left), and cross-validates the
+overlay against the parsed reality on every `build()` call: a stale roster
+entry or collision pair raises `RegistryError` naming exactly what's wrong,
+rather than silently passing (this is the class of bug that produced the
+stale `frontend-specialist :8011` entry found and fixed earlier tonight —
+now caught at the source instead of independently rediscovered per
+consumer).
+
+`check_expected_ports.py` and `check_duplicate_ports.py` both shrank to
+thin consumers of `fleet_registry.build()` — the old hand-typed
+`EXPECTED_PORTS` dict (25 name→port pairs) and the duplicated
+`FILES`/`ALLOWED_COLLISIONS` definitions are gone for good, along with the
+last two independent copies of the `"BIND_IP:HOST:CONTAINER"` port-parsing
+logic that had already been fixed twice, separately, earlier tonight.
+
+9 tests total (`.github/scripts/tests/`, plain pytest, no unittest classes,
+mirroring `agents/fleet-controller/tests/`'s layout): 5 fixture-based unit
+tests for `fleet_registry.py` itself (both port-string formats, stale
+roster, stale collision, multi-port-service rejection) + 4 integration
+tests running against the real, live compose files and overlay (registry
+builds clean, no unexpected duplicates, both consumer scripts' `main()`
+pass) — this last group is what would have caught the stale `:8011` bug
+before it shipped.
+
+**Verified, not claimed**: full test suite (9/9 passing), both consumer
+scripts run standalone against the live repo (`PASS: all 25 roster agents
+confirmed`, `PASS: no unexpected duplicate host ports across 47 port
+mappings`), both CI workflow YAML files re-confirmed parseable
+(`health-check.yml`, `ghost-agents-build.yml` — re-verifying the
+2026-08-21 heredoc-YAML fix earlier tonight still holds).
+
+**Process note**: this was the first subagent-driven-development execution
+in this repo's session history — ruled to skip an isolated git worktree
+(this repo's own Sacred Rules already document a direct-to-main
+parallel-auto-commit workflow with fetch-before-push, used 5+ times earlier
+the same session) and to have the controller execute the final
+verification/push task directly rather than dispatch a 5th subagent pair
+for pure verification work with no new source code. Both rulings recorded
+in `.superpowers/sdd/2026-08-21-fleet-truth-registry/progress.md` (git-ignored
+scratch — the git history is the durable record now).
+
+---
+
 ## 2026-08-21 — HYPERCODE_V3_ROADMAP.md found disconnected from reality, rewritten
 
 Bro asked for recommendations on reaching "fully Hyper AGI Auto Agents" after
