@@ -1,6 +1,72 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-21 by Claude + welshDog ⚡
+> Last synced: 2026-08-22 by Claude + welshDog ⚡
+
+---
+
+## 2026-08-22 — Mission Evaluator v1 live: read-only quality scoring over mission_proposals
+
+Implemented `docs/superpowers/specs/2026-08-21-mission-evaluator-design.md` via
+subagent-driven-development (4 tasks: table+model, pure rule logic, CRUD/run
+store, HTTP endpoints — this entry closes Task 4, the last one). Adds a
+read-only observer that scores every **terminal** `mission_proposals` row
+(`approved`, `rejected`, `rejected_malformed`, `preview_unavailable`) against
+the checks it should have satisfied, and flags anomalies where the human
+decision didn't match what Safety Shepherd actually said.
+
+**Scope-narrowing decision (made during brainstorming, still true)**: v1
+evaluates **proposal/review quality only** — was the plan well-formed, did
+the preview succeed, did the human's approve/reject line up with the Safety
+Shepherd verdict recorded in `plan_response`. It does **not** evaluate real
+execution outcomes (whether an approved mission actually succeeded once
+dispatched) — that needs Phase 3, once there's a real execution path to
+observe. Nothing here touches `review_mission` or blocks/delays a human
+decision; it is a pure after-the-fact observer, one row per mission,
+written once and never updated.
+
+**Flagship anomaly finding (confirmed live, still true after this plan)**:
+`review_mission` (`backend/app/api/v1/endpoints/missions.py`) never
+re-checks the Safety Shepherd verdict recorded in `plan_response` before
+allowing a human to approve a mission — a human can approve a mission whose
+own preview was `BLOCK`ed, and the endpoint has no code path that would stop
+them. This plan deliberately does not touch `review_mission` to fix that; it
+only observes it via the new `anomaly_approved_despite_block` check family,
+so the gap remains open by design and is now continuously measurable via
+`GET /mission-evaluations/summary`.
+
+**Built**: `backend/app/models/mission_evaluation.py` (`MissionEvaluation`
+model, table `mission_evaluations`, migration `021_add_mission_evaluations`),
+`backend/app/services/mission_evaluator.py` (pure `evaluate_mission(status,
+plan_response) -> dict` + `TERMINAL_STATUSES`), `backend/app/services/mission_evaluation_store.py`
+(`run_evaluation`/`list_evaluations`/`summary`, all read-only against
+`mission_proposals`), `backend/app/api/v1/endpoints/mission_evaluations.py`
+(`POST /api/v1/mission-evaluations/run`, `GET /api/v1/mission-evaluations`,
+`GET /api/v1/mission-evaluations/summary`, all authed via the same
+unmodified `deps.get_current_active_user` every other human-facing endpoint
+in this repo uses), registered in `backend/app/api/api.py` behind the same
+`_HAS_MISSION_EVALUATIONS` conditional-import pattern as `missions`/`_HAS_MISSIONS`.
+6/6 endpoint tests pass (`backend/tests/test_mission_evaluations_endpoint.py`).
+
+**Live-verified, not just unit-tested**: rebuilt + recreated `hypercode-core`
+(`docker compose -f docker-compose.core.yml build hypercode-core && ... up -d
+hypercode-core` — this container has no volume mount for `backend/app`, only
+`alembic`/`alembic.ini`, so new backend code needs an explicit rebuild every
+time, same as Mission Director Phase 1's own Task 6). Migration `021` applied
+automatically on container start (`alembic.runtime.migration: Running upgrade
+020 -> 021, Add mission_evaluations table`), confirmed via `\d
+mission_evaluations` against the live `postgres` container.
+`_HAS_MISSION_EVALUATIONS` confirmed `True` inside the running container. Real
+authed `POST /run` against the live stack: `evaluated_count: 2, anomaly_count:
+0, already_evaluated_skipped: 0` — it picked up both real terminal
+`mission_proposals` rows already in the DB from Mission Director Phase 1's own
+live verification (`mission_ae0fea4b4dc6`, `mission_b41d0e3f32f4`, both
+`preview_unavailable`, both scored `verdict: clean`). `GET /summary`
+afterwards: `total_evaluated: 2, plan_malformed_rate: 0.0, preview_failed_rate:
+1.0`, all anomaly counters `0` (expected — no `approved`/`rejected` rows exist
+yet to trigger the anomaly checks). Unauthenticated `POST /run` returned `401`
+as required. Full-box sweep after rebuild: `docker ps --filter
+"health=unhealthy"` returned empty — zero unhealthy containers across all 68
+running.
 
 ---
 
