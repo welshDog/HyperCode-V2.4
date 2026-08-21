@@ -29,3 +29,12 @@ def test_no_unexpected_duplicate_ports_in_real_repo_state():
             f"real collision needing a compose fix, or a new intentional "
             f"pair missing from fleet_overlay.yml's allowed_collisions"
         )
+
+
+def test_check_expected_ports_script_passes():
+    import check_expected_ports
+
+    try:
+        check_expected_ports.main()
+    except SystemExit as e:
+        raise AssertionError(f"check_expected_ports.py failed: exit code {e.code}")
