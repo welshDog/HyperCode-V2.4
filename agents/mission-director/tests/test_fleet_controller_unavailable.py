@@ -50,3 +50,52 @@ async def test_create_plan_route_returns_preview_unavailable_when_truth_registry
     body = resp.json()
     assert body["status"] == "preview_unavailable"
     assert body["plan"] is None  # never reached the LLM or fleet-controller
+
+
+@pytest.mark.asyncio
+async def test_create_plan_route_returns_rejected_malformed_on_empty_actions(client, monkeypatch):
+    import main
+
+    async def _fake_generate_empty_actions(goal):
+        return LLMPlanOutput(rationale="r", requested_actions=[])
+
+    monkeypatch.setattr(main, "get_snapshot_ref", lambda: "sha256:test")
+    monkeypatch.setattr(main.plan_generator, "generate", _fake_generate_empty_actions)
+
+    resp = await client.post("/v1/plan", json={"mission_id": "mission_t4", "goal": "x"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "rejected_malformed"
+    assert body["plan"] is not None  # plan was built before local_validator rejected it
+    assert body["plan_response"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_plan_route_returns_previewed_on_full_success(client, monkeypatch):
+    import main
+    from models import ExecutionView, PlanResponse, SafetyView
+
+    async def _fake_generate(goal):
+        return LLMPlanOutput(
+            rationale="r",
+            requested_actions=[RequestedAction(action_id="a1", kind="compose_profile.preview")],
+        )
+
+    async def _fake_preview(plan):
+        return PlanResponse(
+            plan_id="plan_test1",
+            plan_hash="sha256:testhash",
+            safety=SafetyView(decision="ESCALATE", reason="dangerous category", shepherd_available=True),
+            execution=ExecutionView(performed=False, would_execute=[]),
+        )
+
+    monkeypatch.setattr(main, "get_snapshot_ref", lambda: "sha256:test")
+    monkeypatch.setattr(main.plan_generator, "generate", _fake_generate)
+    monkeypatch.setattr(main.fleet_client, "preview", _fake_preview)
+
+    resp = await client.post("/v1/plan", json={"mission_id": "mission_t5", "goal": "x"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "previewed"
+    assert body["plan_response"]["execution"]["performed"] is False
+    assert body["plan_response"]["safety"]["decision"] == "ESCALATE"
