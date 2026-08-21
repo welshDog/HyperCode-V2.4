@@ -1,0 +1,34 @@
+# The only hand-maintained file in this system. Keep additions here to
+# "which services exist" facts only — anything compose can already state
+# (ports, context, profiles) belongs in the compose files, not here.
+# See docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md.
+roster:
+  - crew-orchestrator
+  - project-strategist
+  - coder-agent
+  - backend-specialist
+  - database-architect
+  - qa-engineer
+  - devops-engineer
+  - security-engineer
+  - system-architect
+  - frontend-specialist
+  - hyper-split-agent
+  - throttle-agent
+  - super-hyper-broski-agent
+  - session-snapshot
+  - tips-tricks-writer
+  - test-agent
+  - business-agent
+  - coderabbit-webhook
+  - goal-keeper
+  - brain-agent
+  - agent-x
+  - hyper-architect
+  - hyper-observer
+  - hyper-worker
+  - fleet-controller
+
+allowed_collisions:
+  "8002": [coder-agent, ai-backend]
+  "8099": [nemoclaw-agent, hyper-mission-ui]
