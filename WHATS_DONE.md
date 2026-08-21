@@ -4,6 +4,68 @@
 
 ---
 
+## 2026-08-21 — HYPERCODE_V3_ROADMAP.md found disconnected from reality, rewritten
+
+Bro asked for recommendations on reaching "fully Hyper AGI Auto Agents" after
+writing `HYPERCODE_V3_ROADMAP.md` — a blueprint proposing LangGraph + A2A
+protocol + a multi-provider LLM router (Grok 4.5, Kimi K3) + Pydantic AI 2.0
+memory over an 8-sprint migration. Ran 3 parallel Explore agents to check its
+claims against the real repo before answering — verified via repo audit, not
+inferred:
+
+- **`THE-HYPERCODE`, the doc's claimed V3 target repo, isn't an agent-swarm
+  platform at all** — its own README describes it as "HyperCode: Programming
+  Language for Neurodivergent Brains" (multi-paradigm, MLIR-based IR), zero
+  LangGraph/A2A/Pydantic-AI code, last commit over a month before the roadmap
+  was written.
+- The roadmap's 4 listed sibling docs (`_MIGRATION.md`, `_API.md`, etc.)
+  don't exist anywhere in the workspace; its cited "legacy" `manifest.json`
+  example doesn't match `HyperAgent-SDK`'s real (single-agent, not swarm)
+  schema.
+- **Zero prior art anywhere in the codebase** for LangGraph (one unused
+  hand-rolled stand-in), A2A (`a2a: bool = False`, comment: "nothing
+  implements A2A yet"), Pydantic AI (pinned but never installed/imported), or
+  Grok/Kimi (zero references outside the roadmap itself).
+- The roadmap's "agents that plan, code, test, deploy, and learn without
+  human intervention" pitch had no containment design and directly
+  contradicted work already shipped this session:
+  `fleet-controller` Phase 0's governing rule ("no component may both
+  interpret LLM output and possess infrastructure mutation authority"),
+  Safety Shepherd's ALLOW/BLOCK/ESCALATE policy engine, the Governance
+  Ledger's audit trail, and HyperFlow's own design doc, which already
+  explicitly rejected an LLM-driven graph compiler for v1 ("a generated
+  graph would get none [review]").
+- Also surfaced real, reusable assets the roadmap ignored: specialist agents
+  (`agents/*/base_agent.py`) already make real `AsyncAnthropic` calls for
+  actual task work — not a stub fleet — and `crew-orchestrator/crew_v2.py`
+  is a genuine CrewAI hierarchical LLM planner with a real Opus/Sonnet/Haiku
+  tier map, but it's dead code, never imported by the live dispatch path.
+
+**Fixed**: rewrote `HYPERCODE_V3_ROADMAP.md` in place (same path, same "V3 /
+Hyper AGI" framing) to build on the mission-director path the
+fleet-controller Phase 0 spec already points at instead — a
+brain-agent→mission-director→fleet-controller→Safety
+Shepherd→Governance Ledger→human-review pipeline, plus a mission evaluator
+and the truth registry
+(`docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md`) spec'd
+earlier the same session. Explicitly dropped LangGraph/A2A/Pydantic
+AI/multi-provider routing with reasons, rather than silently deleting them —
+each could be revisited later as a narrow, evidence-driven decision. Kept
+the neurodivergent-UX ideas (interrupt-safe state, chunked output, momentum
+rewards) since none of them actually conflicted with anything real.
+Replaced the old vibes-based "80% fully autonomous" metric with the concrete
+benchmark categories (mission generality, long-horizon persistence,
+correctability, containment, evidence quality) proposed in a 2026-08-21
+external review of the Phase 0 work
+(`HyperCode-V2.4/AGI-infrastructure upgrade`, local, not committed).
+
+Went through full Plan Mode: 3 parallel Explore agents grounding the claims,
+an `AskUserQuestion` to confirm scope (rewrite now vs. recommendations only),
+a written plan with Context/Approach/Files/Verification, user approval via
+`ExitPlanMode`, then execution.
+
+---
+
 ## 2026-08-21 — CI workflow bugs #6/#7/#8 fixed; found `health-check.yml` was never valid YAML
 
 Picked up `docs/NEXT_TASKS.md` items #6/#7/#8 (CI debt, no architecture decision
