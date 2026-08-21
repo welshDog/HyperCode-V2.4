@@ -148,9 +148,10 @@ All agents ──▶ crew-orchestrator (:8081) — central routing + health coor
 > defined in `docker-compose.agents.yml` (`:8823`), not a distinct 25th/26th agent. A
 > phantom duplicate of it in `agents-full.yml` was deleted 2026-08-20.
 >
-> **Total: 26 agents in this roster — 26 live**, 0 not running except the
-> intentionally-nonexistent `coder` alias. `crew-orchestrator` is the SPOF (single
-> point of failure) — has `restart: unless-stopped` + `/health`, confirmed live.
+> **Total: 27 agents in this roster — 27 live** (26 + `mission-director`,
+> added 2026-08-21), 0 not running except the intentionally-nonexistent `coder`
+> alias. `crew-orchestrator` is the SPOF (single point of failure) — has
+> `restart: unless-stopped` + `/health`, confirmed live.
 
 ### Resource Limits (apply to all new agents)
 ```yaml

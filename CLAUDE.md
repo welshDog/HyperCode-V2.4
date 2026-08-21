@@ -27,7 +27,7 @@
 
 ---
 
-## 🚀 CURRENT STATE — 26-Agent Fleet (August 2026)
+## 🚀 CURRENT STATE — 27-Agent Fleet (August 2026)
 
 > 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening.** The full fleet below was composed
 > up as one system for the first time ever this session (`docker compose --profile
@@ -93,7 +93,11 @@
 
 **Total:** 25 distinct agents in this roster (the real `hypercode-mcp-server` makes 26
 counting it once, not as a ghost) — **25 live** (the 26th, `hypercode-mcp-server`,
-also live), 0 not running except the intentionally-nonexistent `coder` alias. Item #9
+also live), 0 not running except the intentionally-nonexistent `coder` alias. This
+total is scoped to the standard `--profile agents --profile hyper` launch only —
+`fleet-controller` and `mission-director` (see "Phase 0-1" below) sit behind a
+separate `--profile fleet`, opt-in, never part of this count. `AGENT-START.md`'s
+"27 agents in this roster" total is the wider figure that includes both. Item #9
 (all 24 pre-existing agents build + bind `8080`) and item #0 (the
 agents-full.yml/agents.yml same-name merge) are both fully closed. **The launch
 itself surfaced 3 more real bugs** that no amount of `docker compose
