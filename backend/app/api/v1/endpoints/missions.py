@@ -76,6 +76,8 @@ async def propose_mission(
             )
         resp.raise_for_status()
         proposal = resp.json()
+        if not isinstance(proposal, dict) or "status" not in proposal or "mission_id" not in proposal or "goal" not in proposal:
+            raise ValueError("malformed response from mission-director: missing required fields")
     except Exception:
         proposal = {
             "schema_version": 1,

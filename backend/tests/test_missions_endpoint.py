@@ -94,6 +94,22 @@ def test_propose_returns_preview_unavailable_when_mission_director_unreachable(c
     assert resp.json()["status"] == "preview_unavailable"
 
 
+def test_propose_returns_preview_unavailable_when_mission_director_response_malformed(client, db):
+    user = _make_user(db)
+    # 200 + valid JSON, but missing required fields (e.g. no "mission_id") --
+    # distinct from a network failure or a non-200 status, which the other
+    # two propose tests already cover.
+    malformed_payload = {"status": "previewed"}
+    with patch("httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(malformed_payload))):
+        resp = client.post(
+            "/api/v1/missions/propose",
+            json={"goal": "do the thing"},
+            headers=_auth_headers(user),
+        )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "preview_unavailable"
+
+
 def test_review_requires_auth(client):
     resp = client.post("/api/v1/missions/mission_x/review", json={"decision": "approve"})
     assert resp.status_code in (401, 403)
