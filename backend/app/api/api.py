@@ -58,6 +58,15 @@ except Exception as _e:
     _log.getLogger(__name__).warning("Mission Director endpoints unavailable (old image): %s", _e)
     _HAS_MISSIONS = False
 
+# Mission Evaluator v1 (requires the mission_evaluations model/migration)
+try:
+    from app.api.v1.endpoints import mission_evaluations
+    _HAS_MISSION_EVALUATIONS = True
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Mission Evaluator endpoints unavailable (old image): %s", _e)
+    _HAS_MISSION_EVALUATIONS = False
+
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -87,6 +96,8 @@ if _HAS_GOVERNANCE:
     api_router.include_router(governance.router, prefix="/governance", tags=["governance"])  # P1-2: Audit Ledger
 if _HAS_MISSIONS:
     api_router.include_router(missions.router, prefix="/missions", tags=["missions"])  # P1-3: Mission Director
+if _HAS_MISSION_EVALUATIONS:
+    api_router.include_router(mission_evaluations.router, prefix="/mission-evaluations", tags=["mission-evaluator"])  # Mission Evaluator v1
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics
