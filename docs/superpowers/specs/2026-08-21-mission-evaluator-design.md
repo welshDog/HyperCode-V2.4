@@ -133,8 +133,10 @@ other table read, no network call, no LLM call:
   "plan_malformed": false,
   "preview_failed": false,
   "safety_decision": "BLOCK",
+  "shepherd_available": true,
   "human_decision": "approved",
   "anomaly_approved_despite_block": true,
+  "anomaly_approved_despite_shepherd_down": false,
   "anomaly_rejected_despite_allow": false
 }
 ```
@@ -150,20 +152,39 @@ Rule definitions, in the order they're computed:
   never happen per Mission Director Phase 1's own validation, but the
   evaluator doesn't trust upstream data blindly either) degrades to
   `null`, never raises.
+- `shepherd_available`: `plan_response["safety"]["shepherd_available"]`
+  if `plan_response` is not null, else `null`. Read defensively, same as
+  `safety_decision`. **Why this matters, found while comparing this
+  design against a second-opinion review**: `agents/fleet-controller/safety_client.py`'s
+  fail-closed path returns `decision="BLOCK", shepherd_available=False`
+  when Safety Shepherd is simply unreachable — not because it evaluated
+  the plan as dangerous. A `BLOCK` from a genuinely-consulted Shepherd
+  and a `BLOCK` from a down Shepherd are different severities of the
+  same anomaly, and conflating them would either understate a real
+  safety override or over-flag routine infrastructure hiccups.
 - `human_decision`: `"approved"` if `status == "approved"`, `"rejected"`
   if `status == "rejected"`, else `null` (a mission that never reached
   review — `rejected_malformed`/`preview_unavailable` — has no human
   decision to record).
 - `anomaly_approved_despite_block`: `human_decision == "approved" and
-  safety_decision == "BLOCK"`. **The flagship check** — see Context.
+  safety_decision == "BLOCK" and shepherd_available == true`. **The
+  flagship check** — a human approved a mission Safety Shepherd
+  *genuinely evaluated* as needing an explicit grant.
+- `anomaly_approved_despite_shepherd_down`: `human_decision ==
+  "approved" and safety_decision == "BLOCK" and shepherd_available ==
+  false`. A related but distinct signal — a human approved a mission
+  whose `BLOCK` came from fleet-controller's fail-closed default, not a
+  real Shepherd judgment. Worth tracking separately: it may indicate
+  Shepherd downtime is disrupting real work, which is an operational
+  problem, not a governance one.
 - `anomaly_rejected_despite_allow`: `human_decision == "rejected" and
   safety_decision == "ALLOW"`. Secondary, lower-priority signal (a human
   being more cautious than Shepherd isn't dangerous — just worth
   counting, e.g. to notice if humans are rejecting things for reasons
   Shepherd's policy doesn't capture).
 
-`verdict` is `"anomaly"` if either anomaly flag is `true`, else
-`"clean"`. `summary` is generated from whichever flags are set — a
+`verdict` is `"anomaly"` if any of the three anomaly flags is `true`,
+else `"clean"`. `summary` is generated from whichever flags are set — a
 short, fixed-template sentence per case (not free text, not LLM-written
 — deterministic string formatting from the `checks` dict).
 
@@ -226,6 +247,7 @@ per mission, and the whole point is a single-glance answer):
   "human_approved_count": 6,
   "human_rejected_count": 2,
   "anomaly_approved_despite_block_count": 1,
+  "anomaly_approved_despite_shepherd_down_count": 0,
   "anomaly_rejected_despite_allow_count": 0
 }
 ```
@@ -277,8 +299,11 @@ DB fixture from `backend/tests/conftest.py`, no unittest classes):
 
 - `backend/tests/test_mission_evaluator.py` — pure unit tests for
   `evaluate_mission()`, no DB: each of the 4 terminal statuses, a null
-  `plan_response`, each anomaly flag firing/not-firing, verdict/summary
-  derivation.
+  `plan_response`, each anomaly flag firing/not-firing (including the
+  `anomaly_approved_despite_block` vs `anomaly_approved_despite_shepherd_down`
+  distinction — same `status`/`safety_decision` combination, differing
+  only in `shepherd_available`, must produce different flags), verdict/
+  summary derivation.
 - `backend/tests/test_mission_evaluation_store.py` — CRUD against the
   real (test) DB: create, list with verdict filter, summary rates
   including the zero-total case.
