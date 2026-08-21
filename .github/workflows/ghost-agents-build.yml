@@ -4,16 +4,19 @@ on:
   push:
     branches: [main]
     paths:
-      # Trigger only when agent code or compose files change
-      - "agents/security-engineer/**"
-      - "agents/system-architect/**"
-      - "agents/tips-tricks-writer/**"
+      # Trigger only when agent code or compose files change. Paths must match
+      # the REAL on-disk directories (several here used to point at directories
+      # that don't exist — see docs/NEXT_TASKS.md item #6).
+      - "agents/06-security-engineer/**"
+      - "agents/07-system-architect/**"
+      - "agents/09-tips-tricks-writer/**"
       - "agents/throttle-agent/**"
-      - "agents/super-hyper-broski/**"
+      - "agents/super-hyper-broski-agent/**"
       - "agents/test-agent/**"
-      - "agents/hyper-architect/**"
-      - "agents/hyper-observer/**"
-      - "agents/hyper-worker/**"
+      - "agents/shared/**"
+      - "agents/hyper-agents/architect/**"
+      - "agents/hyper-agents/observer/**"
+      - "agents/hyper-agents/worker/**"
       - "agents/hyper-split-agent/**"
       - "agents/session-snapshot/**"
       - "agents/agent-x/**"
@@ -40,20 +43,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 📦 Install dependencies
+        run: pip install pyyaml
+
       - name: Check for duplicate port mappings
-        run: |
-          echo "=== Scanning all docker-compose files for port mappings ==="
-          PORTS=$(grep -rh "\"[0-9]*:[0-9]*\"" docker-compose*.yml 2>/dev/null | \
-                  grep -oP '"\d+:\d+"' | sort)
-          DUPES=$(echo "$PORTS" | uniq -d)
-          if [ -n "$DUPES" ]; then
-            echo "❌ DUPLICATE PORTS FOUND:"
-            echo "$DUPES"
-            exit 1
-          else
-            echo "✅ No port collisions detected"
-            echo "$PORTS"
-          fi
+        # A raw grep across every docker-compose*.yml false-positives here
+        # (e.g. ai-backend and coder-agent both use :8002 but live behind
+        # mutually-exclusive profiles that never launch together) and, before
+        # the anchoring fix, silently missed every real "BIND_IP:HOST:CONTAINER"
+        # mapping in the repo. Shared with health-check.yml so both gates
+        # agree — see that script's header for the full file-scope rationale.
+        run: python .github/scripts/check_duplicate_ports.py
 
       - name: Warn if :8080 is claimed multiple times
         run: |
@@ -76,44 +81,65 @@ jobs:
 
     strategy:
       fail-fast: false   # Don't cancel all if one agent fails
+      # Context/dockerfile pairs below are re-derived from the real, live
+      # docker-compose.agents-full.yml / docker-compose.agents.yml service
+      # definitions (2026-08-21) — most of the old paths here pointed at
+      # directories that never existed. Ports match the post-2026-08-20
+      # collision-fix values in CLAUDE.md's fleet table, not the old
+      # pre-launch guesses. See docs/NEXT_TASKS.md item #6.
       matrix:
         include:
           - agent: security-engineer
             port: 8007
-            context: ./agents/security-engineer
+            context: ./agents/06-security-engineer
+            dockerfile: Dockerfile
           - agent: system-architect
-            port: 8008
-            context: ./agents/system-architect
+            port: 8010
+            context: ./agents/07-system-architect
+            dockerfile: Dockerfile
           - agent: tips-tricks-writer
-            port: 8009
-            context: ./agents/tips-tricks-writer
+            port: 8018
+            context: ./agents/09-tips-tricks-writer
+            dockerfile: Dockerfile
           - agent: throttle-agent
             port: 8014
             context: ./agents/throttle-agent
+            dockerfile: Dockerfile
           - agent: super-hyper-broski
             port: 8015
-            context: ./agents/super-hyper-broski
+            context: ./agents/super-hyper-broski-agent
+            dockerfile: Dockerfile
           - agent: test-agent
-            port: 8080
-            context: ./agents/test-agent
+            port: 8019
+            # Needs the wider ./agents context — test-agent's code imports the
+            # sibling agents/shared/agent_utils.py, unreachable from a context
+            # scoped to its own directory.
+            context: ./agents
+            dockerfile: test-agent/Dockerfile
           - agent: hyper-architect
             port: 8091
-            context: ./agents/hyper-architect
+            context: .
+            dockerfile: agents/hyper-agents/architect/Dockerfile
           - agent: hyper-observer
             port: 8092
-            context: ./agents/hyper-observer
+            context: .
+            dockerfile: agents/hyper-agents/observer/Dockerfile
           - agent: hyper-worker
             port: 8093
-            context: ./agents/hyper-worker
+            context: .
+            dockerfile: agents/hyper-agents/worker/Dockerfile
           - agent: hyper-split-agent
-            port: 8096
+            port: 8013
             context: ./agents/hyper-split-agent
+            dockerfile: Dockerfile
           - agent: session-snapshot
-            port: 8097
+            port: 8017
             context: ./agents/session-snapshot
+            dockerfile: Dockerfile
           - agent: agent-x
-            port: 0
-            context: ./agents/agent-x
+            port: 8084
+            context: .
+            dockerfile: agents/agent-x/Dockerfile
 
     steps:
       - name: Checkout
@@ -126,15 +152,19 @@ jobs:
           echo "Skipping ${{ matrix.agent }} — not the targeted agent"
           exit 0
 
-      - name: Check agent directory exists
+      - name: Check agent Dockerfile exists
         id: check_dir
         run: |
-          if [ -d "${{ matrix.context }}" ]; then
+          # Check the Dockerfile itself, not just the context directory —
+          # several agents use `context: .` (repo root), which always exists
+          # and would mask a missing/mis-pathed Dockerfile.
+          DOCKERFILE_PATH="${{ matrix.context }}/${{ matrix.dockerfile }}"
+          if [ -f "$DOCKERFILE_PATH" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ ${{ matrix.agent }} directory found"
+            echo "✅ ${{ matrix.agent }} Dockerfile found at $DOCKERFILE_PATH"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️  ${{ matrix.agent }} directory not found — skipping build"
+            echo "⚠️  ${{ matrix.agent }} Dockerfile not found at $DOCKERFILE_PATH — skipping build"
           fi
 
       - name: Set up Docker Buildx
@@ -165,6 +195,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

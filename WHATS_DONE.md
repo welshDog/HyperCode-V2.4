@@ -1,6 +1,79 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-20 (late night, part 12) by Claude + welshDog ⚡
+> Last synced: 2026-08-21 by Claude + welshDog ⚡
+
+---
+
+## 2026-08-21 — CI workflow bugs #6/#7/#8 fixed; found `health-check.yml` was never valid YAML
+
+Picked up `docs/NEXT_TASKS.md` items #6/#7/#8 (CI debt, no architecture decision
+needed): `ghost-agents-build.yml`'s 12-agent build matrix pointed at directories
+that don't exist, its port-collision regex was unanchored, and
+`health-check.yml`'s `EXPECTED_PORTS`/duplicate-port checks mangled every host
+port string.
+
+**The real finding was bigger than the reported bugs.** While fixing
+`health-check.yml`'s port-parsing bug, `yaml.safe_load()` on the real file
+failed — every `python -c "<heredoc>"` block in the file embeds Python code
+indented *less* than the literal block scalar's established floor (the
+preceding `python -c "` line sits at 10 spaces; the code after it starts at
+column 0), which terminates the `run:` block early and breaks the file's YAML
+parse from that point on. Confirmed against live run history, not just
+inferred: `gh run list --workflow=health-check.yml` shows every run completing
+in **0s**, and `gh run view` reads **"This run likely failed because of a
+workflow file issue."** This file has never actually executed a single check
+— every run since it was created was rejected at YAML parse time.
+`ghost-agents-build.yml` and `docker-push.yml` do NOT have this problem
+(confirmed both parse cleanly and their jobs register with real names in `gh
+run view`) — their actual blocker is the known GitHub Actions billing lock
+(`docs/NEXT_TASKS.md` "This Week" list), unrelated to this bug class.
+
+**Fixed**: extracted every embedded Python block in both workflow files to real
+files under `.github/scripts/` (`validate_compose_yaml.py`,
+`check_duplicate_ports.py`, `check_expected_ports.py`,
+`check_fleet_controller_capabilities.py`), called via plain single-line
+`run: python .github/scripts/X.py` — eliminates the heredoc-indentation trap
+entirely instead of re-indenting around it. `check_duplicate_ports.py` is
+shared between both workflows so the two port gates can't drift apart again.
+Also fixed while rebuilding the duplicate-port check for real: it originally
+only read `docker-compose.yml` (which has no `services:` of its own — it's a
+pure `include:` wrapper plain YAML never resolves) + `agents-full.yml`, never
+`docker-compose.agents.yml` — the file that actually owns 13 of the 26 fleet
+agents; and `EXPECTED_PORTS['8011']` for `frontend-specialist` was stale (real
+port is `8012`). The rebuilt duplicate-port check scans every compose file with
+agent-fleet collision history (`agents.yml`, `agents-full.yml`, `bropets.yml`,
+`brain.yml`) with **no profile filtering** — an earlier profile-based
+filter attempt was rejected after checking it against the three real
+collisions fixed 2026-08-20 (`session-snapshot`/`evolve-relay`,
+`test-agent`/`hyper-brain`, `hyper-split-agent`/`safety-shepherd`): all three
+would have been silently hidden by filtering on profile, since `evolve-relay`
+is literally `profiles: ["agents"]` — same profile as the fleet itself. Only
+the two pairs confirmed genuinely mutually-exclusive-by-construction
+(`coder-agent`/`ai-backend` on :8002, `nemoclaw-agent`/`hyper-mission-ui` on
+:8099) are allowlisted, by exact service-pair, not by profile.
+
+**New, not fixed — logged as `docs/NEXT_TASKS.md` item #8a**: building the
+real (unfiltered) duplicate-port scan also surfaced a genuine, separate infra
+risk outside the agent-fleet's scope — `hypercode-ollama`
+(`docker-compose.core.yml`, no profile gate, always starts) and
+`hypercode-ollama-gpu` (`--profile gpu`) both bind `:11434`; `prometheus`
+(always starts) and `prometheus-cloud` (`--profile grafana-cloud`) both bind
+`:9090`. Neither has collided yet because nobody's combined those profiles
+with the standard launch, but there's currently no profile-based way to
+cleanly exclude the base service when opting into the GPU/cloud variant.
+Needs Bro's call — deliberately not folded into the agent-fleet port gate.
+
+**Verified, not claimed**: `yaml.safe_load()` succeeds on both edited workflow
+files; the parsed `jobs.*.steps[].run` values (pulled from the real parsed
+YAML structure, not regex-scraped from source text — a mistake caught mid-session
+by a first verification pass that used a naive text-based block extractor and
+got false confidence) were executed directly; all 4 extracted scripts pass
+clean against the live repo state (0 unexpected duplicates across 47 fleet-file
+port mappings, all 25 expected agent ports found); all 12 of
+`ghost-agents-build.yml`'s matrix `context`/`dockerfile` pairs, read from the
+parsed YAML matrix (not the source text), resolve to a real on-disk Dockerfile.
+`CLAUDE.md`'s "CI/CD Workflows Live" section updated to stop claiming
+`health-check.yml` was live and to record the run-history proof.
 
 ---
 

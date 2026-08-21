@@ -138,6 +138,23 @@ unhealthy throughout.
 - `.github/workflows/ghost-agents-build.yml` — Port validation + parallel ghost-agent builds on push to `main`
 - `.github/workflows/health-check.yml` — All 25 agent ports + Sacred Rules lint on every PR
 
+> ⚠️ **`health-check.yml` was never valid, executable GitHub Actions YAML until
+> 2026-08-21 — confirmed via run history, not just inferred.** It embedded multi-line
+> Python via `python -c "<heredoc>"` blocks whose code was indented *less* than the
+> literal block scalar's established floor, terminating the `run:` block early and
+> breaking the file's YAML parse from that point on (repro'd with a minimal
+> `pyyaml.safe_load` test, then confirmed against the real file). `gh run list
+> --workflow=health-check.yml` shows every run completing in **0s**, and `gh run view`
+> on one reads **"This run likely failed because of a workflow file issue"** — every
+> run since this file existed was rejected at parse time, zero checks ever actually
+> ran. Fixed by extracting the embedded Python to real files under
+> `.github/scripts/`; the file now parses cleanly and every extracted script was
+> executed directly against the live repo state. **`ghost-agents-build.yml` did NOT
+> have this problem** — its jobs register correctly (`gh run view` shows real job
+> names); its actual, separate blocker is the known GitHub Actions billing lock
+> (`docs/NEXT_TASKS.md` "This Week" list). See `docs/NEXT_TASKS.md` items
+> #6/#7/#8/#8a for the full write-up.
+
 ### ⚠️ Port Validation (Mandatory)
 
 Before launching the full stack:
