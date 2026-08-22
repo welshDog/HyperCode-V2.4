@@ -4,6 +4,39 @@
 
 ---
 
+## 2026-08-22 evening — N4 `broski-bot` duplicate-`security_opt` fixed (#435)
+
+Issue #435's own hypothesis ("`broski-bot`'s `security_opt` is probably set
+twice, once directly and once via a YAML anchor") was wrong — checked first
+and ruled out: `docker-compose.core.yml` sets it exactly once for
+`broski-bot`, no anchor/base template touches it. The real cause is the exact
+repro command in the issue: `docker compose -f docker-compose.yml -f
+docker-compose.core.yml -f docker-compose.agents-full.yml ...` — but
+`docker-compose.yml` already pulls `core.yml` in via `include:`. Passing it a
+second time via `-f` merges every service `core.yml` defines with itself, and
+Compose concatenates list-type fields (like `security_opt`) onto their own
+duplicate rather than deduping, which it then rejects.
+
+**Proved this, not just asserted it**: reproduced the exact error with the
+double-`-f` command, then showed it isn't `broski-bot`-specific at all — the
+same command variously fails on `hypercode-core` or `celery-worker` depending
+on which profiles/files are combined, i.e. whichever `core.yml` service
+Compose validates first. Confirmed both of the repo's real launch
+paths — `AGENT-START.md`'s documented `-f docker-compose.yml -f
+docker-compose.agents-full.yml` and `hyperlaunch.ps1`'s canonical 4-file
+set — already resolve with `docker compose config --quiet` clean, because
+neither double-passes `core.yml`.
+
+**Fix**: found the one place in the repo that models the broken pattern —
+`cleanup-and-prepare.ps1`'s "Recommended startup command", a stale line that
+predates `docker-compose.yml` becoming `include:`-based — repointed it at
+`hyperlaunch.ps1`. Added a guard comment directly on `docker-compose.yml`'s
+`include:` block explaining why none of the included files should ever be
+passed again via `-f`, so this doesn't quietly reappear somewhere else.
+Nothing in `docker-compose.core.yml` needed changing — it was never the bug.
+
+---
+
 ## 2026-08-22 evening — N7 fleet-wide `HYPERCODE_API_KEY` 503 sweep
 
 Followed up on the `broski-coo` fix's open question (N7): does the same

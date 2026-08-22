@@ -5,6 +5,13 @@
 
 
 # Intentionally minimal — includes all other files via extend
+#
+# ⚠️ Never pass any of the files below to `-f` alongside this file — they're
+# already pulled in via `include:`. Doing so merges each service with itself;
+# list-type fields like `security_opt` get concatenated onto their own
+# duplicate, which Compose then rejects (e.g. "services.X.security_opt items
+# at 0 and 1 are equal" — issue #435, root-caused 2026-08-22, was never a real
+# YAML bug in the included files themselves).
 include:
   - docker-compose.core.yml
   - docker-compose.observability.yml

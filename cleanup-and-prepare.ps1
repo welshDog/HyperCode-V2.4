@@ -212,7 +212,12 @@ if ($freeGB2 -ge 2) {
     Write-Host ""
     Write-Host "Recommended startup command:" -ForegroundColor Green
     Write-Host "cd h:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4" -ForegroundColor Green
-    Write-Host "docker compose -f docker-compose.yml -f docker-compose.core.yml up -d" -ForegroundColor Green
+    Write-Host ".\hyperlaunch.ps1 up -d" -ForegroundColor Green
+    # NEVER pass -f docker-compose.core.yml alongside -f docker-compose.yml:
+    # docker-compose.yml's `include:` already pulls core.yml in. Passing it a
+    # second time via -f merges every one of its services with itself, and
+    # list-type fields (e.g. security_opt) get concatenated onto themselves --
+    # Compose then rejects the resulting duplicate items (issue #435).
 }
 else {
     Write-Status "❌ Insufficient memory for Docker startup" "ERROR"
