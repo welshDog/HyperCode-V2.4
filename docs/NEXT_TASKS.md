@@ -1,7 +1,18 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 22, 2026 (early hours pass)**
+> Last updated: **August 22, 2026 (afternoon pass — review_mission fix + broski-coo v1)**
+
+---
+
+## 🆕 New from 2026-08-22 afternoon session (review_mission fix + broski-coo v1)
+
+> Full write-up: `WHATS_DONE.md`'s 2026-08-22 entry, `agents/broski-coo/HYPER-AGENT-BIBLE.md` §6.
+
+| # | Task | Priority |
+|---|---|---|
+| N6 | **`.env` location gotcha, bit us twice this session**: `HyperCode-V2.4`'s Docker Compose reads `HyperCode-V2.4/.env`, NOT the parent `HperCore/.env` — both `OPENROUTER_API_KEY` and `HYPERCODE_API_KEY` were dropped into the parent file first and silently had no effect until copied across. Check `grep VAR HyperCode-V2.4/.env` specifically, never assume a key "is set" from the parent workspace file. | 🟡 doc/process gotcha |
+| N7 | **`HYPERCODE_API_KEY`/`AGENT_API_KEY` were completely absent from `.env` fleet-wide until 2026-08-22** — every agent using the standard `_agent_auth_middleware` pattern (`base_agent.py`, `super-hyper-broski-agent/main.py`, now `broski-coo`) was returning `503 "Agent API key not configured"` on every non-`/health` route. Now set (confirmed working live via `broski-coo`'s real `/brief` call). **Not verified**: whether this also silently unblocks `super-hyper-broski-agent`'s routes or any other agent that was quietly 503ing the same way — worth a quick sweep next session. | 🟡 found, not swept |
 
 ---
 
@@ -13,9 +24,9 @@
 
 | # | Task | Priority |
 |---|---|---|
-| N1 | **`ANTHROPIC_API_KEY` in `.env` is invalid** (real `401` from Anthropic, confirmed live) — every `mission-director` propose call lands on `preview_unavailable` until rotated. Blocks proving the full propose→previewed→approved happy path live. | 🔴 [Issue #433](https://github.com/welshDog/HyperCode-V2.4/issues/433) |
+| N1 | **`ANTHROPIC_API_KEY` in `.env` is invalid** (real `401` from Anthropic, re-confirmed live 2026-08-22) — every `mission-director` propose call lands on `preview_unavailable`, and `broski-coo`'s `/brief` now also runs on its OpenRouter/Ollama fallback tiers instead of Anthropic, until rotated. Blocks proving the full propose→previewed→approved happy path live. | 🔴 [Issue #433](https://github.com/welshDog/HyperCode-V2.4/issues/433) |
 | N2 | **Rotate `DATABASE_URL` + `DASHBOARD_SERVICE_JWT`** — briefly exposed to a subagent's own tool output during a fix wave (never touched git, precautionary). | 🟡 [Issue #434](https://github.com/welshDog/HyperCode-V2.4/issues/434) |
-| N3 | **`review_mission` doesn't re-check the Safety Shepherd verdict before allowing approval** — a human can approve a `BLOCK`-verdict mission today. Harmless now (approval performs nothing live), but needs a Phase 3 governance decision (default-deny `BLOCK` + explicit override path) before "approved" gets real teeth. Now continuously measurable via `GET /api/v1/mission-evaluations/summary`. | 🟢 Design decision, Phase 3 territory |
+| N3 | **✅ RESOLVED, 2026-08-22 (commit `378b336d`).** `review_mission` now reads `plan_response.safety.decision` before allowing approval: `BLOCK` hard-rejects (`409`), no override exists; `ESCALATE` requires a non-empty `escalation_reason` (`422` without one), audited in the Governance Ledger — no silent downgrade to `ALLOW`. 13/13 tests pass. | ✅ resolved |
 | N4 | **Pre-existing `broski-bot` duplicate-`security_opt` YAML merge error** blocks the standard full multi-file `docker compose ... build` command for ANY service — found + worked around (not fixed) twice this session by targeting `docker-compose.core.yml` alone. Will bite the next person who runs the documented standard launch command. | 🟡 [Issue #435](https://github.com/welshDog/HyperCode-V2.4/issues/435) |
 | N5 | **`docs/NEXT_TASKS.md` (this file) and `docs/STATUS.md`** — `STATUS.md` still predates the 08-19/08-20 reconciliation (banner-only fix again this session, no full rewrite — same reasoning as last time: a rushed rewrite risks re-creating the duplication bugs it would need to avoid). | 🟡 doc debt, carried forward |
 

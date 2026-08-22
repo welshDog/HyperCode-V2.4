@@ -1,7 +1,8 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **August 22, 2026 (early hours)** — mission-director + mission-evaluator
-> shipped 2026-08-21/22, see `docs/NEXT_SESSION_HANDOVER_2026-08-21-late-night.md`
+> Last updated: **August 22, 2026 (afternoon)** — `review_mission` BLOCK-approval gap
+> closed + `broski-coo` v1 (new read-only COO/observer agent) shipped, see
+> `WHATS_DONE.md`'s 2026-08-22 entry
 > For sacred rules + architecture → `CLAUDE.md`
 > For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
 > (kept accurate every session; this file's own fleet table below is not — see the
@@ -27,9 +28,11 @@
 
 | Metric | Status |
 |---|---|
-| Containers | **26 agents** total (13 core + 12 ghost + `fleet-controller`), **all live** — composed up as one system for the first time ever 2026-08-20 late night, 68 containers running fleet-wide, zero unhealthy ✅ |
+| Containers | **26 agents** total (13 core + 12 ghost + `fleet-controller`), **all live** — composed up as one system for the first time ever 2026-08-20 late night, 69 containers running fleet-wide (68 + `broski-coo`, added 2026-08-22), zero unhealthy ✅ |
 | **Ghost Agent Fleet** | All 12 built + launched + verified healthy — see `CLAUDE.md`'s fleet table (this file's own table below is stale, not rewritten — see banner) |
 | **Fleet Controller** | Phase 0 of a new mission-director/fleet-controller architecture LIVE 🛡️ — `fleet-controller` :8094, `--profile fleet`. Structurally incapable of executing anything (no Docker socket, no LLM client); fails closed if Safety Shepherd is down. Spec: `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` |
+| **`review_mission` safety fix** | ✅ FIXED 2026-08-22 (`378b336d`) — a human could previously approve a mission whose own Safety Shepherd verdict was `BLOCK`; now hard-rejected, `ESCALATE` requires an audited explicit reason. 13/13 tests pass. |
+| **`broski-coo` v1** | ✅ LIVE 2026-08-22 🧭 — new read-only COO/observer agent, `:8025`, `agents/broski-coo/`. Real fleet+doc data → plain-English brief via a new Anthropic→OpenRouter(free)→Ollama LLM chain. 20/20 tests pass, verified live end-to-end through the real authed endpoint. See `CLAUDE.md`'s "Registry Services" section. |
 | **HyperStudio** | agent write path LIVE 🏗️ — `coder-studio` :8087 (profiles `agents`/`studio`) |
 | Dashboard | celery-worker restored · `/docker-zone` · `/pricing` redirects LIVE ✅ |
 | Tests | 251 passed, 6 skipped ✅ |
