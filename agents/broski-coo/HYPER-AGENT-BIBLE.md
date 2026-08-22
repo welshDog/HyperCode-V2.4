@@ -93,18 +93,9 @@ alongside the LLM's prose so it's checkable, never just trusted.
 - `agent-registry`'s own mutation routes being unauthenticated is
   pre-existing and unrelated to this agent — not this agent's job to fix,
   just a boundary it must never cross.
-- **OpenRouter routes through Lyndz's dashboard-configured `free-router`
-  preset** (`OPENROUTER_PRESET` env var, default `free-router`), not this
-  agent's own model list — model selection, fallback ordering, `max_price: 0`,
-  and `data_collection: deny` (blocking providers that train on free-tier
-  inputs/outputs — confirmed: Poolside, LiquidAI) are enforced by OpenRouter
-  server-side as part of the preset. This agent does not independently verify
-  the deny-training-data policy is actually being enforced upstream — that
-  requires checking OpenRouter's own Observability/Logs, a dashboard task,
-  not something callable from this agent's code. `provider_used` in every
-  `/brief` response names whichever model the preset actually routed to.
-  The free-model catalog itself is confirmed volatile regardless (21 free
-  models at one check this session, 7 at an earlier one, changing weekly).
+- OpenRouter free-model selection is dynamic and unallowlisted — whatever's
+  free at call time, confirmed volatile (only 7 models free at design time).
+  `provider_used` in every `/brief` response names the actual model used.
 
 ## 7. ✅ Example Task
 
