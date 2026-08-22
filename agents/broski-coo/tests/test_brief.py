@@ -1,3 +1,4 @@
+import json
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -16,6 +17,10 @@ class _MockResponse:
 
     def json(self):
         return self._payload
+
+    @property
+    def text(self):
+        return json.dumps(self._payload)
 
 
 @pytest.fixture(autouse=True)
@@ -150,53 +155,61 @@ async def test_brief_no_llm_keys_falls_through_to_string_never_500s(client, monk
 
 
 @pytest.mark.asyncio
-async def test_openrouter_null_content_rotates_to_next_free_model(monkeypatch):
-    """Regression test for a real bug caught live: a reasoning-capable free
-    model (stealth/ox-alpha, confirmed against the real OpenRouter API) can
-    return HTTP 200 with message.content == null when finish_reason is
-    "length" -- the token budget was spent on internal reasoning before any
-    output text was emitted. A 200 must not be treated as usable content."""
+async def test_openrouter_preset_call_uses_preset_model_field(monkeypatch):
+    """The request must reference the preset (@preset/<slug>), not a locally
+    chosen model -- OpenRouter's own preset owns model selection, fallback
+    ordering, max_price, and data_collection policy server-side."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
+    monkeypatch.setenv("OPENROUTER_PRESET", "free-router")
     import main
 
-    main._free_model_cache["models"] = []
-    main._free_model_cache["fetched_at"] = 0.0
+    real_content_payload = {
+        "model": "z-ai/glm-5.2:free",
+        "choices": [{"message": {"content": "a real brief"}}],
+    }
+    captured_payload = {}
 
-    models_payload = {"data": [{"id": "model-a", "pricing": {"prompt": "0"}}, {"id": "model-b", "pricing": {"prompt": "0"}}]}
-    null_content_payload = {"choices": [{"message": {"content": None}}]}
-    real_content_payload = {"choices": [{"message": {"content": "a real brief"}}]}
+    async def _fake_post(self, url, json=None, headers=None, timeout=None):
+        captured_payload.update(json or {})
+        return _MockResponse(real_content_payload)
 
-    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))), patch(
-        "httpx.AsyncClient.post",
-        new=AsyncMock(
-            side_effect=[
-                _MockResponse(null_content_payload),
-                _MockResponse(real_content_payload),
-            ]
-        ),
-    ):
-        text, model = await main._openrouter_chat_free("sys", "user", 900)
+    with patch("httpx.AsyncClient.post", new=_fake_post):
+        text, model = await main._openrouter_chat_preset("sys", "user", 900)
 
     assert text == "a real brief"
-    assert model == "model-b"
+    assert model == "z-ai/glm-5.2:free"  # whatever the preset actually routed to
+    assert captured_payload["model"] == "@preset/free-router"
 
 
 @pytest.mark.asyncio
-async def test_openrouter_all_null_content_raises(monkeypatch):
+async def test_openrouter_null_content_raises(monkeypatch):
+    """Regression test for a real bug caught live: a reasoning-capable free
+    model (stealth/ox-alpha, confirmed against the real OpenRouter API,
+    reached through this exact preset) can return HTTP 200 with
+    message.content == null when finish_reason is "length" -- the token
+    budget was spent on internal reasoning before any output text was
+    emitted. A 200 must not be treated as usable content."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
     import main
 
-    main._free_model_cache["models"] = []
-    main._free_model_cache["fetched_at"] = 0.0
+    null_content_payload = {"model": "stealth/ox-alpha", "choices": [{"message": {"content": None}}]}
 
-    models_payload = {"data": [{"id": "model-a", "pricing": {"prompt": "0"}}]}
-    null_content_payload = {"choices": [{"message": {"content": None}}]}
-
-    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))), patch(
-        "httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(null_content_payload))
-    ):
+    with patch("httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(null_content_payload))):
         with pytest.raises(RuntimeError, match="empty/null content"):
-            await main._openrouter_chat_free("sys", "user", 900)
+            await main._openrouter_chat_preset("sys", "user", 900)
+
+
+@pytest.mark.asyncio
+async def test_openrouter_non_200_raises(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
+    import main
+
+    with patch(
+        "httpx.AsyncClient.post",
+        new=AsyncMock(return_value=_MockResponse({"error": "bad preset"}, status_code=404)),
+    ):
+        with pytest.raises(RuntimeError, match="404"):
+            await main._openrouter_chat_preset("sys", "user", 900)
 
 
 def test_newest_handover_picks_correct_file(monkeypatch, tmp_path):

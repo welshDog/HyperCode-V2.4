@@ -21,9 +21,8 @@ import logging
 import os
 import re
 import secrets
-import time
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from fastapi import FastAPI, Request, Response
@@ -94,83 +93,71 @@ class _OllamaAdapter:
         return _Resp(resp.choices[0].message.content or "")
 
 
-# OpenRouter free-tier adapter -- request shape ported (not imported; backend/
-# is never importable from agents/) from backend/app/core/model_routes.py's
-# openrouter_chat(). The circuit breaker there (backend/app/core/circuit_
-# breaker.py) is deliberately not ported -- not importable from agents/, and
-# the free-model rotation below already provides equivalent failure-cycling.
-# redact_secrets/privacy_mode is also deliberately not ported -- this agent's
-# payload is fleet status + this repo's own docs, not third-party/user
-# content, so redaction isn't load-bearing here.
-_free_model_cache: dict[str, Any] = {"models": [], "fetched_at": 0.0}
-FREE_MODEL_CACHE_TTL_SECONDS = 300  # respects OpenRouter free-tier's shared 20 req/min cap
+# OpenRouter adapter -- routes through a dashboard-configured preset
+# (@preset/<slug>, e.g. "free-router"), not local model discovery. Model
+# selection, fallback ordering, cost cap (max_price: 0), and the
+# data_collection: deny policy (blocking providers -- confirmed: Poolside,
+# LiquidAI -- that train on free-tier inputs/outputs) are enforced by
+# OpenRouter server-side as part of the preset, not by this code. This is
+# deliberately simpler than an earlier version that discovered free models
+# itself via GET /models and rotated through them locally -- that logic is
+# now redundant with what the preset already does, and duplicating it here
+# would just be a second, unsynced copy of the same allowlist/fallback
+# policy the preset already owns.
+#
+# Request shape (POST body) ported (not imported; backend/ is never
+# importable from agents/) from backend/app/core/model_routes.py's
+# openrouter_chat(). Its circuit breaker (backend/app/core/circuit_
+# breaker.py) is deliberately not ported -- not importable from agents/.
+# redact_secrets/privacy_mode is also deliberately not ported -- this
+# agent's payload is fleet status + this repo's own docs, not third-party/
+# user content, so redaction isn't load-bearing here.
+OPENROUTER_PRESET = os.getenv("OPENROUTER_PRESET", "free-router")
 
 
-async def _discover_free_openrouter_models(client: httpx.AsyncClient) -> list[str]:
-    now = time.time()
-    if _free_model_cache["models"] and (now - _free_model_cache["fetched_at"]) < FREE_MODEL_CACHE_TTL_SECONDS:
-        return _free_model_cache["models"]
-    resp = await client.get("https://openrouter.ai/api/v1/models", timeout=10.0)
-    resp.raise_for_status()
-    data = resp.json().get("data", [])
-    free = [m["id"] for m in data if m.get("pricing", {}).get("prompt") == "0"]
-    _free_model_cache["models"] = free
-    _free_model_cache["fetched_at"] = now
-    return free
-
-
-async def _openrouter_chat_free(system: str, user: str, max_tokens: int) -> tuple[str, str]:
-    """Returns (text, model_used). Rotates across discovered free models on a
-    non-2xx response. If all fail, raises -- caller falls through to Ollama."""
+async def _openrouter_chat_preset(system: str, user: str, max_tokens: int) -> tuple[str, str]:
+    """Returns (text, model_used) where model_used is whichever model the
+    preset actually routed to (read from the response body), not a name
+    chosen by this code. Raises on any failure -- caller falls through to
+    Ollama."""
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY not set")
 
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": f"@preset/{OPENROUTER_PRESET}",
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": 0.2,
+    }
     async with httpx.AsyncClient() as client:
-        models = await _discover_free_openrouter_models(client)
-        if not models:
-            raise RuntimeError("no free OpenRouter models discovered")
+        resp = await client.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            json=payload,
+            headers=headers,
+            timeout=60.0,
+        )
 
-        last_err: Optional[Exception] = None
-        for model in models:
-            try:
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                payload = {
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": user},
-                    ],
-                    "max_tokens": max_tokens,
-                    "temperature": 0.2,
-                }
-                resp = await client.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    json=payload,
-                    headers=headers,
-                    timeout=60.0,
-                )
-                if resp.status_code == 200:
-                    content = resp.json()["choices"][0]["message"]["content"]
-                    # Reasoning-capable free models (confirmed live: stealth/ox-alpha)
-                    # can return content: null with finish_reason "length" -- the
-                    # token budget was spent on internal reasoning before any
-                    # output text was emitted. A 200 does not guarantee usable
-                    # content; treat null/empty the same as a failed attempt and
-                    # rotate to the next free model rather than propagating None
-                    # up into a response typed as `brief: str`.
-                    if not content:
-                        last_err = RuntimeError(
-                            f"OpenRouter {model} returned empty/null content "
-                            "(likely spent max_tokens on reasoning before emitting output)"
-                        )
-                        continue
-                    return content, model
-                last_err = RuntimeError(f"OpenRouter {model} -> {resp.status_code}: {resp.text[:300]}")
-            except Exception as e:  # noqa: BLE001 -- broad by design, matches repo's degrade convention
-                last_err = e
+    if resp.status_code != 200:
+        raise RuntimeError(f"OpenRouter preset '{OPENROUTER_PRESET}' -> {resp.status_code}: {resp.text[:300]}")
 
-        raise last_err or RuntimeError("all discovered free OpenRouter models failed")
+    body = resp.json()
+    content = body["choices"][0]["message"]["content"]
+    model_used = body.get("model", OPENROUTER_PRESET)
+    # Reasoning-capable models (confirmed live: stealth/ox-alpha) can return
+    # content: null with finish_reason "length" -- the token budget was
+    # spent on internal reasoning before any output text was emitted. A 200
+    # does not guarantee usable content.
+    if not content:
+        raise RuntimeError(
+            f"OpenRouter preset '{OPENROUTER_PRESET}' (routed to {model_used}) returned "
+            "empty/null content (likely spent max_tokens on reasoning before emitting output)"
+        )
+    return content, model_used
 
 
 async def _call_llm(system: str, user: str, max_tokens: int = 900) -> tuple[str, str]:
@@ -193,10 +180,10 @@ async def _call_llm(system: str, user: str, max_tokens: int = 900) -> tuple[str,
             logger.warning(f"Anthropic call failed, falling back: {e}")
 
     try:
-        text, model = await _openrouter_chat_free(system, user, max_tokens)
+        text, model = await _openrouter_chat_preset(system, user, max_tokens)
         return text, f"openrouter:{model}"
     except Exception as e:  # noqa: BLE001
-        logger.warning(f"OpenRouter free-tier call failed, falling back to Ollama: {e}")
+        logger.warning(f"OpenRouter preset call failed, falling back to Ollama: {e}")
 
     try:
         adapter = _OllamaAdapter(

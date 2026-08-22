@@ -150,6 +150,7 @@ services:
       - REPO_ROOT_PATH=/app/repo
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENROUTER_PRESET=${OPENROUTER_PRESET:-free-router}
       - LLM_MODEL=${LLM_MODEL:-llama3.2}
       - LLM_API_BASE=${LLM_API_BASE:-http://ollama:11434/v1}
       - LLM_API_KEY=${LLM_API_KEY:-NA}

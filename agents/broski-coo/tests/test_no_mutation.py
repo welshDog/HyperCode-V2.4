@@ -13,9 +13,20 @@ def test_no_docker_module_imported_anywhere():
 
 
 def test_no_restart_or_reset_attribute():
+    """Whole-token check, not a raw substring check -- "reset" is a raw
+    substring of "preset" ("p" + "reset"), which would false-positive on the
+    legitimate OPENROUTER_PRESET/_openrouter_chat_preset names. Splitting on
+    "_" (this codebase's naming convention throughout) and comparing whole
+    tokens avoids that false hit while still catching a real
+    reset_agent/agent_restart-shaped name."""
     import main
 
-    suspicious = [name for name in dir(main) if "restart" in name.lower() or "reset" in name.lower()]
+    def _tokens(name: str) -> list[str]:
+        return [t for t in name.lower().split("_") if t]
+
+    suspicious = [
+        name for name in dir(main) if "restart" in _tokens(name) or "reset" in _tokens(name)
+    ]
     assert suspicious == []
 
 
