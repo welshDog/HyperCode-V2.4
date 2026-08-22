@@ -149,6 +149,56 @@ async def test_brief_no_llm_keys_falls_through_to_string_never_500s(client, monk
     assert isinstance(body["brief"], str) and body["brief"]
 
 
+@pytest.mark.asyncio
+async def test_openrouter_null_content_rotates_to_next_free_model(monkeypatch):
+    """Regression test for a real bug caught live: a reasoning-capable free
+    model (stealth/ox-alpha, confirmed against the real OpenRouter API) can
+    return HTTP 200 with message.content == null when finish_reason is
+    "length" -- the token budget was spent on internal reasoning before any
+    output text was emitted. A 200 must not be treated as usable content."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
+    import main
+
+    main._free_model_cache["models"] = []
+    main._free_model_cache["fetched_at"] = 0.0
+
+    models_payload = {"data": [{"id": "model-a", "pricing": {"prompt": "0"}}, {"id": "model-b", "pricing": {"prompt": "0"}}]}
+    null_content_payload = {"choices": [{"message": {"content": None}}]}
+    real_content_payload = {"choices": [{"message": {"content": "a real brief"}}]}
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))), patch(
+        "httpx.AsyncClient.post",
+        new=AsyncMock(
+            side_effect=[
+                _MockResponse(null_content_payload),
+                _MockResponse(real_content_payload),
+            ]
+        ),
+    ):
+        text, model = await main._openrouter_chat_free("sys", "user", 900)
+
+    assert text == "a real brief"
+    assert model == "model-b"
+
+
+@pytest.mark.asyncio
+async def test_openrouter_all_null_content_raises(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
+    import main
+
+    main._free_model_cache["models"] = []
+    main._free_model_cache["fetched_at"] = 0.0
+
+    models_payload = {"data": [{"id": "model-a", "pricing": {"prompt": "0"}}]}
+    null_content_payload = {"choices": [{"message": {"content": None}}]}
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))), patch(
+        "httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(null_content_payload))
+    ):
+        with pytest.raises(RuntimeError, match="empty/null content"):
+            await main._openrouter_chat_free("sys", "user", 900)
+
+
 def test_newest_handover_picks_correct_file(monkeypatch, tmp_path):
     import main
 

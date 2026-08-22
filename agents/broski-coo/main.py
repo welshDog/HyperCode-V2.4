@@ -151,7 +151,21 @@ async def _openrouter_chat_free(system: str, user: str, max_tokens: int) -> tupl
                     timeout=60.0,
                 )
                 if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"], model
+                    content = resp.json()["choices"][0]["message"]["content"]
+                    # Reasoning-capable free models (confirmed live: stealth/ox-alpha)
+                    # can return content: null with finish_reason "length" -- the
+                    # token budget was spent on internal reasoning before any
+                    # output text was emitted. A 200 does not guarantee usable
+                    # content; treat null/empty the same as a failed attempt and
+                    # rotate to the next free model rather than propagating None
+                    # up into a response typed as `brief: str`.
+                    if not content:
+                        last_err = RuntimeError(
+                            f"OpenRouter {model} returned empty/null content "
+                            "(likely spent max_tokens on reasoning before emitting output)"
+                        )
+                        continue
+                    return content, model
                 last_err = RuntimeError(f"OpenRouter {model} -> {resp.status_code}: {resp.text[:300]}")
             except Exception as e:  # noqa: BLE001 -- broad by design, matches repo's degrade convention
                 last_err = e
