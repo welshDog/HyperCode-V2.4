@@ -4,10 +4,12 @@ Plans, breaks down, and delegates tasks to specialist agents
 """
 import sys
 sys.path.append('/app')
-from base_agent import BaseAgent, AgentConfig, TaskRequest
-from typing import Dict, List
+from base_agent import BaseAgent, AgentConfig
+from typing import Any, Dict, List, Optional
 import httpx
 import json
+import os
+import uuid
 
 class ProjectStrategist(BaseAgent):
     
@@ -72,14 +74,32 @@ Return structured JSON with:
 }}
 """
     
-    async def plan(self, request: TaskRequest) -> Dict:
+    async def process_task(self, task: str, context: Dict[str, Any], requires_approval: bool = False) -> Any:
+        """
+        Overrides BaseAgent.process_task so /execute actually reaches plan()
+        instead of falling through to the generic LLM passthrough.
+        """
+        if requires_approval and self.approval_system:
+            approval = await self.approval_system.request_approval(
+                self.config.name, "execute_task", {"task": task}, timeout=300
+            )
+            if approval.get("status") != "approved":
+                raise RuntimeError(f"Task rejected: {approval.get('reason')}")
+
+        context = context or {}
+        task_id = context.get("task_id") or context.get("id") or str(uuid.uuid4())
+        return await self.plan(task_id=task_id, task=task, context=context)
+
+    async def plan(self, task_id: str, task: str, context: Optional[Dict] = None) -> Dict:
         """
         Create detailed plan and delegate to specialists
         """
+        context = context or {}
+
         # Get planning from Claude
         system_prompt = self.build_system_prompt()
-        
-        message = self.client.messages.create(
+
+        message = await self.client.messages.create(
             model=self.config.model,
             max_tokens=4096,
             system=system_prompt,
@@ -87,53 +107,55 @@ Return structured JSON with:
                 "role": "user",
                 "content": f"""Plan this task:
 
-Task: {request.task}
-Context: {json.dumps(request.context or {})}
+Task: {task}
+Context: {json.dumps(context)}
 
 Create a detailed breakdown with specific subtasks for each specialist agent."""
             }]
         )
-        
+
         result = message.content[0].text
-        
+
         # Parse the plan
         try:
             plan = json.loads(result)
         except Exception:
             # If not JSON, wrap it
             plan = {"raw_plan": result, "tasks": []}
-        
+
         # Store plan in Redis
-        self.redis.hset(
-            f"task:{request.task_id}",
-            "plan",
-            json.dumps(plan)
-        )
-        
+        if self.redis:
+            await self.redis.hset(
+                f"task:{task_id}",
+                "plan",
+                json.dumps(plan)
+            )
+
         # Bridge: submit mission to HyperCode Core for lifecycle tracking
         try:
-            feature_name = plan.get("feature_name") or request.task
+            feature_name = plan.get("feature_name") or task
             caps = sorted({(t.get("assigned_to") or "").lower() for t in plan.get("tasks", []) if t.get("assigned_to")})
             mission_payload = {
                 "plan": plan,
                 "requirements": {"capabilities": caps},
                 "rollback_plan": plan.get("rollback", []),
             }
+            core_url = os.getenv("CORE_URL", "http://hypercode-core:8000")
             async with httpx.AsyncClient(timeout=5.0) as client:
                 mr = await client.post(
-                    f"{self.config.core_url}/orchestrator/mission",
+                    f"{core_url}/orchestrator/mission",
                     json={"title": feature_name, "priority": 80, "payload": mission_payload}
                 )
-                if mr.status_code == 200:
-                    self.redis.hset(f"task:{request.task_id}", "mission", mr.text)
+                if mr.status_code == 200 and self.redis:
+                    await self.redis.hset(f"task:{task_id}", "mission", mr.text)
         except Exception as e:
             print(f"⚠️ Failed to submit mission to Core: {e}")
 
         # Delegate to specialists
-        await self.delegate_tasks(request.task_id, plan.get("tasks", []))
-        
+        await self.delegate_tasks(task_id, plan.get("tasks", []))
+
         return {
-            "task_id": request.task_id,
+            "task_id": task_id,
             "status": "planned",
             "plan": plan
         }

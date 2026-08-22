@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-08-23 night — item 0a: `project-strategist`'s dead planning code wired up
+
+`agents/08-project-strategist/agent.py`'s `plan()`/`delegate_tasks()` — the
+actual "break a feature down and delegate to specialist agents" logic this
+agent exists for — were unreachable dead code, found during the item #0
+compose-dedupe fix. Three real bugs, all fixed:
+
+1. `ProjectStrategist` never overrode `process_task`, so `/execute` always
+   fell through to `BaseAgent`'s generic LLM passthrough. Now overrides it
+   (preserving the base class's `requires_approval` gate), derives a
+   `task_id` from context or generates one, and calls `plan()` for real.
+2. `plan()` called `self.client.messages.create(...)` and
+   `self.redis.hset(...)` without `await` against async clients — both are
+   coroutines. Fixed, and `self.redis` calls are now guarded (`if
+   self.redis:`) since it can be `None` if Redis was unreachable at startup.
+3. `plan()` referenced `self.config.core_url`, which doesn't exist on
+   `AgentConfig` — would have thrown `AttributeError` the first time it ran.
+   Replaced with `os.getenv("CORE_URL", "http://hypercode-core:8000")`;
+   `CORE_URL` was already correctly set in `docker-compose.agents.yml`, just
+   never read anywhere.
+
+`plan()`'s signature changed from taking a `TaskRequest` object to
+`(task_id, task, context)` primitives, matching what `process_task` actually
+has available — checked first that nothing else in the repo called the old
+signature (only an HTTP-level script,
+`tests/test_orchestrator_strategist_integration.py`, exists, unaffected).
+
+**Verified live**: the container bind-mounts its own directory
+(`./agents/08-project-strategist:/app`), so a plain `docker restart` applied
+the fix, no rebuild needed. Constructed the real `ProjectStrategist` object
+in-process inside the running container (monkeypatching only the LLM client
+to the Ollama fallback, since `ANTHROPIC_API_KEY` is still invalid per N1)
+and called `process_task` directly — proved the full await chain now works:
+it reaches `plan()`, correctly awaits the LLM call, and a real HTTP request
+lands at Ollama (failed only on an unrelated, expected model-name mismatch —
+Ollama has no Claude models pulled). Did not push through to a full
+successful generation: a second attempt with a real Ollama model
+(`tinyllama`) drove the box to `0` free swap mid-generation on an already
+resource-tight night — killed it and restarted `hypercode-ollama` to
+recover cleanly rather than chase a second OOM incident for marginal extra
+proof. A true end-to-end proof (real plan generated, specialists actually
+called) stays blocked on N1.
+
+Also confirmed, not just assumed: `project-strategist`'s earlier
+`Exited (255)` (found during the N7 sweep, root cause never identified — no
+error in its logs before the exit) has not recurred since last night's
+full-fleet restart — 0 restarts, stable throughout tonight's session.
+
+---
+
 ## 2026-08-22 night — N2 credential rotation (JWT + Postgres password) shipped (#434)
 
 **`DASHBOARD_SERVICE_JWT`**: re-minted a fresh 365-day token via the
