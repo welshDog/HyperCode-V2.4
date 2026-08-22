@@ -4,6 +4,40 @@
 
 ---
 
+## 2026-08-22 evening — N7 fleet-wide `HYPERCODE_API_KEY` 503 sweep
+
+Followed up on the `broski-coo` fix's open question (N7): does the same
+"`HYPERCODE_API_KEY`/`AGENT_API_KEY` never reaches the container" bug hit any
+other agent? Yes — 6 more, all in `docker-compose.agents-full.yml`:
+`brain-agent`, `business-agent`, `throttle-agent`, `tips-tricks-writer`,
+`super-hyper-broski-agent`, `test-agent`. Each sets `API_KEY=${API_KEY:-dev}`
+in its env block, but the shared `base_agent.py`-derived auth middleware
+these 6 all run only ever reads `HYPERCODE_API_KEY`/`AGENT_API_KEY` — a
+variable-name mismatch that's existed since these blocks were written, not a
+regression. Live-confirmed before fixing: `POST /execute` on all 6 returned
+`503 {"detail":"Agent API key not configured"}` no matter what key was sent.
+
+**Fixed**: added `HYPERCODE_API_KEY=${API_KEY:-dev}` to each of the 6 blocks,
+mirroring the already-correct pattern in `docker-compose.agents.yml` (its 6
+agents — `project-strategist`, `nemoclaw-agent`, `safety-shepherd`,
+`broski-pets-bridge`, `healer-agent`, `coder-agent` — were checked first and
+confirmed fine, not part of the bug). `docker compose config` validated the
+real secret resolves for all 6, containers recreated via `up -d --no-deps`
+(not a full relaunch), all 6 came back `healthy`, and the auth boundary was
+re-verified live: no key → `401`, wrong key → `401`, real key → past auth
+into route logic (`422`/`404`) — same shape as the agents that were already
+correct. Swept the other 33 live fleet endpoints too (specialist squad,
+ghost agents, `fleet-controller`, `mission-director`, registry services) —
+none showed the bug signature, so this closes N7 for real rather than just
+the one instance `broski-coo` surfaced.
+
+**Separate finding, not fixed (new item, not N7's scope):** `project-strategist`
+(`:8001`) was found `Exited (255)` during the sweep — its compose wiring is
+correct, the container just isn't running. No error visible in its last logs
+before the exit. Needs its own look, not a config fix.
+
+---
+
 ## 2026-08-22 — `review_mission` BLOCK-approval gap fixed; `broski-coo` v1 built, live
 
 **`review_mission` fixed** (`backend/app/api/v1/endpoints/missions.py`,

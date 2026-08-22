@@ -63,6 +63,7 @@ services:
       - AGENT_NAME=brain-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - CHROMA_HOST=chroma
@@ -113,6 +114,7 @@ services:
       - AGENT_NAME=tips-tricks-writer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -249,6 +251,7 @@ services:
       - AGENT_NAME=throttle-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/1
       # ✅ SACRED RULE: Redis DB 1 = rate limits — NEVER change this
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -298,6 +301,7 @@ services:
       - AGENT_NAME=super-hyper-broski-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OLLAMA_HOST=http://hypercode-ollama:11434
@@ -350,6 +354,7 @@ services:
       - AGENT_NAME=test-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -537,6 +542,7 @@ services:
       - AGENT_NAME=business-agent
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - HYPERCODE_API_KEY=${API_KEY:-dev}
       - REDIS_URL=redis://redis:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - STRIPE_API_KEY=${STRIPE_API_KEY:-}
