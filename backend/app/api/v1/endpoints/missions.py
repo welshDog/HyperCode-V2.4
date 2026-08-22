@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -50,6 +50,20 @@ class ProposeRequest(BaseModel):
 
 class ReviewRequest(BaseModel):
     decision: Literal["approve", "reject"]
+    # Only required to approve a mission whose recorded Safety Shepherd
+    # verdict is ESCALATE -- forces a deliberate, audited override instead
+    # of a silent one-click downgrade to ALLOW. Ignored for reject and for
+    # ALLOW/missing verdicts.
+    escalation_reason: Optional[str] = None
+
+
+def _safety_decision(plan_response: Optional[dict[str, Any]]) -> Optional[str]:
+    if not isinstance(plan_response, dict):
+        return None
+    safety = plan_response.get("safety")
+    if not isinstance(safety, dict):
+        return None
+    return safety.get("decision")
 
 
 def _serialize(row) -> dict[str, Any]:
@@ -135,14 +149,31 @@ def review_mission(
             detail=f"mission status is {row.status!r}, must be 'previewed' to review",
         )
 
+    safety_decision = _safety_decision(row.plan_response)
+    if body.decision == "approve":
+        if safety_decision == "BLOCK":
+            raise HTTPException(
+                status_code=409,
+                detail="mission cannot be approved: Safety Shepherd verdict is BLOCK",
+            )
+        if safety_decision == "ESCALATE" and not (body.escalation_reason or "").strip():
+            raise HTTPException(
+                status_code=422,
+                detail="mission cannot be approved: Safety Shepherd verdict is ESCALATE, "
+                "an escalation_reason is required to override it",
+            )
+
     new_status = "approved" if body.decision == "approve" else "rejected"
     updated = mission_store.update_status(db, mission_id, new_status)
 
+    ledger_payload: dict[str, Any] = {"mission_id": mission_id, "decision": body.decision}
+    if safety_decision == "ESCALATE" and body.escalation_reason:
+        ledger_payload["escalation_reason"] = body.escalation_reason
     ledger_row = GovernanceLedger(
         user_id=str(current_user.id),
         action="mission.review",
         tool_used=None,
-        payload={"mission_id": mission_id, "decision": body.decision},
+        payload=ledger_payload,
         decision=new_status,
         agent_name="mission-director",
         approved_by=str(current_user.id),

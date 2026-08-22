@@ -177,6 +177,123 @@ def test_review_409_when_status_not_previewed(client, db):
     assert resp.status_code == 409
 
 
+def test_review_rejects_approval_when_safety_decision_is_block(client, db):
+    user = _make_user(db)
+    from app.services import mission_store
+
+    mission_store.create(
+        db,
+        mission_id="mission_blocked",
+        status="previewed",
+        goal="g",
+        truth_snapshot_ref="sha256:abc",
+        plan=None,
+        plan_response={
+            "plan_id": "plan_x",
+            "plan_hash": "sha256:x",
+            "safety": {"decision": "BLOCK", "reason": "r", "shepherd_available": True},
+            "execution": {"performed": False, "would_execute": []},
+        },
+    )
+    resp = client.post(
+        "/api/v1/missions/mission_blocked/review",
+        json={"decision": "approve"},
+        headers=_auth_headers(user),
+    )
+    assert resp.status_code == 409
+
+    from app.services import mission_store as ms
+
+    assert ms.get_by_id(db, "mission_blocked").status == "previewed"
+
+
+def test_review_allows_reject_even_when_safety_decision_is_block(client, db):
+    user = _make_user(db)
+    from app.services import mission_store
+
+    mission_store.create(
+        db,
+        mission_id="mission_blocked_reject",
+        status="previewed",
+        goal="g",
+        truth_snapshot_ref="sha256:abc",
+        plan=None,
+        plan_response={
+            "plan_id": "plan_x",
+            "plan_hash": "sha256:x",
+            "safety": {"decision": "BLOCK", "reason": "r", "shepherd_available": False},
+            "execution": {"performed": False, "would_execute": []},
+        },
+    )
+    resp = client.post(
+        "/api/v1/missions/mission_blocked_reject/review",
+        json={"decision": "reject"},
+        headers=_auth_headers(user),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"
+
+
+def test_review_requires_escalation_reason_when_safety_decision_is_escalate(client, db):
+    user = _make_user(db)
+    from app.services import mission_store
+
+    mission_store.create(
+        db,
+        mission_id="mission_escalate",
+        status="previewed",
+        goal="g",
+        truth_snapshot_ref="sha256:abc",
+        plan=None,
+        plan_response={
+            "plan_id": "plan_x",
+            "plan_hash": "sha256:x",
+            "safety": {"decision": "ESCALATE", "reason": "r", "shepherd_available": True},
+            "execution": {"performed": False, "would_execute": []},
+        },
+    )
+    resp = client.post(
+        "/api/v1/missions/mission_escalate/review",
+        json={"decision": "approve"},
+        headers=_auth_headers(user),
+    )
+    assert resp.status_code == 422
+
+
+def test_review_approves_escalate_when_reason_given_and_logs_it(client, db):
+    user = _make_user(db)
+    from app.services import mission_store
+
+    mission_store.create(
+        db,
+        mission_id="mission_escalate_ok",
+        status="previewed",
+        goal="g",
+        truth_snapshot_ref="sha256:abc",
+        plan=None,
+        plan_response={
+            "plan_id": "plan_x",
+            "plan_hash": "sha256:x",
+            "safety": {"decision": "ESCALATE", "reason": "r", "shepherd_available": True},
+            "execution": {"performed": False, "would_execute": []},
+        },
+    )
+    resp = client.post(
+        "/api/v1/missions/mission_escalate_ok/review",
+        json={"decision": "approve", "escalation_reason": "reviewed by Bro, acceptable risk"},
+        headers=_auth_headers(user),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "approved"
+
+    from app.models.governance import GovernanceLedger
+
+    rows = db.query(GovernanceLedger).filter(GovernanceLedger.action == "mission.review").all()
+    matches = [r for r in rows if r.payload.get("mission_id") == "mission_escalate_ok"]
+    assert len(matches) == 1
+    assert matches[0].payload["escalation_reason"] == "reviewed by Bro, acceptable risk"
+
+
 def test_review_approve_transitions_and_writes_ledger(client, db):
     user = _make_user(db)
     from app.services import mission_store
