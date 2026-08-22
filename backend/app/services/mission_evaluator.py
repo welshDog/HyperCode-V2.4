@@ -57,7 +57,7 @@ def evaluate_mission(status: str, plan_response: Optional[dict[str, Any]]) -> di
     anomaly_approved_despite_block = (
         human_decision == "approved"
         and safety_decision == "BLOCK"
-        and shepherd_available is True
+        and shepherd_available is not False
     )
     anomaly_approved_despite_shepherd_down = (
         human_decision == "approved"

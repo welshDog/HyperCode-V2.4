@@ -79,3 +79,22 @@ def test_malformed_plan_response_degrades_to_none_never_raises():
     # human_decision is still "approved" (derived from status, not plan_response)
     assert result["human_decision"] == "approved"
     assert result["anomaly_approved_despite_block"] is False
+
+
+def test_approved_despite_block_with_missing_shepherd_available_key_still_flags():
+    """A plan_response.safety dict that omits shepherd_available entirely
+    must still flag the more serious anomaly, not silently pass as clean --
+    this is the exact case a final whole-branch review caught: neither
+    'is True' nor 'is False' matches None, so the original code silently
+    missed this permanently (mission_evaluations rows are write-once)."""
+    plan_response = {
+        "plan_id": "plan_x",
+        "plan_hash": "sha256:x",
+        "safety": {"decision": "BLOCK", "reason": "r"},  # no shepherd_available key at all
+        "execution": {"performed": False, "would_execute": []},
+    }
+    result = evaluate_mission("approved", plan_response)
+    assert result["shepherd_available"] is None
+    assert result["anomaly_approved_despite_block"] is True
+    assert result["anomaly_approved_despite_shepherd_down"] is False
+    assert result["verdict"] == "anomaly"
