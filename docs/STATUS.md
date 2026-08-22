@@ -1,6 +1,7 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **August 20/21, 2026 (late night)**
+> Last updated: **August 22, 2026 (early hours)** — mission-director + mission-evaluator
+> shipped 2026-08-21/22, see `docs/NEXT_SESSION_HANDOVER_2026-08-21-late-night.md`
 > For sacred rules + architecture → `CLAUDE.md`
 > For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
 > (kept accurate every session; this file's own fleet table below is not — see the

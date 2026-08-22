@@ -1,7 +1,23 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 20, 2026 (late night pass)**
+> Last updated: **August 22, 2026 (early hours pass)**
+
+---
+
+## 🆕 New from 2026-08-21/22 session (truth registry + mission-director + mission-evaluator)
+
+> Full write-up: `docs/NEXT_SESSION_HANDOVER_2026-08-21-late-night.md`. All
+> items below are genuinely new this session — everything in "🔥 Immediate"
+> and below is unchanged from 2026-08-20 and still accurate.
+
+| # | Task | Priority |
+|---|---|---|
+| N1 | **`ANTHROPIC_API_KEY` in `.env` is invalid** (real `401` from Anthropic, confirmed live) — every `mission-director` propose call lands on `preview_unavailable` until rotated. Blocks proving the full propose→previewed→approved happy path live. | 🔴 [Issue #433](https://github.com/welshDog/HyperCode-V2.4/issues/433) |
+| N2 | **Rotate `DATABASE_URL` + `DASHBOARD_SERVICE_JWT`** — briefly exposed to a subagent's own tool output during a fix wave (never touched git, precautionary). | 🟡 [Issue #434](https://github.com/welshDog/HyperCode-V2.4/issues/434) |
+| N3 | **`review_mission` doesn't re-check the Safety Shepherd verdict before allowing approval** — a human can approve a `BLOCK`-verdict mission today. Harmless now (approval performs nothing live), but needs a Phase 3 governance decision (default-deny `BLOCK` + explicit override path) before "approved" gets real teeth. Now continuously measurable via `GET /api/v1/mission-evaluations/summary`. | 🟢 Design decision, Phase 3 territory |
+| N4 | **Pre-existing `broski-bot` duplicate-`security_opt` YAML merge error** blocks the standard full multi-file `docker compose ... build` command for ANY service — found + worked around (not fixed) twice this session by targeting `docker-compose.core.yml` alone. Will bite the next person who runs the documented standard launch command. | 🟡 [Issue #435](https://github.com/welshDog/HyperCode-V2.4/issues/435) |
+| N5 | **`docs/NEXT_TASKS.md` (this file) and `docs/STATUS.md`** — `STATUS.md` still predates the 08-19/08-20 reconciliation (banner-only fix again this session, no full rewrite — same reasoning as last time: a rushed rewrite risks re-creating the duplication bugs it would need to avoid). | 🟡 doc debt, carried forward |
 
 ---
 
