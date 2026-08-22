@@ -8,6 +8,7 @@
 #   agent-registry        (always-on)      — fleet tracker, /agents/status, auto-restart
 #   agent-factory         (profile agents) — REST spawn/wake for profile-gated agents
 #   hyper-auto-assistant  (profile hyper)  — intent router → super-hyper-broski-agent
+#   broski-coo            (profile agents) — read-only COO brief, /brief (port 8025)
 
 services:
   agent-registry:
@@ -113,6 +114,54 @@ services:
       - PORT=8016
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8016/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          cpus: "0.05"
+          memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+
+  broski-coo:
+    profiles: ["agents"]
+    build:
+      context: ./agents/broski-coo
+      dockerfile: Dockerfile
+    container_name: broski-coo
+    restart: unless-stopped
+    networks:
+      - agents-net
+    ports:
+      - "127.0.0.1:8025:8025"
+    environment:
+      - AGENT_REGISTRY_URL=http://agent-registry:8077
+      - REPO_ROOT_PATH=/app/repo
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-llama3.2}
+      - LLM_API_BASE=${LLM_API_BASE:-http://ollama:11434/v1}
+      - LLM_API_KEY=${LLM_API_KEY:-NA}
+      - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-}
+      - AGENT_API_KEY=${AGENT_API_KEY:-}
+    volumes:
+      - ./:/app/repo:ro
+    depends_on:
+      agent-registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8025/health"]
       interval: 30s
       timeout: 10s
       retries: 3
