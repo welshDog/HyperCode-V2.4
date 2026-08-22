@@ -4,6 +4,75 @@
 
 ---
 
+## 2026-08-22 night — N2 credential rotation (JWT + Postgres password) shipped (#434)
+
+**`DASHBOARD_SERVICE_JWT`**: re-minted a fresh 365-day token via the
+documented `create_access_token(1, timedelta(days=365))` procedure, run
+inside the live `hypercode-core` container so the raw token never touched
+stdout/chat — moved to a local scratch file, applied to `.env` via one
+approved edit, scratch file deleted immediately after. `dashboard` container
+recreated, verified live end-to-end (`GET /api/tasks` → `200`, was the
+JWT-gated proxy route).
+
+**Postgres password**: generated a new random hex password, rotated the live
+role via `ALTER ROLE ... WITH PASSWORD` (no downtime — existing sessions
+keep working, only new connections need the new password), and proved the
+rotation actually took effect over the network from a real client
+(`asyncpg` from `hypercode-core` to `postgres:5432`): old password →
+`InvalidPasswordError`, new password → connects. (An earlier local-socket
+test had given a false "old password still works" result — Postgres's
+`pg_hba.conf` trusts local Unix-socket connections regardless of password,
+so that test proved nothing; the real proof needed a network client.)
+`.env` updated: `POSTGRES_PASSWORD`, `DB_PASSWORD`, `DATABASE_URL`.
+
+**Two real gaps found doing this, not just the headline rotation**:
+
+1. The first dependency sweep (`docker exec $c printenv DATABASE_URL`)
+   missed `hypercode-core` and `celery-worker` entirely — both read
+   `HYPERCODE_DB_URL` instead, built from `${POSTGRES_PASSWORD}` via compose
+   variable substitution in `docker-compose.core.yml`. Both needed a recreate
+   like the other 9 DB-dependent containers to pick up the new password.
+2. HyperHealth's seeded `postgres-db-health` check
+   (`agents/hyperhealth/seed_checks.py`) stores a **literal DSN, password
+   included, as a row in its own DB** — not derived live from `.env` at
+   check-execution time. Rotating the password without re-seeding left this
+   one check retrying every 30s with the dead credential, visible as a
+   steady stream of `password authentication failed` in Postgres's own logs.
+   Traced to the exact source (`hyperhealth-worker`, not some external
+   client) via the connecting IP after temporarily enabling
+   `log_connections` on Postgres (reverted after). Fixed by re-running
+   `seed_checks.py --force`, which found and fixed a second real bug along
+   the way: the script's `.env` reader had no explicit encoding and crashed
+   on a non-cp1252 byte — same Windows-encoding trap class as other issues
+   in this repo, fixed with `encoding="utf-8"`. **Any future Postgres
+   password rotation must re-run this script too** — it's a second, easily
+   forgotten source of truth for the DSN.
+
+**Real incident during this work**: recreating ~12 containers on top of an
+already-running 69-container fleet (this box's WSL2 VM is capped at 4GB via
+`.wslconfig`, a deliberate, already-known ceiling — never raise it) drove
+the host to `0.40GB` free and took the whole WSL2 VM unresponsive —
+`docker exec`/`docker ps` timing out completely, Docker Desktop's own API
+returning `500`s, `wsl -e free -m` itself failing with
+`WSL/Service/0x8007274c`. Recovered via a Docker Desktop restart (from the
+tray) followed by a staged relaunch — core infra first, then
+`agents-full.yml`, then registry/hyperhealth/discord/brain profiles in small
+batches, checking memory between each stage — rather than one blanket
+`up -d` for all 69 containers at once. Zero data loss (Postgres's data
+volume was never touched, `docker logs postgres` confirmed "Skipping
+initialization" on every restart), zero unhealthy containers after full
+recovery. Corrected `docs/STATUS.md`'s "Known Risks" table, which had
+claimed memory pressure was already "proven, not just planned" — that claim
+was true for the specific launch pattern it was based on (one clean `up -d`)
+but doesn't hold for live container churn on an already-running fleet, and
+tonight is real evidence of that, not a hypothetical.
+
+**N1 (`ANTHROPIC_API_KEY`) unchanged** — still needs Bro to generate a fresh
+key at console.anthropic.com and place it directly into `.env`; no agent
+action can substitute for that step.
+
+---
+
 ## 2026-08-22 evening — N4 `broski-bot` duplicate-`security_opt` fixed (#435)
 
 Issue #435's own hypothesis ("`broski-bot`'s `security_opt` is probably set

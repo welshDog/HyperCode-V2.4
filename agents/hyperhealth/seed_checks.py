@@ -18,7 +18,7 @@ FORCE    = "--force" in sys.argv
 def load_env(path=".env"):
     env = {}
     try:
-        for line in open(path):
+        for line in open(path, encoding="utf-8"):
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, _, v = line.partition("=")
