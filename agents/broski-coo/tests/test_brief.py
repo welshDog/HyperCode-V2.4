@@ -180,6 +180,38 @@ async def test_discover_free_models_excludes_denied_providers(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_openrouter_request_excludes_visible_reasoning(monkeypatch):
+    """Regression test for a real bug caught live: nvidia/nemotron-3.5-lightning:free
+    (a reasoning model, like stealth/ox-alpha) can return non-null content
+    that is entirely a raw chain-of-thought trace, cut off mid-sentence,
+    having spent the whole max_tokens budget on visible reasoning instead of
+    a final answer -- the null-content check doesn't catch this since the
+    content isn't null. Fix: reasoning.exclude=true keeps reasoning internal
+    to the model without returning it (confirmed against OpenRouter's own
+    docs), so every request must send this field."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-or-key")
+    import main
+
+    main._free_model_cache["models"] = []
+    main._free_model_cache["fetched_at"] = 0.0
+
+    models_payload = {"data": [{"id": "model-a", "pricing": {"prompt": "0"}}]}
+    real_content_payload = {"choices": [{"message": {"content": "a real brief"}}]}
+    captured_payload = {}
+
+    async def _fake_post(self, url, json=None, headers=None, timeout=None):
+        captured_payload.update(json or {})
+        return _MockResponse(real_content_payload)
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))), patch(
+        "httpx.AsyncClient.post", new=_fake_post
+    ):
+        await main._openrouter_chat_free("sys", "user", 900)
+
+    assert captured_payload["reasoning"] == {"effort": "low", "exclude": True}
+
+
+@pytest.mark.asyncio
 async def test_openrouter_null_content_rotates_to_next_free_model(monkeypatch):
     """Regression test for a real bug caught live: a reasoning-capable free
     model (stealth/ox-alpha, confirmed against the real OpenRouter API) can

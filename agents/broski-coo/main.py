@@ -159,6 +159,18 @@ async def _openrouter_chat_free(system: str, user: str, max_tokens: int) -> tupl
                     ],
                     "max_tokens": max_tokens,
                     "temperature": 0.2,
+                    # Confirmed live: nvidia/nemotron-3.5-lightning:free (a
+                    # reasoning model, like stealth/ox-alpha) can spend the
+                    # entire max_tokens budget on visible chain-of-thought
+                    # and never reach a final answer -- the response is
+                    # non-null (so the null-content check above doesn't
+                    # catch it) but is a raw reasoning trace, not a brief.
+                    # exclude: true keeps reasoning internal to the model
+                    # without returning it, so max_tokens goes to the
+                    # actual answer. Verified against OpenRouter's own docs
+                    # (openrouter.ai/docs/use-cases/reasoning-tokens), not
+                    # assumed.
+                    "reasoning": {"effort": "low", "exclude": True},
                 }
                 resp = await client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
