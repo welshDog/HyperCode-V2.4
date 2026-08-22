@@ -105,6 +105,18 @@ class _OllamaAdapter:
 _free_model_cache: dict[str, Any] = {"models": [], "fetched_at": 0.0}
 FREE_MODEL_CACHE_TTL_SECONDS = 300  # respects OpenRouter free-tier's shared 20 req/min cap
 
+# Providers confirmed (via OpenRouter's own models page, reviewed by Lyndz
+# during OpenRouter setup) to train on free-tier inputs/outputs. Excluded by
+# provider-id prefix so this holds even as specific model slugs rotate.
+# NOTE: an OpenRouter dashboard preset with an equivalent data_collection:
+# deny rule was tried instead of this client-side filter first -- reverted
+# (see docs/gotchas or WHATS_DONE.md) after live testing proved the preset
+# mechanism doesn't reliably enforce its own policy: an explicit `model`
+# field silently overrides both the preset's model selection AND its cost/
+# training-data safety net. This denylist is a hard, code-level check that
+# can't be silently bypassed by a request-time field.
+_DENIED_PROVIDERS = {"poolside", "liquid"}
+
 
 async def _discover_free_openrouter_models(client: httpx.AsyncClient) -> list[str]:
     now = time.time()
@@ -113,7 +125,11 @@ async def _discover_free_openrouter_models(client: httpx.AsyncClient) -> list[st
     resp = await client.get("https://openrouter.ai/api/v1/models", timeout=10.0)
     resp.raise_for_status()
     data = resp.json().get("data", [])
-    free = [m["id"] for m in data if m.get("pricing", {}).get("prompt") == "0"]
+    free = [
+        m["id"]
+        for m in data
+        if m.get("pricing", {}).get("prompt") == "0" and m["id"].split("/")[0] not in _DENIED_PROVIDERS
+    ]
     _free_model_cache["models"] = free
     _free_model_cache["fetched_at"] = now
     return free

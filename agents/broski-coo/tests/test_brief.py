@@ -1,5 +1,6 @@
 from unittest.mock import AsyncMock, patch
 
+import httpx
 import pytest
 
 
@@ -147,6 +148,35 @@ async def test_brief_no_llm_keys_falls_through_to_string_never_500s(client, monk
     body = resp.json()
     assert body["provider_used"] == "none"
     assert isinstance(body["brief"], str) and body["brief"]
+
+
+@pytest.mark.asyncio
+async def test_discover_free_models_excludes_denied_providers(monkeypatch):
+    """Poolside and LiquidAI are confirmed (via OpenRouter's own models page,
+    reviewed during setup) to train on free-tier inputs/outputs. Excluded by
+    provider-id prefix -- a hard, code-level check, not dependent on an
+    OpenRouter dashboard preset (see main.py's _DENIED_PROVIDERS docstring
+    for why a preset-based approach was tried and reverted)."""
+    import main
+
+    main._free_model_cache["models"] = []
+    main._free_model_cache["fetched_at"] = 0.0
+
+    models_payload = {
+        "data": [
+            {"id": "poolside/laguna-s-2.1:free", "pricing": {"prompt": "0"}},
+            {"id": "liquid/lfm-2.5-2.6b:free", "pricing": {"prompt": "0"}},
+            {"id": "cohere/north-mini-code:free", "pricing": {"prompt": "0"}},
+            {"id": "nvidia/nemotron-3.5-lightning:free", "pricing": {"prompt": "0"}},
+        ]
+    }
+
+    with patch("httpx.AsyncClient.get", new=AsyncMock(return_value=_MockResponse(models_payload))):
+        async with httpx.AsyncClient() as client:
+            models = await main._discover_free_openrouter_models(client)
+
+    assert models == ["cohere/north-mini-code:free", "nvidia/nemotron-3.5-lightning:free"]
+    assert not any(m.startswith("poolside/") or m.startswith("liquid/") for m in models)
 
 
 @pytest.mark.asyncio

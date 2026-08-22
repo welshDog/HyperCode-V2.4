@@ -93,9 +93,28 @@ alongside the LLM's prose so it's checkable, never just trusted.
 - `agent-registry`'s own mutation routes being unauthenticated is
   pre-existing and unrelated to this agent — not this agent's job to fix,
   just a boundary it must never cross.
-- OpenRouter free-model selection is dynamic and unallowlisted — whatever's
-  free at call time, confirmed volatile (only 7 models free at design time).
-  `provider_used` in every `/brief` response names the actual model used.
+- OpenRouter free-model selection is dynamic, discovered at call time
+  (`GET /models`, filter `pricing.prompt == "0"`), confirmed volatile (7
+  models free at design time, 21 a few hours later same day). Poolside and
+  LiquidAI are excluded by provider-id prefix (`_DENIED_PROVIDERS` in
+  `main.py`) — confirmed via OpenRouter's own models page to train on
+  free-tier inputs/outputs. `provider_used` in every `/brief` response names
+  the actual model used.
+- **Gotcha, don't re-attempt blind**: an OpenRouter dashboard preset
+  (`@preset/<slug>`, with `data_collection: deny` + `max_price: 0` as an
+  intended server-side safety net) was tried as a replacement for the
+  client-side denylist above and reverted after live testing. Findings:
+  the bare `model: "@preset/<slug>"` syntax returned a consistent `500`
+  regardless of the preset's model composition; the `model` + `preset`
+  dedicated-field syntax returned `200` but an explicit `model` field
+  silently overrode BOTH the preset's model selection AND its cost/
+  training-data policy (proven by successfully routing to a paid model —
+  `anthropic/claude-3-haiku`, real non-zero cost charged — through a
+  preset configured to deny exactly that). Presets may work correctly for
+  other use cases; this repo's conclusion is only that they don't currently
+  give a *reliable, unbypassable* server-side guarantee the way the
+  client-side `_DENIED_PROVIDERS` check does. See `git log --grep=preset`
+  in this repo for the try/revert commits if revisiting this.
 
 ## 7. ✅ Example Task
 

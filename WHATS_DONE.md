@@ -4,6 +4,77 @@
 
 ---
 
+## 2026-08-22 — `review_mission` BLOCK-approval gap fixed; `broski-coo` v1 built, live
+
+**`review_mission` fixed** (`backend/app/api/v1/endpoints/missions.py`,
+commit `378b336d`): the endpoint previously wrote whatever decision a human
+sent straight to `approved`/`rejected`, never reading
+`plan_response.safety.decision` — a human could approve a mission whose own
+preview was `BLOCK`ed, exactly the gap `anomaly_approved_despite_block` (Mission
+Evaluator v1, above) was built to *measure* but never closed. Now: `BLOCK`
+hard-rejects approval (`409`), no override exists; `ESCALATE` requires a
+non-empty `escalation_reason` (`422` without one), so an override is
+deliberate and audited in the Governance Ledger, never a silent downgrade to
+`ALLOW`. 13/13 tests pass (9 pre-existing + 4 new).
+
+**`broski-coo` v1 built and shipped** — a new, strictly read-only
+COO/observer agent scoped to HyperCode-V2.4 only (`agents/broski-coo/`,
+commits `bd8cde99`/`89a092ed`/`5a84053a`). `POST /brief` aggregates
+`agent-registry`'s live `/agents/status`, `WHATS_DONE.md`, `docs/NEXT_TASKS.md`,
+and the newest dated `NEXT_SESSION_HANDOVER_*.md` into a plain-English brief,
+tagging each source `ok`/`degraded`/`unavailable` and returning the raw
+numbers alongside the LLM's prose so the output is checkable, not just
+trusted — motivated directly by two hallucinations pasted from a different
+AI assistant into the design session (a "free models" table 7/8 wrong; a
+claimed "~30 containers" and a nonexistent `NEXT_SESSION_HANDOVER_LATEST.md`
+file, real count 68, no such file exists). Deliberately not a supervisory
+agent — no Docker socket, no `DOCKER_HOST`, never calls `agent-registry`'s
+adjacent `restart`/`reset` mutation routes, same containment discipline as
+`review_mission`'s fix above (don't extend a new agent's trust boundary
+before the areas already found shaky are proven solid).
+
+New Anthropic → OpenRouter(free) → Ollama LLM fallback chain, extending the
+existing per-agent `_build_llm_client()` pattern (duplicated across 13 agent
+files by established convention). Live-testing this against the real
+`OPENROUTER_API_KEY` (once Lyndz wired it into the *correct* `.env` — it was
+initially dropped into the parent `HperCore/.env`, one directory above the
+one `docker compose` actually reads for this repo) surfaced a real bug the
+mocked test suite couldn't catch: `stealth/ox-alpha`, a reasoning-capable
+free model, returned `200 OK` with `message.content == null` and
+`finish_reason: "length"` — it spent its token budget on internal reasoning
+before emitting any output. Fixed: null/empty content is now treated as a
+failed attempt and rotates to the next discovered free model.
+
+**Tried and reverted, documented so it isn't re-attempted blind**: switched
+the OpenRouter tier to route through an OpenRouter dashboard preset
+(`@preset/free-router`, configured by Lyndz with `data_collection: deny` +
+`max_price: 0` as an intended server-side safety net for the providers
+confirmed to train on free-tier inputs/outputs — Poolside, LiquidAI).
+Reverted after live testing proved the preset mechanism doesn't reliably
+enforce its own policy: the bare `@preset/<slug>` syntax returned a
+consistent `500` regardless of the preset's model composition; the
+`model` + `preset` dedicated-field syntax returned `200` but an explicit
+`model` field silently overrode BOTH the preset's model selection AND its
+cost/training-data policy — proven by successfully routing to a paid model
+(`anthropic/claude-3-haiku`, real non-zero cost charged) through a preset
+configured to deny exactly that. Replaced with a client-side
+`_DENIED_PROVIDERS` filter (excludes `poolside`/`liquid` by provider-id
+prefix at discovery time) — a hard, code-level check that can't be silently
+bypassed by a request-time field, unlike the preset. Full writeup in
+`agents/broski-coo/HYPER-AGENT-BIBLE.md` §6.
+
+19/19 tests pass. **Verified live at every stage, not just claimed**:
+standalone build/run, real repo bind mount (correctly picked
+`NEXT_SESSION_HANDOVER_2026-08-21-late-night.md` as newest), real
+`agent-registry` numbers matched a direct `curl` side-by-side, full compose
+integration with zero unhealthy containers across the fleet (69 running),
+denylist confirmed against the live catalog (`poolside`/`liquid` absent from
+discovered models), and the full fallback chain proven end-to-end at the
+real production `max_tokens=900`: dead Anthropic key → real OpenRouter call
+→ `stealth/ox-alpha` → real "Hello!" text.
+
+---
+
 ## 2026-08-22 — Mission Evaluator v1 live: read-only quality scoring over mission_proposals
 
 Implemented `docs/superpowers/specs/2026-08-21-mission-evaluator-design.md` via
