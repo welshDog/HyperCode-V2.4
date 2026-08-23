@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-08-23 afternoon — item 0b closed: all 7 specialists rebuilt, delegation proven live end-to-end
+
+Finished the rollout the midday session paused mid-way (below). `database-architect`,
+`qa-engineer`, `devops-engineer`, `security-engineer`, `system-architect` all
+rebuilt (`docker build --no-cache`) and recreated
+(`--no-deps --force-recreate`), joining `frontend-specialist`/`backend-specialist`,
+which were already done. All 7 now confirm `AGENT_MODEL` reads `None` (falls
+through to `base-agent`'s live-valid default) instead of the retired
+`claude-3-5-sonnet-20241022`.
+
+**Real gotcha hit doing the rebuild, worth remembering**: `security-engineer` and
+`system-architect` define an explicit `image:` override in
+`docker-compose.agents-full.yml` (`hypercode-security-engineer:latest` /
+`hypercode-system-architect:latest` — no `v24` in the name), unlike
+`database-architect`/`qa-engineer`/`devops-engineer` (defined in
+`docker-compose.agents.yml`, no `image:` field, so Compose's own default
+`<project>-<service>` naming happens to equal `hypercode-v24-<service>`). Building
+the first pass with the uniform `hypercode-v24-<name>:latest` tag from the
+midday handover's template silently built an orphan image nobody referenced —
+`docker compose up --force-recreate` (no `--build` flag) just reused the old
+stale image under the real tag, and the container came back "recreated" but
+still running the retired model. Caught immediately by re-checking
+`AGENT_MODEL` after recreate rather than trusting the recreate step alone;
+rebuilt both under their real referenced tags and re-recreated — confirmed
+fixed. **Always check a compose service's own `image:` field for a tag
+override before assuming `<project>-<service>` naming.**
+
+Also hit, unrelated to this fix: `project-strategist` had silently exited
+(`Exited (255)`, no error before shutdown — same signature as the
+2026-08-22-afternoon-documented, still-unexplained recurrence) sometime before
+this session started. `docker start project-strategist` recovered it cleanly.
+
+**Verified live, full end-to-end delegation chain, not just the env var**:
+called `project-strategist`'s `/execute` directly with a real feature request
+("add a health endpoint alias"). Got back a real, well-formed 4-task structured
+plan (`status: "planned"`, Claude's JSON-fence correctly parsed) assigning
+tasks to `backend`×2, `qa`, `devops`. `delegate_tasks()` fired all 4 real HTTP
+calls — confirmed in each specialist's own logs: `backend-specialist` (×2),
+`qa-engineer`, `devops-engineer` all logged `POST /execute` → `200 OK`, each
+producing genuine, substantive LLM-generated implementation plans (real code,
+real reasoning) — not the "Connection error" stub item 0b's bug produced
+before today. Full-fleet sweep before and after: zero unhealthy containers,
+memory stayed inside the documented WSL2 ceiling throughout (swap briefly hit
+0 free mid-rollout, recovered on its own, never went unresponsive like the
+2026-08-22 incident).
+
+Item 0b closed. No further open items from this thread.
+
+---
+
 ## 2026-08-23 midday — item 0b: specialist agents' ANTHROPIC_API_KEY, in progress
 
 Confirmed last night's suspicion: all 7 specialist agents (`frontend-specialist`,
