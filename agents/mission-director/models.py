@@ -68,7 +68,19 @@ def canonical_hash(plan: PlanRequest) -> str:
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
 
 
-# ---- Mission Director additions (Phase 1) ----
+# ---- Mission Director additions (Phase 1 + Phase 2) ----
+
+
+class ImpactView(BaseModel):
+    """Advisory only -- never validated as fact, never fed back into
+    Safety Shepherd's policy. See
+    docs/superpowers/specs/2026-08-24-fleet-dependency-graph-design.md."""
+
+    profile: str
+    upstream: list[str] = Field(default_factory=list)
+    downstream_already_running: list[str] = Field(default_factory=list)
+    available: bool = True
+    reason: Optional[str] = None
 
 
 class MissionProposal(BaseModel):
@@ -79,6 +91,7 @@ class MissionProposal(BaseModel):
     rationale: Optional[str] = None
     plan: Optional[PlanRequest] = None
     plan_response: Optional[PlanResponse] = None
+    impact: list[ImpactView] = Field(default_factory=list)
     status: Literal[
         "proposed",
         "previewed",

@@ -48,3 +48,23 @@ def test_review_decision_accepts_approve_and_reject():
 def test_review_decision_rejects_other_values():
     with pytest.raises(ValidationError):
         ReviewDecision(decision="maybe")
+
+
+from models import ImpactView
+
+
+def test_mission_proposal_impact_defaults_to_empty_list():
+    proposal = MissionProposal(
+        schema_version=1,
+        mission_id="mission_abc123",
+        goal="do the thing",
+        status="proposed",
+    )
+    assert proposal.impact == []
+
+
+def test_impact_view_degraded_shape():
+    view = ImpactView(profile="agents", available=False, reason="registry unavailable")
+    assert view.upstream == []
+    assert view.downstream_already_running == []
+    assert view.reason == "registry unavailable"
