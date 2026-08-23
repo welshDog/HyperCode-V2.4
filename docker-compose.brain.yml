@@ -13,7 +13,7 @@ services:
       - "127.0.0.1:8100:8100"
     environment:
       - OBSIDIAN_VAULT_PATH=/vault
-      - REDIS_URL=redis://redis:6379/4
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - MCP_PORT=8820
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
@@ -66,7 +66,7 @@ services:
     environment:
       - AGENT_ID=hyper-brain-core
       - PORT=3301
-      - REDIS_URL=redis://redis:6379/4
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
     volumes:
@@ -114,7 +114,7 @@ services:
     environment:
       - AGENT_ID=mcp-bridge
       - PORT=3302
-      - REDIS_URL=redis://redis:6379/4
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://hypercode-ollama:11434}
@@ -196,7 +196,7 @@ services:
     environment:
       - AGENT_ID=focus-tracker
       - PORT=3303
-      - DATABASE_URL=postgresql://postgres:hypercode@postgres:5432/hypercode
+      - DATABASE_URL=postgresql://postgres:hypercode@${POSTGRES_HOST:-postgres}:5432/hypercode
       - OBSIDIAN_VAULT_PATH=/vault
     volumes:
       - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
@@ -240,7 +240,7 @@ services:
     environment:
       - AGENT_ID=morning-briefing
       - PORT=3304
-      - REDIS_URL=redis://redis:6379/4
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/4
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
       - MCP_BRIDGE_URL=http://agent-mcp-bridge:3302

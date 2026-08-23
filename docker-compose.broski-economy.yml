@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     profiles: ["broski-economy"]
     environment:
-      REDIS_HOST: redis
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: "6379"
       # Durable postgres sink -> hypercode-core routes each award through
       # broski_service.award_xp into broski_wallets/broski_transactions.

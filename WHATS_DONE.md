@@ -4,6 +4,65 @@
 
 ---
 
+## 2026-08-23 evening — POSTGRES_HOST/REDIS_HOST indirection added (prep for a future cloud split, nothing moved)
+
+Bro asked to start implementing the idea added earlier to `Brainstorm HyperCode
+OFF Your Laptop` (splitting Postgres/Redis/observability onto Oracle Cloud via
+a Tailscale mesh). Since I have no Oracle Cloud/Tailscale access and moving
+live data is a real, hard-to-reverse infra change, scoped this down with Bro
+to **repo-side prep only**: introduce a single `POSTGRES_HOST`/`REDIS_HOST`
+env var that every hardcoded `postgres`/`redis` hostname in the compose files
+derives from, so a future host migration is a one-line `.env` edit instead of
+a repo-wide sweep. Nothing was provisioned, nothing moved — every var defaults
+to the exact same literal hostname as before.
+
+**Scope turned out much bigger than the 2-file preview I gave Bro before
+starting** — grepped for every hardcoded `postgres:5432`/`redis:6379`
+occurrence across the whole compose set (not just `docker-compose.core.yml`)
+and found it spread across 15 files: `docker-compose.agents.yml` (11),
+`docker-compose.agents-full.yml` (6 pass through `${DATABASE_URL}` unchanged
+— see gap below), `docker-compose.core.yml`, `docker-compose.brain.yml`,
+`docker-compose.hyper-agents.yml`, `docker-compose.hyperhealth.yml`,
+`docker-compose.mcp-gateway.yml`, `docker-compose.demo.yml`,
+`docker-compose.trae.yml`, `docker-compose.observability.yml`,
+`docker-compose.registry.yml`, `docker-compose.spawner.yml`,
+`docker-compose.bropets.yml`, `docker-compose.broski-economy.yml`, plus
+`.env.example`. Also found a second pattern I'd have missed on the first
+pass — standalone `POSTGRES_HOST=postgres`/`REDIS_HOST=redis` vars (not
+embedded in a URL string) sitting right next to ones I'd already fixed in
+`crew-orchestrator`'s block — folded those in too for full consistency.
+
+**Deliberately excluded, not missed**: 3 embedded Python healthcheck
+literals (`agents.yml:535`, `hyperhealth.yml:110`, `spawner.yml:33` — all
+`redis.from_url('redis://redis:6379/0', ...)` inside a `test:` array) — sed
+would have matched the same substring inside those but they're a different
+risk class (embedded code, not a plain env value), left hardcoded on
+purpose. Also **6 services in `docker-compose.agents-full.yml` that read a
+pre-built `${DATABASE_URL}` straight from `.env`** aren't covered by this —
+they inherit whatever literal DSN the real `.env` has, with no host
+component to parametrize at the compose level; a real host move still needs
+a manual edit there. Same gap for `hypercode-core`'s own
+`HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}` (a passthrough, unlike
+`celery-worker`'s inline-constructed equivalent right next to it in the same
+file) — left as-is rather than guessing at what the real `.env`'s value
+should become.
+
+**Verified, not assumed**: `docker compose config` re-validated clean across
+every touched combination (`docker-compose.yml`+`docker-compose.agents-full.yml`
+with `--profile agents --profile hyper`, the bropets profile, the
+broski-economy consumer project, brain profile, base `docker-compose.yml`
+alone). Diffed the resolved output before/after — every `HYPERCODE_DB_URL`/
+`DATABASE_URL`/`REDIS_URL`/`POSTGRES_URL` still resolves to the exact same
+`postgres:5432`/`redis:6379` hostnames and the exact same Redis DB indices
+(0/1/3/4/5) as before the change, confirming zero behavior change today.
+Nothing was rebuilt, recreated, or restarted — this is source-only prep.
+
+`.env.example` documents `POSTGRES_HOST`/`REDIS_HOST` (both commented out,
+default = current in-network hostnames) with a note pointing at the real gaps
+above for whoever does a real host migration later.
+
+---
+
 ## 2026-08-23 afternoon — item 0b closed: all 7 specialists rebuilt, delegation proven live end-to-end
 
 Finished the rollout the midday session paused mid-way (below). `database-architect`,

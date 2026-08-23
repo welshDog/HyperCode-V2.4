@@ -67,8 +67,8 @@ services:
       - PORT=8080
       - CORE_URL=http://hypercode-core:8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
-      - REDIS_URL=redis://redis:6379/1
-      - POSTGRES_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/1
+      - POSTGRES_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       - API_KEY=${API_KEY:-dev-master-key}
     networks:
       - agents-net

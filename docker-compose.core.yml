@@ -98,7 +98,7 @@ services:
       - ENVIRONMENT=development
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
@@ -234,11 +234,11 @@ services:
       - ./backend:/app
       - ./docs/outputs:/app/outputs
     environment:
-      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
-      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://${REDIS_HOST:-redis}:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://${REDIS_HOST:-redis}:6379/1}
       PYTHONPATH: /home/appuser/.local/lib/python3.11/site-packages:/app
-      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
-      HYPERCODE_REDIS_URL: redis://redis:6379/0
+      HYPERCODE_DB_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
+      HYPERCODE_REDIS_URL: redis://${REDIS_HOST:-redis}:6379/0
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
     healthcheck:
       test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]

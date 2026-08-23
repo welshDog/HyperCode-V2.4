@@ -169,8 +169,8 @@ services:
       timeout: 5s
       retries: 3
     environment:
-      REDIS_URL: redis://redis:6379
-      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       DOCKER_HOST: tcp://docker-socket-proxy-healer:2375
       HYPERCODE_API_KEY: ${API_KEY:-dev-master-key}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
@@ -360,8 +360,8 @@ services:
       PORT: "5000"
       CORE_API_URL: http://hypercode-core:8000
       AUTH_PASSTHROUGH: "true"
-      REDIS_URL: redis://redis:6379
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       JWT_SECRET: ${HYPERCODE_JWT_SECRET:-dev-jwt-secret}
       NODE_ENV: production
     ports:
@@ -441,8 +441,8 @@ services:
       - "127.0.0.1:8095:8090"
     environment:
       - PORT=8090
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
@@ -502,8 +502,8 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "worker"]
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
       - API_KEY=${API_KEY:?API_KEY must be set in .env}
@@ -573,8 +573,8 @@ services:
       AGENT_NAME: lead-architect-01
       AGENT_PORT: "8091"
       CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
-      REDIS_URL: redis://redis:6379
-      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
     volumes:
       - ./agents/shared:/app/shared:ro
     healthcheck:
@@ -614,7 +614,7 @@ services:
       AGENT_NAME: sys-observer-01
       AGENT_PORT: "8092"
       CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379
       OBSERVER_WINDOW_SIZE: "200"
     volumes:
       - ./agents/shared:/app/shared:ro
@@ -653,8 +653,8 @@ services:
       AGENT_NAME: task-worker-01
       AGENT_PORT: "8093"
       CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
-      REDIS_URL: redis://redis:6379
-      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379
+      POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       HYPERFOCUS_MODE: "false"
     volumes:
       - ./agents/shared:/app/shared:ro
@@ -789,7 +789,7 @@ services:
       - ENVIRONMENT=development
       - PRISMA_PY_DEBUG=0
       - HYPERCODE_REDIS_URL=${HYPERCODE_REDIS_URL}
-      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_DB_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       - HYPERCODE_MEMORY_KEY=${HYPERCODE_MEMORY_KEY}
       - API_KEY=${API_KEY}
       - HYPERCODE_JWT_SECRET=${HYPERCODE_JWT_SECRET}
@@ -954,8 +954,8 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=crew-orchestrator
-      - REDIS_URL=redis://redis:6379
-      - ORCHESTRATOR_REDIS_HOST=redis
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379
+      - ORCHESTRATOR_REDIS_HOST=${REDIS_HOST:-redis}
       - ORCHESTRATOR_REDIS_PORT=6379
       - ORCHESTRATOR_ENABLED_AGENTS=${ORCHESTRATOR_ENABLED_AGENTS:-}
       - POSTGRES_USER=${POSTGRES_USER}
@@ -1174,7 +1174,7 @@ services:
       - PORT=8098
       - PETS_ENABLED=${BROSKIE_PETS_ENABLED:-false}
       - EVOLVE_WEBHOOK_URL=${EVOLVE_WEBHOOK_URL:-http://evolve-relay:8097/evolve}
-      - REDIS_URL=redis://redis:6379/3
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/3
       - OLLAMA_URL=http://hypercode-ollama:11434
       - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
       - PETS_NUM_PREDICT=${PETS_NUM_PREDICT:-80}
@@ -1239,7 +1239,7 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - WORKSPACE_PATH=/workspace
       - NEMOCLAW_SCAN_TARGETS=${NEMOCLAW_SCAN_TARGETS:-backend,agents}
-      - POSTGRES_HOST=postgres
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PORT=5432
       - POSTGRES_DB=${POSTGRES_DB:-hypercode}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
@@ -1296,7 +1296,7 @@ services:
     container_name: safety-shepherd
     environment:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - SAFETY_RATE_WINDOW=${SAFETY_RATE_WINDOW:-3600}
       # HS-P2c — verdicts → governance ledger; empty key = push disabled
       - CORE_URL=${CORE_URL:-http://hypercode-core:8000}
@@ -1401,7 +1401,7 @@ services:
       - AGENT_NAME=goal-keeper
       - AGENT_PORT=8050
       - CORE_URL=http://hypercode-core:8000
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379
       - GOAL_KEEPER_API_KEY=${GOAL_KEEPER_API_KEY:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}
     volumes:
@@ -1457,7 +1457,7 @@ services:
       - AGENT_ROLE=project-strategist
       - AGENT_PORT=8001
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
-      - REDIS_HOST=redis
+      - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:

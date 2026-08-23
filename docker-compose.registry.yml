@@ -25,7 +25,7 @@ services:
     environment:
       - DOCKER_READ_HOST=http://docker-socket-proxy:2375
       - DOCKER_WRITE_HOST=http://docker-socket-proxy-healer:2375
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379
       - POLL_INTERVAL_SECONDS=30
       - CRASH_WINDOW_SECONDS=600
       - CRASH_THRESHOLD=3

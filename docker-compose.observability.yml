@@ -435,14 +435,14 @@ services:
     image: ${CELERY_EXPORTER_IMAGE:-danihodovic/celery-exporter:latest}
     container_name: celery-exporter
     profiles: ["observability"]
-    command: --broker-url=redis://redis:6379/0
+    command: --broker-url=redis://${REDIS_HOST:-redis}:6379/0
     ports:
       - "127.0.0.1:9808:9808"
     networks:
       - obs-net
       - data-net
     environment:
-      - REDIS_HOST=redis
+      - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=6379
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9808/metrics', timeout=5).read()"]

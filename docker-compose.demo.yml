@@ -58,8 +58,8 @@ services:
 
   hypercode-core:
     environment:
-      - HYPERCODE_REDIS_URL=redis://redis:6379/0
-      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hypercode}
+      - HYPERCODE_REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - HYPERCODE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
     read_only: true
     tmpfs:
       - /tmp

@@ -17,7 +17,7 @@ services:
       - path: ../.env
         required: false
     environment:
-      - REDIS_HOST=redis
+      - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - REDIS_DB=5  # Separate namespace from core services

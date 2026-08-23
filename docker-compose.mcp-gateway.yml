@@ -52,7 +52,7 @@ services:
       - AUTH_TYPE=api_key
       # Hardening: disable Docker-based tool auto-discovery by default (removes need for docker.sock).
       - AUTO_DISCOVER_TOOLS=false
-      - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/mcp_audit
+      - AUDIT_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@${POSTGRES_HOST:-postgres}:5432/mcp_audit
     command:
       [
         "--port", "8820",
@@ -157,7 +157,7 @@ services:
     profiles: ["mcp"]
     command: >
       sh -c "npx -y @modelcontextprotocol/server-postgres
-      postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@postgres:5432/${POSTGRES_DB:-hypercode}"
+      postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}"
     networks:
       - backend-net
     restart: "no"

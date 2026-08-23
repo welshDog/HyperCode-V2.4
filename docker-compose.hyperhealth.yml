@@ -20,8 +20,8 @@ services:
     environment:
       - PORT=8090
       # asyncpg dialect — REQUIRED for SQLAlchemy async
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
@@ -78,8 +78,8 @@ services:
     command: ["python", "-m", "worker"]
     environment:
       # asyncpg dialect — REQUIRED
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@postgres:5432/${POSTGRES_DB:-hypercode}
-      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
       - API_KEY=${API_KEY:?API_KEY must be set in .env}
