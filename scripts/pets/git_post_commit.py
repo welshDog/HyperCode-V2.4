@@ -75,9 +75,11 @@ def _patch_id() -> str:
     replay dedups against the original award. Falls back to HEAD sha."""
     try:
         diff = subprocess.run(["git", "diff-tree", "-p", "--root", "HEAD"],
-                              capture_output=True, text=True, timeout=8)
+                              capture_output=True, text=True, encoding="utf-8",
+                              errors="replace", timeout=8)
         pid = subprocess.run(["git", "patch-id", "--stable"],
-                             input=diff.stdout, capture_output=True, text=True, timeout=8)
+                             input=diff.stdout, capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", timeout=8)
         tok = pid.stdout.strip().split()
         if tok:
             return tok[0]
@@ -110,7 +112,8 @@ def _publish_broski_economy(xp: int, reason: str, source: str, source_id: str) -
             proc = subprocess.run(
                 ["docker", "exec", container, "redis-cli", "-n", str(_BROSKI_ECONOMY_DB),
                  "PUBLISH", _BROSKI_ECONOMY_CHANNEL, payload],
-                capture_output=True, text=True, timeout=8,
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=8,
             )
             if proc.returncode == 0:
                 return "docker:" + container
