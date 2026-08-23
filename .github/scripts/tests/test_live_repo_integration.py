@@ -47,3 +47,15 @@ def test_check_duplicate_ports_script_passes():
         check_duplicate_ports.main()
     except SystemExit as e:
         raise AssertionError(f"check_duplicate_ports.py failed: exit code {e.code}")
+
+
+def test_impact_set_succeeds_against_real_repo_core_infra():
+    from fleet_registry import GRAPH_FILES, impact_set
+
+    registry = build(files=GRAPH_FILES)
+    assert "postgres" in registry.services, "docker-compose.core.yml should be parsed via GRAPH_FILES"
+    assert "redis" in registry.services
+
+    result = impact_set(registry, "agents")
+    assert isinstance(result.upstream, frozenset)
+    assert isinstance(result.downstream_already_running, frozenset)

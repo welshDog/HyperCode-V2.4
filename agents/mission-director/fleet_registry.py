@@ -40,6 +40,8 @@ class ServiceInfo:
     container_port: str
     source_file: str
     profiles: frozenset
+    depends_on: frozenset = frozenset()
+    env_var_names: frozenset = frozenset()
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,29 @@ def _host_port(mapping) -> str:
 
 def _container_port(mapping) -> str:
     return str(mapping).split(":")[-1]
+
+
+def _depends_on_names(cfg) -> frozenset:
+    """compose `depends_on:` may be a list of names or a dict of
+    name -> {condition: ...}; either way we only need the names."""
+    dep = cfg.get("depends_on")
+    if not dep:
+        return frozenset()
+    if isinstance(dep, dict):
+        return frozenset(dep.keys())
+    return frozenset(str(d) for d in dep)
+
+
+def _env_var_names(cfg) -> frozenset:
+    """compose `environment:` may be a dict ({KEY: value}) or a list
+    ("KEY=value" or bare "KEY" strings); either way we only need the
+    variable *names* being referenced, never their values."""
+    env = cfg.get("environment")
+    if not env:
+        return frozenset()
+    if isinstance(env, dict):
+        return frozenset(env.keys())
+    return frozenset(str(item).split("=", 1)[0] for item in env)
 
 
 def _parse_compose_files(files):
@@ -86,6 +111,8 @@ def _parse_compose_files(files):
                 container_port=container_port,
                 source_file=fname,
                 profiles=profiles,
+                depends_on=_depends_on_names(cfg),
+                env_var_names=_env_var_names(cfg),
             )
     return services
 
@@ -132,3 +159,81 @@ def build(files: Optional[list] = None, overlay_path: Optional[str] = None) -> F
             )
 
     return FleetRegistry(services=services, roster=roster, allowed_collisions=allowed_collisions)
+
+
+CORE_FILE = "docker-compose.core.yml"
+GRAPH_FILES = FILES + [CORE_FILE]
+
+# Shared-resource env vars -> the service they imply a dependency on. Not
+# general network/volume inference (too noisy — nearly everything shares
+# agents-net for routing without depending on each other); this is a
+# small, reviewable list of the exact variable names this repo's compose
+# files use to reach shared infra, standardized in the
+# POSTGRES_HOST/REDIS_HOST indirection work (2026-08-23).
+_SHARED_RESOURCE_ENV_VARS = {
+    "POSTGRES_HOST": "postgres",
+    "DATABASE_URL": "postgres",
+    "POSTGRES_URL": "postgres",
+    "HYPERCODE_DB_URL": "postgres",
+    "REDIS_HOST": "redis",
+    "REDIS_URL": "redis",
+    "CORE_URL": "hypercode-core",
+}
+
+
+def build_edges(registry: FleetRegistry) -> dict:
+    """service name -> frozenset of service names it depends on (compose
+    depends_on union env-var-inferred). Pure function of the registry;
+    never cached, matching this module's own convention."""
+    edges = {}
+    for name, svc in registry.services.items():
+        targets = set(svc.depends_on)
+        for env_name in svc.env_var_names:
+            target = _SHARED_RESOURCE_ENV_VARS.get(env_name)
+            if target:
+                targets.add(target)
+        edges[name] = frozenset(targets)
+    return edges
+
+
+@dataclass(frozen=True)
+class ImpactResult:
+    profile: str
+    upstream: frozenset
+    downstream_already_running: frozenset
+
+
+def impact_set(registry: FleetRegistry, profile: str) -> ImpactResult:
+    """What a profile's services need upstream (transitive), and what
+    already-running (no-profile) services depend on them downstream
+    (direct). A profile matching zero services returns empty sets, not an
+    error — that's a legitimate (if suspicious) result for the caller to
+    display, not a registry failure."""
+    edges = build_edges(registry)
+    profile_services = {
+        name for name, svc in registry.services.items() if profile in svc.profiles
+    }
+
+    upstream = set()
+    frontier = set(profile_services)
+    while frontier:
+        next_frontier = set()
+        for name in frontier:
+            for dep in edges.get(name, frozenset()):
+                if dep not in upstream and dep not in profile_services:
+                    upstream.add(dep)
+                    next_frontier.add(dep)
+        frontier = next_frontier
+
+    downstream_already_running = set()
+    for name, svc in registry.services.items():
+        if svc.profiles:
+            continue
+        if edges.get(name, frozenset()) & profile_services:
+            downstream_already_running.add(name)
+
+    return ImpactResult(
+        profile=profile,
+        upstream=frozenset(upstream),
+        downstream_already_running=frozenset(downstream_already_running),
+    )
