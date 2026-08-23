@@ -54,7 +54,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AGENT_NAME=project-strategist \
     AGENT_ROLE="Project Strategist" \
-    AGENT_MODEL=claude-3-opus-20240229 \
     AGENT_PORT=8080
 
 # Install wheels from builder

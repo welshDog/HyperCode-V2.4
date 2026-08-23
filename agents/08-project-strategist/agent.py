@@ -13,14 +13,19 @@ import uuid
 
 class ProjectStrategist(BaseAgent):
     
+    # Container-internal ports (agents-net, not the host-mapped ports in
+    # CLAUDE.md's fleet table) - frontend/backend/database/qa/devops kept
+    # their original distinct ports, security/architect were moved to the
+    # uniform :8080 convention during the 2026-08-20 port audit (item #9 in
+    # docs/NEXT_TASKS.md) - this dict was never updated to match.
     SPECIALIST_AGENTS = {
-        "frontend": "http://frontend-specialist:8002",
+        "frontend": "http://frontend-specialist:8012",
         "backend": "http://backend-specialist:8003",
         "database": "http://database-architect:8004",
         "qa": "http://qa-engineer:8005",
         "devops": "http://devops-engineer:8006",
-        "security": "http://security-engineer:8007",
-        "architect": "http://system-architect:8008"
+        "security": "http://security-engineer:8080",
+        "architect": "http://system-architect:8080"
     }
     
     def build_system_prompt(self) -> str:
@@ -116,11 +121,19 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
 
         result = message.content[0].text
 
-        # Parse the plan
+        # Parse the plan. Claude reliably wraps JSON in a ```json ... ```
+        # fence despite the prompt asking for raw JSON, and sometimes adds
+        # trailing prose after the closing fence - locate the fenced block
+        # rather than assuming it spans the whole string.
+        text = result.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1] if "\n" in text else ""
+            text = text.split("```", 1)[0].strip()
+
         try:
-            plan = json.loads(result)
+            plan = json.loads(text)
         except Exception:
-            # If not JSON, wrap it
+            # If still not JSON, wrap it
             plan = {"raw_plan": result, "tasks": []}
 
         # Store plan in Redis
@@ -164,6 +177,8 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
         """
         Send subtasks to specialist agents
         """
+        agent_key = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+        headers = {"x-agent-key": agent_key} if agent_key else {}
         async with httpx.AsyncClient() as client:
             for task in tasks:
                 agent = task.get("assigned_to")
@@ -179,6 +194,7 @@ Create a detailed breakdown with specific subtasks for each specialist agent."""
                                     "acceptance_criteria": task.get("acceptance_criteria", [])
                                 }
                             },
+                            headers=headers,
                             timeout=120.0
                         )
                     except Exception as e:

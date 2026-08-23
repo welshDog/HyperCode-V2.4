@@ -4,6 +4,56 @@
 
 ---
 
+## 2026-08-23 night — N1 resolved live; item 0a's happy path fully proven
+
+Lyndz rotated `ANTHROPIC_API_KEY` directly in `.env` himself. Recreated
+every container still holding the dead key (`healer-agent`, `hypercode-core`,
+`broski-coo`, `project-strategist`, `broski-pets-bridge`, `coder-studio`,
+`evolve-relay`, `fleet-controller`, `mission-director` — `broski-bot` had
+already picked it up on its own). Verified with a direct Anthropic call
+first (real response, not a 401), then live at the feature level:
+`mission-director`'s `POST /api/v1/missions/propose` now returns
+`200`/`status: "previewed"` with a real Shepherd evaluation (`ESCALATE` for
+the `docker` category) — exactly the path that was stuck on
+`preview_unavailable` all night.
+
+With a real key finally available, re-ran item 0a's full happy path for
+real and found 3 more genuine bugs the earlier (necessarily partial, key
+still dead) test couldn't reach:
+
+1. `agents/08-project-strategist/Dockerfile` baked
+   `ENV AGENT_MODEL=claude-3-opus-20240229` — a retired model. Every real
+   call 404'd; invisible before because the key itself failed first.
+   Removed the override, falls through to `AgentConfig`'s own default
+   (`claude-sonnet-4-6`, confirmed live-valid).
+2. Claude reliably wraps its JSON in a ` ```json ` fence — sometimes with
+   trailing prose *after* the closing fence too — despite the prompt asking
+   for raw JSON. `json.loads()` on the untouched text always fell back to
+   `{"raw_plan": ..., "tasks": []}`. Fixed by locating the fenced block
+   (first fence to the next fence) instead of assuming the whole string is
+   JSON or that a closing fence is the last thing in the string.
+3. `SPECIALIST_AGENTS`'s hardcoded ports were stale for 3 of 7:
+   `frontend-specialist` moved to `:8012`, `security-engineer`/
+   `system-architect` moved to the uniform `:8080` during the 2026-08-20
+   port audit — this dict was never updated to match. `delegate_tasks()`
+   also sent no auth header at all, so even a correct port would have 401'd.
+   Both fixed.
+
+**Verified live, for real**: a full `process_task` call produced a genuine,
+correctly-parsed 9-task structured plan (`feature_name`, `complexity`,
+per-task dependencies and acceptance criteria all present) from a real
+Claude call, and `delegate_tasks()` completed with no error against the
+corrected port + auth header.
+
+**New, separate finding, not fixed**: `frontend-specialist` has no
+`ANTHROPIC_API_KEY` in its own compose environment at all — its `/execute`
+still returns `200`, but the LLM call inside fails with a generic
+"Connection error" instead of falling back to Ollama the way
+`project-strategist`/`broski-coo` do. Not individually checked, but likely
+shared by the other 6 specialist-squad agents. Logged as item 0b.
+
+---
+
 ## 2026-08-23 night — item 0a: `project-strategist`'s dead planning code wired up
 
 `agents/08-project-strategist/agent.py`'s `plan()`/`delegate_tasks()` — the
