@@ -166,6 +166,7 @@ services:
       - AGENT_NAME=security-engineer
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
       - agents-net
@@ -204,6 +205,7 @@ services:
       - AGENT_NAME=system-architect
       - LOG_LEVEL=INFO
       - API_KEY=${API_KEY:-dev}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://redis:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:

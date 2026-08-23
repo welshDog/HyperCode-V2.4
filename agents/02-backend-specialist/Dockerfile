@@ -54,7 +54,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     AGENT_NAME=backend-specialist \
     AGENT_ROLE="Backend Specialist" \
-    AGENT_MODEL=claude-3-5-sonnet-20241022 \
     AGENT_PORT=8080
 
 # Install wheels from builder

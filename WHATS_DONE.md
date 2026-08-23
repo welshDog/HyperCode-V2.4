@@ -1,6 +1,56 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-22 by Claude + welshDog ⚡
+> Last synced: 2026-08-23 by Claude + welshDog ⚡
+
+---
+
+## 2026-08-23 midday — item 0b: specialist agents' ANTHROPIC_API_KEY, in progress
+
+Confirmed last night's suspicion: all 7 specialist agents (`frontend-specialist`,
+`backend-specialist`, `database-architect`, `qa-engineer`, `devops-engineer`,
+`security-engineer`, `system-architect`) had no `ANTHROPIC_API_KEY` in their
+compose environment at all. Added `ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}` to
+all 7 blocks (5 in `docker-compose.agents.yml`, 2 in
+`docker-compose.agents-full.yml`).
+
+Once the key was live, hit a second bug: all 7 `Dockerfile`s bake the exact
+same retired model, `AGENT_MODEL=claude-3-5-sonnet-20241022` — a systemic
+copy-paste across the whole specialist-squad template (`agents/brain` and
+`agents/business`'s Dockerfiles correctly use `claude-sonnet-4-6`; only these
+7 numbered specialists have the stale one). Removed the override from all 7
+so they fall through to `base-agent/agent.py`'s own current default.
+
+**Real gotcha, worth remembering for next time**: wrapping `docker build` /
+`docker compose build` in an explicit `timeout N` (100-180s) silently kills
+these builds before they finish — they're genuinely slow (apt-get installs
+gcc/docker-cli from scratch) — while the outer shell still reports a
+misleading "completed, exit code 0". The image tag is left pointing at the
+old content with no error surfaced anywhere. Burned real time chasing this
+as a phantom "Docker Desktop build cache is corrupted" theory before
+realizing it was self-inflicted: three separate `docker compose build`
+attempts and one wrapped `docker build --no-cache` attempt all silently
+no-op'd this way; the moment the `timeout` wrapper was removed, the very
+next attempt produced a genuinely new image ID within a minute. **Never wrap
+these in an inner `timeout` — let the harness's own backgrounding handle
+long builds.**
+
+**Rollout status, paused mid-way for a terminal restart**: `frontend-specialist`
+and `backend-specialist` are rebuilt, recreated, and confirmed live
+(`AGENT_MODEL` correctly reads `None` now, falling through as intended).
+`database-architect`, `qa-engineer`, `devops-engineer`, `security-engineer`,
+`system-architect` still need the identical rebuild + `--force-recreate` —
+their Dockerfiles are already fixed on disk (committed), they're just still
+running the pre-fix image. Next session: rebuild those 5 the same way
+(`docker build --no-cache -t hypercode-v24-<name>:latest ./agents/<dir>`, no
+inner timeout, then `docker compose ... up -d --no-deps --force-recreate
+<name>`), then re-verify `mission-director`'s propose call routes through a
+plan that actually delegates real work to these specialists.
+
+**Separate, unrelated finding, not investigated**: restarting
+`frontend-specialist`/`backend-specialist` left a stray file literally named
+`:memory:.ses` in their bind-mounted directories — looks like a pre-existing
+bug where some session/cache store's default `:memory:` SQLite DSN gets
+misused as a real filename. Left untracked, not chased.
 
 ---
 
