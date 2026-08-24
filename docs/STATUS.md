@@ -1,8 +1,8 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **August 22, 2026 (afternoon)** — `review_mission` BLOCK-approval gap
-> closed + `broski-coo` v1 (new read-only COO/observer agent) shipped, see
-> `WHATS_DONE.md`'s 2026-08-22 entry
+> Last updated: **August 24, 2026** — Fleet Dependency Graph (mission-director
+> Phase 2) shipped + live-verified; see `WHATS_DONE.md`'s 2026-08-24 entries
+> (both the feature and a real SDD process-incident writeup worth reading)
 > For sacred rules + architecture → `CLAUDE.md`
 > For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
 > (kept accurate every session; this file's own fleet table below is not — see the
@@ -33,6 +33,7 @@
 | **Fleet Controller** | Phase 0 of a new mission-director/fleet-controller architecture LIVE 🛡️ — `fleet-controller` :8094, `--profile fleet`. Structurally incapable of executing anything (no Docker socket, no LLM client); fails closed if Safety Shepherd is down. Spec: `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` |
 | **`review_mission` safety fix** | ✅ FIXED 2026-08-22 (`378b336d`) — a human could previously approve a mission whose own Safety Shepherd verdict was `BLOCK`; now hard-rejected, `ESCALATE` requires an audited explicit reason. 13/13 tests pass. |
 | **`broski-coo` v1** | ✅ LIVE 2026-08-22 🧭 — new read-only COO/observer agent, `:8025`, `agents/broski-coo/`. Real fleet+doc data → plain-English brief via a new Anthropic→OpenRouter(free)→Ollama LLM chain. 20/20 tests pass, verified live end-to-end through the real authed endpoint. See `CLAUDE.md`'s "Registry Services" section. |
+| **Fleet Dependency Graph** | ✅ LIVE 2026-08-24 🕸️ — `mission-director` Phase 2. Every `MissionProposal` carries an advisory `impact` list (upstream/downstream services, real dependency graph incl. core infra) — read-only, never touches Safety Shepherd or fleet-controller. See `CLAUDE.md`'s mission-director row + `WHATS_DONE.md`'s 2026-08-24 entries. |
 | **HyperStudio** | agent write path LIVE 🏗️ — `coder-studio` :8087 (profiles `agents`/`studio`) |
 | Dashboard | celery-worker restored · `/docker-zone` · `/pricing` redirects LIVE ✅ |
 | Tests | 251 passed, 6 skipped ✅ |

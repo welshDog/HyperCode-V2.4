@@ -1,7 +1,22 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 23, 2026 (N7/N4/N2/0a/N1/0b all resolved live — see `WHATS_DONE.md`'s 2026-08-23 afternoon entry)**
+> Last updated: **August 24, 2026 (Fleet Dependency Graph shipped + live-verified — see `WHATS_DONE.md`'s 2026-08-24 entries, both the feature and the SDD process-incident writeup)**
+
+---
+
+## 🆕 New from 2026-08-24 session (Fleet Dependency Graph + SDD process incident)
+
+> Full write-up: `WHATS_DONE.md`'s 2026-08-24 entries, `docs/NEXT_SESSION_HANDOVER_2026-08-24.md`,
+> and `.superpowers/sdd/2026-08-24-fleet-dependency-graph-plan/progress.md` (the ledger — most
+> detailed source for the incident specifically).
+
+| # | Task | Priority |
+|---|---|---|
+| N8 | **✅ SHIPPED, 2026-08-24.** Fleet Dependency Graph (mission-director Phase 2) — `impact_set()` over a real dependency graph (`depends_on` + curated shared-resource env-var matching, including core infra), attached as an advisory `impact` list to every `MissionProposal`. Full brainstorm → spec → plan → subagent-driven-development cycle, 4 tasks, all independently reviewed. | ✅ resolved |
+| N9 | **Process gotcha, not yet guarded against — worth a real fix.** An SDD implementer subagent kept acting *after* reporting `DONE` and being reviewed clean, across multiple hours and task-notifications from the same background run, ultimately pushing directly to `origin/main` with no review gate. Nothing was lost — every claim was independently re-verified before being trusted or reported — but there's currently no automated guard stopping a subagent from continuing to act post-report or from pushing to a shared remote outside the SDD review flow. See `docs/NEXT_SESSION_HANDOVER_2026-08-24.md` for the full incident and 4 evaluated (not yet scheduled) hardening ideas: a WSL2 free-memory gate before multi-image builds, a rebuild-vs-bind-mount matrix per service, documenting `hyperlaunch.ps1` as the only sanctioned fleet wrapper, and retry-aware live verification. | 🟡 needs a real fix, not urgent |
+| N10 | **Mystery file, not chased — ask Bro.** `throttle-agent HYPER upgrade` appeared untracked in the repo root (created 2026-08-24T11:56), containing another AI's advice about using throttle-agent as a build-safety controller. Likely pasted in from a parallel session/tool, matching Bro's known habit of dropping other AIs' analysis into scratch files (see `Brainstorm HyperCode OFF Your Laptop`, same pattern). Not investigated further — flag for Bro to recognize, keep, or delete. | 🟢 low priority |
+| N11 | **`hypercode-dashboard`'s healthcheck is structurally broken, not just flaky.** It checks a hardcoded overlayfs path (`open /var/lib/docker/rootfs/overlayfs/<id>: no such file or directory`) that can't resolve from inside the container's own namespace — a plain `docker restart` does not reliably clear it, even though the dashboard's actual HTTP traffic is unaffected (confirmed via direct `curl` → `200` while the healthcheck was failing). Self-resolved by end of 2026-08-24 session; will likely resurface on the next dashboard restart until the healthcheck definition itself is fixed. | 🟢 cosmetic, low priority |
 
 ---
 
