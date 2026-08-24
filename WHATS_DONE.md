@@ -1,6 +1,82 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-23 by Claude + welshDog ⚡
+> Last synced: 2026-08-24 by Claude + welshDog ⚡
+
+---
+
+## 2026-08-24 — Fleet Dependency Graph (Phase 2) shipped + verified live end-to-end
+
+Three-task SDD plan (`docs/superpowers/specs/2026-08-24-fleet-dependency-graph-design.md`)
+landed and proven live, not just committed. `mission-director`'s `/v1/plan` now
+attaches an advisory `impact` list (upstream deps + already-running downstream
+services for a requested profile) to every `MissionProposal`, and the human-facing
+`propose`/`review` endpoints in `hypercode-core` persist and return it.
+
+**What shipped**: `fleet_registry.build_edges()`/`impact_set()` (a real dependency
+graph over every `docker-compose*.yml` service, including the new
+`docker-compose.core.yml` in `GRAPH_FILES`), `impact_snapshot.get_impact()` (degrades
+to `available=False` per-profile on any read error — never blocks a proposal),
+wired into `main.py`'s `create_plan` route, `mission_proposals.impact` (JSONB,
+migration `022`), `mission_store.create(..., impact=...)`, and `_serialize()`/the
+exception-fallback dict in `missions.py`. Commits `0086a882` (Task 1) →
+`ab21af2a` (Task 2) → `9e3c19bc` (Task 3, main.py + Dockerfile + compose mount +
+backend wiring).
+
+**Live-verified, not just test-passing** — this is the part worth remembering:
+getting the code merged was the easy half. Actually seeing it live took a full
+down → build → up cycle on both `mission-director` *and* `hypercode-core` (the
+backend's `COPY . .` bakes app code at build time — unlike `alembic/`, which is
+bind-mounted, so the DB migration was live within seconds of restart but the
+`impact` field in API responses needed an explicit rebuild neither the plan nor
+the first pass anticipated), plus riding out real resource contention:
+
+- The 58-container fleet has mixed provenance (`docker-compose.yml`+
+  `docker-compose.agents-full.yml` for the agent swarm, `docker-compose.core.yml`
+  for infra, `docker-compose.registry.yml`/`docker-compose.hyperhealth.yml` for
+  always-on services) — confirmed via each container's own
+  `com.docker.compose.project.config_files` label before touching anything, then
+  used `hyperlaunch.ps1` (the canonical wrapper) for every down/up rather than a
+  hand-rolled command, to avoid orphaning anything.
+- This machine's WSL2 VM is genuinely ~3.8GB, not 8GB — two down/build/up cycles
+  back-to-back pushed it into real swap thrashing (available memory dropped to
+  ~690MB, swap climbed past 1.4GB), which manifested as several services
+  (`agent-registry`, `crew-orchestrator`, `hypercode-ollama`, `hypercode-core`
+  itself, briefly) failing their health checks transiently — confirmed via each
+  one's own health-check log that these were slow-to-start races (curl timeouts
+  during the CPU-starved window), not real breakage; all resolved to `healthy` on
+  their own once conditions settled and a second `up -d` pass reconciled anything
+  compose had given up waiting on.
+- The `/api/v1/missions/propose` endpoint's **pre-existing** `httpx.AsyncClient(timeout=15.0)`
+  (unrelated to this feature, already in the file) genuinely timed out a few
+  times under that same contention — confirmed real by replicating the exact
+  call by hand inside `hypercode-core` (`httpx.ReadTimeout`) and by checking
+  `mission-director`/`fleet-controller`/`safety-shepherd`'s own logs, which showed
+  every one of those "failed" requests actually completed successfully server-side
+  (200 OK, real Safety Shepherd `ESCALATE` decisions logged) — just slower than
+  the client's patience under load, not a wiring bug.
+- `hypercode-dashboard` came up `unhealthy` after the churn with a stale-overlayfs
+  healthcheck error (`open .../overlayfs/<id>: no such file or directory`) — a
+  cosmetic Docker/WSL2 artifact unrelated to this feature (Next.js dev server
+  itself was serving fine throughout); cleared with a single `docker restart`.
+
+**Final live proof** (once the host settled): a real registered user, real JWT,
+real Anthropic LLM call generating a plan with `profile: "agents"`, a real
+Safety Shepherd `ESCALATE` verdict, and `impact` populated with the actual live
+topology (`upstream: [docker-socket-proxy, hypercode-core, hypercode-ollama,
+postgres, redis]`, `downstream_already_running` listing the 11 real ghost agents
+that were running at that moment) — round-tripped through
+`/api/v1/missions/propose` and confirmed persisted correctly in Postgres via a
+direct `SELECT` against `mission_proposals.impact`. Final state: 61 containers
+up, zero unhealthy.
+
+**Verified, not assumed**: `diff`'d the two `fleet_registry.py` copies
+(`.github/scripts/` vs `agents/mission-director/`) byte-for-byte before trusting
+Task 1 kept them in sync (they did) — this matters because `impact_snapshot.py`
+imports the *mounted* `.github/scripts/` copy at runtime, not the one baked into
+the image via `COPY fleet_registry.py .`. Checked the Alembic versions directory
+by hand for a revision-chain collision before trusting migration `022` (none
+found — `backend/tests/conftest.py`'s `db` fixture bypasses Alembic entirely, so
+this migration was untested by the test suite itself until this live run).
 
 ---
 
