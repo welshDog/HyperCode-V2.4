@@ -31,6 +31,9 @@ class MissionProposal(Base):
     plan_response: Mapped[Optional[dict[str, Any]]] = mapped_column(
         JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=True
     )
+    impact: Mapped[Optional[list[dict[str, Any]]]] = mapped_column(
+        JSONB().with_variant(SQLiteJSON(), "sqlite"), nullable=True
+    )
     superseded_from: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

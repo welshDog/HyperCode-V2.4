@@ -74,6 +74,7 @@ def _serialize(row) -> dict[str, Any]:
         "truth_snapshot_ref": row.truth_snapshot_ref,
         "plan": row.plan,
         "plan_response": row.plan_response,
+        "impact": row.impact or [],
         "superseded_from": row.superseded_from,
         "created_at": row.created_at.isoformat() if row.created_at else None,
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
@@ -113,6 +114,7 @@ async def propose_mission(
             "rationale": None,
             "plan": None,
             "plan_response": None,
+            "impact": [],
             "status": "preview_unavailable",
             "superseded_from": None,
         }
@@ -128,6 +130,7 @@ async def propose_mission(
         truth_snapshot_ref=proposal.get("truth_snapshot_ref"),
         plan=proposal.get("plan"),
         plan_response=proposal.get("plan_response"),
+        impact=proposal.get("impact"),
         superseded_from=proposal.get("superseded_from"),
     )
     return _serialize(row)

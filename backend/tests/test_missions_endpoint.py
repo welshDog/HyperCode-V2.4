@@ -322,3 +322,35 @@ def test_review_approve_transitions_and_writes_ledger(client, db):
     )
     assert len(ledger_rows) == 1
     assert ledger_rows[0].decision == "approved"
+
+
+def test_propose_persists_and_returns_impact(client, db):
+    user = _make_user(db)
+    mock_payload = {
+        "schema_version": 1,
+        "mission_id": "mission_mocked_impact",
+        "goal": "do the thing",
+        "truth_snapshot_ref": "sha256:abc",
+        "rationale": "because",
+        "plan": {"schema_version": 1, "mission_id": "mission_mocked_impact", "requested_actions": []},
+        "plan_response": {
+            "plan_id": "plan_x",
+            "plan_hash": "sha256:x",
+            "safety": {"decision": "ESCALATE", "reason": "r", "shepherd_available": True},
+            "execution": {"performed": False, "would_execute": []},
+        },
+        "impact": [
+            {"profile": "agents", "upstream": ["postgres"], "downstream_already_running": [], "available": True, "reason": None}
+        ],
+        "status": "previewed",
+        "superseded_from": None,
+    }
+    with patch("httpx.AsyncClient.post", new=AsyncMock(return_value=_MockResponse(mock_payload))):
+        resp = client.post(
+            "/api/v1/missions/propose",
+            json={"goal": "do the thing"},
+            headers=_auth_headers(user),
+        )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["impact"] == mock_payload["impact"]

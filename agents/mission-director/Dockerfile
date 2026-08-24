@@ -61,6 +61,7 @@ COPY main.py .
 COPY models.py .
 COPY local_validator.py .
 COPY truth_snapshot.py .
+COPY impact_snapshot.py .
 COPY fleet_registry.py .
 COPY plan_generator.py .
 COPY fleet_client.py .

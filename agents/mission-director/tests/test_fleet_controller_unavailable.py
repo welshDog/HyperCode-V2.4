@@ -99,3 +99,55 @@ async def test_create_plan_route_returns_previewed_on_full_success(client, monke
     assert body["status"] == "previewed"
     assert body["plan_response"]["execution"]["performed"] is False
     assert body["plan_response"]["safety"]["decision"] == "ESCALATE"
+
+
+@pytest.mark.asyncio
+async def test_create_plan_route_includes_impact_for_profile_actions(client, monkeypatch):
+    import main
+    from models import ExecutionView, ImpactView, PlanResponse, SafetyView
+
+    async def _fake_generate(goal):
+        return LLMPlanOutput(
+            rationale="r",
+            requested_actions=[
+                RequestedAction(action_id="a1", kind="compose_profile.preview", profile="agents")
+            ],
+        )
+
+    async def _fake_preview(plan):
+        return PlanResponse(
+            plan_id="plan_test6",
+            plan_hash="sha256:testhash6",
+            safety=SafetyView(decision="ESCALATE", reason="dangerous category", shepherd_available=True),
+            execution=ExecutionView(performed=False, would_execute=[]),
+        )
+
+    def _fake_get_impact(profiles):
+        assert profiles == ["agents"]
+        return [
+            ImpactView(
+                profile="agents",
+                upstream=["postgres"],
+                downstream_already_running=[],
+                available=True,
+            )
+        ]
+
+    monkeypatch.setattr(main, "get_snapshot_ref", lambda: "sha256:test")
+    monkeypatch.setattr(main.plan_generator, "generate", _fake_generate)
+    monkeypatch.setattr(main.fleet_client, "preview", _fake_preview)
+    monkeypatch.setattr(main.impact_snapshot, "get_impact", _fake_get_impact)
+
+    resp = await client.post("/v1/plan", json={"mission_id": "mission_t6", "goal": "x"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "previewed"
+    assert body["impact"] == [
+        {
+            "profile": "agents",
+            "upstream": ["postgres"],
+            "downstream_already_running": [],
+            "available": True,
+            "reason": None,
+        }
+    ]

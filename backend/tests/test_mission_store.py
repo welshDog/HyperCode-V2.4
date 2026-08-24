@@ -60,3 +60,22 @@ def test_superseded_from_stored(db: Session):
         superseded_from="mission_test001",
     )
     assert row.superseded_from == "mission_test001"
+
+
+def test_impact_stored_and_retrieved(db: Session):
+    row = mission_store.create(
+        db,
+        mission_id="mission_test004",
+        status="previewed",
+        goal="g3",
+        truth_snapshot_ref="sha256:abc",
+        plan=None,
+        plan_response=None,
+        impact=[{"profile": "agents", "upstream": ["postgres"], "downstream_already_running": [], "available": True, "reason": None}],
+    )
+    assert row.impact == [
+        {"profile": "agents", "upstream": ["postgres"], "downstream_already_running": [], "available": True, "reason": None}
+    ]
+
+    fetched = mission_store.get_by_id(db, "mission_test004")
+    assert fetched.impact == row.impact

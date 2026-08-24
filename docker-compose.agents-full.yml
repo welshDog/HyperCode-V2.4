@@ -686,6 +686,7 @@ services:
       - ./docker-compose.agents-full.yml:/app/truth/docker-compose.agents-full.yml:ro
       - ./docker-compose.bropets.yml:/app/truth/docker-compose.bropets.yml:ro
       - ./docker-compose.brain.yml:/app/truth/docker-compose.brain.yml:ro
+      - ./docker-compose.core.yml:/app/truth/docker-compose.core.yml:ro
     networks:
       - agents-net
     deploy:

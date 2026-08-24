@@ -20,10 +20,11 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 import fleet_client
+import impact_snapshot
 import ledger_client
 import plan_generator
 from local_validator import LocalValidationError, validate
-from models import Constraints, MissionProposal, PlanRequest
+from models import Constraints, ImpactView, MissionProposal, PlanRequest
 from truth_snapshot import get_snapshot_ref
 
 
@@ -59,6 +60,7 @@ def _terminal(
     status: str,
     plan: PlanRequest | None = None,
     rationale: str | None = None,
+    impact: list[ImpactView] | None = None,
 ) -> MissionProposal:
     proposal = MissionProposal(
         schema_version=1,
@@ -68,6 +70,7 @@ def _terminal(
         rationale=rationale,
         plan=plan,
         plan_response=None,
+        impact=impact or [],
         status=status,
     )
     ledger_client.record_proposal(proposal)  # fire-and-forget, not awaited
@@ -98,18 +101,25 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
         constraints=Constraints(),
     )
 
+    profiles = sorted(
+        {a.profile for a in llm_output.requested_actions if a.profile is not None}
+    )
+    impact = impact_snapshot.get_impact(profiles)
+
     try:
         validate(plan_request, snapshot_ref)
     except LocalValidationError:
         return _terminal(
-            mission_id, goal, snapshot_ref, "rejected_malformed", plan_request, llm_output.rationale
+            mission_id, goal, snapshot_ref, "rejected_malformed",
+            plan_request, llm_output.rationale, impact,
         )
 
     try:
         plan_response = await fleet_client.preview(plan_request)
     except fleet_client.FleetControllerUnavailable:
         return _terminal(
-            mission_id, goal, snapshot_ref, "preview_unavailable", plan_request, llm_output.rationale
+            mission_id, goal, snapshot_ref, "preview_unavailable",
+            plan_request, llm_output.rationale, impact,
         )
 
     proposal = MissionProposal(
@@ -120,6 +130,7 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
         rationale=llm_output.rationale,
         plan=plan_request,
         plan_response=plan_response,
+        impact=impact,
         status="previewed",
     )
     ledger_client.record_proposal(proposal)

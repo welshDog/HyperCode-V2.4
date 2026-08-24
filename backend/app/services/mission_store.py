@@ -22,6 +22,7 @@ def create(
     truth_snapshot_ref: Optional[str],
     plan: Optional[dict[str, Any]],
     plan_response: Optional[dict[str, Any]],
+    impact: Optional[list[dict[str, Any]]] = None,
     superseded_from: Optional[str] = None,
 ) -> MissionProposal:
     row = MissionProposal(
@@ -31,6 +32,7 @@ def create(
         truth_snapshot_ref=truth_snapshot_ref,
         plan=plan,
         plan_response=plan_response,
+        impact=impact,
         superseded_from=superseded_from,
     )
     db.add(row)
