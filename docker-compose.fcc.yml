@@ -1,0 +1,66 @@
+# ============================================================
+# docker-compose.fcc.yml — Free Claude Code (FCC) Proxy
+# Source: github.com/Alishahryar1/free-claude-code (42k ⭐)
+# Port: 8082 (confirmed free in PORT_MAP_COMPLETE.md)
+# Network: hypercode_agents-net (existing — no new networks)
+# ============================================================
+
+services:
+  fcc-proxy:
+    build:
+      context: https://github.com/Alishahryar1/free-claude-code.git#main
+      dockerfile: Dockerfile
+    image: fcc-proxy:local          # cached after first build
+    container_name: fcc-proxy
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:8082:8082"       # Private — localhost only ✅
+
+    environment:
+      PORT: "8082"
+      HOST: "0.0.0.0"
+      OLLAMA_BASE_URL: "http://hypercode-ollama:11434"
+      MODEL: "ollama/llama3.1"
+      NVIDIA_NIM_API_KEY: "${NVIDIA_NIM_API_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      DISCORD_BOT_TOKEN: "${FCC_DISCORD_BOT_TOKEN:-}"
+      DISCORD_ALLOWED_CHANNELS: "${FCC_DISCORD_ALLOWED_CHANNELS:-}"
+      DISCORD_ALLOWED_DIRECTORY: "${FCC_DISCORD_ALLOWED_DIRECTORY:-/workspace}"
+      FCC_AUTH_TOKEN: "${FCC_AUTH_TOKEN:-freecc}"
+
+    volumes:
+      - fcc-config:/root/.fcc
+
+    networks:
+      - agents-net
+
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    labels:
+      com.hypercode.service: "fcc-proxy"
+      com.hypercode.port: "8082"
+      com.hypercode.description: "Free Claude Code proxy — Ollama + NIM + OpenRouter"
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.75"
+        reservations:
+          memory: 128M
+
+volumes:
+  fcc-config:
+    name: hypercode_fcc-config
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents-net
