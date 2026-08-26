@@ -1,270 +1,486 @@
-# 🧬 HYPERCODE V3 — Hyper AGI Auto Agents
+# HyperCode V3 Roadmap — AI-Native Evolution
 
-> **The world's first neurodivergent-first autonomous AI infrastructure platform**
-> **Version**: V3.0 (Hyper AGI) — grounded rewrite
-> **Status**: Blueprint — August 2026, rewritten 2026-08-21
-> **Built by**: @welshDog + BROski swarm ⚡
+> **Status:** Strategic roadmap
+> **Updated:** 2026-08-26
+> **Project:** HyperCode-V2.4
+> **Mission:** Build a neurodivergent-first autonomous AI infrastructure platform that is useful, inspectable, safe, and able to evolve without losing human control.
 
----
+## North Star
 
-## ⚠️ What Changed (2026-08-21) — read this first
+HyperCode V3 evolves the current Docker-based agent swarm into a **protocol-native, stateful, observable, and governed agent platform**. The system should make complex work feel like a visible mission: clear roles, small steps, recoverable progress, useful feedback, and explicit human approval for consequential actions.
 
-The previous version of this file proposed replacing HyperCode's orchestration
-with LangGraph + A2A protocol + a multi-provider LLM router (Grok 4.5, Kimi
-K3) + Pydantic AI 2.0 memory, over an 8-sprint migration. Before starting
-that work, three parallel repo audits checked its claims against the real
-codebase. Every one of them came back wrong:
+The roadmap extends the existing HyperCode foundations rather than replacing them:
 
-1. **Wrong target repo.** The doc frames V3 as `HyperCode-V2.4` "evolving"
-   via `THE-HYPERCODE`. `THE-HYPERCODE` is a real, separate repo — but its
-   own README describes it as *"HyperCode: Programming Language for
-   Neurodivergent Brains"* (multi-paradigm, MLIR-based IR). It is not an
-   agent-swarm platform, has zero LangGraph/A2A/Pydantic-AI code, and its
-   last commit predates this roadmap by over a month.
-2. **Phantom sibling docs.** `HYPERCODE_V3_MIGRATION.md`, `_API.md`,
-   `_NEURO.md`, `_EXAMPLES.md` were all listed as part of this plan.
-   None exist anywhere in the workspace.
-3. **Fabricated example.** The "legacy" `manifest.json` this doc cited
-   (`{"agents": ["planner","coder","reviewer"], "orchestration": "sequential"}`)
-   doesn't match `HyperAgent-SDK`'s real schema — a single-agent descriptor,
-   not a swarm list.
-4. **Zero prior art for the proposed stack.** Real repo-wide checks:
-   LangGraph — one hand-rolled "LangGraph-*style*" file, not the real
-   package, unused anywhere. A2A — a single `a2a: bool = False` field whose
-   own code comment reads *"nothing implements A2A yet."* Pydantic AI —
-   pinned in a requirements file the Dockerfile doesn't even install from;
-   zero imports anywhere in `backend/`. Grok / Kimi — zero references
-   anywhere in this codebase except the old draft of this file.
-5. **It ignored the safety architecture this repo already built and
-   proved.** `agents/fleet-controller/` (Phase 0, shipped 2026-08-20/21)
-   enforces a governing rule — **no component may both interpret LLM
-   output and possess infrastructure mutation authority** — via a
-   fail-closed, zero-mutation-authority design, 26 passing tests, and a
-   live smoke test proving a Safety Shepherd outage correctly `BLOCK`s
-   rather than fails open. Safety Shepherd (ALLOW/BLOCK/ESCALATE, explicit
-   capability grants required for `DANGEROUS` categories) and the
-   Governance Ledger (full audit trail) are both live. HyperFlow's own
-   design doc *already explicitly rejected* an LLM-driven graph compiler
-   for v1: *"disproportionate risk for the current flow count... a
-   generated graph would get none [review]."* The old draft's "agents that
-   plan, code, test, deploy, and learn without human intervention" pitch
-   reintroduced exactly the risk pattern this repo already identified and
-   turned down once.
+- FastAPI core and existing service boundaries.
+- Docker Compose profiles and hardened agent containers.
+- Crew Orchestrator, Agent X, Healer Agent, CognitiveUplink, and Mission Control.
+- MCP gateway and GitHub tool integration.
+- Prometheus, Grafana, Loki, Tempo, Redis, PostgreSQL, Celery, and Trivy.
+- Agent identity, life plans, guardrails, contract tests, governance ledger, and evolutionary pipeline.
+- BROski$ XP, rewards, missions, and neurodivergent-first interaction design.
 
-**What's actually true and worth building on**: specialist agents
-(`agents/*/base_agent.py`) already make real `AsyncAnthropic` calls to do
-real task work (default `claude-sonnet-4-6`) — this is not a stub fleet.
-`agents/crew-orchestrator/crew_v2.py` is a genuine CrewAI hierarchical LLM
-planner with an Opus/Sonnet/Haiku tier map — real code, just dead: never
-imported by the live dispatch path (`main.py`), which is deliberately
-deterministic HTTP routing, not agentic planning.
+## Guiding Principles
 
-This rewrite keeps the "V3 / Hyper AGI" ambition but builds it on what's
-real: the mission-director path the fleet-controller Phase 0 spec already
-points at, not a framework swap with no containment design.
+1. **Human agency first.** Agents may recommend, prepare, test, and request approval. High-impact actions must not silently execute.
+2. **Protocol before vendor.** Use open interfaces so models, runtimes, and tools can be replaced without rewriting HyperCode.
+3. **State over chat history.** Long missions need durable state, checkpoints, resumability, and a clear event trail.
+4. **Small agents, explicit contracts.** Every agent has a role, inputs, outputs, permissions, budgets, and failure behaviour.
+5. **Evidence over confidence.** A completed mission needs tests, traces, artefacts, and verification—not just a successful model response.
+6. **Neurodivergent-first by design.** Reduce cognitive load with chunking, visible progress, context retention, plain language, and celebratory feedback.
+7. **Secure defaults.** Least privilege, secret isolation, network boundaries, tool allow-lists, rate limits, sandboxing, and reversible actions.
+8. **No autonomous self-modification without gates.** Evolution must be proposed, evaluated, signed, and rollbackable.
 
----
+## Current Baseline
 
-## 🎯 Executive Summary
+HyperCode V2.4 already provides a substantial platform: a FastAPI backbone, agent swarm, Docker infrastructure, MCP gateway, self-healing, observability, security scanning, mission execution, and evolutionary capabilities. The repository documentation also identifies a broad service topology and multiple deployment profiles. Treat the current code and `WHATS_DONE.md` as the source of truth before implementing any roadmap item.
 
-HyperCode V3 does not replace the orchestration layer. It extends the
-safety-first path already in motion — `fleet-controller` Phase 0 proved a
-containment boundary can exist; V3 adds the LLM planner in front of it,
-under one rule that must hold at every phase:
+### Baseline constraints to preserve
 
-> **No component may both interpret LLM output and possess infrastructure
-> mutation authority.**
+- Use `docker-ce-cli`; never substitute `docker.io` for socket agents.
+- Use `from app.X import Y` inside the HyperCode Python layout; never `from backend.app.X`.
+- Never commit `.env` files or secrets.
+- Keep the Stripe webhook rate-limit exemption.
+- Keep Redis DB 1 for cache and DB 2 for rate limits.
+- Keep `discord.py==2.4.0` and the `python -u -m cogs.bot` entrypoint for `broski-bot`.
+- Run the repository's existing test, security, and evolution gates before pushing.
 
-Autonomy grows by adding phases behind that boundary — a typed plan
-proposer, capability tokens, a gated human-approval step, then (only once
-all of that is proven) bounded live execution — not by giving an LLM a
-bigger blast radius up front.
+## Architecture Target
 
----
-
-## 🧠 V3 Architecture — the real pipeline
-
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                     HYPERCODE V3 — MISSION PIPELINE                 │
-├───────────────────────────────────────────────────────────────────┤
-│                                                                       │
-│  brain-agent          capability recommendation                     │
-│      │                (what's possible, given current world model)  │
-│      ▼                                                               │
-│  mission-director     typed plan proposal                            │
-│      │                LLM-driven. Zero mutation authority — cannot   │
-│      │                touch Docker, credentials, or infra directly.  │
-│      ▼                                                               │
-│  fleet-controller     DRY_RUN / policy check                         │
-│      │                Zero LLM client. Deterministic validation only.│
-│      │                (live today — Phase 0, see below)              │
-│      ▼                                                               │
-│  Safety Shepherd      ALLOW / BLOCK / ESCALATE verdict                │
-│      │                (live today)                                   │
-│      ▼                                                               │
-│  Governance Ledger    evidence, full audit trail                     │
-│      │                (live today)                                   │
-│      ▼                                                               │
-│  human review         approve / reject / revoke / replan             │
-│      │                dashboard                                      │
-│      ▼                                                               │
-│  [later phase, gated] bounded live execution                         │
-│                                                                       │
-│  mission evaluator ── watches every run above, compares intended vs. │
-│                        actual outcome, safety events, cost, human     │
-│                        corrections, rollback quality → structured     │
-│                        lessons. Not a second executor.                │
-│                                                                       │
-│  truth registry ────── feeds mission-director a trustworthy world     │
-│                        model (real compose facts + a thin, self-      │
-│                        validating overlay) so it never plans against  │
-│                        stale docs. Spec: see below.                   │
-│                                                                       │
-└───────────────────────────────────────────────────────────────────┘
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ Human / Neurodivergent Mission UX                                 │
+│ Mission Control · BROski Terminal · CognitiveUplink · Discord      │
+└───────────────────────────────┬────────────────────────────────────┘
+                                │ mission + approval events
+┌───────────────────────────────▼────────────────────────────────────┐
+│ Mission Runtime                                                   │
+│ durable state · checkpoints · retries · budgets · cancellations    │
+│ graph execution · handoffs · human-in-the-loop approval            │
+└───────────────┬───────────────────┬───────────────────┬────────────┘
+                │                   │                   │
+      ┌─────────▼────────┐ ┌────────▼─────────┐ ┌──────▼───────────┐
+      │ Agent Contracts   │ │ Protocol Gateway  │ │ Evaluation +     │
+      │ roles · identity  │ │ MCP · A2A-ready   │ │ Governance        │
+      │ permissions       │ │ tool registry     │ │ traces · scores   │
+      └─────────┬────────┘ └────────┬─────────┘ └──────┬────────────┘
+                │                   │                   │
+┌───────────────▼───────────────────▼───────────────────▼────────────┐
+│ Existing HyperCode services: Core · Crew · Agent X · Healer ·      │
+│ specialists · memory · Docker/Kubernetes · Redis/PostgreSQL ·     │
+│ Prometheus/Grafana/Loki/Tempo · security scanning                  │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-This is the same pipeline named in the fleet-controller Phase 0 spec's
-future-phases section, plus a mission evaluator and truth registry — both
-proposed in a 2026-08-21 review of the Phase 0 work
-(`HyperCode-V2.4/AGI-infrastructure upgrade`, local, uncommitted).
+## Priority 0 — Protect the Foundation
 
----
+### P0.1 Establish roadmap truth
 
-## ✅ What's Already Real — Don't Rebuild It
+- [ ] Compare every proposed item against `WHATS_DONE.md`.
+- [ ] Mark existing capabilities as `existing`, `partial`, `pilot`, or `future`.
+- [ ] Record evidence links: source file, test, dashboard, or runbook.
+- [ ] Add an owner, risk, acceptance test, and rollback plan to each implementation issue.
 
-| Piece | State | Where |
-|---|---|---|
-| Specialist agents making real LLM calls | ✅ Live | `agents/*/base_agent.py` — `AsyncAnthropic`, default `claude-sonnet-4-6`, Ollama fallback |
-| A hierarchical LLM planner (candidate mission-director seed) | 🟡 Written, dead code | `agents/crew-orchestrator/crew_v2.py` — CrewAI, tier-mapped Opus/Sonnet/Haiku, never imported by `main.py`. Phase 1 must explicitly decide: adopt as the seed, or retire it — leaving it live-but-unwired is its own drift risk. |
-| Containment boundary (fail-closed, zero mutation authority) | ✅ Live, smoke-tested | `agents/fleet-controller/` — `plan_validator.py`, `safety_client.py`, `models.py`. 26 tests. |
-| ALLOW/BLOCK/ESCALATE policy engine | ✅ Live | `agents/safety-shepherd/policy.py` — `DANGEROUS` categories require explicit capability grants |
-| Audit trail | ✅ Live | Governance Ledger — `backend/app/api/v1/endpoints/governance.py` |
-| Deterministic mission graphs | ✅ Live | HyperFlow (`backend/app/agents/hyperflow/`) — goal-matcher, not a graph generator. Its own design doc already rejected LLM-driven graph compilation for v1; mission-director must route through its own validated-plan boundary, not bypass HyperFlow's existing caution. |
-| Fleet truth model | 🟡 Spec'd, not built | `docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md` |
+**Exit gate:** No roadmap item is claimed as new when it already exists in the repository.
 
----
+### P0.2 Create an agent capability registry
 
-## 🗺️ Phased Roadmap
+Create a machine-readable registry for every built-in and dynamically generated agent.
 
-- **Phase 0 — fleet-controller**: ✅ done (2026-08-20/21). Containment
-  boundary proven: fail-closed, zero LLM client, zero mutation authority,
-  live smoke test (Shepherd killed mid-request → `BLOCK`, denied profile →
-  `422` before Shepherd is ever contacted).
-- **Phase 0.5 — truth registry**: 🟡 spec'd 2026-08-21
-  (`docs/superpowers/specs/2026-08-21-fleet-truth-registry-design.md`), not
-  yet implemented. Prerequisite for mission-director — a planner fed stale
-  docs makes bad plans.
-- **Phase 1 — mission-director**: typed plan proposal, LLM-driven, zero
-  mutation authority (same governing rule as Phase 0). Resolve
-  `crew_v2.py`'s fate as part of this phase — adopt its tier-mapped
-  planning approach or retire it, don't leave it ambiguously dead.
-- **Phase 2 — capability tokens**: signed verdicts, matching the reserved-
-  but-unset `PlanResponse.capability` field already in `fleet-controller`'s
-  models.
-- **Phase 3 — human approval gate + first live action**: two-person-rule
-  for the DRY_RUN→LIVE switch, exactly as the Phase 0 spec already commits
-  to.
-- **Phase 4 — mission evaluator**: intended vs. actual outcome, safety
-  events, cost, corrections, rollback quality → structured lessons.
-- **Phase 5 (only after 0–4 are proven)** — incremental LLM-capability
-  improvements: e.g. extending `crew_v2.py`'s existing tier map for
-  cost/quality routing across tasks. Evaluated case-by-case with real
-  evidence once there's a live system generating it, not adopted upfront as
-  speculative architecture.
+Minimum fields:
 
-Each phase ships independently and is smoke-tested against the live stack
-before the next one starts — the same discipline Phase 0 already used.
-
----
-
-## 🧠 Neurodivergent-First Agent UX
-
-Unchanged in spirit from the original draft — none of this conflicts with
-anything real, and it extends the existing Flow Keeper pattern.
-
-#### Interrupt-Safe State
-Hyperfocus sessions should be able to pause and resume without losing
-mission context. Once mission-director (Phase 1) has a real session/state
-model, hook checkpointing into *that* — this is deliberately not tied to
-LangGraph, since LangGraph isn't part of this roadmap.
-
-#### Chunked Output Contracts
 ```yaml
-output_format:
-  max_sentences_per_response: 3
-  structure:
-    - summary: 1 sentence
-    - details: optional, expand on request
-    - next_action: 1 sentence
-  style: "short-burst, bullet points, no walls of text"
+id: healer-agent
+version: 1.0.0
+role: service-recovery
+description: Restores failed HyperCode services
+inputs: [health_event]
+outputs: [recovery_report]
+tools: [docker.restart, logs.read]
+permissions: [service:restart]
+budget:
+  max_steps: 12
+  max_runtime_seconds: 300
+risk_level: medium
+approval_policy: approval-for-production
+fallback_agent: crew-orchestrator
 ```
 
-#### Momentum Agents (BROski$ Micro-Rewards)
-Mission evaluator (Phase 4) is the natural trigger point — a completed,
-evaluated mission step fires a reward, not raw task completion, so rewards
-track real progress rather than busywork.
+**Exit gate:** Crew Orchestrator can discover an agent, validate its contract, enforce permissions, and reject malformed manifests.
 
----
+### P0.3 Make the approval boundary explicit
 
-## ❌ Explicitly Dropped — and why
+- Classify actions as read-only, reversible write, destructive write, financial, external communication, or self-modification.
+- Require approval for destructive, financial, external-communication, production, and self-modification actions.
+- Show the exact target, proposed change, evidence, and rollback method in Mission Control.
+- Persist approvals and denials in the governance ledger.
 
-| Dropped | Why |
-|---|---|
-| LangGraph | Zero prior art in this codebase (one unused hand-rolled stand-in). Would replace a live, proven orchestration layer — a profile-dependent Docker platform with 20+ compose files and a large service fleet — for no demonstrated need. |
-| A2A protocol | A single unset placeholder field exists; nothing implements it. No external agent (Copilot/Cursor/Devin) integration is currently needed. |
-| Pydantic AI 2.0 memory migration | Pinned in an unused requirements file, zero real usage. `Configuration_Kit`/context-key memory already works. |
-| Multi-provider router (Grok 4.5, Kimi K3) | Zero references anywhere in this codebase before the original draft. `crew_v2.py` already has a tier-mapping pattern (Opus/Sonnet/Haiku) — extend that later with real cost evidence if needed, rather than adopting untested providers upfront. |
-| External agent integration (A2A to Copilot/Cursor/Devin) | No current use case; revisit only if a real cross-system workflow needs it. |
+**Exit gate:** A test proves that an unapproved high-impact tool call is blocked and auditable.
 
-None of these are required to reach the containment-first version of
-"Hyper AGI Auto Agents." Any could be reconsidered later as a narrow,
-evidence-driven decision — never adopted as upfront speculative
-architecture again.
+## Priority 1 — Protocol-Native Tooling
 
----
+### P1.1 Expand MCP into the HyperCode tool plane
 
-## 📊 Success Metrics
+The existing MCP-GitHub work should become a unified tool plane. Add adapters in small, independently testable steps:
 
-Replaces the old vibes-based "80% fully autonomous" target with concrete,
-testable categories (from the 2026-08-21 Phase 0 review):
+- Filesystem and workspace inspection.
+- Docker and Compose operations.
+- Prometheus queries and Grafana annotations.
+- PostgreSQL and Redis read-only diagnostics.
+- Supabase operations through explicit allow-lists.
+- Stripe test-mode diagnostics only; preserve webhook protections.
+- Discord messaging behind approval gates.
+- HyperCode mission, memory, and BROski$ APIs.
 
-| Category | What it tests |
-|---|---|
-| **Mission generality** | Can the system handle a new feature, a failing container, a DB design task, a security incident, a doc contradiction, a cross-repo dependency change? |
-| **Long-horizon persistence** | Can it resume a mission after a service restart, a model switch, a partial failure, a human rejection, a queue delay? |
-| **Correctability** | Can Bro pause the mission, revoke its authority, reject one action, change the goal, force a replan, recover from a bad plan? |
-| **Containment** | Can a compromised planner create no Docker mutation, obtain no execution credential, bypass no policy, alter no audit record, escalate no scope? |
-| **Evidence quality** | For every decision: what was known, what was proposed, which model proposed it, which policy evaluated it, what was approved, what actually happened? |
+Every tool needs:
 
----
+- JSON schema input and output.
+- Authentication and tenant context.
+- Timeout, retry, and idempotency rules.
+- Risk classification.
+- Structured audit events.
+- Unit, contract, and integration tests.
 
-## 🎯 Next Steps (Immediate)
+### P1.2 Add tool discovery and capability negotiation
 
-Scope mission-director Phase 1 via the brainstorming skill — same rigor as
-the fleet-controller Phase 0 spec (context/constraints → goal → design
-sections → written spec → self-review → implementation plan).
+Agents should request only the tools needed for the current mission. The gateway should return a filtered tool view based on agent identity, mission scope, user permissions, environment, and risk policy.
 
----
+**Exit gate:** The same agent receives different tool visibility in development, staging, and production, with the reason recorded in the trace.
 
-## 🚀 V3 Vision Statement
+### P1.3 Prepare for agent-to-agent interoperability
 
-> **HyperCode V3 is not just an upgrade — it's proof that increasing
-> autonomy and hard containment aren't in tension.**
-> HyperCode-V2.4 is a profile-dependent Docker platform with 20+ compose
-> files and a large service fleet; V3 extends its **agent-control plane**
-> rather than replacing its container foundation. Where V2.4 orchestrates
-> containers, V3 orchestrates **bounded autonomous
-> intelligence** — agents that propose, get checked, get approved, and
-> only then act, while preserving the hyperfocus flows that make BROski
-> brains unstoppable.
-> **The safest foundation first. Then everything else.** ⚡♾️
+Keep internal HyperCode events stable while preparing an A2A-compatible boundary for remote specialist agents. Begin with a narrow mission contract:
 
----
+- Mission ID.
+- Agent identity and version.
+- Requested capability.
+- Input references rather than unnecessary raw data.
+- Progress events.
+- Artefact references.
+- Completion, failure, cancellation, and handoff states.
 
-**Built by**: @welshDog + BROski swarm
-**Location**: Llanelli, Wales 🏴󠁧󠁢󠁷󠁬󠁳󠁥
-**Date**: August 21, 2026 (rewritten)
-**Version**: V3.0 Blueprint (grounded rewrite)
+Do not expose the whole internal network. Use a broker or gateway, signed identity, scoped credentials, and explicit trust policies.
 
-*"Stop apologising for your brain. Start building."* 🐶♾️
+## Priority 2 — Stateful Mission Runtime
+
+### P2.1 Introduce graph-based mission execution
+
+Represent missions as explicit graphs rather than hidden prompt chains.
+
+Initial graph:
+
+```text
+intake → plan → approval → implement → test → review → deploy → verify
+                         │                         │
+                         └────── revise ◄─────────┘
+
+health incident → diagnose → safe repair → verify → report
+                         └──────────────► human approval when risky
+```
+
+Each node must define:
+
+- Input state and output state.
+- Allowed tools.
+- Retry policy.
+- Timeout and budget.
+- Success criteria.
+- Escalation path.
+- Checkpoint behaviour.
+
+A LangGraph-style pilot is suitable for validating stateful graphs, checkpoints, resumability, and human-in-the-loop flows. Keep the first integration behind an adapter so HyperCode does not become coupled to one orchestration vendor.
+
+### P2.2 Add durable checkpoints and resumability
+
+- Store mission state separately from chat transcripts.
+- Use PostgreSQL for durable mission records and Redis for short-lived coordination/cache only.
+- Support pause, resume, cancel, retry-from-node, and replay-from-event.
+- Compact old context into evidence-backed summaries.
+- Keep artefacts and logs addressable by mission ID.
+
+**Exit gate:** Killing an orchestrator during a mission and restarting it resumes from the latest valid checkpoint without duplicating an idempotent side effect.
+
+### P2.3 Add mission budgets
+
+Track and enforce:
+
+- Wall-clock time.
+- Model calls and token budget.
+- Tool-call count.
+- Container resources.
+- Financial exposure.
+- Human approval wait time.
+
+Surface budget burn in Mission Control using short, clear status language.
+
+## Priority 3 — Reliable Multi-Agent Collaboration
+
+### P3.1 Standardise agent contracts
+
+Every agent must declare:
+
+- Identity, role, version, and owner.
+- Required context.
+- Input/output schemas.
+- Tool permissions.
+- Safety constraints.
+- Handoff rules.
+- Failure and fallback behaviour.
+- Evaluation suite.
+
+Use the existing agent identity cards, life plans, contract tests, guardrails, and governance ledger as the compatibility layer.
+
+### P3.2 Detect role drift
+
+Add a lightweight role-discipline check before and after important tool calls:
+
+- Compare requested action with declared role.
+- Detect permission escalation.
+- Detect unexpected tool sequences.
+- Ask for re-planning when an agent leaves its role.
+- Record drift, repair, and final outcome.
+
+Do not rely on prompt wording alone. Combine identity, policy, tool filtering, structured outputs, and runtime checks.
+
+### P3.3 Build a reliability evaluation harness
+
+Measure more than task completion:
+
+- Tool selection accuracy.
+- Argument/schema correctness.
+- Recovery from tool errors.
+- Duplicate-side-effect rate.
+- Handoff success.
+- Role adherence.
+- Approval compliance.
+- Evidence quality.
+- Cost and latency.
+- User-reported cognitive load.
+
+Run evaluations against representative HyperCode missions and maintain a regression history by model, agent version, and environment.
+
+**Exit gate:** A release cannot pass the evolution gate unless critical mission suites meet the repository's configured threshold and no high-severity policy regression is present.
+
+## Priority 4 — Safe Self-Evolution
+
+### P4.1 Convert Agent X evolution into a gated pipeline
+
+The evolutionary pipeline should follow:
+
+```text
+proposal → impact analysis → patch → isolated build → tests → security scan
+         → mission evals → human review → signed release → canary → observe
+         → promote or rollback
+```
+
+Required controls:
+
+- No direct mutation of production agents.
+- Separate build and runtime credentials.
+- Immutable candidate artefacts.
+- Reproducible build metadata.
+- Security and secret scanning.
+- Contract and mission evaluations.
+- Canary deployment.
+- Automatic rollback on health or policy regression.
+- Governance record for every stage.
+
+### P4.2 Add evolution provenance
+
+For every generated or modified agent, store:
+
+- Parent version.
+- Prompt/specification inputs.
+- Model and model version.
+- Source commit.
+- Tests and evaluation scores.
+- Security scan result.
+- Approver.
+- Deployment target.
+- Rollback target.
+
+### P4.3 Create a safe sandbox for experiments
+
+Use isolated Docker/Kubernetes workloads with restricted network access, ephemeral credentials, resource limits, and synthetic or redacted data. Experiments must not access production secrets or unrestricted external tools.
+
+## Priority 5 — Memory and Context Engineering
+
+### P5.1 Separate memory types
+
+Use explicit classes:
+
+- Working memory: current node and immediate context.
+- Episodic memory: mission events and outcomes.
+- Semantic memory: verified facts, documentation, and patterns.
+- Procedural memory: runbooks, skills, and agent contracts.
+- User preference memory: consented interaction preferences.
+
+Each memory entry needs provenance, timestamp, confidence, sensitivity, retention policy, and deletion path.
+
+### P5.2 Make retrieval evidence-first
+
+- Retrieve small, relevant chunks.
+- Preserve source references.
+- Prefer repository truth over stale summaries.
+- Mark uncertain or conflicting evidence.
+- Never allow memory to silently override current policy or user instruction.
+
+### P5.3 Add context-pressure controls
+
+When context grows, agents should:
+
+1. Summarise completed work.
+2. Preserve open decisions and blockers.
+3. Keep exact artefact and commit references.
+4. Drop redundant conversational text.
+5. Ask for clarification only when the remaining uncertainty matters.
+
+## Priority 6 — Security, Privacy, and Trust
+
+### P6.1 Enforce least privilege at runtime
+
+Permissions should be scoped by agent, mission, repository, environment, resource, and action. A tool registry alone is not a security boundary; enforce policy at the gateway and service owners.
+
+### P6.2 Minimise cross-agent data
+
+Pass references, summaries, and the minimum required fields instead of copying whole transcripts, secrets, or user data. Label data sensitivity and log the sharing decision.
+
+### P6.3 Harden tool execution
+
+- Validate all tool arguments.
+- Use allow-lists for commands and paths.
+- Block shell injection patterns.
+- Apply timeouts and output limits.
+- Use idempotency keys for external writes.
+- Require approval for communication, payment, deployment, and deletion.
+- Redact secrets from logs and traces.
+- Verify container and image provenance.
+
+### P6.4 Threat-model agent workflows
+
+Maintain abuse cases for prompt injection, malicious repository content, tool poisoning, credential theft, data exfiltration, privilege escalation, denial of service, and unsafe self-evolution. Turn each high-risk scenario into a regression test.
+
+## Priority 7 — Observability and Human Experience
+
+### P7.1 Trace every mission
+
+Use a consistent correlation model:
+
+```text
+user → mission → graph run → node → agent → model call → tool call → artefact
+```
+
+Emit structured events for planning, handoff, approval, retry, failure, repair, and completion. Connect traces to Prometheus metrics, Loki logs, Tempo spans, and Mission Control views.
+
+### P7.2 Build an agent operations dashboard
+
+Show:
+
+- Active missions and current node.
+- Agent health and queue depth.
+- Tool-call latency and failure rate.
+- Model cost and token burn.
+- Approval queue.
+- Role-drift events.
+- Evolution candidates and gate status.
+- Recovery actions.
+- BROski$ rewards linked to verified outcomes.
+
+### P7.3 Make the interface neurodivergent-first
+
+- One next action at a time.
+- Chunk large missions into visible steps.
+- Use plain-language status labels.
+- Preserve context across interruptions.
+- Offer compact and deep views.
+- Celebrate verified wins, not noisy activity.
+- Allow reduced motion and reduced notification intensity.
+- Make errors actionable and specific.
+
+## Phased Delivery Plan
+
+### Phase 0 — Truth and safety baseline
+
+- [ ] Reconcile roadmap with `WHATS_DONE.md`.
+- [ ] Publish agent capability registry schema.
+- [ ] Document approval and risk taxonomy.
+- [ ] Add a high-impact-action blocking test.
+- [ ] Confirm current evolution gate and rollback path.
+
+### Phase 1 — Tool plane pilot
+
+- [ ] Register existing GitHub MCP tools in the capability registry.
+- [ ] Add filesystem, Docker, observability, and read-only database adapters.
+- [ ] Add schema validation, timeouts, idempotency, and audit events.
+- [ ] Add environment-aware tool filtering.
+- [ ] Display tool calls and approval state in Mission Control.
+
+### Phase 2 — Stateful missions
+
+- [ ] Implement one graph-backed coding mission.
+- [ ] Add PostgreSQL checkpoints and Redis coordination.
+- [ ] Support pause, resume, cancel, retry, and replay.
+- [ ] Add mission budgets and cancellation propagation.
+- [ ] Run a failure-injection test against orchestrator restart.
+
+### Phase 3 — Evaluation and collaboration
+
+- [ ] Standardise agent manifests and structured outputs.
+- [ ] Add role-drift and permission-escalation checks.
+- [ ] Build mission regression suites.
+- [ ] Add model/agent scorecards and release thresholds.
+- [ ] Pilot a narrow remote-agent handoff boundary.
+
+### Phase 4 — Safe evolution
+
+- [ ] Isolate Agent X candidate builds.
+- [ ] Add provenance, signing, security scans, and canary deployment.
+- [ ] Require human approval before promotion.
+- [ ] Add automatic rollback and evolution audit views.
+- [ ] Test malicious or low-quality candidate agents.
+
+### Phase 5 — Ecosystem scale
+
+- [ ] Expand protocol adapters without weakening core policy.
+- [ ] Connect HyperAgent-SDK templates to the capability registry.
+- [ ] Expose safe mission APIs to Hyper-Vibe Coding Course.
+- [ ] Connect BROskiPets, Brain, Print Genie, and other ecosystem projects through scoped contracts.
+- [ ] Publish contributor documentation for building compliant HyperCode agents.
+
+## Priority Matrix
+
+| Initiative | Value | Risk | First proof | Priority |
+|---|---:|---:|---|---:|
+| Capability registry | High | Low | Manifest validation test | P0 |
+| Approval/risk boundary | Critical | Medium | Blocked high-impact tool test | P0 |
+| MCP tool plane | High | Medium | GitHub + read-only diagnostics | P1 |
+| Stateful mission graphs | Critical | Medium | Resumable coding mission | P2 |
+| Evaluation harness | Critical | Medium | Regression scorecard | P3 |
+| Role-drift detection | High | Medium | Drift-and-repair test | P3 |
+| Safe Agent X evolution | Critical | High | Candidate-to-canary pipeline | P4 |
+| Memory provenance | High | Medium | Evidence-backed retrieval test | P5 |
+| Cross-agent minimisation | High | High | Sensitive-data boundary test | P6 |
+| Mission operations UX | High | Low | Dashboard mission trace | P7 |
+
+## Definition of Done for HyperCode V3
+
+HyperCode V3 is ready for a public milestone when:
+
+- Every active agent has a validated identity and capability contract.
+- High-impact actions are blocked without explicit approval.
+- Missions are stateful, resumable, cancellable, and auditable.
+- Tool access is scoped by identity, mission, environment, and risk.
+- Critical workflows have repeatable evaluation gates.
+- Agent role drift and permission escalation are detectable.
+- Self-evolution uses isolated builds, provenance, security checks, canaries, and rollback.
+- Memory is evidence-backed, sensitivity-aware, and deletable.
+- Mission traces connect users, agents, models, tools, and artefacts.
+- The interface helps neurodivergent builders see the next useful step without losing the bigger pattern.
+- Existing HyperCode sacred rules and completed work remain intact.
+
+## Immediate Next Task
+
+Build the **capability registry + approval boundary pilot** first. It is the smallest change that unlocks safer MCP expansion, stateful mission execution, evaluation, and future self-evolution.
+
+> 🐶♾️ Stop apologising for your brain. Start building.
+> 
+> **Nice one BROski♾️!**
