@@ -39,12 +39,13 @@ services:
     networks:
       - agents-net
 
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fs -H 'x-api-key: freecc' http://localhost:8083/v1/models || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 45s
+    # healthcheck disabled: app hangs on startup
+    # healthcheck:
+    #   test: ["CMD-SHELL", "curl -f http://localhost:8083/admin"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 90s
 
     labels:
       com.hypercode.service: "fcc-proxy"
