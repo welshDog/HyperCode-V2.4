@@ -1,7 +1,7 @@
 # ============================================================
 # docker-compose.fcc.yml — Free Claude Code (FCC) Proxy
 # Source: github.com/Alishahryar1/free-claude-code (42k ⭐)
-# Port: 8082 (confirmed free in PORT_MAP_COMPLETE.md)
+# Port: 8083 (8082 was taken by brain-agent — PORT_MAP_COMPLETE.md was stale)
 # Network: hypercode_agents_net (existing — verified via docker inspect)
 # Build: local Dockerfile.fcc clones FCC + installs via uv
 # ============================================================
@@ -16,11 +16,11 @@ services:
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:8082:8082"       # Private — localhost only ✅
+      - "127.0.0.1:8083:8083"       # Private — localhost only ✅
 
     environment:
       HOST: "0.0.0.0"
-      PORT: "8082"
+      PORT: "8083"
       FCC_OPEN_BROWSER: "0"
       OLLAMA_BASE_URL: "http://hypercode-ollama:11434"
       MODEL: "${MODEL:-nvidia_nim/nvidia/nemotron-3-super-120b-a12b}"
@@ -40,7 +40,7 @@ services:
       - agents-net
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:8082/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fs http://localhost:8083/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -48,7 +48,7 @@ services:
 
     labels:
       com.hypercode.service: "fcc-proxy"
-      com.hypercode.port: "8082"
+      com.hypercode.port: "8083"
       com.hypercode.description: "Free Claude Code proxy — Ollama + NIM + OpenRouter"
 
     deploy:
