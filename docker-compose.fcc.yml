@@ -40,7 +40,7 @@ services:
       - agents-net
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:8083/ || exit 1"]
+      test: ["CMD-SHELL", "curl -fs -H 'x-api-key: ${ANTHROPIC_AUTH_TOKEN:-freecc}' http://localhost:8083/v1/models || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
