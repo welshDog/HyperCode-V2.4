@@ -39,13 +39,12 @@ services:
     networks:
       - agents-net
 
-    # healthcheck disabled: app hangs on startup
-    # healthcheck:
-    #   test: ["CMD-SHELL", "curl -f http://localhost:8083/admin"]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 90s
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f -H \"x-api-key: $ANTHROPIC_AUTH_TOKEN\" http://localhost:8083/v1/models || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
     labels:
       com.hypercode.service: "fcc-proxy"

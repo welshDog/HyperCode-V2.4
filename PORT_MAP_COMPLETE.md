@@ -29,7 +29,9 @@
 | **8015** | super-hyper-broski-agent | Supervisor agent | ✅ Running |
 | **8050** | goal-keeper | Goal tracking agent | ✅ Running |
 | **8081** | crew-orchestrator | Crew mission orchestrator | ✅ Running |
-| **8083** | agent-x | Meta-architect agent | ✅ Running |
+| **8082** | brain-agent | Hyper-Brain core agent | ✅ Running |
+| **8083** | fcc-proxy | Free Claude Code proxy | ✅ Running |
+| **8084** | agent-x | Meta-architect agent | ✅ Running |
 | **8088** | hypercode-dashboard | Next.js frontend dashboard | ✅ Running |
 | **8091** | hyper-architect | Architecture agent | ✅ Running |
 | **8092** | hyper-observer | Monitoring agent | ✅ Running |
@@ -77,6 +79,7 @@ http://localhost:8100          # Hyper-Brain API
 http://localhost:11434         # Ollama (API: http://localhost:11434/api/...)
 http://localhost:54321         # Supabase API
 localhost:54322                # Supabase Postgres (psql -h localhost -p 54322 -U postgres)
+http://localhost:8083          # FCC Proxy (Free Claude Code)
 ```
 
 ### ⚠️ Not Accessible from Windows (WSL2 localhost only)
@@ -97,15 +100,15 @@ docker run --rm -it grafana/grafana curl http://grafana:3000
 ## 📈 PORT USAGE SUMMARY
 
 ```
-Total containers: 50
-Containers with exposed ports: 25
+Total containers: 50+
+Containers with exposed ports: 25+
 Total unique ports in use: 42+
 
 Public (0.0.0.0): 7 ports
   - 8000, 8080, 6379, 8100, 11434, 54321, 54322
 
-Private (127.0.0.1): 19 ports
-  - 8000–8098 (agent range)
+Private (127.0.0.1): 20 ports
+  - 8000–8098 (agent range, including FCC on 8083)
   - 9090, 9093 (monitoring)
   - 3200, 4317–4318, 9412 (tracing)
 
@@ -129,7 +132,9 @@ Socket proxies: 2 (docker-socket-proxy)
 8015 = super-hyper-broski-agent
 8050 = goal-keeper
 8081 = crew-orchestrator
-8083 = agent-x
+8082 = brain-agent
+8083 = fcc-proxy (Free Claude Code) ← NEW
+8084 = agent-x
 8088 = hypercode-dashboard
 8091 = hyper-architect
 8092 = hyper-observer
@@ -204,6 +209,7 @@ wsl bash -c "curl http://localhost:3000"
 | Windows → Hypercode-Core | Windows host | `http://localhost:8000` | ⚠️ Unreliable (use `docker exec`) |
 | Windows → BROskiPets API | Windows host | `http://localhost:8080` | ✅ Works |
 | Windows → Supabase | Windows host | `http://localhost:54321` | ✅ Works |
+| Windows → FCC Proxy | Windows host | `http://localhost:8083` | ✅ Works |
 | Container → Container | agent-x | hypercode-core | ✅ Works (internal network) |
 | WSL2 bash → Service | WSL2 terminal | `http://localhost:8000` | ✅ Works |
 
@@ -213,6 +219,6 @@ wsl bash -c "curl http://localhost:3000"
 
 **Port Map Complete. System Healthy.** 🐕
 
-42+ ports allocated. 50 containers. Zero conflicts. Ready to ship.
+42+ ports allocated. 50+ containers. Zero conflicts. Ready to ship.
 
 </div>
