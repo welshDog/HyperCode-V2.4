@@ -3,14 +3,15 @@
 # Source: github.com/Alishahryar1/free-claude-code (42k ⭐)
 # Port: 8082 (confirmed free in PORT_MAP_COMPLETE.md)
 # Network: hypercode_agents-net (existing — no new networks)
+# Build: local Dockerfile.fcc clones FCC + installs via uv
 # ============================================================
 
 services:
   fcc-proxy:
     build:
-      context: https://github.com/Alishahryar1/free-claude-code.git#main
-      dockerfile: Dockerfile
-    image: fcc-proxy:local          # cached after first build
+      context: .
+      dockerfile: Dockerfile.fcc
+    image: fcc-proxy:local
     container_name: fcc-proxy
     restart: unless-stopped
 
@@ -18,17 +19,19 @@ services:
       - "127.0.0.1:8082:8082"       # Private — localhost only ✅
 
     environment:
-      PORT: "8082"
       HOST: "0.0.0.0"
+      PORT: "8082"
+      FCC_OPEN_BROWSER: "0"
       OLLAMA_BASE_URL: "http://hypercode-ollama:11434"
-      MODEL: "ollama/llama3.1"
+      MODEL: "${MODEL:-nvidia_nim/nvidia/nemotron-3-super-120b-a12b}"
       NVIDIA_NIM_API_KEY: "${NVIDIA_NIM_API_KEY:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
-      DISCORD_BOT_TOKEN: "${FCC_DISCORD_BOT_TOKEN:-}"
-      DISCORD_ALLOWED_CHANNELS: "${FCC_DISCORD_ALLOWED_CHANNELS:-}"
-      DISCORD_ALLOWED_DIRECTORY: "${FCC_DISCORD_ALLOWED_DIRECTORY:-/workspace}"
-      FCC_AUTH_TOKEN: "${FCC_AUTH_TOKEN:-freecc}"
+      ANTHROPIC_AUTH_TOKEN: "${ANTHROPIC_AUTH_TOKEN:-freecc}"
+      MESSAGING_PLATFORM: "${MESSAGING_PLATFORM:-none}"
+      DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN:-}"
+      ALLOWED_DISCORD_CHANNELS: "${ALLOWED_DISCORD_CHANNELS:-}"
+      ALLOWED_DIR: "${ALLOWED_DIR:-/workspace}"
 
     volumes:
       - fcc-config:/root/.fcc
@@ -37,11 +40,11 @@ services:
       - agents-net
 
     healthcheck:
-      test: ["CMD", "curl", "-fs", "http://localhost:8082/health"]
+      test: ["CMD-SHELL", "curl -fs http://localhost:8082/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 45s
 
     labels:
       com.hypercode.service: "fcc-proxy"

@@ -1,0 +1,26 @@
+# ============================================================
+# Dockerfile.fcc — Builds Free Claude Code (FCC) from source
+# Source: github.com/Alishahryar1/free-claude-code
+# FCC has no official Docker image — this builds it via uv
+# ============================================================
+
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install uv (Astral's Python package manager — FCC uses it)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Clone FCC source
+RUN git clone --depth 1 https://github.com/Alishahryar1/free-claude-code.git /app
+WORKDIR /app
+
+# Install FCC + dependencies (uv installs Python 3.14 automatically)
+RUN uv sync
+
+EXPOSE 8082
+
+# Run the FCC server (reads HOST/PORT env vars)
+CMD ["uv", "run", "fcc-server"]
