@@ -340,4 +340,129 @@ The result: **Claude Code now uses free local Ollama + free NVIDIA NIM models in
 
 ---
 
+## Addendum — 26 August 2026 (later session): Healthcheck root-cause found, tier routing wired
+
+The healthcheck in Step 4/6 above was never actually validated live — it silently
+stayed broken for at least the ~2 hours the container had been running before this
+session, undetected because the healthcheck had been disabled. Re-enabling it
+(commit `1acc79bb`, same day) surfaced the real bug immediately.
+
+### Real root cause: wrong auth header, not just `${VAR}` vs `$VAR`
+
+Testing directly against the running container:
+
+```bash
+$ docker exec fcc-proxy curl -s -H "x-api-key: freecc" http://localhost:8083/v1/models
+{"detail":"Missing proxy authentication token"}   # 401
+
+$ docker exec fcc-proxy curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer freecc" http://localhost:8083/v1/models
+200
+```
+
+**FCC's proxy auth only accepts `Authorization: Bearer <token>` — never `x-api-key`.**
+This report's own Step 4 verification command (`curl -H "x-api-key: freecc" ...`)
+and the healthcheck committed in `1acc79bb` both used the wrong header and would
+have 401'd forever regardless of the Compose-interpolation fix. This makes sense in
+hindsight: Claude Code sends `x-api-key` only for `ANTHROPIC_API_KEY`; it sends
+`Authorization: Bearer` for `ANTHROPIC_AUTH_TOKEN` — the env var this whole setup
+uses — so the real Trae/Claude Code traffic was very likely authenticating fine the
+whole time; only the manual `curl` checks (and now the healthcheck) had the wrong
+header.
+
+Fixed in `docker-compose.fcc.yml`:
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "curl -f -H \"Authorization: Bearer $ANTHROPIC_AUTH_TOKEN\" http://localhost:8083/v1/models || exit 1"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 75s
+```
+
+`start_period` bumped from 45s→75s — logs show the app genuinely takes ~45-60s
+between "Started server process" and "Application startup complete" (uv/uvicorn
+boot), not a hang; the earlier "app hangs on startup" note that led to disabling
+the healthcheck (commit `46b4f2ca`) looks like it was just this same slow boot
+misread as a hang, with `curl` connection-refused failures during a start_period
+that was too tight.
+
+### Tier-based routing wired via real FCC config
+
+Confirmed against FCC's own docs that per-Claude-tier model overrides are real,
+env-var-configurable settings — not something to build ourselves:
+
+```yaml
+MODEL: ollama/llama3.1
+MODEL_FABLE: ollama/llama3.1
+MODEL_OPUS: ollama/llama3.1
+MODEL_SONNET: ollama/llama3.1
+MODEL_HAIKU: ollama/llama3.1
+```
+
+Every tier now defaults to local Ollama (unlimited, free, zero quota pressure).
+NVIDIA NIM (Nemotron-3-Super 120B, free 40 req/min) is reserved purely as an
+automatic fallback, not a primary — protecting the 40 req/min quota for when
+Ollama is actually down.
+
+**Important limitation, confirmed via the FCC README:** the ordered **Fallback
+Models** list is **Admin-UI-only** (`http://localhost:8083/admin` → Model Config)
+— there is no environment variable, config file, or API for it. It cannot be
+committed to git or scripted through Compose; it has to be set by hand once per
+environment and re-applied if the `fcc-config` volume is ever recreated.
+
+### Second bug found: container wedges with an unreapable zombie PID 1
+
+While recreating the container to test the fixes above, `fcc-proxy` hung 3 times
+out of 4 attempts — stuck right after `uv sync`'s "Installed 1 package" log line,
+never reaching "Started server process". This is almost certainly the same
+behavior the earlier `46b4f2ca` commit called "app hangs on startup" and worked
+around by disabling the healthcheck rather than fixing.
+
+Trying to `docker compose stop` a hung container surfaced the real mechanism:
+
+```
+Error response from daemon: cannot stop container: ...: container ... PID 731443
+is zombie and can not be killed. Use the --init option when creating containers
+to run an init inside the container that forwards signals and reaps processes
+```
+
+`Dockerfile.fcc`'s `CMD ["uv", "run", "fcc-server"]` runs directly as container
+PID 1 with no init process to reap zombie children — a classic Docker footgun.
+Added `init: true` to the service in `docker-compose.fcc.yml` (runs `tini` as PID
+1). This is a real, independent fix and should ship regardless of whether it's the
+whole story — **but it did not fully resolve the hang**: the same "stuck after
+Installed 1 package" behavior recurred even with `init: true`, and at that point
+even `docker exec fcc-proxy echo hi` hung past a 10-15s timeout — i.e. new
+processes can't even be spawned in the container's namespace, not just the app's
+own async startup being slow. That points at something lower-level than FCC's own
+code: possibly Docker Desktop/WSL2 resource pressure (this fleet already runs 67+
+containers — see the ecosystem's known 8GB WSL RAM-ceiling constraint) rather than
+a bug in this compose file. Not resolved this session — worth a dedicated look at
+Docker Desktop resource headroom, or trying `uv run --no-sync fcc-server` /
+pre-baking the venv at image-build time instead of syncing on every container
+start (the Dockerfile currently re-runs `uv sync` on every boot, which is also
+just slower than it needs to be).
+
+### Status of this addendum's work
+
+- ✅ Healthcheck auth-header bug fixed and verified correct via direct curl
+  (was previously disabled/cosmetic, and the report's own Step 4 command above
+  was itself testing the wrong header)
+- ✅ Tier-routing env vars added and confirmed live inside the container the one
+  time it booted cleanly (`docker exec fcc-proxy printenv MODEL MODEL_HAIKU ...`
+  → all `ollama/llama3.1`)
+- ✅ `init: true` added after finding the container can wedge on an unreapable
+  zombie PID 1 — real fix, shipped, but not a full explanation (see above)
+- ❌ **Not resolved**: `fcc-proxy` is unreliable to start right now — hangs ~75%
+  of attempts this session. Needs its own debugging session before trusting this
+  integration for real work.
+- ⏳ Admin UI Fallback Models list — not set this session; blocked twice (once by
+  the extension not being connected, once by the container itself being wedged).
+  Do this by hand once the container reliably starts: `http://localhost:8083/admin`
+  → Model Config → Fallback Models → `nvidia_nim/nvidia/nemotron-3-super-120b-a12b`
+  (requires `NVIDIA_NIM_API_KEY`, already set in `.env`)
+
+---
+
 **Built with ❤️ for the HyperFocus Z0ne ecosystem** | 🐕♾️ | "Stop apologising for your brain. Start building."

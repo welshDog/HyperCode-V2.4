@@ -14,6 +14,12 @@ services:
     image: fcc-proxy:local
     container_name: fcc-proxy
     restart: unless-stopped
+    # Root cause of the "app hangs on startup" issue from earlier commits: `uv run
+    # fcc-server` runs directly as PID 1 with no init/reaper, so it can accumulate
+    # zombie children until the whole container wedges (confirmed live 2026-08-26:
+    # `docker compose stop` failed with "PID ... is zombie and can not be killed").
+    # `init: true` runs tini as PID 1 to reap them properly.
+    init: true
 
     ports:
       - "127.0.0.1:8083:8083"
@@ -23,7 +29,11 @@ services:
       PORT: "8083"
       FCC_OPEN_BROWSER: "0"
       OLLAMA_BASE_URL: "http://hypercode-ollama:11434"
-      MODEL: "${MODEL:-nvidia_nim/nvidia/nemotron-3-super-120b-a12b}"
+      MODEL: "${MODEL:-ollama/llama3.1}"
+      MODEL_FABLE: "${MODEL_FABLE:-ollama/llama3.1}"
+      MODEL_OPUS: "${MODEL_OPUS:-ollama/llama3.1}"
+      MODEL_SONNET: "${MODEL_SONNET:-ollama/llama3.1}"
+      MODEL_HAIKU: "${MODEL_HAIKU:-ollama/llama3.1}"
       NVIDIA_NIM_API_KEY: "${NVIDIA_NIM_API_KEY:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
@@ -39,12 +49,17 @@ services:
     networks:
       - agents-net
 
+    # 2026-08-26: FCC's proxy auth only accepts "Authorization: Bearer <token>" —
+    # x-api-key (what the integration report's own verification curl used) gets a
+    # 401 "Missing proxy authentication token" every time. Confirmed live against
+    # the running container. App startup also genuinely takes ~45-60s (uv/uvicorn
+    # boot), hence the generous start_period.
     healthcheck:
-      test: ["CMD-SHELL", "curl -f -H \"x-api-key: $ANTHROPIC_AUTH_TOKEN\" http://localhost:8083/v1/models || exit 1"]
+      test: ["CMD-SHELL", "curl -f -H \"Authorization: Bearer $ANTHROPIC_AUTH_TOKEN\" http://localhost:8083/v1/models || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 45s
+      start_period: 75s
 
     labels:
       com.hypercode.service: "fcc-proxy"
