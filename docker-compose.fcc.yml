@@ -2,7 +2,7 @@
 # docker-compose.fcc.yml — Free Claude Code (FCC) Proxy
 # Source: github.com/Alishahryar1/free-claude-code (42k ⭐)
 # Port: 8082 (confirmed free in PORT_MAP_COMPLETE.md)
-# Network: hypercode_agents-net (existing — no new networks)
+# Network: hypercode_agents_net (existing — verified via docker inspect)
 # Build: local Dockerfile.fcc clones FCC + installs via uv
 # ============================================================
 
@@ -66,4 +66,4 @@ volumes:
 networks:
   agents-net:
     external: true
-    name: hypercode_agents-net
+    name: hypercode_agents_net
