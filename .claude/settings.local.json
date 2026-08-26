@@ -1,5 +1,10 @@
 {
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:8083",
+    "ANTHROPIC_AUTH_TOKEN": "freecc"
+  },
   "permissions": {
+
     "allow": [
       "Bash(python -m pytest tests/ --tb=short -q)",
       "Bash(python -m pytest tests/unit/ -v --tb=short)",
