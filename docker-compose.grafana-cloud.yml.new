@@ -1,11 +1,12 @@
-# HyperCode V2.0 — Grafana Cloud Observability Stack
+# ══════════════════════════════════════════════════════════════════
+# 🧠 HyperCode V2.0 — Grafana Cloud Observability Stack
 # Covers: Prometheus → Grafana Cloud remote write
 #         Loki (logs) → Grafana Cloud
 #         Tempo (traces) → Grafana Cloud
 #         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
 #
 # Usage: docker compose --profile grafana-cloud up -d
-
+# ══════════════════════════════════════════════════════════════════
 networks:
   backend-net:
     name: hypercode_public_net
@@ -16,7 +17,9 @@ volumes:
 
 services:
 
-  # PROMETHEUS — scrapes all agents + infra
+  # ─────────────────────────────────────────
+  # 📡 PROMETHEUS — scrapes all agents + infra
+  # ─────────────────────────────────────────
   prometheus-cloud:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus-cloud
@@ -49,8 +52,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
+  # ─────────────────────────────────────────
+  # 🌐 GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
   # Replaces manual remote_write — single shipper for everything
+  # ─────────────────────────────────────────
   grafana-agent:
     # Supply-chain note: pin this via GRAFANA_AGENT_IMAGE (ideally with a digest) in .env.
     image: ${GRAFANA_AGENT_IMAGE:-grafana/agent:latest}
