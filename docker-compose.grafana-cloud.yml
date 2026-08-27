@@ -6,7 +6,7 @@
 #         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
 #
 # Usage: docker compose --profile grafana-cloud up -d
-# ═══════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
 networks:
   backend-net:
     name: hypercode_public_net
@@ -17,7 +17,9 @@ volumes:
 
 services:
 
-  # PROMETHEUS — scrapes all agents + infra
+  # ─────────────────────────────────────────
+  # 📡 PROMETHEUS — scrapes all agents + infra
+  # ─────────────────────────────────────────
   prometheus-cloud:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus-cloud
@@ -43,15 +45,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
+  # ─────────────────────────────────────────
+  # 🌐 GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
   # Replaces manual remote_write — single shipper for everything
+  # ─────────────────────────────────────────
   grafana-agent:
     # Supply-chain note: pin this via GRAFANA_AGENT_IMAGE (ideally with a digest) in .env.
     image: ${GRAFANA_AGENT_IMAGE:-grafana/agent:latest}
@@ -79,7 +82,6 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus-cloud
-    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
