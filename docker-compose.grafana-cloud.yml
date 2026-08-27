@@ -45,8 +45,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
@@ -84,8 +83,7 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus-cloud
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
