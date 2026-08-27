@@ -20,7 +20,7 @@ WORKDIR /app
 # Install FCC + dependencies (uv installs Python 3.14 automatically)
 RUN uv sync
 
-EXPOSE 8082
+EXPOSE 8083
 
 # Run the FCC server (reads HOST/PORT env vars)
 CMD ["uv", "run", "fcc-server"]

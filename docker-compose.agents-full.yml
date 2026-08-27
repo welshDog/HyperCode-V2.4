@@ -262,6 +262,8 @@ services:
       # Never mount /var/run/docker.sock directly (Sacred Rule): route through
       # the scoped, read+POST-only proxy instead, same as healer-agent.
       - DOCKER_HOST=tcp://docker-socket-proxy-healer:2375
+      - MEMSTREAM_URL=http://memstream:8009
+      - MEMSTREAM_HEALTH_TOKEN=${MEMSTREAM_HEALTH_TOKEN:-dev}
     networks:
       - agents-net
       - data-net
@@ -272,6 +274,8 @@ services:
         condition: service_healthy
       docker-socket-proxy-healer:
         condition: service_started
+      memstream:
+        condition: service_healthy
     deploy:
       resources:
         limits:

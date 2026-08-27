@@ -24,8 +24,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     cap_drop:
       - ALL
     cap_add:
@@ -64,8 +63,7 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     cap_drop:
       - ALL
     cap_add:
@@ -165,8 +163,7 @@ services:
       timeout: 10s
       retries: 5
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     cap_drop:
       - ALL
     deploy:
@@ -219,8 +216,7 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
 
   celery-worker:
     build:
@@ -268,8 +264,49 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
+
+  # 🧠 MEMSTREAM — Smart local AI inference engine with self-throttling
+  # Provides hardware-aware LLM inference with automatic degradation
+  # Communicates with throttle-agent for system-wide pressure coordination
+  memstream:
+    build:
+      context: ./memstream
+      dockerfile: Dockerfile
+    image: hypercode-memstream:latest
+    container_name: memstream
+    environment:
+      - MEMSTREAM_HEALTH_TOKEN=${MEMSTREAM_HEALTH_TOKEN:-dev}
+      - MEMSTREAM_API_TOKEN=${MEMSTREAM_API_TOKEN:-dev}
+      - MODEL_PATH=/app/models/mistral-7b-instruct-v0.2.Q2_K.gguf
+      - MEMSTREAM_HEALTH_PORT=8009
+      - MEMSTREAM_API_PORT=8011
+    volumes:
+      - ./memstream/models:/app/models:ro
+      - ./memstream/logs:/app/logs
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      hypercode-core:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3GB  # Adjust based on model size and available RAM
+        reservations:
+          cpus: "1.0"
+          memory: 1.5GB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8009/health/memstream"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
 
   # ───────────────────────────────────────────────────────────────────────────
   # 🤖 BROSKI-BOT — THE ONE TRUE BOT for HYPERFOCUS z0ne
@@ -333,8 +370,7 @@ services:
       retries: 3
       start_period: 20s
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
     cap_drop:
       - ALL
     deploy:
