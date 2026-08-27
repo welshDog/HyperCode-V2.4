@@ -1,4 +1,4 @@
-# ═══════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
 # 🧠 HyperCode V2.0 — Grafana Cloud Observability Stack
 # Covers: Prometheus → Grafana Cloud remote write
 #         Loki (logs) → Grafana Cloud
@@ -6,7 +6,7 @@
 #         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
 #
 # Usage: docker compose --profile grafana-cloud up -d
-# ═══════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
 networks:
   backend-net:
     name: hypercode_public_net
