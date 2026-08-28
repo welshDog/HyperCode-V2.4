@@ -1,10 +1,10 @@
 # ══════════════════════════════════════════════════════════════════
 # 🧠 HyperCode V2.0 — Grafana Cloud Observability Stack
 # Covers: Prometheus → Grafana Cloud remote write
-#         Loki (logs) → Grafana Cloud
-#         Tempo (traces) → Grafana Cloud
-#         All 14+ agents scraped + PYTHONPATH fixed for metrics.py
-#
+# Loki (logs) → Grafana Cloud
+# Tempo (traces) → Grafana Cloud
+# All 14+ agents scraped + PYTHONPATH fixed for metrics.py
+
 # Usage: docker compose --profile grafana-cloud up -d
 # ══════════════════════════════════════════════════════════════════
 networks:
@@ -17,9 +17,9 @@ volumes:
 
 services:
 
-  # ─────────────────────────────────────────
-  # 📡 PROMETHEUS — scrapes all agents + infra
-  # ─────────────────────────────────────────
+# ─────────────────────────────────────────
+# 📡 PROMETHEUS — scrapes all agents + infra
+# ─────────────────────────────────────────
   prometheus-cloud:
     image: ${PROMETHEUS_IMAGE:-prom/prometheus:v2.55.1}
     container_name: prometheus-cloud
@@ -45,17 +45,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # ─────────────────────────────────────────
-  # 🌐 GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
-  # Replaces manual remote_write — single shipper for everything
-  # ─────────────────────────────────────────
+# ─────────────────────────────────────────
+# 🌐 GRAFANA AGENT — ships metrics + logs + traces to Grafana Cloud
+# Flow mode (AGENT_MODE=flow) — single shipper for everything
+# ─────────────────────────────────────────
   grafana-agent:
     # Supply-chain note: pin this via GRAFANA_AGENT_IMAGE (ideally with a digest) in .env.
     image: ${GRAFANA_AGENT_IMAGE:-grafana/agent:latest}
@@ -66,8 +65,11 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     command:
-      - -config.file=/etc/agent/config.river
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/agent/config.river
     environment:
+      - AGENT_MODE=flow
       - GRAFANA_CLOUD_PROMETHEUS_URL=${GRAFANA_CLOUD_PROMETHEUS_URL}
       - GRAFANA_CLOUD_PROMETHEUS_USERNAME=${GRAFANA_CLOUD_PROMETHEUS_USERNAME}
       - GRAFANA_CLOUD_LOKI_URL=${GRAFANA_CLOUD_LOKI_URL}
@@ -76,13 +78,12 @@ services:
       - GRAFANA_CLOUD_TEMPO_USERNAME=${GRAFANA_CLOUD_TEMPO_USERNAME}
       - GRAFANA_CLOUD_ACCESS_TOKEN=${GRAFANA_CLOUD_ACCESS_TOKEN}
     ports:
-      - "127.0.0.1:12345:12345"  # Agent UI (localhost only)
+      - "127.0.0.1:12345:12345" # Agent UI (localhost only)
     networks:
       - backend-net
     restart: unless-stopped
     depends_on:
       - prometheus-cloud
-    security_opt: ["no-new-privileges:true"]
     logging:
       driver: "json-file"
       options:
