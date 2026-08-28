@@ -115,12 +115,3 @@ otelcol.auth.basic "grafana_cloud" {
   username = env("GRAFANA_CLOUD_TEMPO_USERNAME")
   password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
 }
-
-// ---------------------------------------------------------------------------
-// HEALTH PROBE
-// ---------------------------------------------------------------------------
-
-local.file "health" {
-  filename  = "/tmp/grafana-agent-healthy"
-  is_secret = false
-}
