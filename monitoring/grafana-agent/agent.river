@@ -1,7 +1,7 @@
-# ═══════════════════════════════════════════════════════════════════════════
-# 🧠 Grafana Agent River Config — HyperCode V2.4
-# Scrapes local Prometheus and ships to Grafana Cloud
-# ═══════════════════════════════════════════════════════════════════════════
+// ===========================================================================
+// 🧠 Grafana Agent River Config — HyperCode V2.4
+// Scrapes local Prometheus and ships to Grafana Cloud
+// ===========================================================================
 
 // Environment variable expansion (set in docker-compose)
 // - GRAFANA_CLOUD_PROMETHEUS_URL: https://prometheus-blocks-prod-us-central1.grafana-net.com/api/prom/push
@@ -10,9 +10,9 @@
 // - GRAFANA_CLOUD_LOKI_URL: https://logs-prod-us-central1.grafana-net.com/loki/api/v1/push
 // - GRAFANA_CLOUD_TEMPO_URL: https://tempo-blocks-prod-us-central1.grafana-net.com:443/api/traces
 
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 // METRICS PIPELINE: Prometheus → Grafana Cloud
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 prometheus.scrape "local_prometheus" {
   targets    = [{"__address__" = "prometheus:9090"}]
@@ -33,15 +33,15 @@ prometheus.remote_write "grafana_cloud" {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 // LOGS PIPELINE: Docker container logs → Grafana Cloud Loki
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 loki.source.docker "containers" {
-  host             = "unix:///var/run/docker.sock"
-  targets          = discovery.docker.targets
-  forward_to       = [loki.process.docker_logs.receiver]
-  relabel_configs  = discovery.relabel.docker_labels.relabel_configs
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.targets.targets
+  forward_to    = [loki.process.docker_logs.receiver]
+  relabel_rules = discovery.relabel.docker_labels.rules
 }
 
 discovery.docker "targets" {
@@ -49,7 +49,7 @@ discovery.docker "targets" {
 }
 
 discovery.relabel "docker_labels" {
-  targets = discovery.docker.targets
+  targets = discovery.docker.targets.targets
 
   // Add docker labels as loki labels
   rule {
@@ -69,8 +69,7 @@ discovery.relabel "docker_labels" {
 }
 
 loki.process "docker_logs" {
-  stage.parse_json {}
-  stage.labels {
+  stage.static_labels {
     values = {
       job = "docker",
     }
@@ -91,9 +90,9 @@ loki.write "grafana_cloud" {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 // TRACES PIPELINE: OTLP → Grafana Cloud Tempo
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 otelcol.receiver.otlp "default" {
   grpc {
@@ -117,11 +116,11 @@ otelcol.auth.basic "grafana_cloud" {
   password = env("GRAFANA_CLOUD_ACCESS_TOKEN")
 }
 
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 // HEALTH PROBE
-// ─────────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
 
 local.file "health" {
-  filename = "/tmp/grafana-agent-healthy"
+  filename  = "/tmp/grafana-agent-healthy"
   is_secret = false
 }
