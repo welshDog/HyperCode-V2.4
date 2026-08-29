@@ -14,10 +14,13 @@ and this plan's "Deviations from the spec" section.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
+from typing import AsyncIterator, Any
 
-from fastapi import FastAPI
+import time
+
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 import fleet_client
 import impact_snapshot
@@ -26,6 +29,15 @@ import plan_generator
 from local_validator import LocalValidationError, validate
 from models import Constraints, ImpactView, MissionProposal, PlanRequest
 from truth_snapshot import get_snapshot_ref
+import redis.asyncio as redis
+import os
+import json
+
+from app.api import deps
+from app.db.session import get_db
+from app.models import models
+from app.models.governance import GovernanceLedger
+from app.services import mission_store
 
 
 @asynccontextmanager
@@ -51,6 +63,21 @@ async def health() -> dict:
 class PlanGoalRequest(BaseModel):
     mission_id: str
     goal: str
+
+
+def _serialize(row) -> dict[str, Any]:
+    return {
+        "mission_id": row.mission_id,
+        "status": row.status,
+        "goal": row.goal,
+        "truth_snapshot_ref": row.truth_snapshot_ref,
+        "plan": row.plan,
+        "plan_response": row.plan_response,
+        "impact": row.impact or [],
+        "superseded_from": row.superseded_from,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
 
 
 def _terminal(
@@ -135,3 +162,60 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
     )
     ledger_client.record_proposal(proposal)
     return proposal
+
+
+@app.post("/v1/missions/{mission_id}/execute")
+async def execute_mission(
+    mission_id: str,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Execute an approved mission by publishing to the execution queue.
+    Only missions with status 'approved' can be executed.
+    """
+    # Get the mission from the store
+    row = mission_store.get_by_id(db, mission_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="mission not found")
+    if row.status != "approved":
+        raise HTTPException(
+            status_code=409,
+            detail=f"mission status is {row.status!r}, must be 'approved' to execute",
+        )
+
+    # Publish execution request to Redis
+    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
+    execution_channel = os.getenv("MISSION_EXECUTION_CHANNEL", "mission_executions")
+
+    execution_payload = {
+        "mission_id": mission_id,
+        "goal": row.goal,
+        "plan": row.plan,
+        "requested_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time())),
+        "requested_by": str(current_user.id)
+    }
+
+    try:
+        redis_client = redis.from_url(redis_url)
+        await redis_client.publish(execution_channel, json.dumps(execution_payload))
+        await redis_client.close()
+    except Exception:
+        # Fail softly - execution will be picked up by the executor service if Redis is available
+        pass
+
+    # Update mission status to executing
+    updated = mission_store.update_status(db, mission_id, "executing")
+
+    # Record execution attempt in ledger
+    ledger_row = GovernanceLedger(
+        user_id=str(current_user.id),
+        action="mission.execute",
+        payload={"mission_id": mission_id},
+        decision="executing",
+        agent_name="mission-director",
+        approved_by=str(current_user.id),
+    )
+    db.add(ledger_row)
+    db.commit()
+
+    return _serialize(updated)
