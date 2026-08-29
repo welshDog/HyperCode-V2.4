@@ -1,0 +1,112 @@
+# ═════════════════════════════════════════════════════════════════════════════════
+  # PHASE 3: MISSION EXECUTOR — Live execution engine for approved missions.
+  # Has ZERO LLM interpretation capability - only executes predefined plans.
+  # Receives execution requests via Redis pub/sub (channel: mission_executions).
+  # Reports results via Redis pub/sub (channel: mission_results).
+  # Depends on crew-orchestrator for health checks (same as other agents).
+  # Deliberately NOT gated on safety-shepherd — execution decisions are made
+  # by human review via mission-director, not by this engine.
+  # ═════════════════════════════════════════════════════════════════════════════════
+  mission-executor:
+    image: hypercode-mission-executor:latest
+    build:
+      context: ./agents/mission-executor
+      dockerfile: Dockerfile
+    container_name: mission-executor
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - AGENT_NAME=mission-executor
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - MISSION_EXECUTION_CHANNEL=${MISSION_EXECUTION_CHANNEL:-mission_executions}
+      - MISSION_RESULT_CHANNEL=${MISSION_RESULT_CHANNEL:-mission_results}
+      - MISSION_EXECUTION_TIMEOUT=${MISSION_EXECUTION_TIMEOUT:-300}
+# ═════════════════════════════════════════════════════════════════════════════════
+  # META-RESEARCH ARCHITECT — Self-evolving research agent that sits above HyperCode
+  # Combines academic research, GitHub intelligence, orchestration tuning, and
+  # neurodivergent tutoring to continuously improve the HyperCode ecosystem.
+  # Integrates with MCP-GitHub, observability stack, and research databases.
+  # Implements self-evolving planner with MOSS-style capabilities.
+  # ═════════════════════════════════════════════════════════════════════════════════
+  meta-research-architect:
+    image: hypercode-meta-research-architect:latest
+    build:
+      context: ./services/meta-research-architect
+      dockerfile: Dockerfile
+    container_name: meta-research-architect
+    ports:
+      - "127.0.0.1:8095:8095"
+    environment:
+      - AGENT_NAME=meta-research-architect
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - RESEARCH_UPDATE_INTERVAL=${RESEARCH_UPDATE_INTERVAL:-300}  # 5 minutes
+      - GITHUB_SCAN_INTERVAL=${GITHUB_SCAN_INTERVAL:-600}        # 10 minutes
+      - ORCHESTRATION_ANALYSIS_INTERVAL=${ORCHESTRATION_ANALYSIS_INTERVAL:-120}  # 2 minutes
+      - TUTORING_UPDATE_INTERVAL=${TUTORING_UPDATE_INTERVAL:-1800}  # 30 minutes
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512MB
+        reservations:
+          cpus: "0.5"
+          memory: 256MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=research"
+      - "com.hypercode.role=meta-architect"
+
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=execution-engine"
+
+networks:
+  # app-net / agent-net (singular) were phantom — never created anywhere in
+  # the real stack, found 2026-08-20 during the first real fleet launch
+  # attempt (all 11 services here referenced them, so none of them could ever
+  # actually start a container, only build an image). The real shared
+  # networks crew-orchestrator/redis/postgres are on are agents-net and
+  # data-net (see docker-compose.core.yml, which creates them for real).
+  agents-net:
+    external: true
+  data-net:
+    external: true

@@ -1,0 +1,25 @@
+# Core dependencies
+fastapi>=0.138.1
+uvicorn[standard]>=0.49.0
+pydantic>=2.13.4
+
+# Research dependencies
+arxiv>=2.3.4
+sentence-transformers>=2.2.2
+chromadb>=0.4.18
+minio>=7.1.8
+
+# GitHub integration
+PyGithub>=2.1.1
+httpx>=0.28.1
+
+# Observability
+prometheus-client>=0.20.0
+
+# Utilities
+python-dotenv>=1.1.1
+requests>=2.34.2
+asyncio-mqtt>=0.14.0
+
+# For self-evolving capabilities (MOSS-style)
+gitpython>=3.1.43
