@@ -1,102 +1,59 @@
 # ══════════════════════════════════════════════════════════════════════════════════
-  # PHASE 3: MISSION EXECUTOR — Live execution engine for approved missions.
-  # Has ZERO LLM interpretation capability - only executes predefined plans.
-  # Receives execution requests via Redis pub/sub (channel: mission_executions).
-  # Reports results via Redis pub/sub (channel: mission_results).
-  # Depends on crew-orchestrator for health checks (same as other agents).
-  # Deliberately NOT gated on safety-shepherd — execution decisions are made
-  # by human review via mission-director, not by this engine.
-  # ═════════════════════════════════════════════════════════════════════════════════
-  services:
-    mission-executor:
-      image: hypercode-mission-executor:latest
-      build:
-        context: ./agents/mission-executor
-        dockerfile: Dockerfile
-      container_name: mission-executor
-      ports:
-        - "127.0.0.1:8000:8000"
-      environment:
-        - AGENT_NAME=mission-executor
-        - LOG_LEVEL=INFO
-        - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-        - MISSION_EXECUTION_CHANNEL=${MISSION_EXECUTION_CHANNEL:-mission_executions}
-        - MISSION_RESULT_CHANNEL=${MISSION_RESULT_CHANNEL:-mission_results}
-        - MISSION_EXECUTION_TIMEOUT=${MISSION_EXECUTION_TIMEOUT:-300}
-      networks:
-        - agents-net
-        - data-net
-      depends_on:
-        redis:
-          condition: service_healthy
-        crew-orchestrator:
-          condition: service_healthy
-      deploy:
-        resources:
-          limits:
-            cpus: "0.5"
-            memory: 256MB
-          reservations:
-            cpus: "0.25"
-            memory: 128MB
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-        interval: 30s
-        timeout: 3s
-        retries: 3
-        start_period: 10s
-      restart: unless-stopped
-      labels:
-        - "com.hypercode.tier=infrastructure"
-        - "com.hypercode.role=execution-engine"
+# PHASE 3: MISSION EXECUTOR — Live execution engine for approved missions.
+# Has ZERO LLM interpretation capability - only executes predefined plans.
+# Receives execution requests via Redis pub/sub (channel: mission_executions).
+# Reports results via Redis pub/sub (channel: mission_results).
+# Depends on crew-orchestrator for health checks (same as other agents).
+# Deliberately NOT gated on safety-shepherd — execution decisions are made
+# by human review via mission-director, not by this engine.
+# ═════════════════════════════════════════════════════════════════════════════════
+services:
+  mission-executor:
+    image: hypercode-mission-executor:latest
+    build:
+      context: ./agents/mission-executor
+      dockerfile: Dockerfile
+    container_name: mission-executor
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - AGENT_NAME=mission-executor
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      - MISSION_EXECUTION_CHANNEL=${MISSION_EXECUTION_CHANNEL:-mission_executions}
+      - MISSION_RESULT_CHANNEL=${MISSION_RESULT_CHANNEL:-mission_results}
+      - MISSION_EXECUTION_TIMEOUT=${MISSION_EXECUTION_TIMEOUT:-300}
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      crew-orchestrator:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256MB
+        reservations:
+          cpus: "0.25"
+          memory: 128MB
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=execution-engine"
 
-    meta-research-architect:
-      image: hypercode-meta-research-architect:latest
-      build:
-        context: ./agents/meta-research-architect
-        dockerfile: Dockerfile
-      container_name: meta-research-architect
-      ports:
-        - "127.0.0.1:8095:8095"
-      environment:
-        - AGENT_NAME=meta-research-architect
-        - LOG_LEVEL=INFO
-        - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
-        - RESEARCH_UPDATE_INTERVAL=${RESEARCH_UPDATE_INTERVAL:-3600}
-        - RESEARCH_ARXIV_CATEGORIES=cs.AI,cs.LG,cs.MA,cs.NE
-        - RESEARCH_MAX_RESULTS_PER_QUERY=50
-        - RESEARCH_EMBEDDING_MODEL=all-MiniLM-L6-v2
-        - RESEARCH_CHROMA_PATH=./data/chroma
-        - RESEARCH_MINIO_BUCKET=hypercode-research
-        - RESEARCH_SELF_EVOLVE_ENABLED=false
-        - RESEARCH_TEST_VALIDATION_REQUIRED=true
-        - RESEARCH_HUMAN_APPROVAL_REQUIRED=true
-      networks:
-        - agents-net
-        - data-net
-      depends_on:
-        redis:
-          condition: service_healthy
-        crew-orchestrator:
-          condition: service_healthy
-      deploy:
-        resources:
-          limits:
-            cpus: "0.25"
-            memory: 128MB
-          reservations:
-            cpus: "0.1"
-            memory: 64MB
-      healthcheck:
-        test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
-        interval: 30s
-        timeout: 3s
-        retries: 3
-        start_period: 10s
-      restart: unless-stopped
-      labels:
-        - "com.hypercode.tier=infrastructure"
-        - "com.hypercode.role=research-architect"
+  # NOTE: meta-research-architect moved into docker-compose.agents.yml
+  # (2026-08-30) — that file is in docker-compose.yml's include: list and
+  # already wires redis + the `agents` profile. Run it with:
+  #   docker compose --profile agents up -d meta-research-architect
 
 networks:
   # app-net / agent-net (singular) were phantom — never created anywhere in

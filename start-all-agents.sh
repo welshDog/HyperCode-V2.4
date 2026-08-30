@@ -5,12 +5,10 @@ echo "🚀 HyperCode V2.4 - Starting Full Agent Stack"
 echo "================================================"
 echo ""
 
-# Use the full agents compose with the main compose
-docker compose \
-  -f docker-compose.yml \
-  -f docker-compose.agents-full.yml \
-  up -d \
-  --pull always
+# docker-compose.yml pulls in every layer via `include:` (core, agents, ...).
+# Never add -f for an included file (Compose merges it with itself and errors).
+# The `agents` profile activates crew-orchestrator + the specialist agents.
+docker compose --profile agents up -d --build
 
 echo ""
 echo "✓ Starting agents..."

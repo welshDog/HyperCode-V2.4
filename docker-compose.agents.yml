@@ -1748,6 +1748,67 @@ services:
     cap_drop:
       - ALL
 
+  # Meta-Research Architect — Phase 1 (observe -> explain). Polls arXiv on a
+  # timer, briefs to Redis / Discord / the vault. No write path to GitHub,
+  # infra, or agent dispatch — proposals go through mission-director.
+  meta-research-architect:
+    profiles: ["agents"]
+    build:
+      context: ./agents/meta-research-architect
+      dockerfile: Dockerfile
+    image: hypercode-meta-research-architect:latest
+    container_name: meta-research-architect
+    restart: unless-stopped
+    environment:
+      - AGENT_NAME=meta-research-architect
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
+      # default: weekly (604800s). Override in .env for a faster cadence.
+      - RESEARCH_UPDATE_INTERVAL=${RESEARCH_UPDATE_INTERVAL:-604800}
+      - RESEARCH_ARXIV_CATEGORIES=${RESEARCH_ARXIV_CATEGORIES:-cs.AI,cs.LG,cs.MA,cs.NE}
+      - RESEARCH_MAX_RESULTS_PER_QUERY=${RESEARCH_MAX_RESULTS_PER_QUERY:-25}
+      - RESEARCH_TOP_PICKS=${RESEARCH_TOP_PICKS:-5}
+      - RESEARCH_RUN_ON_STARTUP=${RESEARCH_RUN_ON_STARTUP:-true}
+      # optional sinks — unset = no-op
+      - RESEARCH_DISCORD_WEBHOOK_URL=${RESEARCH_DISCORD_WEBHOOK_URL:-${DISCORD_WEBHOOK_URL:-}}
+      - RESEARCH_VAULT_DIR=${RESEARCH_VAULT_DIR:-}
+      - AGENT_API_KEY=${API_KEY:-dev-master-key}
+    networks:
+      - agents-net
+    ports:
+      # host 8095 is taken by hyperhealth-api; container still listens on 8095
+      - "127.0.0.1:8101:8095"
+    # Only needs redis (soft — the agent degrades gracefully if it is down).
+    # Does not call hypercode-core, unlike the specialist agents.
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8095/health').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      - "com.hypercode.tier=infrastructure"
+      - "com.hypercode.role=research-architect"
+
 volumes:
   github-sync-logs:
     driver: local
