@@ -1,0 +1,11 @@
+services:
+  leaky-agent:
+    image: hypercode/leaky:latest
+    environment:
+      LOG_LEVEL: INFO
+      DOCKER_HOST: tcp://docker-proxy:2375
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./workspace:/workspace
+      - ./agents/shared:/app/shared:ro

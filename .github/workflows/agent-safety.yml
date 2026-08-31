@@ -27,6 +27,8 @@ on:
       - 'agents/shared/**'
       - 'pyproject.toml'
       - '.github/workflows/agent-safety.yml'
+      - '.github/scripts/**'
+      - 'docker-compose*.yml'
   pull_request:
     branches: [main]
     paths:
@@ -35,6 +37,8 @@ on:
       - 'agents/shared/**'
       - 'pyproject.toml'
       - '.github/workflows/agent-safety.yml'
+      - '.github/scripts/**'
+      - 'docker-compose*.yml'
   workflow_dispatch:
 
 permissions:
@@ -69,3 +73,27 @@ jobs:
       - name: Run ${{ matrix.agent }} safety suite
         working-directory: agents/${{ matrix.agent }}
         run: python -m pytest tests -q
+
+  registry-honesty:
+    # "read_only" in dispatch_capability.json is a claim; this proves it
+    # against the committed compose manifests. Card (b).
+    name: dispatch-capability registry honesty
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install check dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml pytest
+
+      - name: Honesty-check test suite
+        run: python -m pytest .github/scripts/tests/test_check_readonly_executor_capabilities.py -q
+
+      - name: Prove every read_only executor is grant-clean
+        run: python .github/scripts/check_readonly_executor_capabilities.py

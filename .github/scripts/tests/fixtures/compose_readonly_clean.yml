@@ -1,0 +1,15 @@
+services:
+  reporter:
+    image: hypercode/reporter:latest
+    environment:
+      LOG_LEVEL: INFO
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./agents/shared:/app/shared:ro
+      - reporter_cache:/app/cache
+  coder-studio:
+    image: hypercode/coder-studio:latest
+    environment:
+      DOCKER_HOST: tcp://docker-proxy:2375
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

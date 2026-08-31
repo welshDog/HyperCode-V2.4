@@ -1,0 +1,7 @@
+services:
+  leaky-agent:
+    image: hypercode/leaky:latest
+    env_file:
+      - .env
+    volumes:
+      - ./agents/shared:/app/shared:ro

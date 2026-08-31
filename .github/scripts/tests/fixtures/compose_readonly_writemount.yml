@@ -1,0 +1,8 @@
+services:
+  leaky-agent:
+    image: hypercode/leaky:latest
+    environment:
+      LOG_LEVEL: INFO
+    volumes:
+      - ./agents/shared:/app/shared:ro
+      - ./host-workspace:/workspace
