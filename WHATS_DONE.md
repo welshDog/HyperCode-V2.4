@@ -1,6 +1,89 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-29 by Claude Opus 5 (meta-research-architect implementation) ⚡
+> Last synced: 2026-08-31 by Claude Sonnet 5 (dispatch-safety cards e/a/b + CI outage root-cause) ⚡
+
+## 2026-08-31 — Dispatch-boundary safety cards e/a/b shipped; CI outage root-caused
+
+Full handover: `docs/NEXT_SESSION_HANDOVER_2026-08-31.md`. Full technical record
+(outside the repo): `H:\HYPERFOCUSZONE\HperCore\hypercode-session-full-report-2026-08-31.md` §9–§13.
+
+**Context.** The dispatch gate (`agents/crew-orchestrator/safety_gate.py`) fails
+OPEN by design — `monitor` mode never enforces even a live BLOCK, and its 10
+tests assert that ("tested to stay wrong"). The mutation client
+(`agents/fleet-controller/safety_client.py`) fails CLOSED. There was no
+mechanical boundary between the fail-open dispatch path and mutation-capable
+executors. This session built the seam, deny-first, one card at a time, nothing
+wired to change runtime behaviour before its proof landed.
+
+**Shipped (all on `origin/main`, all locally green — CI-blocked, see below):**
+
+- **Card (e)** `d2842bcd` — new `.github/workflows/agent-safety.yml`: a standalone
+  CI lane running the `crew-orchestrator` (38) and `fleet-controller` (27) safety
+  suites, each in its OWN pytest process from its OWN directory. A single combined
+  invocation collides on `sys.modules["main"]` (both agents ship a top-level
+  `main.py`) and fails ~7 fleet-controller tests — verified. Deliberately NOT
+  wired into `quality-gate.yml`, which has been mechanically dead since April
+  (`60e1b351` stripped `ci-python.yml`'s `workflow_call`). First attempt
+  (`669c31e9`) put the job in `quality-gate.yml` and was reverted.
+
+- **Card (a)** `97ceed9a` — per-agent strict dispatch client:
+  - `agents/shared/safety_contract.py` — `assert_strict_client_contract(module)`,
+    the single spec crew's and fleet's clients must both satisfy (fail-closed
+    matrix → the `_FAIL_CLOSED` singleton; ALLOW/ESCALATE/real-BLOCK pass-through;
+    frozen `SafetyResult` shape; one-arg `check_dispatch`; no mode knob).
+  - `agents/crew-orchestrator/safety_client.py` — new; `DispatchRequest`,
+    `SafetyResult`, `_FAIL_CLOSED`, `check_dispatch()`. Beside `safety_gate.py`;
+    gate untouched. Unconditionally strict.
+  - `agents/fleet-controller/safety_client.py` — `check_dispatch()` appended;
+    `check_infrastructure_mutation` + its 8 tests untouched.
+  - `agents/crew-orchestrator/tests/test_safety_client_mirrors_gate.py` — drives
+    `safety_gate.evaluate_dispatch` AND `safety_client.check_dispatch` through a
+    capturing fake and asserts identical Shepherd request bodies. This is the
+    property card (b)'s `monitor`→`enforce` canary depends on. Proven to fail on
+    a one-word body change.
+  - Design: per-agent, NOT a shared module. `fleet-controller`'s Dockerfile is a
+    `COPY` allowlist — mounting `agents/shared/` to reach a shared client would
+    drag `mcp_client` + deploy tooling onto its disk, turning a structural
+    *cannot* into a *hasn't*. ~2 transport impls, pinned identical by the contract
+    test — the correct price for a negative-capability service.
+
+- **Card (b)** `e64ca4b5` — the registry + its honesty check:
+  - `agents/crew-orchestrator/dispatch_capability.json` — 10 dispatch targets,
+    every one `"mutation"`. No agent has provably-clean grants, so none qualifies
+    for `read_only` yet (empirically confirmed: `qa-engineer` → `read_only` →
+    honesty check FAILs on its `./agents/04-qa-engineer:/app` write mount). Zero
+    behaviour change vs card (d)'s deny-first default; the file just makes the
+    roster explicit and stops `load_registry()` ERROR-logging.
+  - `.github/scripts/check_readonly_executor_capabilities.py` — for every
+    `read_only` key, its compose service (merged across `fleet_registry.FILES`)
+    must carry no `docker.sock` / `DOCKER_HOST`, no credential env
+    (`*_TOKEN` / `KUBECONFIG` / `AWS_|GCP_|AZURE_|STRIPE_|DEPLOY_|GH_*` /
+    `*SECRET*` / `*PRIVATE_KEY*`, in `environment` AND `env_file`), no writable
+    host bind mount. Fail-loud: missing/unparseable/non-object registry, ANY
+    registry key with no compose service (roster-drift guard), or an unreadable
+    `env_file` on a `read_only` agent → exit 1. Never reads
+    `DISPATCH_CAPABILITY_REGISTRY`. 17 tests, TDD.
+  - `.github/workflows/agent-safety.yml` — new `registry-honesty` job; `push`/`PR`
+    path filters gained `.github/scripts/**` and `docker-compose*.yml`.
+
+**The CI outage (root-caused this session).** Three stacked failures:
+1. `60e1b351` (2026-04-28) — `ci-python.yml` rewritten 150→33 lines, `workflow_call`
+   removed → `quality-gate.yml` invalid since April.
+2. `3a00f449` (2026-07-15, "ci: standardize workflow permissions") — malformed
+   `on:`/`permissions:` headers injected into ~23 workflow files; message inverted
+   vs effect; junk paths + mangled `dependabot.yml` also committed.
+3. GitHub Actions **account billing lock** (active ~2026-08-31 14:45Z) — every job
+   across the account fails to start.
+
+`a243f3dd` (Lyndz, 18:15) fixed 3 stage-2 headers (`ci-js`, `ci-python`,
+`ci-security`) — but not `quality-gate.yml`'s own header, and not
+`ci-python.yml`'s missing `workflow_call`, so `quality-gate.yml` is still dead.
+Repo-wide CI recovery ("B session") is scoped in the handover, blocked on the
+billing lock.
+
+**Not done / next**: card (c) (wire `needs_strict_path()` + `check_dispatch()` into
+`main.py:524`, hyphen-normalise `agent_name` at the boundary), then the
+`safety_gate.py` `monitor`→`enforce` flip behind a Shepherd-health canary.
 
 ## 2026-08-29 — Meta-Research Architect Hyper Agent implementation
 

@@ -1,7 +1,23 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 24, 2026 (Fleet Dependency Graph shipped + live-verified — see `WHATS_DONE.md`'s 2026-08-24 entries, both the feature and the SDD process-incident writeup)**
+> Last updated: **August 31, 2026 (dispatch-boundary safety cards e/a/b shipped; CI outage root-caused to `60e1b351` + `3a00f449` + an account billing lock — see `WHATS_DONE.md`'s 2026-08-31 entry and `docs/NEXT_SESSION_HANDOVER_2026-08-31.md`)**
+
+---
+
+## 🆕 New from 2026-08-31 session (dispatch-safety seam cards e/a/b + CI outage diagnosis)
+
+> Full write-up: `WHATS_DONE.md`'s 2026-08-31 entry, `docs/NEXT_SESSION_HANDOVER_2026-08-31.md`,
+> and `H:\HYPERFOCUSZONE\HperCore\hypercode-session-full-report-2026-08-31.md` §9–§13 (outside the repo).
+
+| # | Task | Priority |
+|---|---|---|
+| N12 | **✅ SHIPPED, 2026-08-31.** Dispatch-boundary safety seam, cards (e)/(a)/(b) — all on `origin/main`, all locally green, none CI-verified (billing lock, N14). (e) `d2842bcd`: standalone `.github/workflows/agent-safety.yml` lane for the crew (38) + fleet-controller (27) safety suites, per-process. (a) `97ceed9a`: per-agent strict `check_dispatch()` in both agents + `agents/shared/safety_contract.py` + a mirror test proving crew's client and `safety_gate` send the Shepherd byte-identical bodies. (b) `e64ca4b5`: `dispatch_capability.json` (10 keys, all `mutation` — no agent has provably-clean grants yet) + `.github/scripts/check_readonly_executor_capabilities.py` honesty check + `registry-honesty` CI job. | ✅ resolved |
+| N13 | **Card (c) — wire the seam into the live dispatch path. NEXT.** `agents/crew-orchestrator/main.py:524` `_safety_check_dispatch` currently calls only `safety_gate.evaluate_dispatch` (fail-open). Add `dispatch_capability.needs_strict_path(agent_name)` (card d) to pick the route and, for a `mutation` verdict, also call `safety_client.check_dispatch()` (card a) in parallel — record/compare, do NOT act on it yet. **Sharp edge:** normalise `agent_name` to hyphenated ONCE at the boundary (`settings.agents` carries both `backend_specialist` and `coder-agent` forms; registry + Shepherd speak hyphenated). Test pinning both key styles. | 🔴 next up |
+| N14 | **BLOCKER — GitHub Actions account billing lock.** Active since ~2026-08-31 14:45Z. Every workflow across the `welshDog` account fails to start ("account is locked due to a billing issue"). All of N12's cards are locally green but CI-unverified until this clears. Once cleared: `workflow_dispatch` `agent-safety.yml` → expect crew 38 / fleet 27 / honesty 15 green. | 🔴 external, Lyndz-only |
+| N15 | **B session — repo-wide CI recovery. Blocked on N14.** `quality-gate.yml` has been mechanically dead since `60e1b351` (2026-04-28, `ci-python.yml` lost `workflow_call`) and was further corrupted by `3a00f449` (2026-07-15, ~23 malformed workflow headers, message inverted vs effect). `a243f3dd` (2026-08-31) fixed 3 of those headers (`ci-js`/`ci-python`/`ci-security`) but NOT `quality-gate.yml`'s own header or `ci-python.yml`'s `workflow_call` — so the gate is still dead. Also: restore `ci-python.yml`'s `workflow_call` + 5 inputs from `f2fb97e8`; fix the other ~20 headers (`git show 3a00f449 -- <file>`, patterns differ; `actionlint` — note its guard job `iac-scan.yml` is itself a casualty); decide per-item which `60e1b351` deletions were deliberate (SBOM, license-compliance, 18-agent CVE matrix); check Dependabot (mangled `.github/dependabot.yml`). | 🟡 needs its own session |
+| N16 | **5 pre-existing failures in `.github/scripts/tests/test_live_repo_integration.py`** (`0086a882`, 2026-08-24 — `fleet_registry` / port checks, unrelated to N12). The `registry-honesty` job deliberately runs only `test_check_readonly_executor_capabilities.py`, not the whole dir, so these stay invisible to CI. Fix or quarantine, then widen the job's pytest scope. | 🟢 low priority |
+| N17 | **When card (c) lands**, add a dispatch-safety line to `CLAUDE.md`'s `crew-orchestrator` row (currently bare `✅ Live`). Not done now — the seam is built but unwired, and CLAUDE.md is rules/architecture, not half-built state. | 🟢 doc, deferred |
 
 ---
 
