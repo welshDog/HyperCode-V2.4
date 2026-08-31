@@ -1,0 +1,71 @@
+name: Agent Safety Suites
+
+# Dedicated lane for the dispatch-boundary safety invariant. Runs the
+# crew-orchestrator and fleet-controller test suites that pin the
+# fail-open (dispatch) / fail-closed (mutation) contract.
+#
+# This workflow is deliberately standalone. It does NOT hang off
+# quality-gate.yml, which has been mechanically invalid since 60e1b351
+# (2026-04-28, ci-python.yml lost its workflow_call trigger) and further
+# corrupted by 3a00f449 (2026-07-15, malformed headers). A safety gate
+# that cannot run because an unrelated workflow has a YAML bug is CI
+# failing open — the exact failure class this suite exists to catch. Full
+# recovery of the quality-gate chain is tracked separately (B session).
+#
+# Each agent runs in its OWN pytest process from its OWN directory:
+# crew-orchestrator and fleet-controller both ship a top-level main.py, so
+# a single combined invocation collides on sys.modules["main"] and fails
+# ~7 fleet-controller tests. Do NOT merge the legs, and do NOT fold these
+# dirs into pyproject.toml testpaths.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'agents/crew-orchestrator/**'
+      - 'agents/fleet-controller/**'
+      - 'agents/shared/**'
+      - 'pyproject.toml'
+      - '.github/workflows/agent-safety.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'agents/crew-orchestrator/**'
+      - 'agents/fleet-controller/**'
+      - 'agents/shared/**'
+      - 'pyproject.toml'
+      - '.github/workflows/agent-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  suite:
+    name: ${{ matrix.agent }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [crew-orchestrator, fleet-controller]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install agent + test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r agents/${{ matrix.agent }}/requirements.txt
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run ${{ matrix.agent }} safety suite
+        working-directory: agents/${{ matrix.agent }}
+        run: python -m pytest tests -q

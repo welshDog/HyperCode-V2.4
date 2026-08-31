@@ -93,39 +93,6 @@ jobs:
               body: `## Coverage Report\n\n- line coverage: ${rate}%\n`
             });
 
-  # ── 3.2 Safety-critical agent suites ───────────────────────────────────
-  # Runs the dispatch-boundary suites that gate the fail-open/fail-closed
-  # invariant (crew-orchestrator dispatch_capability + safety_gate,
-  # fleet-controller strict client). Each agent runs in its OWN pytest
-  # process from its own directory — crew-orchestrator and fleet-controller
-  # both ship a top-level `main.py`, so a single combined invocation collides
-  # on `sys.modules["main"]` and fails ~7 fleet-controller tests. Keep them
-  # split. Do NOT fold these into pyproject.toml testpaths.
-  agent-safety-suites:
-    name: Agent Safety Suites (${{ matrix.agent }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        agent: [crew-orchestrator, fleet-controller]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-
-      - name: Install agent + test dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r agents/${{ matrix.agent }}/requirements.txt
-          pip install pytest pytest-asyncio httpx
-
-      - name: Run ${{ matrix.agent }} test suite
-        working-directory: agents/${{ matrix.agent }}
-        run: python -m pytest tests -q
-
   # ── 4. Dependency freshness ──────────────────────────────────────────────
   deps-check:
     name: Dependency Freshness
@@ -197,20 +164,18 @@ jobs:
   # ── 6. Master gate ───────────────────────────────────────────────────────
   gate:
     name: Quality Gate Result
-    needs: [python-ci, js-ci, agent-safety-suites]
+    needs: [python-ci, js-ci]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - name: Evaluate all gates
         run: |
-          echo "python:        ${{ needs.python-ci.result }}"
-          echo "js:            ${{ needs.js-ci.result }}"
-          echo "agent-safety:  ${{ needs.agent-safety-suites.result }}"
+          echo "python:   ${{ needs.python-ci.result }}"
+          echo "js:       ${{ needs.js-ci.result }}"
 
           FAILED=""
           [ "${{ needs.python-ci.result }}" == "failure" ] && FAILED="$FAILED python"
           [ "${{ needs.js-ci.result }}"     == "failure" ] && FAILED="$FAILED js"
-          [ "${{ needs.agent-safety-suites.result }}" == "failure" ] && FAILED="$FAILED agent-safety"
 
           if [ -n "$FAILED" ]; then
             echo "::error::Quality gate FAILED. Blocking jobs:$FAILED"
