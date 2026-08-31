@@ -28,6 +28,23 @@ import httpx
 
 from models import PlanRequest
 
+_DISPATCH_SOURCE = "fleet-controller"
+
+
+@dataclass(frozen=True)
+class DispatchRequest:
+    """One downstream agent dispatch, as a distinct security object.
+
+    Separate from PlanRequest on purpose: a deployment plan and an agent
+    dispatch are different things to check, and the strict client speaks only
+    this shape for dispatch — never dict[str, Any].
+    """
+
+    agent: str
+    tool: Optional[str]  # carries the task *type* (mirrors safety_gate.evaluate_dispatch's `tool` arg), not a tool name
+    task_id: str
+    description: str = ""
+
 
 @dataclass(frozen=True)
 class SafetyResult:
@@ -81,6 +98,59 @@ async def check_infrastructure_mutation(plan: PlanRequest, plan_hash: str) -> Sa
         "target": None,
         "domain": None,
         "context": {"mission_id": plan.mission_id, "plan_hash": plan_hash},
+    }
+    try:
+        resp = await _get_client().post(f"{_url()}/evaluate", json=body, headers=_headers())
+    except Exception:
+        return _FAIL_CLOSED
+
+    if resp.status_code != 200:
+        return _FAIL_CLOSED
+
+    try:
+        data = resp.json()
+    except Exception:
+        return _FAIL_CLOSED
+
+    if not isinstance(data, dict) or "decision" not in data:
+        return _FAIL_CLOSED
+
+    return SafetyResult(
+        decision=str(data["decision"]).upper(),
+        reason=str(data.get("reason") or ""),
+        rule=data.get("rule"),
+        category=data.get("category"),
+        shepherd_available=True,
+        fail_closed=False,
+    )
+
+
+async def check_dispatch(dispatch: DispatchRequest) -> SafetyResult:
+    """Ask the Shepherd about one downstream agent dispatch, fail-closed.
+
+    Same fail-closed discipline as check_infrastructure_mutation: timeout,
+    connection error, non-200, unparseable body, non-dict body, or a body with
+    no ``decision`` all return the ``_FAIL_CLOSED`` singleton. A well-formed
+    verdict passes through unchanged (a real Shepherd ``BLOCK`` is distinct
+    from the fail-closed one).
+
+    The body mirrors crew-orchestrator's safety_gate.evaluate_dispatch
+    (category="generic", context.source/task_id/truncated description) so the
+    shared contract test holds both clients to one shape. Not wired into a
+    dispatch path — fleet-controller has none yet; this exists so the strict
+    client is ready when it does.
+    """
+    body = {
+        "agent": dispatch.agent,
+        "category": "generic",
+        "tool": dispatch.tool,
+        "target": None,
+        "domain": None,
+        "context": {
+            "source": _DISPATCH_SOURCE,
+            "task_id": dispatch.task_id,
+            "description": (dispatch.description or "")[:200],
+        },
     }
     try:
         resp = await _get_client().post(f"{_url()}/evaluate", json=body, headers=_headers())
