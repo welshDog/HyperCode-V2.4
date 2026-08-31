@@ -3,10 +3,6 @@ name: JS CI
 on:
   workflow_call:
     inputs:
-
-    permissions:
-      contents: read
-    inputs:
       node_version:
         description: Node version
         required: false

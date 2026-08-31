@@ -1,5 +1,4 @@
-permissions:
-  contents: readname: CI — Python
+name: CI — Python
 
 on:
   push:
