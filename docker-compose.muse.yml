@@ -1,0 +1,33 @@
+# Muse Code Service for HyperCode-V2.4
+# Usage: docker compose --profile muse up -d
+# Env vars: MUSE_API_KEY, MUSE_CONTRIBUTOR_TIER, PROJECT_ROOT, HC_DATA_ROOT
+
+services:
+  muse-code:
+    build:
+      context: .
+      dockerfile: Dockerfile.muse
+    container_name: muse-code
+    volumes:
+      - ${HC_DATA_ROOT:-/data/hypercode}/muse:/root/.muse
+      - ${PROJECT_ROOT:-.}:/workspace:Z
+    environment:
+      - MUSE_API_KEY=${MUSE_API_KEY}
+      - MUSE_CONTRIBUTOR_TIER=${MUSE_CONTRIBUTOR_TIER:-true}
+      - MUSE_WORKDIR=/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    networks:
+      - agents-net
+    profiles:
+      - muse
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M

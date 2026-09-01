@@ -1,0 +1,22 @@
+# Muse Code CLI Container for HyperCode-V2.4
+# Build: docker build -t muse-code -f Dockerfile.muse .
+# Run:   docker run -it --rm -v "$(pwd):/workspace:Z" -e MUSE_API_KEY="YOUR_KEY" muse-code
+
+FROM debian:bookworm-slim
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Muse Code CLI
+RUN curl -fsSL https://dev.meta.ai/install.sh | bash
+
+# Set working directory
+WORKDIR /workspace
+
+# Default entrypoint
+ENTRYPOINT ["muse"]
+CMD []
