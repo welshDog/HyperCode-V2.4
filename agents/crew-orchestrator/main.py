@@ -530,33 +530,86 @@ async def _safety_check_dispatch(
     dict and an ESCALATE waits on the Shepherd-raised approval (denied/timeout
     ⇒ terminal result). monitor mode records the verdict but always proceeds.
     """
-    verdict = await safety_gate.evaluate_dispatch(agent_name, task_type, task_id, description)
-    decision = verdict.get("decision")
-    if decision != safety_gate.ALLOW and not verdict.get("skipped"):
+    # Handle edge case of invalid agent_name
+    if not agent_name:
+        await log_event(
+            "orchestrator",
+            "error",
+            f"Invalid agent_name received: {agent_name}"
+        )
+        # Fail-safe: allow the dispatch to proceed (mirroring safety_gate's fail-open behavior)
+        return None
+
+    # Import dispatch capability locally to avoid circular imports
+    from . import dispatch_capability
+    from . import safety_client
+
+    # Normalise agent_name to hyphenated ONCE at the boundary
+    # settings.agents carries both underscore keys (backend_specialist) and hyphen keys (coder-agent)
+    # registry and Shepherd both speak hyphenated
+    hyphenated_agent_name = agent_name.replace("_", "-")
+
+    # Card (c): wire the seam - check both paths for mutation-capable agents
+    needs_strict = dispatch_capability.needs_strict_path(hyphenated_agent_name)
+
+    # Always run the fail-open path (safety_gate) for monitoring
+    open_verdict = await safety_gate.evaluate_dispatch(hyphenated_agent_name, task_type, task_id, description)
+    open_decision = open_verdict.get("decision")
+
+    if needs_strict:
+        # For mutation-capable agents, also run the fail-closed path (safety_client) in parallel
+        # Record/compare verdicts but do NOT act on the strict path yet (canary phase)
+        dispatch_request = safety_client.DispatchRequest(
+            agent=hyphenated_agent_name,
+            tool=task_type,
+            task_id=task_id,
+            description=description
+        )
+        closed_verdict = await safety_client.check_dispatch(dispatch_request)
+        closed_decision = closed_verdict.decision
+
+        # Log comparison for canary monitoring
+        if open_decision != closed_decision:
+            await log_event(
+                "orchestrator",
+                "info",
+                f"Safety canary mismatch for {hyphenated_agent_name}: open={open_decision}, closed={closed_decision}"
+            )
+        else:
+            await log_event(
+                "orchestrator",
+                "debug",
+                f"Safety canary match for {hyphenated_agent_name}: {open_decision}"
+            )
+
+    # For now, only act on the fail-open path (monitor mode behavior)
+    # The strict path verdict is recorded/compared above but not acted on yet
+    decision = open_decision
+    if decision != safety_gate.ALLOW and not open_verdict.get("skipped"):
         await log_event(
             "orchestrator",
             "warn",
-            f"Safety Shepherd {decision} for {agent_name}: {verdict.get('reason') or ''}",
+            f"Safety Shepherd {decision} for {hyphenated_agent_name}: {open_verdict.get('reason') or ''}",
         )
-    if not safety_gate.is_enforced(verdict):
+    if not safety_gate.is_enforced(open_verdict):
         return None
     if decision == safety_gate.BLOCK:
         return {
             "status": "blocked",
-            "agent": agent_name,
-            "reason": verdict.get("reason"),
-            "rule": verdict.get("rule"),
+            "agent": hyphenated_agent_name,
+            "reason": open_verdict.get("reason"),
+            "rule": open_verdict.get("rule"),
         }
     if decision == safety_gate.ESCALATE:
         approved = await safety_gate.wait_for_shepherd_approval(
-            redis_client, verdict.get("approval_id")
+            redis_client, open_verdict.get("approval_id")
         )
         if approved:
             await log_event(
-                "orchestrator", "success", f"Safety escalation approved for {agent_name}"
+                "orchestrator", "success", f"Safety escalation approved for {hyphenated_agent_name}"
             )
             return None
-        return {"status": "rejected", "agent": agent_name, "reason": verdict.get("reason")}
+        return {"status": "rejected", "agent": hyphenated_agent_name, "reason": open_verdict.get("reason")}
     return None
 
 
