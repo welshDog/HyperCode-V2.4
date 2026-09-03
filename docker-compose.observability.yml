@@ -49,7 +49,7 @@ services:
         reservations:
           cpus: "0.25"
           memory: 512M
-    security_opt:
+    security_opt: !override
       - no-new-privileges:true
     logging:
       driver: "json-file"
@@ -99,7 +99,7 @@ services:
         reservations:
           cpus: "0.1"
           memory: 256M
-    security_opt:
+    security_opt: !override
       - no-new-privileges:true
     logging:
       driver: "json-file"
@@ -201,7 +201,7 @@ services:
         reservations:
           cpus: "0.05"
           memory: 128M
-    security_opt:
+    security_opt: !override
       - no-new-privileges:true
     logging:
       driver: "json-file"
@@ -281,7 +281,7 @@ services:
         reservations:
           cpus: "0.05"
           memory: 64M
-    security_opt:
+    security_opt: !override
       - no-new-privileges:true
     logging:
       driver: "json-file"
@@ -312,7 +312,7 @@ services:
     restart: unless-stopped
     devices:
       - /dev/kmsg
-    security_opt:
+    security_opt: !override
       - no-new-privileges:true
     deploy:
       resources:
@@ -393,7 +393,11 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
-    security_opt:
+    # !override, not a plain list: `minio` is also declared in
+    # docker-compose.secrets.yml, and compose (v5.5) concatenates list fields on
+    # same-service merge → two identical `no-new-privileges:true` entries →
+    # "items 0 and 1 are equal" blocks the full --profile observability up.
+    security_opt: !override
       - no-new-privileges:true
     logging:
       driver: "json-file"
