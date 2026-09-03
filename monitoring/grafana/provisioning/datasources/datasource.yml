@@ -107,10 +107,15 @@ datasources:
     uid: hypercode-postgres
     url: postgres:5432
     access: proxy
-    user: ${POSTGRES_USER:-postgres}
+    # Grafana provisioning interpolation does NOT support ${VAR:-default} (bash
+    # syntax) — it read `${POSTGRES_USER:-postgres}` as a missing var and stored
+    # user='' → "no PostgreSQL user name specified in startup packet" (2026-09-03).
+    # Plain ${VAR}; the grafana container gets POSTGRES_USER/DB/PASSWORD from the
+    # observability compose env block.
+    user: ${POSTGRES_USER}
     editable: true
     jsonData:
-      database: ${POSTGRES_DB:-hypercode}
+      database: ${POSTGRES_DB}
       sslmode: disable
       postgresVersion: 1500
       timescaledb: false
