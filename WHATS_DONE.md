@@ -1,6 +1,80 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-08-31 by Claude Sonnet 5 (dispatch-safety cards e/a/b + CI outage root-cause) ⚡
+> Last synced: 2026-09-03 by Claude Sonnet 5 (observability infra fixes + full obs stack up + Grafana repair) ⚡
+
+## 2026-09-03 — Observability infra: 2× Prometheus, Grafana repair, compose merge-bug; full obs stack UP
+
+Session mission was in the Brain repo (`BROski-Obsidian-Brain-for-HyperFocus-z0ne` —
+bake the constellation feature into `agent-mcp-bridge`). These are the V2.4-side
+follow-ons. Full narrative: that repo's `NEXT_SESSION_HANDOVER_2026-09-03.md`.
+
+**Fixes (all committed to `main`, pushed):**
+
+- **`994f3b24` — two-Prometheus shared-volume collision.** `prometheus`
+  (`docker-compose.observability.yml`, profile `observability`) and
+  `prometheus-cloud` (`docker-compose.grafana-cloud.yml`, profile `grafana-cloud`)
+  both declared a volume named `prometheus-data` → same project volume
+  `hypercode-v24_prometheus-data` → same `/prometheus` TSDB dir → exclusive-lock
+  contention → obs `prometheus` crash-looped **113×** (`opening storage failed:
+  lock DB directory: resource temporarily unavailable`; it had been `0B/0B` /
+  dead for weeks). Renamed the obs volume → **`prometheus-obs-data`** with its own
+  host bind dir `${HC_DATA_ROOT}/prometheus-obs`. `prometheus-cloud` keeps
+  `prometheus-data` (254 MB / 7 d) untouched. Applied live via single-file
+  recreate → obs `prometheus` `running (healthy)`, `restarts=0`, `:9090` 200.
+
+- **`5c51d1a6` — `prometheus-cloud` healthcheck.** Probe was
+  `wget http://localhost:9091/-/healthy` run *inside* the container, which listens
+  on `9090` (9091 is only the host publish) → connection refused → perpetual
+  `(unhealthy)`. Changed to `:9090`. Recreated live → `healthy`; 248 MB / 8.6 d
+  TSDB preserved (the compose "volume … data will be lost?" line is a
+  non-interactive prompt compose ignores).
+
+- **`97f2cd6c` — `security_opt` merge dup.** docker compose **v5.5 concatenates**
+  single-item list fields when `docker-compose.observability.yml` merges with any
+  other file → `security_opt: [no-new-privileges:true]` becomes `[…, …]` → strict
+  validation "items 0 and 1 are equal", which **blocked the full 5-file
+  `--profile observability` up**. Failing service rotated
+  (minio/prometheus/grafana/pyroscope/cadvisor) by map order — a merge bug, not a
+  typo. Fix: `security_opt: !override` on all 6 obs blocks (replace-not-append).
+  Verified: single-file, `yml+obs`, full 5-file `--profile observability`, AND the
+  4-file `--profile brain-agents` bake path all `docker compose config` exit 0;
+  one `no-new-privileges:true` per service in the rendered config.
+
+- **`11578cc3` — HyperCode Postgres datasource.** Grafana provisioning
+  interpolation does **not** support `${VAR:-default}` (bash syntax) —
+  `provisioning/datasources/datasource.yml` had `user: ${POSTGRES_USER:-postgres}`
+  / `database: ${POSTGRES_DB:-hypercode}`, read as missing vars, stored empty →
+  Postgres `FATAL: no PostgreSQL user name specified in startup packet`. Changed
+  both to plain `${POSTGRES_USER}` / `${POSTGRES_DB}` (the grafana container
+  already gets `POSTGRES_USER/DB/PASSWORD` from the obs compose env block).
+  Health "Database Connection OK", query returns 34 tables. Feeds
+  `monitoring/grafana/provisioning/dashboards/hypercode_overview.json`.
+
+**Grafana admin repair (config only — `.env` change is local, gitignored):**
+- Root cause: **username mismatch, not corruption.** `grafana.db` user id 1 login
+  is **`welshdog`**; `.env` had `GF_SECURITY_ADMIN_USER=lyndzwills` →
+  `[identity.not-found] no user found` on every login. Fixed:
+  `grafana cli admin reset-admin-password --user-id 1 --password-from-stdin` +
+  `.env` → `GF_SECURITY_ADMIN_USER=welshdog` + `--force-recreate grafana` (also
+  cleared the recurring `secrets.kvstore … context deadline exceeded` and the
+  Grafana-13 dashboard-service re-init loop). `grafana.db` backed up in-container
+  (`grafana.db.bak-2026-09-03`) and to the session scratchpad.
+
+**Result / current box state:**
+- **Full `--profile observability` stack is UP** — `loki`, `tempo`, `pyroscope`,
+  `promtail`, `node-exporter`, `cadvisor`, `alertmanager`, `celery-exporter`
+  (+ the already-up `prometheus`/`grafana`/`minio`/`chroma`) — all healthy, 0 OOM.
+- Prometheus obs `:9090` at **12/14 targets UP** (the 2 down — `broski-bot`,
+  `crew-orchestrator` — are pre-existing scrape-config mismatches).
+- Grafana `:3001` fully operational: **login `welshdog`**, all 5 datasources `OK`,
+  11 dashboards.
+- **To fit the obs stack on the 8 GB box, ~31 idle specialist agents were
+  stopped.** Restore list: `…/scratchpad/obs-stack-restore-list.txt`. **Do not
+  `docker start` them while observability is up** — tear obs down first (or stop
+  `loki tempo pyroscope`).
+
+**Open (own tasks, non-blocking):** none in V2.4. (Brain repo has 2 cosmetic
+constellation FOLLOWUPs left, both browser-gated.)
 
 ## 2026-08-31 — Dispatch-boundary safety cards e/a/b shipped; CI outage root-caused
 

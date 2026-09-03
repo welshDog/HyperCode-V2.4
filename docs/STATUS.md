@@ -1,8 +1,12 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **August 24, 2026** — Fleet Dependency Graph (mission-director
-> Phase 2) shipped + live-verified; see `WHATS_DONE.md`'s 2026-08-24 entries
-> (both the feature and a real SDD process-incident writeup worth reading)
+> Last updated: **September 3, 2026** — Observability infra fixes + **full
+> `--profile observability` stack brought UP**; Grafana `:3001` repaired (login is
+> `welshdog`). To fit obs on the 8 GB box, **~31 idle specialist agents are
+> currently STOPPED** (restore list in the session scratchpad; don't restart them
+> while obs is up). See `WHATS_DONE.md`'s 2026-09-03 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-03.md`.
+> _(Prev: August 24 — Fleet Dependency Graph / mission-director Phase 2 shipped;
+> see `WHATS_DONE.md`'s 2026-08-24 entries.)_
 > For sacred rules + architecture → `CLAUDE.md`
 > For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
 > (kept accurate every session; this file's own fleet table below is not — see the
