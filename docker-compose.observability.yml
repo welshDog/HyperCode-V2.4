@@ -16,7 +16,10 @@ services:
       - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
       - ./monitoring/prometheus/docker_alerts.yml:/etc/prometheus/docker_alerts.yml
       - ./monitoring/prometheus/tier3_pools_queues.yml:/etc/prometheus/tier3_pools_queues.yml
-      - prometheus-data:/prometheus
+      # Own volume — MUST NOT be `prometheus-data`: grafana-cloud's prometheus-cloud
+      # mounts that same project volume, and two Prometheis on one TSDB dir means
+      # the second to start crash-loops on `lock DB directory` (2026-09-03).
+      - prometheus-obs-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -466,12 +469,14 @@ services:
         max-file: "3"
 
 volumes:
-  prometheus-data:
+  # Distinct from grafana-cloud's `prometheus-data` (prometheus-cloud) — separate
+  # name AND separate host dir, so the two Prometheis never share a TSDB lock.
+  prometheus-obs-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: ${HC_DATA_ROOT}/prometheus
+      device: ${HC_DATA_ROOT}/prometheus-obs
   grafana-data:
     driver: local
     driver_opts:
