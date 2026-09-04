@@ -211,3 +211,79 @@ async def test_response_parses_against_plain_str_capability_mirror_model(client,
     # Would raise pydantic.ValidationError if `capability` were still a dict-typed field.
     mirrored = _MissionDirectorStylePlanResponseMirror(**resp.json())
     assert mirrored.capability is None
+
+
+@pytest.mark.asyncio
+async def test_ledger_payload_includes_capability_check(monkeypatch):
+    """Fix round 2 (controller-ruled): the capability-verify outcome must be
+    reconstructable from the Governance Ledger alone, not only the API
+    response. Calls ledger_client._write directly (it's the fire-and-forget
+    coroutine record_preview schedules) with a fake httpx client that
+    captures the posted JSON body, rather than racing pytest-asyncio's event
+    loop against a background asyncio.create_task."""
+    import ledger_client
+    import safety_client
+    from models import CapabilityView, Constraints, PlanRequest, RequestedAction
+
+    captured = {}
+
+    class _FakeResponse:
+        status_code = 200
+
+    class _FakeClient:
+        async def post(self, path, json):
+            captured["path"] = path
+            captured["body"] = json
+            return _FakeResponse()
+
+    monkeypatch.setattr(ledger_client, "_client", _FakeClient())
+
+    plan = PlanRequest(
+        schema_version=1,
+        mission_id="m",
+        requested_actions=[RequestedAction(action_id="a1", kind="compose_profile.preview", profile="agents")],
+        constraints=Constraints(allow_profiles=["agents"]),
+    )
+    result = safety_client.SafetyResult(decision="ALLOW", reason="ok")
+    capability_view = CapabilityView(presented=True, valid=False, reason="plan_hash mismatch")
+
+    await ledger_client._write(plan, "plan_x", "sha256:demo", result, capability_view)
+
+    assert captured["body"]["payload"]["capability_check"] == {
+        "presented": True, "valid": False, "reason": "plan_hash mismatch",
+    }
+
+
+@pytest.mark.asyncio
+async def test_ledger_payload_capability_check_none_when_not_evaluated(monkeypatch):
+    """record_preview's capability_view parameter stays optional (default
+    None) so any other caller of this fire-and-forget client doesn't need to
+    thread a CapabilityView through — the ledger payload just reflects that
+    honestly as null rather than fabricating a value."""
+    import ledger_client
+    import safety_client
+    from models import Constraints, PlanRequest, RequestedAction
+
+    captured = {}
+
+    class _FakeResponse:
+        status_code = 200
+
+    class _FakeClient:
+        async def post(self, path, json):
+            captured["body"] = json
+            return _FakeResponse()
+
+    monkeypatch.setattr(ledger_client, "_client", _FakeClient())
+
+    plan = PlanRequest(
+        schema_version=1,
+        mission_id="m",
+        requested_actions=[RequestedAction(action_id="a1", kind="compose_profile.preview", profile="agents")],
+        constraints=Constraints(allow_profiles=["agents"]),
+    )
+    result = safety_client.SafetyResult(decision="ALLOW", reason="ok")
+
+    await ledger_client._write(plan, "plan_x", "sha256:demo", result, None)
+
+    assert captured["body"]["payload"]["capability_check"] is None

@@ -80,5 +80,5 @@ async def preview_plan(plan: PlanRequest) -> PlanResponse:
         capability=plan.capability if capability_view.valid else None,
         capability_check=capability_view,
     )
-    ledger_client.record_preview(plan, plan_id, plan_hash, result)  # fire-and-forget, not awaited
+    ledger_client.record_preview(plan, plan_id, plan_hash, result, capability_view)  # fire-and-forget, not awaited
     return response
