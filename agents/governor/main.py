@@ -22,7 +22,7 @@ import shepherd_client
 import transitions
 from approvals import satisfied as approvals_satisfied
 from killswitch import is_killed
-from models import MintRequest, MintResponse
+from models import MintRequest, MintResponse, RevokeRequest, VerifyRequest
 from plan_validator import PlanValidationError, validate_plan
 
 
@@ -117,3 +117,42 @@ async def mint_capability(req: MintRequest) -> MintResponse:
     })
     return MintResponse(capability=token, jti=claims.jti, verdict=verdict_dict, minted=True,
                         reason=outcome.reason)
+
+
+@app.post("/v1/capabilities/verify")
+async def verify_capability(req: VerifyRequest) -> dict:
+    try:
+        claims = capability.verify(
+            req.token, expected_sub=req.expected_sub, expected_plan_hash=req.expected_plan_hash,
+            expected_action=req.expected_action, expected_target=req.expected_target,
+            expected_mode=req.expected_mode,
+        )
+    except capability.VerifyError as exc:
+        return {"valid": False, "code": exc.code, "claims": None}
+
+    if await redis_state.is_revoked(claims.jti) or await redis_state.is_mission_revoked(claims.mission_id):
+        return {"valid": False, "code": "revoked", "claims": None}
+    if await is_killed():
+        return {"valid": False, "code": "kill_switch", "claims": None}
+    if req.burn:
+        first = await redis_state.register_use(claims.jti, 300)
+        if not first:
+            return {"valid": False, "code": "replayed", "claims": None}
+    return {"valid": True, "code": None, "claims": claims.model_dump()}
+
+
+@app.post("/v1/capabilities/revoke")
+async def revoke_capability(req: RevokeRequest) -> dict:
+    if req.jti:
+        await redis_state.revoke(req.jti)
+    if req.mission_id:
+        await redis_state.revoke_mission(req.mission_id)
+    ledger_client.record("capability.revoked", "REVOKED", {
+        "jti": req.jti, "mission_id": req.mission_id, "reason": req.reason,
+    })
+    return {"revoked": True}
+
+
+@app.get("/v1/lease")
+async def get_lease() -> dict:
+    return {"lease": await lease_mod.current(), "valid": await lease_mod.is_valid()}

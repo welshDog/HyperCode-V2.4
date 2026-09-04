@@ -60,3 +60,19 @@ class MintResponse(BaseModel):
     verdict: dict
     minted: bool
     reason: str
+
+
+class VerifyRequest(BaseModel):
+    token: str
+    expected_sub: str
+    expected_plan_hash: str
+    expected_action: str
+    expected_target: Optional[str] = None
+    expected_mode: str
+    burn: bool = False
+
+
+class RevokeRequest(BaseModel):
+    jti: Optional[str] = None
+    mission_id: Optional[str] = None
+    reason: str
