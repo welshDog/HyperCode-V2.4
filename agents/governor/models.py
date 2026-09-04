@@ -76,3 +76,15 @@ class RevokeRequest(BaseModel):
     jti: Optional[str] = None
     mission_id: Optional[str] = None
     reason: str
+
+
+class ApprovalRequest(BaseModel):
+    mission_id: str
+    plan_hash: str
+    approver_id: str
+    decision: str
+    reason: str
+
+
+class KillRequest(BaseModel):
+    reason: str = Field(min_length=1)

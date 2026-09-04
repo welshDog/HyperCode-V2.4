@@ -9,11 +9,13 @@ docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
 """
 from __future__ import annotations
 
+import json as _json
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import AsyncIterator
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 
 import capability
 import ledger_client
@@ -21,9 +23,12 @@ import lease as lease_mod
 import redis_state
 import shepherd_client
 import transitions
+from approvals import record as approvals_record
 from approvals import satisfied as approvals_satisfied
+from killswitch import engage as kill_engage
 from killswitch import is_killed
-from models import MintRequest, MintResponse, RevokeRequest, VerifyRequest
+from killswitch import release as kill_release
+from models import ApprovalRequest, KillRequest, MintRequest, MintResponse, RevokeRequest, VerifyRequest
 from plan_validator import PlanValidationError, validate_plan
 
 
@@ -159,3 +164,51 @@ async def revoke_capability(req: RevokeRequest) -> dict:
 @app.get("/v1/lease")
 async def get_lease() -> dict:
     return {"lease": await lease_mod.current(), "valid": await lease_mod.is_valid()}
+
+
+def _operator_key() -> str:
+    path = os.getenv("OPERATOR_KEY_FILE", "/run/secrets/api_key")
+    if path and os.path.isfile(path):
+        return open(path).read().strip()
+    return (os.getenv("OPERATOR_KEY") or "").strip()
+
+
+def _require_operator(x_operator_key: str | None) -> None:
+    expected = _operator_key()
+    if not expected or x_operator_key != expected:
+        raise HTTPException(status_code=401, detail="invalid operator key")
+
+
+@app.post("/v1/approvals")
+async def post_approval(req: ApprovalRequest) -> dict:
+    approval_id = await approvals_record(
+        mission_id=req.mission_id, plan_hash=req.plan_hash, approver_id=req.approver_id,
+        decision=req.decision, reason=req.reason,
+    )
+    ledger_client.record("approval.recorded", req.decision.upper(), {
+        "mission_id": req.mission_id, "plan_hash": req.plan_hash,
+        "approver_id": req.approver_id, "approval_id": approval_id,
+    })
+    return {"approval_id": approval_id}
+
+
+@app.get("/v1/approvals/{mission_id}")
+async def list_approvals(mission_id: str) -> dict:
+    raw = await redis_state.get_redis().lrange(f"gov:appr:{mission_id}", 0, -1)
+    return {"approvals": [_json.loads(x) for x in raw]}
+
+
+@app.post("/v1/kill")
+async def post_kill(req: KillRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_key)
+    await kill_engage(req.reason)
+    ledger_client.record("kill.engaged", "KILL", {"reason": req.reason})
+    return {"killed": True}
+
+
+@app.post("/v1/unkill")
+async def post_unkill(req: KillRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_key)
+    await kill_release(req.reason)
+    ledger_client.record("kill.released", "UNKILL", {"reason": req.reason})
+    return {"released": True, "note": "sentinel file, if present, still forces killed"}
