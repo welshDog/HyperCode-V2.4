@@ -115,3 +115,57 @@ async def test_live_allow_mints_live_capability(client, monkeypatch):
     import capability, keys, pyseto, json as _j
     payload = pyseto.decode(keys.load_public_key(), body["capability"], deserializer=_j).payload
     assert payload["mode"] == "LIVE"
+
+
+@pytest.mark.asyncio
+async def test_escalate_approved_mints_with_approval_id(client, monkeypatch):
+    """The two-person rule's actual payoff: ESCALATE + two distinct approvers
+    (INFRASTRUCTURE_MUTATION is in DANGEROUS_CLASSES, needs 2) must mint a
+    capability, not refuse — with the approval_id embedded in the token."""
+    _verdict(monkeypatch, "ESCALATE")
+    import approvals
+
+    req = _req()
+    mission_id = req["plan"]["mission_id"]
+    plan_hash = req["plan_hash"]
+    await approvals.record(
+        mission_id=mission_id, plan_hash=plan_hash,
+        approver_id="approver_a", decision="approved", reason="ok",
+    )
+    await approvals.record(
+        mission_id=mission_id, plan_hash=plan_hash,
+        approver_id="approver_b", decision="approved", reason="ok",
+    )
+
+    resp = await client.post("/v1/capabilities/mint", json=req)
+    body = resp.json()
+    assert resp.status_code == 200
+    assert body["minted"] is True
+    assert body["capability"]
+    assert body["jti"].startswith("cap_")
+
+    import keys, pyseto, json as _j
+    payload = pyseto.decode(keys.load_public_key(), body["capability"], deserializer=_j).payload
+    assert payload["approval_id"] == f"appr-set:{mission_id}"
+
+
+@pytest.mark.asyncio
+async def test_escalate_single_approver_still_refused(client, monkeypatch):
+    """Companion negative case: one approver is not enough for a DANGEROUS
+    risk_class — must still refuse, not mint."""
+    _verdict(monkeypatch, "ESCALATE")
+    import approvals
+
+    req = _req()
+    mission_id = req["plan"]["mission_id"]
+    plan_hash = req["plan_hash"]
+    await approvals.record(
+        mission_id=mission_id, plan_hash=plan_hash,
+        approver_id="approver_a", decision="approved", reason="ok",
+    )
+
+    resp = await client.post("/v1/capabilities/mint", json=req)
+    body = resp.json()
+    assert resp.status_code == 200
+    assert body["minted"] is False
+    assert body["capability"] is None
