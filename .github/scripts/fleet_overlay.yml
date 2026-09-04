@@ -28,6 +28,7 @@ roster:
   - hyper-observer
   - hyper-worker
   - fleet-controller
+  - governor
   - mission-director
 
 allowed_collisions:
