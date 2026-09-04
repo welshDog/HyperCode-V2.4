@@ -79,3 +79,11 @@ def test_blocked_domain():
     out = evaluate(manifest, {"agent": "backend_specialist", "category": "http_external",
                               "tool": "http_external", "domain": "malware.test"})
     assert out.decision == BLOCK and out.rule == "blocked_domain"
+
+
+def test_evaluate_response_backcompat():
+    from policy import evaluate
+    manifest = {"agents": {"*": {"tools": []}}, "defaults": {}}
+    d = evaluate(manifest, {"agent": "x", "category": "generic"})
+    out = d.as_dict()
+    assert set(["decision", "reason", "rule", "category"]).issubset(out)  # old contract intact

@@ -30,6 +30,19 @@ ESCALATE = "ESCALATE"
 # Categories that are inherently risky and require an explicit capability grant.
 DANGEROUS = {"docker", "http_external", "file_write", "stripe", "discord"}
 
+POLICY_VERSION = "safety-2026-09-04.1"
+
+RISK_CLASS = {
+    "docker": "INFRASTRUCTURE_MUTATION",
+    "file_write": "REVERSIBLE_ACTION",
+    "http_external": "REVERSIBLE_ACTION",
+    "stripe": "DESTRUCTIVE",
+    "discord": "REVERSIBLE_ACTION",
+}
+
+_DOCKER_ALLOWED = ["compose_profile.preview", "compose_config.validate"]
+_DOCKER_BLOCKED = ["compose_profile.start", "compose_profile.stop"]
+
 
 @dataclass
 class Decision:
@@ -40,12 +53,19 @@ class Decision:
     agent: Optional[str] = None
 
     def as_dict(self) -> dict[str, Any]:
+        cat = self.category or ""
+        is_docker = cat == "docker"
         return {
             "decision": self.decision,
             "reason": self.reason,
             "rule": self.rule,
             "category": self.category,
             "agent": self.agent,
+            "risk_class": RISK_CLASS.get(cat, "READ_ONLY"),
+            "policy_version": POLICY_VERSION,
+            "reasons": [self.reason] if self.reason else [],
+            "allowed_actions": list(_DOCKER_ALLOWED) if is_docker else [],
+            "blocked_actions": list(_DOCKER_BLOCKED) if is_docker else [],
         }
 
 
