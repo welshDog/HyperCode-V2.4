@@ -35,3 +35,27 @@ async def test_renew_skipped_when_killed(fake):
 @pytest.mark.asyncio
 async def test_renew_skipped_when_shepherd_down(fake):
     assert await lease.renew_tick(shepherd_healthy=False, now=_NOW) is False
+
+
+@pytest.mark.asyncio
+async def test_current_returns_none_when_redis_get_raises(fake, monkeypatch):
+    async def raising_get(*args, **kwargs):
+        raise ConnectionError("redis unreachable")
+
+    monkeypatch.setattr(fake, "get", raising_get)
+    assert await lease.current() is None
+
+
+@pytest.mark.asyncio
+async def test_current_returns_none_when_stored_value_malformed(fake):
+    await fake.set("gov:lease", "not-valid-json")
+    assert await lease.current() is None
+
+
+@pytest.mark.asyncio
+async def test_renew_tick_returns_false_when_redis_set_raises(fake, monkeypatch):
+    async def raising_set(*args, **kwargs):
+        raise ConnectionError("redis unreachable")
+
+    monkeypatch.setattr(fake, "set", raising_set)
+    assert await lease.renew_tick(shepherd_healthy=True, now=_NOW) is False

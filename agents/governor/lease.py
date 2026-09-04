@@ -16,8 +16,11 @@ _KEY = "gov:lease"
 
 
 async def current() -> Optional[dict]:
-    raw = await redis_state.get_redis().get(_KEY)
-    return json.loads(raw) if raw else None
+    try:
+        raw = await redis_state.get_redis().get(_KEY)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
 
 
 async def is_valid(now: Optional[datetime] = None) -> bool:
@@ -37,5 +40,8 @@ async def renew_tick(*, shepherd_healthy: bool, ttl_seconds: int = 300, now: Opt
         "issued_at": now.isoformat(),
         "expires_at": (now + timedelta(seconds=ttl_seconds)).isoformat(),
     }
-    await redis_state.get_redis().set(_KEY, json.dumps(rec), ex=ttl_seconds)
+    try:
+        await redis_state.get_redis().set(_KEY, json.dumps(rec), ex=ttl_seconds)
+    except Exception:
+        return False
     return True
