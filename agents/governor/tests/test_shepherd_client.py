@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -24,7 +26,10 @@ async def _run_with(monkeypatch, handler):
 
 @pytest.mark.asyncio
 async def test_structured_verdict_parsed(monkeypatch):
+    captured = []
+
     def handler(request):
+        captured.append(json.loads(request.content))
         return httpx.Response(200, json={
             "decision": "ESCALATE", "reason": "runtime state",
             "risk_class": "INFRASTRUCTURE_MUTATION", "policy_version": "safety-2026-09-04.1",
@@ -39,6 +44,14 @@ async def test_structured_verdict_parsed(monkeypatch):
     assert v.shepherd_available is True
     assert v.fail_closed is False
 
+    body = captured[0]
+    assert body["agent"] == "governor"
+    assert body["category"] == "docker"
+    assert body["tool"] == "compose_profile.preview"
+    assert body["target"] == "agents"
+    assert body["domain"] is None
+    assert body["context"] == {"mission_id": "m", "plan_hash": "sha256:x"}
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("handler", [
@@ -51,6 +64,7 @@ async def test_fail_closed_paths(monkeypatch, handler):
     assert v.decision == "BLOCK"
     assert v.shepherd_available is False
     assert v.fail_closed is True
+    assert v is sc._FAIL_CLOSED
 
 
 @pytest.mark.asyncio
@@ -60,3 +74,4 @@ async def test_connection_error_fail_closed(monkeypatch):
     v = await _run_with(monkeypatch, handler)
     assert v.fail_closed is True
     assert v.risk_class == "INFRASTRUCTURE_MUTATION"
+    assert v is sc._FAIL_CLOSED
