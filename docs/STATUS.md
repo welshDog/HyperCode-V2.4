@@ -1,12 +1,19 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **September 3, 2026** — Observability infra fixes + **full
-> `--profile observability` stack brought UP**; Grafana `:3001` repaired (login is
-> `welshdog`). To fit obs on the 8 GB box, **~31 idle specialist agents are
-> currently STOPPED** (restore list in the session scratchpad; don't restart them
-> while obs is up). See `WHATS_DONE.md`'s 2026-09-03 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-03.md`.
-> _(Prev: August 24 — Fleet Dependency Graph / mission-director Phase 2 shipped;
-> see `WHATS_DONE.md`'s 2026-08-24 entries.)_
+> Last updated: **September 4, 2026** — Governor + capability tokens (Phase 2 of
+> the autonomous-control-plane north star) shipped: new `governor` service `:8089`,
+> compose-wired via a new `docker-compose.fleet.yml` alongside `fleet-controller`.
+> That same file closes a real Phase 0 gap — `fleet-controller` had **no compose
+> wiring at all** until this session, despite earlier "Live" notes describing the
+> built image/tests, not a real `docker compose up`. Launch:
+> `docker compose -f docker-compose.yml -f docker-compose.fleet.yml --profile agents
+> --profile fleet up -d governor fleet-controller` (`--profile agents` is required
+> only so `safety-shepherd`'s `depends_on` resolves). See `WHATS_DONE.md`'s
+> 2026-09-04 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-04.md`.
+> _(Prev: September 3 — Observability infra fixes + full `--profile observability`
+> stack brought UP; Grafana `:3001` repaired (login is `welshdog`). To fit obs on
+> the 8 GB box, ~31 idle specialist agents were STOPPED — see `WHATS_DONE.md`'s
+> 2026-09-03 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-03.md`.)_
 > For sacred rules + architecture → `CLAUDE.md`
 > For per-agent ports and current fleet status → `CLAUDE.md`'s "CURRENT STATE" section
 > (kept accurate every session; this file's own fleet table below is not — see the
@@ -34,7 +41,8 @@
 |---|---|
 | Containers | **26 agents** total (13 core + 12 ghost + `fleet-controller`), **all live** — composed up as one system for the first time ever 2026-08-20 late night, 69 containers running fleet-wide (68 + `broski-coo`, added 2026-08-22), zero unhealthy ✅ |
 | **Ghost Agent Fleet** | All 12 built + launched + verified healthy — see `CLAUDE.md`'s fleet table (this file's own table below is stale, not rewritten — see banner) |
-| **Fleet Controller** | Phase 0 of a new mission-director/fleet-controller architecture LIVE 🛡️ — `fleet-controller` :8094, `--profile fleet`. Structurally incapable of executing anything (no Docker socket, no LLM client); fails closed if Safety Shepherd is down. Spec: `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md` |
+| **Fleet Controller** | Phase 0 of a new mission-director/fleet-controller architecture LIVE 🛡️ — `fleet-controller` :8094, `--profile fleet`. Structurally incapable of executing anything (no Docker socket, no LLM client); fails closed if Safety Shepherd is down. Spec: `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`. ⚠️ Not actually compose-wired until 2026-09-04 (see banner above) — `docker-compose.fleet.yml` didn't exist before this session. |
+| **Governor + Capability Tokens** | ✅ LIVE 2026-09-04 🔑 — Phase 2 of the autonomous-control-plane north star. New `governor` service `:8089`, `--profile fleet`: PASETO v4.public (Ed25519) capability mint/verify, Redis (DB 3) single-use replay guard, kill-switch (Redis flag + off-box sentinel file, fail-closed), renewing system lease, two-person approval rule for dangerous action classes. `fleet-controller` now verifies a governor capability on every plan preview; `execution.performed` stays hard-`false` throughout. CI containment check added. Spec: `docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md`. See `WHATS_DONE.md`'s 2026-09-04 entry. |
 | **`review_mission` safety fix** | ✅ FIXED 2026-08-22 (`378b336d`) — a human could previously approve a mission whose own Safety Shepherd verdict was `BLOCK`; now hard-rejected, `ESCALATE` requires an audited explicit reason. 13/13 tests pass. |
 | **`broski-coo` v1** | ✅ LIVE 2026-08-22 🧭 — new read-only COO/observer agent, `:8025`, `agents/broski-coo/`. Real fleet+doc data → plain-English brief via a new Anthropic→OpenRouter(free)→Ollama LLM chain. 20/20 tests pass, verified live end-to-end through the real authed endpoint. See `CLAUDE.md`'s "Registry Services" section. |
 | **Fleet Dependency Graph** | ✅ LIVE 2026-08-24 🕸️ — `mission-director` Phase 2. Every `MissionProposal` carries an advisory `impact` list (upstream/downstream services, real dependency graph incl. core infra) — read-only, never touches Safety Shepherd or fleet-controller. See `CLAUDE.md`'s mission-director row + `WHATS_DONE.md`'s 2026-08-24 entries. |
