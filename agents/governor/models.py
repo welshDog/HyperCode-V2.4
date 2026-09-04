@@ -1,0 +1,62 @@
+"""
+Plan schema for governor (copied from fleet-controller/models.py —
+file-copy convention, never cross-agent import; see plan_validator.py).
+
+kind is a closed Literal set on purpose: an unknown action kind is rejected
+by pydantic at the wire level (422) before any handler code runs.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+from typing import Literal, Optional
+
+from pydantic import BaseModel, Field
+
+
+class RequestedAction(BaseModel):
+    action_id: str
+    kind: Literal["compose_profile.preview", "crew.workflow.preview"]
+    profile: Optional[str] = None
+
+
+class Constraints(BaseModel):
+    max_services: int = 25
+    allow_profiles: list[str] = Field(default_factory=list)
+    deny_profiles: list[str] = Field(default_factory=list)
+
+
+class PlanRequest(BaseModel):
+    schema_version: Literal[1]
+    mission_id: str
+    requested_actions: list[RequestedAction]
+    constraints: Constraints = Field(default_factory=Constraints)
+
+
+def canonical_hash(plan: PlanRequest) -> str:
+    """sha256 over canonical (sorted-key, whitespace-free) JSON.
+
+    separators=(",", ":") matters: the json.dumps default inserts spaces,
+    which would make the hash sensitive to formatting, not just content.
+    Stable regardless of field order in the original request; changes the
+    instant any field's value changes (proven by test, not just asserted).
+    """
+    canonical = json.dumps(plan.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+
+
+class MintRequest(BaseModel):
+    plan: PlanRequest
+    plan_hash: str
+    mode: Literal["DRY_RUN", "LIVE"]
+    action: str
+    target: Optional[str] = None
+    proposer_id: str = "mission-director"
+
+
+class MintResponse(BaseModel):
+    capability: Optional[str] = None
+    jti: Optional[str] = None
+    verdict: dict
+    minted: bool
+    reason: str

@@ -56,7 +56,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
-COPY main.py .
+COPY approvals.py capability.py keys.py killswitch.py lease.py ledger_client.py \
+     main.py models.py plan_validator.py redis_state.py shepherd_client.py \
+     transitions.py .
+COPY governor_public_key.pem .
 
 # Non-root user — security hardening
 RUN groupadd -r appuser && useradd -r -g appuser appuser \

@@ -1,0 +1,117 @@
+import fakeredis.aioredis
+import pytest
+
+import killswitch
+import redis_state
+import shepherd_client
+
+
+@pytest.fixture(autouse=True)
+def _wire(monkeypatch, tmp_path):
+    r = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    monkeypatch.setattr(redis_state, "get_redis", lambda: r)
+    monkeypatch.setenv("GOVERNOR_KILL_FILE", str(tmp_path / "KILL"))
+    yield
+
+
+def _plan():
+    return {
+        "schema_version": 1,
+        "mission_id": "mission_demo_1",
+        "requested_actions": [
+            {"action_id": "a1", "kind": "compose_profile.preview", "profile": "agents"}
+        ],
+        "constraints": {"max_services": 25, "allow_profiles": ["agents"], "deny_profiles": ["prod", "gpu"]},
+    }
+
+
+def _req(**over):
+    base = {
+        "plan": _plan(), "plan_hash": "sha256:demo", "mode": "DRY_RUN",
+        "action": "compose_profile.preview", "target": "agents", "proposer_id": "mission-director",
+    }
+    base.update(over)
+    return base
+
+
+def _verdict(monkeypatch, decision, risk="INFRASTRUCTURE_MUTATION"):
+    async def fake_eval(**kw):
+        return shepherd_client.Verdict(
+            decision=decision, reason="test", risk_class=risk,
+            policy_version="safety-2026-09-04.1", event_id="evt_1",
+        )
+    monkeypatch.setattr(shepherd_client, "evaluate_plan", fake_eval)
+
+
+@pytest.mark.asyncio
+async def test_allow_dry_run_mints(client, monkeypatch):
+    _verdict(monkeypatch, "ALLOW")
+    resp = await client.post("/v1/capabilities/mint", json=_req())
+    body = resp.json()
+    assert resp.status_code == 200
+    assert body["minted"] is True
+    assert body["capability"] and body["jti"].startswith("cap_")
+
+
+@pytest.mark.asyncio
+async def test_block_no_capability(client, monkeypatch):
+    _verdict(monkeypatch, "BLOCK")
+    body = (await client.post("/v1/capabilities/mint", json=_req())).json()
+    assert body["minted"] is False
+    assert body["capability"] is None
+
+
+@pytest.mark.asyncio
+async def test_escalate_needs_approval(client, monkeypatch):
+    _verdict(monkeypatch, "ESCALATE")
+    body = (await client.post("/v1/capabilities/mint", json=_req())).json()
+    assert body["minted"] is False
+    assert "approval" in body["reason"].lower()
+
+
+@pytest.mark.asyncio
+async def test_kill_switch_refuses(client, monkeypatch):
+    _verdict(monkeypatch, "ALLOW")
+    await killswitch.engage("halt")
+    body = (await client.post("/v1/capabilities/mint", json=_req())).json()
+    assert body["minted"] is False
+    assert "kill-switch" in body["reason"].lower()
+
+
+@pytest.mark.asyncio
+async def test_shepherd_down_fail_closed(client, monkeypatch):
+    async def boom(**kw):
+        return shepherd_client._FAIL_CLOSED
+    monkeypatch.setattr(shepherd_client, "evaluate_plan", boom)
+    body = (await client.post("/v1/capabilities/mint", json=_req())).json()
+    assert body["minted"] is False
+    assert body["verdict"]["shepherd_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_denied_profile_422(client, monkeypatch):
+    _verdict(monkeypatch, "ALLOW")
+    bad = _req()
+    bad["plan"]["requested_actions"][0]["profile"] = "gpu"
+    resp = await client.post("/v1/capabilities/mint", json=bad)
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_live_allow_mints_live_capability(client, monkeypatch):
+    _verdict(monkeypatch, "ALLOW")
+    # Deviation from the brief's verbatim test (see task-12-report.md): the
+    # brief's test never seeds a system lease, but the spec (north-star
+    # design doc, table row for POST /v1/capabilities/mint) and this
+    # endpoint's own LIVE-mode gate both require lease validity before
+    # minting a LIVE capability. ASGITransport doesn't run lifespan/renew
+    # loops for these tests, so the lease has to be seeded here directly,
+    # via lease.py's own tested API (Task 9) rather than hand-writing the
+    # Redis key.
+    import lease
+    await lease.renew_tick(shepherd_healthy=True)
+    body = (await client.post("/v1/capabilities/mint", json=_req(mode="LIVE"))).json()
+    assert body["minted"] is True
+    import capability, keys, pyseto, json as _j
+    payload = pyseto.decode(keys.load_public_key(), body["capability"], deserializer=_j).payload
+    assert payload["mode"] == "LIVE"
