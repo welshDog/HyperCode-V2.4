@@ -235,6 +235,9 @@ secrets/stripe_secret_key.txt
 secrets/stripe_webhook_secret.txt
 .trae/.ignore
 
+# Governor (Phase 2) — operator-triggered kill sentinel, never committed
+governance-control/KILL
+
 # BRO secrets
 .bro/
 
