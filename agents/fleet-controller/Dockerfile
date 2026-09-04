@@ -61,6 +61,8 @@ COPY models.py .
 COPY plan_validator.py .
 COPY safety_client.py .
 COPY ledger_client.py .
+COPY capability_verify.py .
+COPY governor_public_key.pem .
 
 # Non-root user — security hardening
 RUN groupadd -r appuser && useradd -r -g appuser appuser \

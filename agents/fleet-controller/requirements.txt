@@ -2,3 +2,4 @@ fastapi>=0.136.1
 uvicorn[standard]>=0.27.0
 pydantic>=2.11.9,<2.13.0
 httpx>=0.28.1
+pyseto>=1.8.0

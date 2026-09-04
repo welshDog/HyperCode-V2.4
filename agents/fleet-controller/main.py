@@ -16,9 +16,17 @@ from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException
 
+import capability_verify
 import ledger_client
 import safety_client
-from models import ExecutionView, PlanRequest, PlanResponse, SafetyView, canonical_hash
+from models import (
+    CapabilityView,
+    ExecutionView,
+    PlanRequest,
+    PlanResponse,
+    SafetyView,
+    canonical_hash,
+)
 from plan_validator import PlanValidationError, validate_plan
 
 
@@ -51,6 +59,13 @@ async def preview_plan(plan: PlanRequest) -> PlanResponse:
     plan_id = f"plan_{uuid.uuid4().hex[:12]}"
     result = await safety_client.check_infrastructure_mutation(plan, plan_hash)
 
+    cap_action = plan.requested_actions[0].kind
+    cap_target = plan.requested_actions[0].profile
+    cap_ok, cap_reason = capability_verify.verify_or_none(
+        plan.capability, plan_hash=plan_hash, action=cap_action, target=cap_target, mode="DRY_RUN"
+    )
+    capability_view = CapabilityView(presented=plan.capability is not None, valid=cap_ok, reason=cap_reason)
+
     response = PlanResponse(
         plan_id=plan_id,
         plan_hash=plan_hash,
@@ -62,6 +77,7 @@ async def preview_plan(plan: PlanRequest) -> PlanResponse:
             shepherd_available=result.shepherd_available,
         ),
         execution=ExecutionView(performed=False, would_execute=[]),
+        capability=capability_view,
     )
     ledger_client.record_preview(plan, plan_id, plan_hash, result)  # fire-and-forget, not awaited
     return response

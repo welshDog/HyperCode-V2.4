@@ -32,6 +32,7 @@ class PlanRequest(BaseModel):
     mission_id: str
     requested_actions: list[RequestedAction]
     constraints: Constraints = Field(default_factory=Constraints)
+    capability: Optional[str] = None   # inbound governor token (Phase 2)
 
 
 class SafetyView(BaseModel):
@@ -47,14 +48,20 @@ class ExecutionView(BaseModel):
     would_execute: list[str] = Field(default_factory=list)
 
 
+class CapabilityView(BaseModel):
+    presented: bool
+    valid: bool
+    reason: str
+
+
 class PlanResponse(BaseModel):
     plan_id: str
     plan_hash: str
     mode: Literal["DRY_RUN"] = "DRY_RUN"
     safety: SafetyView
     execution: ExecutionView
-    # Reserved for Phase 2 (capability tokens) — never set in Phase 0.
-    capability: Optional[str] = None
+    # Phase 2: recorded, not enforced — result of capability_verify.verify_or_none.
+    capability: Optional[CapabilityView] = None
 
 
 def canonical_hash(plan: PlanRequest) -> str:
