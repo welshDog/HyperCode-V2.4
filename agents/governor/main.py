@@ -10,6 +10,7 @@ docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from fastapi import FastAPI, HTTPException
@@ -135,7 +136,9 @@ async def verify_capability(req: VerifyRequest) -> dict:
     if await is_killed():
         return {"valid": False, "code": "kill_switch", "claims": None}
     if req.burn:
-        first = await redis_state.register_use(claims.jti, 300)
+        remaining = (datetime.fromisoformat(claims.expires_at) - datetime.now(timezone.utc)).total_seconds()
+        ttl = max(int(remaining), 1)
+        first = await redis_state.register_use(claims.jti, ttl)
         if not first:
             return {"valid": False, "code": "replayed", "claims": None}
     return {"valid": True, "code": None, "claims": claims.model_dump()}

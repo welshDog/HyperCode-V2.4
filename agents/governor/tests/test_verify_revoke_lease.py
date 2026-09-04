@@ -57,3 +57,21 @@ async def test_lease_endpoint(client):
     body = (await client.get("/v1/lease")).json()
     assert body["valid"] is False
     assert body["lease"] is None
+
+
+@pytest.mark.asyncio
+async def test_verify_burn_ttl_derived_from_expiry(client):
+    """The replay-window TTL must come from the token's own remaining
+    lifetime, not a hardcoded constant — mint with a non-default ttl_seconds
+    (600, not capability.mint's 300 default) and confirm the Redis key
+    register_use() sets carries a TTL close to 600, not 300."""
+    tok, claims = capability.mint(
+        sub="fleet-controller", mission_id="m", plan_hash="sha256:v",
+        action="compose_profile.preview", target="agents", mode="DRY_RUN",
+        verdict_id="v", policy_version="p", ttl_seconds=600,
+    )
+    body = (await client.post("/v1/capabilities/verify", json={"token": tok, "burn": True, **_EXPECT})).json()
+    assert body["valid"] is True
+
+    ttl = await redis_state.get_redis().ttl(f"gov:jti:{claims.jti}")
+    assert 590 <= ttl <= 600
