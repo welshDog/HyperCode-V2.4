@@ -77,7 +77,8 @@ async def preview_plan(plan: PlanRequest) -> PlanResponse:
             shepherd_available=result.shepherd_available,
         ),
         execution=ExecutionView(performed=False, would_execute=[]),
-        capability=capability_view,
+        capability=plan.capability if capability_view.valid else None,
+        capability_check=capability_view,
     )
     ledger_client.record_preview(plan, plan_id, plan_hash, result)  # fire-and-forget, not awaited
     return response

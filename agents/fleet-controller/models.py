@@ -60,8 +60,13 @@ class PlanResponse(BaseModel):
     mode: Literal["DRY_RUN"] = "DRY_RUN"
     safety: SafetyView
     execution: ExecutionView
-    # Phase 2: recorded, not enforced — result of capability_verify.verify_or_none.
-    capability: Optional[CapabilityView] = None
+    # The verified capability token itself (echoed back), or null — original
+    # Phase 0 type, kept for mission-director's mirrored PlanResponse model
+    # (agents/mission-director/models.py), which parses this response and
+    # would break on a type change here.
+    capability: Optional[str] = None
+    # Phase 2: recorded, not enforced — full verify_or_none() breakdown.
+    capability_check: Optional[CapabilityView] = None
 
 
 def canonical_hash(plan: PlanRequest) -> str:
@@ -71,6 +76,15 @@ def canonical_hash(plan: PlanRequest) -> str:
     which would make the hash sensitive to formatting, not just content.
     Stable regardless of field order in the original request; changes the
     instant any field's value changes (proven by test, not just asserted).
+
+    `capability` is excluded on purpose: a capability token is minted
+    against a plan_hash computed BEFORE the token exists to attach to the
+    plan, so the hash must identify the plan's mutation content only — never
+    the token riding alongside it. Including it would make the hash
+    self-referential (a token can never match a hash of a plan that already
+    carries that same token).
     """
-    canonical = json.dumps(plan.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    canonical = json.dumps(
+        plan.model_dump(mode="json", exclude={"capability"}), sort_keys=True, separators=(",", ":")
+    )
     return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()

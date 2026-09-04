@@ -2,8 +2,10 @@ import json
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
 import pytest
+from pydantic import BaseModel
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
@@ -90,6 +92,25 @@ def test_plan_hash_mismatch(_ephemeral_gov_key):
     assert "plan_hash" in reason
 
 
+def test_canonical_hash_stable_regardless_of_capability():
+    """The property the whole verify pipeline depends on: a capability token
+    is minted against a plan_hash computed BEFORE the token exists to attach
+    to the plan, so canonical_hash must be identical whether or not a
+    capability is riding alongside the plan. Fix 1 (controller-ruled):
+    canonical_hash excludes the `capability` field."""
+    from models import Constraints, PlanRequest, RequestedAction, canonical_hash
+
+    plan = PlanRequest(
+        schema_version=1,
+        mission_id="m",
+        requested_actions=[RequestedAction(action_id="a1", kind="compose_profile.preview", profile="agents")],
+        constraints=Constraints(allow_profiles=["agents"]),
+    )
+    plan_with_cap = plan.model_copy(update={"capability": "some-token"})
+
+    assert canonical_hash(plan) == canonical_hash(plan_with_cap)
+
+
 @pytest.mark.asyncio
 async def test_preview_reports_capability_and_never_executes(client, monkeypatch):
     import safety_client
@@ -106,5 +127,87 @@ async def test_preview_reports_capability_and_never_executes(client, monkeypatch
     }
     body = (await client.post("/v1/plans/preview", json=plan)).json()
     assert body["execution"]["performed"] is False
-    assert body["capability"]["presented"] is False
-    assert body["capability"]["valid"] is False
+    assert body["capability_check"]["presented"] is False
+    assert body["capability_check"]["valid"] is False
+    # Fix 2 (controller-ruled): `capability` stays the original Optional[str]
+    # type — null when nothing valid was presented — so mission-director's
+    # mirrored PlanResponse model keeps parsing this response.
+    assert body["capability"] is None
+
+
+@pytest.mark.asyncio
+async def test_preview_echoes_token_only_when_capability_valid(client, monkeypatch, _ephemeral_gov_key):
+    """Fix 2: `capability` echoes the submitted token back only when it
+    verified valid; `capability_check` always carries the full breakdown."""
+    import safety_client
+
+    async def fake_check(plan, plan_hash):
+        return safety_client.SafetyResult(decision="ALLOW", reason="ok")
+    monkeypatch.setattr(safety_client, "check_infrastructure_mutation", fake_check)
+
+    plan = {
+        "schema_version": 1, "mission_id": "m",
+        "requested_actions": [{"action_id": "a1", "kind": "compose_profile.preview", "profile": "agents"}],
+        "constraints": {"allow_profiles": ["agents"], "deny_profiles": ["prod", "gpu"]},
+    }
+    # First call (no capability) to learn the real plan_hash the server computes.
+    first = (await client.post("/v1/plans/preview", json=plan)).json()
+    plan_hash = first["plan_hash"]
+
+    token = _gov_token(
+        _ephemeral_gov_key,
+        plan_hash=plan_hash, action="compose_profile.preview", target="agents",
+    )
+    plan["capability"] = token
+    body = (await client.post("/v1/plans/preview", json=plan)).json()
+
+    assert body["plan_hash"] == plan_hash  # capability excluded from the hash (Fix 1)
+    assert body["capability_check"]["presented"] is True
+    assert body["capability_check"]["valid"] is True
+    assert body["capability"] == token  # echoed back — proves valid-path echo works
+
+    # And an invalid token (mismatched target) must NOT be echoed.
+    bad_token = _gov_token(
+        _ephemeral_gov_key,
+        plan_hash=plan_hash, action="compose_profile.preview", target="WRONG",
+    )
+    plan["capability"] = bad_token
+    body2 = (await client.post("/v1/plans/preview", json=plan)).json()
+    assert body2["capability_check"]["valid"] is False
+    assert body2["capability"] is None
+
+
+class _MissionDirectorStylePlanResponseMirror(BaseModel):
+    """Throwaway stand-in for agents/mission-director/models.py's
+    PlanResponse — same shape, deliberately NOT importing mission-director's
+    actual module (no cross-agent import). This is the exact regression that
+    slipped through before the controller's Fix 2: fleet-controller's
+    capability field changing type would break every real caller with this
+    shape. Only the fields relevant to the regression are mirrored."""
+
+    plan_id: str
+    plan_hash: str
+    capability: Optional[str] = None
+
+
+@pytest.mark.asyncio
+async def test_response_parses_against_plain_str_capability_mirror_model(client, monkeypatch):
+    """Regression test for the wire-compat break the controller ruled on:
+    proves PlanResponse(**resp.json()) still succeeds against a model where
+    `capability` is plainly Optional[str], the way mission-director's own
+    mirrored model declares it."""
+    import safety_client
+
+    async def fake_check(plan, plan_hash):
+        return safety_client.SafetyResult(decision="ALLOW", reason="ok")
+    monkeypatch.setattr(safety_client, "check_infrastructure_mutation", fake_check)
+
+    plan = {
+        "schema_version": 1, "mission_id": "m",
+        "requested_actions": [{"action_id": "a1", "kind": "compose_profile.preview", "profile": "agents"}],
+        "constraints": {"allow_profiles": ["agents"], "deny_profiles": ["prod", "gpu"]},
+    }
+    resp = await client.post("/v1/plans/preview", json=plan)
+    # Would raise pydantic.ValidationError if `capability` were still a dict-typed field.
+    mirrored = _MissionDirectorStylePlanResponseMirror(**resp.json())
+    assert mirrored.capability is None
