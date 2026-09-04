@@ -34,7 +34,10 @@ from plan_validator import PlanValidationError, validate_plan
 
 
 async def _renew_loop() -> None:
-    interval = int(os.getenv("GOVERNOR_LEASE_RENEW_SECONDS") or 120)
+    try:
+        interval = max(int(os.getenv("GOVERNOR_LEASE_RENEW_SECONDS") or 120), 1)
+    except ValueError:
+        interval = 120
     while True:
         try:
             await lease_mod.renew_tick(shepherd_healthy=await shepherd_client.healthy())
