@@ -70,3 +70,47 @@ def mint(
     )
     token = pyseto.encode(keys.load_private_key(), payload=claims.model_dump(), serializer=json)
     return token.decode() if isinstance(token, bytes) else token, claims
+
+
+class VerifyError(Exception):
+    def __init__(self, code: str, detail: str = "") -> None:
+        self.code = code
+        super().__init__(detail or code)
+
+
+def verify(
+    token: str,
+    *,
+    expected_sub: str,
+    expected_plan_hash: str,
+    expected_action: str,
+    expected_target: Optional[str],
+    expected_mode: str,
+    public_key=None,
+    now: Optional[datetime] = None,
+) -> Claims:
+    now = now or datetime.now(timezone.utc)
+    pk = public_key or keys.load_public_key()
+    try:
+        raw = pyseto.decode(pk, token, deserializer=json).payload
+        claims = Claims(**raw)
+    except pyseto.exceptions.VerifyError:
+        raise VerifyError("bad_signature")
+    except Exception:
+        raise VerifyError("malformed")
+
+    if claims.iss != ISSUER:
+        raise VerifyError("wrong_issuer")
+    if claims.sub != expected_sub:
+        raise VerifyError("wrong_subject")
+    if claims.plan_hash != expected_plan_hash:
+        raise VerifyError("plan_hash_mismatch")
+    if claims.action != expected_action or (claims.target or None) != (expected_target or None):
+        raise VerifyError("out_of_scope")
+    if claims.mode != expected_mode:
+        raise VerifyError("wrong_mode")
+    if now < datetime.fromisoformat(claims.not_before):
+        raise VerifyError("not_yet_valid")
+    if now >= datetime.fromisoformat(claims.expires_at):
+        raise VerifyError("expired")
+    return claims
