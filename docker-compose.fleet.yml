@@ -28,6 +28,7 @@ services:
     environment:
       AGENT_NAME: fleet-controller
       AGENT_PORT: "8080"
+      API_KEY: ${API_KEY:-dev}
       SAFETY_SHEPHERD_URL: http://safety-shepherd:8096
       CORE_URL: http://hypercode-core:8000
     ports:
@@ -54,6 +55,7 @@ services:
     environment:
       AGENT_NAME: governor
       AGENT_PORT: "8080"
+      API_KEY: ${API_KEY:-dev}
       SAFETY_SHEPHERD_URL: http://safety-shepherd:8096
       CORE_URL: http://hypercode-core:8000
       GOVERNOR_REDIS_URL: redis://redis:6379/3
