@@ -35,6 +35,14 @@ async def test_sentinel_file_kills_even_after_release(fake, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_sentinel_check_filesystem_error_fails_closed(fake, monkeypatch):
+    def _raise(*a, **k):
+        raise OSError("filesystem fault")
+    monkeypatch.setattr(killswitch.Path, "exists", _raise)
+    assert await killswitch.is_killed() is True
+
+
+@pytest.mark.asyncio
 async def test_redis_unreachable_fails_closed(monkeypatch, tmp_path):
     class Boom:
         async def get(self, *a, **k):

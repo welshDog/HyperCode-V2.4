@@ -16,7 +16,10 @@ def _sentinel_path() -> str:
 
 
 async def is_killed() -> bool:
-    if Path(_sentinel_path()).exists():
+    try:
+        if Path(_sentinel_path()).exists():
+            return True
+    except OSError:
         return True
     try:
         return bool(await redis_state.get_redis().get(_KEY))
