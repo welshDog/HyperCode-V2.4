@@ -65,6 +65,14 @@ async def aclose() -> None:
         _client = None
 
 
+async def healthy() -> bool:
+    try:
+        resp = await _get_client().get(f"{_url()}/health")
+        return resp.status_code == 200
+    except Exception:
+        return False
+
+
 async def evaluate_plan(*, mission_id: str, plan_hash: str, action: str, target: Optional[str]) -> Verdict:
     body = {
         "agent": "governor",

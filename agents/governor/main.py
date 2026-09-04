@@ -9,6 +9,7 @@ docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
 """
 from __future__ import annotations
 
+import asyncio
 import json as _json
 import os
 from contextlib import asynccontextmanager
@@ -32,12 +33,24 @@ from models import ApprovalRequest, KillRequest, MintRequest, MintResponse, Revo
 from plan_validator import PlanValidationError, validate_plan
 
 
+async def _renew_loop() -> None:
+    interval = int(os.getenv("GOVERNOR_LEASE_RENEW_SECONDS") or 120)
+    while True:
+        try:
+            await lease_mod.renew_tick(shepherd_healthy=await shepherd_client.healthy())
+        except Exception:
+            pass
+        await asyncio.sleep(interval)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ledger_client.init()
+    task = asyncio.create_task(_renew_loop())
     try:
         yield
     finally:
+        task.cancel()
         await shepherd_client.aclose()
         await ledger_client.aclose()
         await redis_state.aclose()
