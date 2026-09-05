@@ -13,6 +13,29 @@ from pydantic_settings.sources import PydanticBaseSettingsSource
 
 PrivacyMode = Literal["redact", "none"]
 
+
+class _FileEnvSettingsSource(PydanticBaseSettingsSource):
+    """Resolve every field's `<FIELD>_FILE` env var to a value, if set."""
+
+    def get_field_value(self, field: Any, field_name: str) -> tuple[Any, str, bool]:
+        return None, field_name, False
+
+    def __call__(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
+        for field_name in self.settings_cls.model_fields:
+            file_path = os.getenv(f"{field_name}_FILE")
+            if not file_path:
+                continue
+            try:
+                if os.path.exists(file_path):
+                    with open(file_path, "r", encoding="utf-8") as fh:
+                        value = fh.read().strip()
+                    if value != "":
+                        data[field_name] = value
+            except OSError:
+                continue
+        return data
+
 class Settings(BaseSettings):
     """All configuration for hypercode-core, grouped by concern below."""
 
@@ -197,27 +220,10 @@ class Settings(BaseSettings):
         `JWT_SECRET` env var does override a `JWT_SECRET_FILE` pointing
         at a different value.
         """
-        def _file_env_settings() -> dict[str, Any]:
-            """Resolve every field's `<FIELD>_FILE` env var to a value, if set."""
-            data: dict[str, Any] = {}
-            for field_name in settings_cls.model_fields:
-                file_path = os.getenv(f"{field_name}_FILE")
-                if not file_path:
-                    continue
-                try:
-                    if os.path.exists(file_path):
-                        with open(file_path, "r", encoding="utf-8") as fh:
-                            value = fh.read().strip()
-                        if value != "":
-                            data[field_name] = value
-                except OSError:
-                    continue
-            return data
-
         return (
             init_settings,
             env_settings,
-            _file_env_settings,
+            _FileEnvSettingsSource(settings_cls),
             dotenv_settings,
             file_secret_settings,
         )
