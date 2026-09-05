@@ -22,7 +22,7 @@ jobs:
           input: '.'
 
       - name: Lychee link check
-        uses: lycheeverse/lychee-action@v2.8.0
+        uses: lycheeverse/lychee-action@v2.9.0
         with:
           args: >-
             --verbose
