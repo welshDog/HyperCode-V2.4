@@ -15,9 +15,32 @@ _client: Optional[httpx.AsyncClient] = None
 _tasks: set = set()
 
 
+def _read_secret_file(path: str) -> str:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def _core_agent_key() -> str:
+    """Key governor presents to core (X-Agent-Key). env-or-file, mirroring
+    safety_shepherd.py's _core_agent_key() exactly: CORE_AGENT_KEY_FILE
+    (the Docker-secret path docker-compose.secrets.yml actually sets for
+    governor) takes precedence, falling back to the plain CORE_AGENT_KEY
+    env var. Without this, init() always read a var nothing ever sets in
+    the deployed configuration and permanently no-op'd every ledger write."""
+    file_path = os.getenv("CORE_AGENT_KEY_FILE", "")
+    if file_path:
+        from_file = _read_secret_file(file_path)
+        if from_file:
+            return from_file
+    return (os.getenv("CORE_AGENT_KEY") or "").strip()
+
+
 def init() -> None:
     global _client
-    key = (os.getenv("CORE_AGENT_KEY") or "").strip()
+    key = _core_agent_key()
     if not key:
         return
     core_url = (os.getenv("CORE_URL") or "http://hypercode-core:8000").rstrip("/")
