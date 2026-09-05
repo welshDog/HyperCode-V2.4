@@ -38,7 +38,19 @@ async def test_sentinel_file_kills_even_after_release(fake, tmp_path):
 async def test_sentinel_check_filesystem_error_fails_closed(fake, monkeypatch):
     def _raise(*a, **k):
         raise OSError("filesystem fault")
-    monkeypatch.setattr(killswitch.Path, "exists", _raise)
+    monkeypatch.setattr(killswitch.os, "stat", _raise)
+    assert await killswitch.is_killed() is True
+
+
+@pytest.mark.asyncio
+async def test_sentinel_parent_directory_missing_fails_closed(fake, monkeypatch, tmp_path):
+    """Follow-up fix: the sentinel's own directory being gone (e.g. an
+    unmounted governance-control volume) must fail closed, not read as 'no
+    sentinel placed'. Path.exists() swallowed this distinction entirely --
+    a stat on a path whose parent doesn't exist raises the same
+    FileNotFoundError as a path whose parent is fine and file is merely
+    absent, so the parent must be checked on its own."""
+    monkeypatch.setenv("GOVERNOR_KILL_FILE", str(tmp_path / "vanished-mount" / "KILL"))
     assert await killswitch.is_killed() is True
 
 
