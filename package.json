@@ -1,19 +1,19 @@
 {
   "dependencies": {
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.39.0",
     "openai": "^6.34.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.10.2",
+    "@axe-core/playwright": "^4.13.0",
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^25.6.0",
-    "autoprefixer": "^10.4.27",
+    "autoprefixer": "^10.5.4",
     "husky": "^9.0.0",
-    "postcss": "^8.5.9",
-    "tailwindcss": "^4.2.2"
+    "postcss": "^8.5.26",
+    "tailwindcss": "^4.3.3"
   },
   "scripts": {
     "prepare": "husky"
