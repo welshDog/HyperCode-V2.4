@@ -25,4 +25,4 @@ PyJWT==2.12.0
 python-multipart==0.0.22
 tornado==6.5.5
 pillow==12.1.1
-stripe>=7.0.0
+stripe>=15.6.1
