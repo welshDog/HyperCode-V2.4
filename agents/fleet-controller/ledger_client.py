@@ -54,6 +54,7 @@ async def _write(
     result: SafetyResult,
     capability_view: Optional[CapabilityView],
 ) -> None:
+    """POST one preview ledger row; swallows every exception (fail-soft)."""
     client = _client
     if client is None:
         return

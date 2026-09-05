@@ -16,6 +16,7 @@ _tasks: set = set()
 
 
 def _read_secret_file(path: str) -> str:
+    """Read a secret file's contents, or "" if missing/unreadable/undecodable."""
     # utf-8-sig strips a Windows-editor BOM at read time instead of letting
     # it become part of the compared/sent value; UnicodeDecodeError is
     # caught alongside OSError so a non-UTF-8 secret file fails closed
@@ -43,6 +44,9 @@ def _core_agent_key() -> str:
 
 
 def init() -> None:
+    """Create the ledger HTTP client, or leave it None (permanent no-op)
+    if no CORE_AGENT_KEY is configured.
+    """
     global _client
     key = _core_agent_key()
     if not key:
@@ -52,6 +56,7 @@ def init() -> None:
 
 
 async def aclose() -> None:
+    """Cancel any in-flight ledger writes and close the HTTP client."""
     global _client
     for task in list(_tasks):
         task.cancel()
@@ -61,6 +66,7 @@ async def aclose() -> None:
 
 
 def build_body(action: str, decision: str, payload: dict) -> dict:
+    """Shape one ledger row's JSON body."""
     return {
         "agent": "governor",
         "action": action,
@@ -71,6 +77,7 @@ def build_body(action: str, decision: str, payload: dict) -> dict:
 
 
 async def _write(action: str, decision: str, payload: dict) -> None:
+    """POST one ledger row; swallows every exception (fire-and-forget)."""
     client = _client
     if client is None:
         return
@@ -81,6 +88,10 @@ async def _write(action: str, decision: str, payload: dict) -> None:
 
 
 def record(action: str, decision: str, payload: dict) -> None:
+    """Fire off a ledger write without blocking the caller. No-op if the
+    client was never initialized (no CORE_AGENT_KEY). Never raises, and
+    doesn't guarantee the write actually lands — see the module docstring.
+    """
     if _client is None:
         return
     task = asyncio.create_task(_write(action, decision, payload))

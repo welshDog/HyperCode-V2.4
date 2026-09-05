@@ -20,6 +20,8 @@ ISSUER = "governor"
 
 
 class Claims(BaseModel):
+    """The fields carried inside a signed capability token."""
+
     iss: str
     sub: str
     mission_id: str
@@ -51,6 +53,11 @@ def mint(
     max_attempts: int = 1,
     now: Optional[datetime] = None,
 ) -> tuple[str, Claims]:
+    """Sign a new capability token bound to this exact mission/action/target/mode.
+
+    Returns the encoded PASETO token string and the `Claims` it carries.
+    `now` is only a test seam; callers should leave it unset.
+    """
     now = now or datetime.now(timezone.utc)
     claims = Claims(
         iss=ISSUER,
@@ -73,6 +80,8 @@ def mint(
 
 
 class VerifyError(Exception):
+    """A capability failed verification; `code` names which check failed."""
+
     def __init__(self, code: str, detail: str = "") -> None:
         self.code = code
         super().__init__(detail or code)
@@ -89,6 +98,14 @@ def verify(
     public_key=None,
     now: Optional[datetime] = None,
 ) -> Claims:
+    """Verify a token's signature and bind it to the caller's exact context.
+
+    Checks signature, issuer, subject, plan hash, action/target scope, mode,
+    and the not-before/expiry window, in that order. Raises `VerifyError`
+    with a specific `code` on the first check that fails; returns the
+    decoded `Claims` only if every check passes. Does not consult the
+    replay store or kill-switch — callers that need those do so separately.
+    """
     now = now or datetime.now(timezone.utc)
     pk = public_key or keys.load_public_key()
     try:

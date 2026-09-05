@@ -32,6 +32,10 @@ _DEFAULT_PUBLIC_FILE = str(Path(__file__).with_name("governor_public_key.pem"))
 
 
 def _read_private_pem() -> str:
+    """Load the private key PEM: secret file first, then the env-var fallback.
+
+    Raises `RuntimeError` if neither source yields a key.
+    """
     path = os.getenv(_PRIVATE_FILE_ENV, _DEFAULT_PRIVATE_FILE)
     if path and Path(path).is_file():
         return Path(path).read_text()
@@ -42,13 +46,16 @@ def _read_private_pem() -> str:
 
 
 def load_private_key() -> pyseto.Key:
+    """Return the governor's Ed25519 signing key as a pyseto `Key`."""
     return pyseto.Key.new(version=4, purpose="public", key=_read_private_pem())
 
 
 def public_key_pem() -> str:
+    """Return the governor's public key PEM (safe to share with verifiers)."""
     path = os.getenv(_PUBLIC_FILE_ENV, _DEFAULT_PUBLIC_FILE)
     return Path(path).read_text()
 
 
 def load_public_key() -> pyseto.Key:
+    """Return the governor's public key as a pyseto `Key`, for verification."""
     return pyseto.Key.new(version=4, purpose="public", key=public_key_pem())

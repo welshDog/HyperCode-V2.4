@@ -16,18 +16,24 @@ from pydantic import BaseModel, Field
 
 
 class RequestedAction(BaseModel):
+    """One preview-only action a plan asks the fleet to evaluate."""
+
     action_id: str
     kind: Literal["compose_profile.preview", "crew.workflow.preview"]
     profile: Optional[str] = None
 
 
 class Constraints(BaseModel):
+    """Caps and allow/deny lists a plan must stay within."""
+
     max_services: int = 25
     allow_profiles: list[str] = Field(default_factory=list)
     deny_profiles: list[str] = Field(default_factory=list)
 
 
 class PlanRequest(BaseModel):
+    """Body of `POST /v1/plans/preview`."""
+
     schema_version: Literal[1]
     mission_id: str
     requested_actions: list[RequestedAction]
@@ -36,6 +42,8 @@ class PlanRequest(BaseModel):
 
 
 class SafetyView(BaseModel):
+    """The Safety Shepherd verdict, as returned to the caller."""
+
     decision: str
     reason: str
     rule: Optional[str] = None
@@ -44,17 +52,23 @@ class SafetyView(BaseModel):
 
 
 class ExecutionView(BaseModel):
+    """Always `performed=False` in Phase 0 — no code path can execute yet."""
+
     performed: bool = False
     would_execute: list[str] = Field(default_factory=list)
 
 
 class CapabilityView(BaseModel):
+    """Recorded (not enforced) breakdown of a capability's verify_or_none() result."""
+
     presented: bool
     valid: bool
     reason: str
 
 
 class PlanResponse(BaseModel):
+    """Response of `POST /v1/plans/preview`."""
+
     plan_id: str
     plan_hash: str
     mode: Literal["DRY_RUN"] = "DRY_RUN"

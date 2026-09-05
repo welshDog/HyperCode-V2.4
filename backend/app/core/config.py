@@ -1,3 +1,8 @@
+"""Typed app settings: env vars, `.env`, and `*_FILE` secret files, in that
+source order (see `settings_customise_sources`). A single module-level
+`settings` instance is built at import time; `get_settings()` is the
+cached accessor other modules should use.
+"""
 import os
 from functools import lru_cache
 from typing import Any, Optional, List, Literal
@@ -9,6 +14,8 @@ from pydantic_settings.sources import PydanticBaseSettingsSource
 PrivacyMode = Literal["redact", "none"]
 
 class Settings(BaseSettings):
+    """All configuration for hypercode-core, grouped by concern below."""
+
     # App
     PROJECT_NAME: str = "HyperCode Core"
     VERSION: str = "2.4.2"
@@ -113,6 +120,7 @@ class Settings(BaseSettings):
     HEALER_ALPHA_PRIVACY_MODE: PrivacyMode = "redact"
 
     def ollama_generate_options(self) -> dict:
+        """Ollama generation params built from the OLLAMA_* settings."""
         options: dict = {
             "temperature": self.OLLAMA_TEMPERATURE,
             "top_p": self.OLLAMA_TOP_P,
@@ -153,9 +161,13 @@ class Settings(BaseSettings):
     HYPERSYNC_SESSION_TTL_SECONDS: int = 3600
 
     def parsed_cors_allow_origins(self) -> List[str]:
+        """CORS_ALLOW_ORIGINS split into a clean list of origins."""
         return [o.strip() for o in self.CORS_ALLOW_ORIGINS.split(",") if o.strip()]
 
     def validate_security(self) -> None:
+        """Raise ValueError if production/staging still carries dev-only
+        defaults (JWT_SECRET, MinIO credentials). No-op in development.
+        """
         if self.ENVIRONMENT.lower() in {"production", "staging"}:
             if self.HYPERCODE_JWT_SECRET and self.JWT_SECRET == "dev-secret-key":
                 self.JWT_SECRET = self.HYPERCODE_JWT_SECRET
@@ -175,7 +187,18 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Insert a `*_FILE`-secret source between env vars and `.env`.
+
+        Priority is by tuple position, highest first: an explicit init
+        kwarg wins over a plain env var, which wins over this field's
+        `*_FILE` secret file, which wins over `.env`, which wins over
+        pydantic-settings' built-in `secrets_dir` mechanism. Verified
+        empirically, not just inferred from the tuple order — a set
+        `JWT_SECRET` env var does override a `JWT_SECRET_FILE` pointing
+        at a different value.
+        """
         def _file_env_settings() -> dict[str, Any]:
+            """Resolve every field's `<FIELD>_FILE` env var to a value, if set."""
             data: dict[str, Any] = {}
             for field_name in settings_cls.model_fields:
                 file_path = os.getenv(f"{field_name}_FILE")
@@ -217,7 +240,13 @@ except Exception as exc:
 
 @lru_cache()
 def get_settings() -> Settings:
+    """Cached accessor for the module-level `settings` instance."""
     return settings
 
 def get_settings_boot_error() -> str | None:
+    """The exception message from a failed Settings() construction, if any.
+
+    Only ever non-None in `development` (elsewhere the exception is
+    re-raised instead, aborting startup) — see the try/except above.
+    """
     return _settings_boot_error

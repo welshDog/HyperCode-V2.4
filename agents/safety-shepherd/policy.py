@@ -46,6 +46,8 @@ _DOCKER_BLOCKED = ["compose_profile.start", "compose_profile.stop"]
 
 @dataclass
 class Decision:
+    """The outcome of one `evaluate()` call: verdict, reason, and which rule matched."""
+
     decision: str
     reason: str
     rule: str
@@ -53,6 +55,9 @@ class Decision:
     agent: Optional[str] = None
 
     def as_dict(self) -> dict[str, Any]:
+        """Expand to the full structured-verdict shape (risk_class, policy_version,
+        allowed/blocked actions) that Shepherd's API and callers expect.
+        """
         cat = self.category or ""
         is_docker = cat == "docker"
         return {
@@ -82,6 +87,10 @@ def _match_any(value: str, patterns: list[str]) -> bool:
 
 
 def _agent_caps(manifest: dict[str, Any], agent: str) -> Optional[dict[str, Any]]:
+    """Look up an agent's capability grant, falling back to the `*` wildcard.
+
+    Returns None only if neither the named agent nor a wildcard entry exists.
+    """
     agents = manifest.get("agents", {}) or {}
     if agent in agents:
         return agents[agent]

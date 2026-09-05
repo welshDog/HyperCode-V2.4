@@ -13,12 +13,20 @@ HARD_DENIED_PROFILES = {"prod", "gpu"}
 
 
 class PlanValidationError(Exception):
+    """A plan failed validation; `detail` is the human-readable reason."""
+
     def __init__(self, detail: str) -> None:
         self.detail = detail
         super().__init__(detail)
 
 
 def validate_plan(plan: PlanRequest) -> None:
+    """Raise `PlanValidationError` on a malformed or out-of-policy plan.
+
+    Checks schema version, non-empty/non-duplicate action ids, and profile
+    allow/deny rules (hard-denied profiles win regardless of the plan's own
+    constraints). Raises nothing and returns None if the plan is clean.
+    """
     if plan.schema_version != 1:
         raise PlanValidationError("unsupported schema_version")
 

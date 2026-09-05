@@ -15,6 +15,10 @@ BANNED_ENV = ("DOCKER_HOST", "ORCHESTRATOR_API_KEY", "CREW_ORCHESTRATOR_API_KEY"
 
 
 def main(path: str) -> int:
+    """Check the rendered compose manifest at `path` for containment
+    violations on `WATCHED` services; print each failure and return 1,
+    or 0 if none found.
+    """
     doc = yaml.safe_load(open(path)) or {}
     services = doc.get("services", {}) or {}
     failures: list[str] = []

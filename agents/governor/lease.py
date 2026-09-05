@@ -16,6 +16,7 @@ _KEY = "gov:lease"
 
 
 async def current() -> Optional[dict]:
+    """Return the current lease record, or None if absent/unreachable."""
     try:
         raw = await redis_state.get_redis().get(_KEY)
         return json.loads(raw) if raw else None
@@ -24,6 +25,10 @@ async def current() -> Optional[dict]:
 
 
 async def is_valid(now: Optional[datetime] = None) -> bool:
+    """True only if a lease exists, has a well-formed timezone-aware
+    `expires_at`, and hasn't expired. Any malformed record reads as invalid
+    rather than raising, so a corrupted Redis record fails closed.
+    """
     now = now or datetime.now(timezone.utc)
     rec = await current()
     if not rec:
@@ -46,6 +51,9 @@ async def is_valid(now: Optional[datetime] = None) -> bool:
 
 
 async def renew_tick(*, shepherd_healthy: bool, ttl_seconds: int = 300, now: Optional[datetime] = None) -> bool:
+    """Issue a fresh lease for `ttl_seconds`, unless killed or Shepherd is
+    unhealthy. Returns whether the renewal actually happened.
+    """
     now = now or datetime.now(timezone.utc)
     if await killswitch.is_killed() or not shepherd_healthy:
         return False

@@ -19,6 +19,8 @@ _FALLBACK_RISK = "INFRASTRUCTURE_MUTATION"
 
 @dataclass(frozen=True)
 class Verdict:
+    """One Safety Shepherd `/evaluate` result, structured or fail-closed."""
+
     decision: str
     reason: str
     risk_class: str
@@ -43,15 +45,18 @@ _client: Optional[httpx.AsyncClient] = None
 
 
 def _url() -> str:
+    """Base URL for Safety Shepherd, env-overridable."""
     return (os.getenv("SAFETY_SHEPHERD_URL") or "http://safety-shepherd:8096").rstrip("/")
 
 
 def _headers() -> dict:
+    """Auth header for Shepherd calls, or {} if no API_KEY is set."""
     key = (os.getenv("API_KEY") or "").strip()
     return {"X-Agent-Key": key} if key else {}
 
 
 def _get_client() -> httpx.AsyncClient:
+    """Return the module-wide httpx client, creating it on first use."""
     global _client
     if _client is None:
         _client = httpx.AsyncClient(timeout=3.0)
@@ -59,6 +64,7 @@ def _get_client() -> httpx.AsyncClient:
 
 
 async def aclose() -> None:
+    """Close the shared httpx client, if one was ever created."""
     global _client
     if _client is not None:
         await _client.aclose()
@@ -66,6 +72,7 @@ async def aclose() -> None:
 
 
 async def healthy() -> bool:
+    """True only on a real 200 from Shepherd's /health; any error is unhealthy."""
     try:
         resp = await _get_client().get(f"{_url()}/health")
         return resp.status_code == 200
@@ -74,6 +81,9 @@ async def healthy() -> bool:
 
 
 async def evaluate_plan(*, mission_id: str, plan_hash: str, action: str, target: Optional[str]) -> Verdict:
+    """Ask Shepherd to evaluate this action; fail-closed on any timeout,
+    non-200, unparseable body, or a body missing `decision`.
+    """
     body = {
         "agent": "governor",
         "category": "docker",

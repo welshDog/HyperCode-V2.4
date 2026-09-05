@@ -11,10 +11,14 @@ _KEY = "gov:kill"
 
 
 def _sentinel_path() -> str:
+    """Path to the off-box kill sentinel file (env-overridable for tests)."""
     return os.getenv("GOVERNOR_KILL_FILE", "/governance/KILL")
 
 
 async def is_killed() -> bool:
+    """True if the sentinel file exists, Redis has the kill flag set, or
+    either check's health is unknowable (fails closed in all three cases).
+    """
     # Path.exists() swallows OSError internally and returns False for the
     # whole ENOENT/ENOTDIR/ESTALE family, so wrapping it in try/except (the
     # previous approach) never actually caught anything -- a vanished mount
@@ -50,8 +54,13 @@ async def is_killed() -> bool:
 
 
 async def engage(reason: str) -> None:
+    """Set the Redis kill flag (does not touch the off-box sentinel file)."""
     await redis_state.get_redis().set(_KEY, reason or "engaged")
 
 
 async def release(reason: str) -> None:
+    """Clear the Redis kill flag. `reason` is accepted for call-site symmetry
+    with `engage()` and audit logging upstream; the sentinel file, if
+    present, still overrides this — deleting it is a separate, manual step.
+    """
     await redis_state.get_redis().delete(_KEY)

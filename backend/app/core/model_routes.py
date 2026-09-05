@@ -1,3 +1,7 @@
+"""OpenRouter model routing: which specialized route (if any) a request
+should use, secret redaction for privacy-mode routes, and the actual
+circuit-breaker-wrapped HTTP call.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -16,6 +20,8 @@ RouteName = Literal["hunter_alpha", "healer_alpha"]
 
 @dataclass(frozen=True)
 class ModelRouteContext:
+    """Signals `select_model_route()` uses to decide whether a specialized route applies."""
+
     kind: str
     context_tokens_estimate: int = 0
     cross_repo: bool = False
@@ -26,6 +32,8 @@ class ModelRouteContext:
 
 @dataclass(frozen=True)
 class ModelRoute:
+    """A resolved specialized route: which model/endpoint/privacy mode to use."""
+
     name: RouteName
     provider: Literal["openrouter"]
     base_url: str
@@ -44,6 +52,7 @@ _SECRET_PATTERNS: list[re.Pattern[str]] = [
 
 
 def redact_secrets(text: str) -> str:
+    """Replace recognizable API-key/token patterns with `[REDACTED]`."""
     redacted = text
     for pattern in _SECRET_PATTERNS:
         redacted = pattern.sub("[REDACTED]", redacted)
@@ -51,12 +60,17 @@ def redact_secrets(text: str) -> str:
 
 
 def _apply_privacy_mode(value: str, mode: PrivacyMode) -> str:
+    """Redact secrets in `value` if `mode == "redact"`; pass through otherwise."""
     if mode == "redact":
         return redact_secrets(value)
     return value
 
 
 def select_model_route(ctx: ModelRouteContext, settings: Any) -> Optional[ModelRoute]:
+    """Pick a specialized route (healer_alpha, then hunter_alpha) if `ctx`
+    matches one and its feature flag is enabled; None falls back to the
+    caller's default routing.
+    """
     if (
         settings.HEALER_ALPHA_ENABLED
         and (
@@ -104,6 +118,13 @@ async def openrouter_chat(
     privacy_mode: PrivacyMode,
     timeout_seconds: float = 60.0,
 ) -> str:
+    """Call OpenRouter's chat/completions through the circuit breaker.
+
+    Applies `privacy_mode` to message content before sending. Raises
+    `RuntimeError` on a non-200 response or an unexpected/empty response
+    shape (no choices, no message content) rather than letting a raw
+    `KeyError`/`IndexError` escape.
+    """
     safe_messages: list[dict[str, str]] = []
     for msg in messages:
         safe_messages.append(
@@ -122,6 +143,7 @@ async def openrouter_chat(
     }
 
     async def _do_call() -> str:
+        """The actual request, wrapped by the circuit breaker in the caller."""
         async with httpx.AsyncClient(timeout=timeout_seconds) as client:
             resp = await client.post(
                 f"{base_url.rstrip('/')}/chat/completions", json=payload, headers=headers

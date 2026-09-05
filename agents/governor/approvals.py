@@ -31,10 +31,12 @@ DANGEROUS_CLASSES = {"INFRASTRUCTURE_MUTATION", "DESTRUCTIVE"}
 
 
 def _key(mission_id: str) -> str:
+    """Redis list key holding one mission's approval records."""
     return f"gov:appr:{mission_id}"
 
 
 async def record(*, mission_id: str, plan_hash: str, approver_id: str, decision: str, reason: str) -> str:
+    """Append one approval decision to the mission's list; returns its id."""
     approval_id = f"appr_{uuid.uuid4().hex}"
     entry = {
         "approval_id": approval_id,
@@ -48,6 +50,11 @@ async def record(*, mission_id: str, plan_hash: str, approver_id: str, decision:
 
 
 async def satisfied(*, mission_id: str, plan_hash: str, proposer_id: str, risk_class: str) -> Optional[str]:
+    """Return an approval-set id if enough distinct, non-proposer approvals
+    exist for this exact `plan_hash` — 2 for DANGEROUS_CLASSES, else 1 —
+    or None if not yet satisfied. See the module docstring for the
+    known Phase 2 limitation on what "distinct" actually guarantees here.
+    """
     raw = await redis_state.get_redis().lrange(_key(mission_id), 0, -1)
     approvers = {
         e["approver_id"]

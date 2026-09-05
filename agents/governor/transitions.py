@@ -12,6 +12,8 @@ _READ_ONLY = {"READ_ONLY"}
 
 @dataclass(frozen=True)
 class Outcome:
+    """The decided result of one transition-table lookup."""
+
     mint: bool
     needs_approval: bool
     capability_mode: str | None
@@ -19,6 +21,14 @@ class Outcome:
 
 
 def resolve(*, mode: str, decision: str, kill_switch: bool, risk_class: str) -> Outcome:
+    """Look up the fixed (mode, decision, kill_switch) -> Outcome table.
+
+    Kill-switch state is checked first and wins outright, except that a
+    READ_ONLY ALLOW is still permitted as a forced DRY_RUN preview even
+    while killed. Otherwise the policy `decision` (BLOCK/ESCALATE/ALLOW)
+    determines whether a capability mints, needs human approval, or is
+    refused outright.
+    """
     if kill_switch:
         if risk_class in _READ_ONLY and decision == "ALLOW":
             # Force DRY_RUN regardless of the requested mode -- CodeRabbit

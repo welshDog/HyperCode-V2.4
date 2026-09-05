@@ -43,6 +43,9 @@ from plan_validator import PlanValidationError, validate_plan
 
 
 async def _renew_loop() -> None:
+    """Background loop: renew the system lease every `interval` seconds
+    for as long as the process lives. Never raises out of the loop.
+    """
     try:
         interval = max(int(os.getenv("GOVERNOR_LEASE_RENEW_SECONDS") or 120), 1)
     except ValueError:
@@ -57,6 +60,7 @@ async def _renew_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Start the ledger client + lease-renew loop; tear both down on shutdown."""
     ledger_client.init()
     task = asyncio.create_task(_renew_loop())
     try:
@@ -73,11 +77,17 @@ app = FastAPI(title="governor", version="0.1.0", lifespan=lifespan)
 
 @app.get("/health")
 async def health() -> dict:
+    """Liveness only — no readiness/dependency checks."""
     return {"status": "healthy", "agent": "governor"}
 
 
 @app.post("/v1/capabilities/mint", response_model=MintResponse)
 async def mint_capability(req: MintRequest) -> MintResponse:
+    """Validate the plan, get a Shepherd verdict, run it through the
+    transition table, and mint a capability only if every gate passes
+    (policy decision, kill-switch, approval where required, lease where
+    LIVE). Always records a ledger row, minted or refused.
+    """
     try:
         validate_plan(req.plan)
     except PlanValidationError as exc:
@@ -157,6 +167,10 @@ async def mint_capability(req: MintRequest) -> MintResponse:
 
 @app.post("/v1/capabilities/verify")
 async def verify_capability(req: VerifyRequest) -> dict:
+    """Verify a capability's signature/scope, then check revocation and
+    kill-switch state. Idempotent unless `req.burn` is set, in which case
+    it also registers the `jti` as used — see `models.VerifyRequest`.
+    """
     try:
         claims = capability.verify(
             req.token, expected_sub=req.expected_sub, expected_plan_hash=req.expected_plan_hash,
@@ -181,6 +195,9 @@ async def verify_capability(req: VerifyRequest) -> dict:
 
 @app.post("/v1/capabilities/revoke")
 async def revoke_capability(req: RevokeRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    """Revoke one `jti` and/or a whole mission's capabilities. Operator-key
+    gated; effective immediately for all future `/v1/capabilities/verify` calls.
+    """
     # CodeRabbit follow-up: this endpoint had zero auth -- the exact gap
     # already closed on /v1/approvals and /v1/kill (final review Finding 2)
     # was still open here. Anything on agents-net could revoke any
@@ -198,10 +215,12 @@ async def revoke_capability(req: RevokeRequest, x_operator_key: str | None = Hea
 
 @app.get("/v1/lease")
 async def get_lease() -> dict:
+    """Return the current system lease record and its validity."""
     return {"lease": await lease_mod.current(), "valid": await lease_mod.is_valid()}
 
 
 def _read_secret_file(path: str) -> str:
+    """Read a secret file's contents, or "" if missing/unreadable/undecodable."""
     # Mirrors ledger_client.py's _read_secret_file() / safety_shepherd.py's
     # _read_secret_file(): explicit utf-8-sig (not the platform locale
     # default, cp1252 on this box, which would silently mojibake a
@@ -217,6 +236,9 @@ def _read_secret_file(path: str) -> str:
 
 
 def _operator_key() -> str:
+    """Load the shared operator key: OPERATOR_KEY_FILE first, else
+    OPERATOR_KEY. No hardcoded fallback path — see inline comment.
+    """
     # No hardcoded fallback path: OPERATOR_KEY_FILE is always set explicitly
     # in the deployed compose (docker-compose.fleet.yml), pointing at the
     # dedicated governor_operator_key secret. Defaulting here to any file
@@ -233,6 +255,7 @@ def _operator_key() -> str:
 
 
 def _require_operator(x_operator_key: str | None) -> None:
+    """Raise 401 unless `x_operator_key` matches the configured operator key."""
     expected = _operator_key()
     # Compare as bytes, not str: hmac.compare_digest raises TypeError on
     # non-ASCII str input (e.g. an accented character in the operator key
@@ -252,6 +275,9 @@ def _require_operator(x_operator_key: str | None) -> None:
 
 @app.post("/v1/approvals")
 async def post_approval(req: ApprovalRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    """Record one human approval decision for a mission's plan. Operator-key
+    gated; see `approvals.py` for the two-person rule this feeds.
+    """
     _require_operator(x_operator_key)
     approval_id = await approvals_record(
         mission_id=req.mission_id, plan_hash=req.plan_hash, approver_id=req.approver_id,
@@ -266,6 +292,7 @@ async def post_approval(req: ApprovalRequest, x_operator_key: str | None = Heade
 
 @app.get("/v1/approvals/{mission_id}")
 async def list_approvals(mission_id: str, x_operator_key: str | None = Header(default=None)) -> dict:
+    """List every recorded approval decision for one mission. Operator-key gated."""
     _require_operator(x_operator_key)
     raw = await redis_state.get_redis().lrange(f"gov:appr:{mission_id}", 0, -1)
     return {"approvals": [_json.loads(x) for x in raw]}
@@ -273,6 +300,9 @@ async def list_approvals(mission_id: str, x_operator_key: str | None = Header(de
 
 @app.post("/v1/kill")
 async def post_kill(req: KillRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    """Engage the Redis kill flag. Operator-key gated; doesn't touch the
+    off-box sentinel file, which independently forces killed if present.
+    """
     _require_operator(x_operator_key)
     await kill_engage(req.reason)
     ledger_client.record("kill.engaged", "KILL", {"reason": req.reason})
@@ -281,6 +311,9 @@ async def post_kill(req: KillRequest, x_operator_key: str | None = Header(defaul
 
 @app.post("/v1/unkill")
 async def post_unkill(req: KillRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    """Clear the Redis kill flag. Operator-key gated; the sentinel file,
+    if present, still forces killed — deleting it is a separate manual step.
+    """
     _require_operator(x_operator_key)
     await kill_release(req.reason)
     ledger_client.record("kill.released", "UNKILL", {"reason": req.reason})

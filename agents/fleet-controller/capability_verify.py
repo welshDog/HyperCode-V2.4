@@ -22,16 +22,25 @@ _DEFAULT_PUB = str(Path(__file__).with_name("governor_public_key.pem"))
 
 
 def _public_key_path() -> str:
+    """Path to the vendored governor public key PEM (env-overridable)."""
     return os.getenv(_PUBLIC_FILE_ENV, _DEFAULT_PUB)
 
 
 def _public_key() -> pyseto.Key:
+    """Load the vendored governor public key for offline verification."""
     return pyseto.Key.new(version=4, purpose="public", key=Path(_public_key_path()).read_text())
 
 
 def verify_or_none(
     token: Optional[str], *, plan_hash: str, action: str, target: Optional[str], mode: str
 ) -> tuple[bool, str]:
+    """Verify a capability token against this exact context, offline.
+
+    Returns `(True, "ok")` only if the signature, issuer, subject, plan
+    hash, action/target scope, mode, and time window all check out;
+    otherwise `(False, <reason>)`. Never raises — a missing or malformed
+    token is just another failure reason, not an exception.
+    """
     if not token:
         return False, "no capability presented"
     try:

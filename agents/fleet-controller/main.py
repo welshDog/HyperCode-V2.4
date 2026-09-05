@@ -32,6 +32,7 @@ from plan_validator import PlanValidationError, validate_plan
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Start the ledger client on startup; close both clients on shutdown."""
     ledger_client.init()
     try:
         yield
@@ -45,11 +46,16 @@ app = FastAPI(title="fleet-controller", version="0.1.0", lifespan=lifespan)
 
 @app.get("/health")
 async def health() -> dict:
+    """Liveness only — no readiness/dependency checks."""
     return {"status": "healthy", "agent": "fleet-controller"}
 
 
 @app.post("/v1/plans/preview", response_model=PlanResponse)
 async def preview_plan(plan: PlanRequest) -> PlanResponse:
+    """Validate the plan, get a Safety Shepherd verdict, offline-verify any
+    presented capability, and return a preview. `execution.performed` is
+    always False — this endpoint can never actually execute anything.
+    """
     try:
         validate_plan(plan)
     except PlanValidationError as exc:
