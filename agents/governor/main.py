@@ -196,10 +196,24 @@ async def get_lease() -> dict:
     return {"lease": await lease_mod.current(), "valid": await lease_mod.is_valid()}
 
 
+def _read_secret_file(path: str) -> str:
+    # Mirrors ledger_client.py's _read_secret_file() / safety_shepherd.py's
+    # _read_secret_file(): explicit UTF-8 (not the platform locale default,
+    # cp1252 on this box, which would silently mojibake a non-ASCII secret
+    # and lock the real operator out) + fail-closed on any OSError.
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
 def _operator_key() -> str:
     path = os.getenv("OPERATOR_KEY_FILE", "/run/secrets/api_key")
-    if path and os.path.isfile(path):
-        return open(path).read().strip()
+    if path:
+        from_file = _read_secret_file(path)
+        if from_file:
+            return from_file
     return (os.getenv("OPERATOR_KEY") or "").strip()
 
 
