@@ -47,7 +47,7 @@ stripe>=13.0.0
 # OBSERVABILITY & MONITORING (UPDATED)
 # ──────────────────────────────────────────────────────────────────────────────
 prometheus-client==0.23.1
-prometheus-fastapi-instrumentator==7.1.0
+prometheus-fastapi-instrumentator==8.1.0
 opentelemetry-api==1.41.0
 opentelemetry-sdk==1.41.0
 opentelemetry-distro==0.61b0
