@@ -61,7 +61,7 @@ services:
       GOVERNOR_REDIS_URL: redis://redis:6379/3
       GOVERNOR_PRIVATE_KEY_FILE: /run/secrets/governor_ed25519_private_key
       GOVERNOR_KILL_FILE: /governance/KILL
-      OPERATOR_KEY_FILE: /run/secrets/api_key
+      OPERATOR_KEY_FILE: /run/secrets/governor_operator_key
       GOVERNOR_LEASE_RENEW_SECONDS: "120"
     ports:
       - "127.0.0.1:8089:8080"

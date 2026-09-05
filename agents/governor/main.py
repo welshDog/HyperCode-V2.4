@@ -10,6 +10,7 @@ docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json as _json
 import os
 from contextlib import asynccontextmanager
@@ -29,7 +30,15 @@ from approvals import satisfied as approvals_satisfied
 from killswitch import engage as kill_engage
 from killswitch import is_killed
 from killswitch import release as kill_release
-from models import ApprovalRequest, KillRequest, MintRequest, MintResponse, RevokeRequest, VerifyRequest
+from models import (
+    ApprovalRequest,
+    KillRequest,
+    MintRequest,
+    MintResponse,
+    RevokeRequest,
+    VerifyRequest,
+    canonical_hash,
+)
 from plan_validator import PlanValidationError, validate_plan
 
 
@@ -73,6 +82,11 @@ async def mint_capability(req: MintRequest) -> MintResponse:
         validate_plan(req.plan)
     except PlanValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.detail) from exc
+
+    if req.plan_hash != canonical_hash(req.plan):
+        raise HTTPException(status_code=422, detail="plan_hash does not match plan")
+    if not any(a.kind == req.action and a.profile == req.target for a in req.plan.requested_actions):
+        raise HTTPException(status_code=422, detail="action/target not present in plan")
 
     verdict = await shepherd_client.evaluate_plan(
         mission_id=req.plan.mission_id, plan_hash=req.plan_hash, action=req.action, target=req.target
@@ -191,12 +205,22 @@ def _operator_key() -> str:
 
 def _require_operator(x_operator_key: str | None) -> None:
     expected = _operator_key()
-    if not expected or x_operator_key != expected:
+    # Compare as bytes, not str: hmac.compare_digest raises TypeError on
+    # non-ASCII str input (e.g. a UTF-8 BOM left by a Windows editor in the
+    # secret file), which would turn a wrong/malformed key into an
+    # unhandled 500 instead of a clean 401. Bytes comparison keeps the
+    # constant-time property without that foot-gun.
+    if (
+        not expected
+        or not x_operator_key
+        or not hmac.compare_digest(x_operator_key.encode("utf-8"), expected.encode("utf-8"))
+    ):
         raise HTTPException(status_code=401, detail="invalid operator key")
 
 
 @app.post("/v1/approvals")
-async def post_approval(req: ApprovalRequest) -> dict:
+async def post_approval(req: ApprovalRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_key)
     approval_id = await approvals_record(
         mission_id=req.mission_id, plan_hash=req.plan_hash, approver_id=req.approver_id,
         decision=req.decision, reason=req.reason,
@@ -209,7 +233,8 @@ async def post_approval(req: ApprovalRequest) -> dict:
 
 
 @app.get("/v1/approvals/{mission_id}")
-async def list_approvals(mission_id: str) -> dict:
+async def list_approvals(mission_id: str, x_operator_key: str | None = Header(default=None)) -> dict:
+    _require_operator(x_operator_key)
     raw = await redis_state.get_redis().lrange(f"gov:appr:{mission_id}", 0, -1)
     return {"approvals": [_json.loads(x) for x in raw]}
 

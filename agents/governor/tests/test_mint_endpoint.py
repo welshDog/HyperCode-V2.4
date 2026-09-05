@@ -4,6 +4,7 @@ import pytest
 import killswitch
 import redis_state
 import shepherd_client
+from models import PlanRequest, canonical_hash
 
 
 @pytest.fixture(autouse=True)
@@ -26,8 +27,15 @@ def _plan():
 
 
 def _req(**over):
+    plan = _plan()
     base = {
-        "plan": _plan(), "plan_hash": "sha256:demo", "mode": "DRY_RUN",
+        "plan": plan,
+        # Real canonical hash of `plan` — NOT a hardcoded literal. Fix 1
+        # (final review) made the mint endpoint actually check plan_hash
+        # against canonical_hash(plan); a fake literal like the old
+        # "sha256:demo" would now 422 every test in this file.
+        "plan_hash": canonical_hash(PlanRequest(**plan)),
+        "mode": "DRY_RUN",
         "action": "compose_profile.preview", "target": "agents", "proposer_id": "mission-director",
     }
     base.update(over)
@@ -86,6 +94,30 @@ async def test_shepherd_down_fail_closed(client, monkeypatch):
     body = (await client.post("/v1/capabilities/mint", json=_req())).json()
     assert body["minted"] is False
     assert body["verdict"]["shepherd_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_plan_hash_mismatch_422(client, monkeypatch):
+    """Finding 1 (final review): plan_hash must actually be checked against
+    the submitted plan, not bound verbatim from the request body."""
+    _verdict(monkeypatch, "ALLOW")
+    bad = _req(plan_hash="sha256:" + "0" * 64)
+    resp = await client.post("/v1/capabilities/mint", json=bad)
+    assert resp.status_code == 422
+    assert "plan_hash" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_action_target_not_in_plan_422(client, monkeypatch):
+    """Finding 1 (final review): action/target must actually appear in the
+    plan's requested_actions, not be trusted verbatim from the request
+    body — otherwise a benign validated plan could mint a capability bound
+    to an arbitrary action/target (e.g. target="prod")."""
+    _verdict(monkeypatch, "ALLOW")
+    bad = _req(target="prod")
+    resp = await client.post("/v1/capabilities/mint", json=bad)
+    assert resp.status_code == 422
+    assert "action/target" in resp.json()["detail"]
 
 
 @pytest.mark.asyncio
