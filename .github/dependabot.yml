@@ -19,6 +19,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
     ignore:
       # Ignore major version bumps on openai — test manually
       - dependency-name: "openai"
@@ -37,6 +42,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/cli"
@@ -51,6 +61,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/monitoring/alert-webhook"
@@ -65,6 +80,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/services/hyperhealth"
@@ -79,6 +99,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/services/hypercode-mcp-server"
@@ -93,6 +118,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/services/mcp-rest-adapter"
@@ -107,6 +137,11 @@ updates:
       - "python"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/agents/broski-bot"
@@ -122,6 +157,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/agents/throttle-agent"
@@ -137,6 +177,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/agents/crew-orchestrator"
@@ -152,6 +197,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/agents/healer"
@@ -167,6 +217,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "pip"
     directory: "/agents/agent-x"
@@ -182,6 +237,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/agent-factory"
     schedule:
@@ -196,6 +256,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/coder"
     schedule:
@@ -210,6 +275,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/coderabbit-webhook"
     schedule:
@@ -224,6 +294,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyper-agents"
     schedule:
@@ -238,6 +313,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyper-auto-assistant"
     schedule:
@@ -252,6 +332,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyperhealth"
     schedule:
@@ -266,6 +351,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/broski-nemoclaw-agent"
     schedule:
@@ -280,6 +370,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/super-hyper-broski-agent"
     schedule:
@@ -294,6 +389,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/base-agent"
     schedule:
@@ -308,6 +408,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/business"
     schedule:
@@ -322,6 +427,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/life-plans"
     schedule:
@@ -336,6 +446,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
   # ── npm / Node ────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/"
@@ -350,6 +465,11 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/agents/dashboard"
@@ -365,6 +485,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/agents/architect"
@@ -380,6 +505,11 @@ updates:
       - "agents"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/memstream"
@@ -395,6 +525,11 @@ updates:
       - "memstream"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/hyper-mission-system/server"
@@ -409,6 +544,11 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "npm"
     directory: "/hyper-mission-system/client"
@@ -423,6 +563,11 @@ updates:
       - "javascript"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   # ── Docker ────────────────────────────────────────────────
   - package-ecosystem: "docker"
@@ -437,6 +582,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/backend"
@@ -450,6 +600,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/agents/dashboard"
@@ -463,6 +618,11 @@ updates:
       - "docker"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
 
   # ── GitHub Actions ────────────────────────────────────────
   - package-ecosystem: "github-actions"
@@ -477,3 +637,8 @@ updates:
       - "ci"
     commit-message:
       prefix: "chore(deps)"
+    groups:
+      patch-and-minor:
+        update-types:
+          - "minor"
+          - "patch"
