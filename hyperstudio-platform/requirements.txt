@@ -2,39 +2,39 @@
 # Built for neurodivergent-first video generation with Wav2Lip + Azure TTS
 
 # Core Framework
-fastapi==0.138.1
-uvicorn[standard]==0.27.1
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
 python-multipart==0.0.32
 pydantic==2.13.4
-pydantic-settings==2.13.1
+pydantic-settings==2.15.0
 
 # Async & Background Tasks
 aiofiles==23.2.1
-python-dotenv==1.0.1
+python-dotenv==1.2.3
 
 # AI/ML Models
-torch==2.2.0
-torchvision==0.17.0
-torchaudio==2.2.0
+torch==2.14.0
+torchvision==0.29.0
+torchaudio==2.11.0
 opencv-python==4.9.0.80
 opencv-contrib-python==4.9.0.80
-numpy==2.4.2
+numpy==2.5.2
 Pillow==10.4.0
-scipy==1.12.0
-scikit-image==0.22.0
+scipy==1.18.1
+scikit-image==0.26.0
 librosa==0.10.1
-soundfile==0.12.1
+soundfile==0.14.0
 
 # Wav2Lip Dependencies
-wyn-wav2lip==0.1.0
-face-alignment==1.4.1
+wyn-wav2lip==0.2.3
+face-alignment==1.5.0
 dlib==19.24.2
 
 # Azure TTS
-azure-cognitiveservices-speech==1.35.0
+azure-cognitiveservices-speech==1.51.2
 
 # Supabase
-supabase==2.3.4
+supabase==2.31.0
 postgrest==0.13.2
 
 # Video Processing
@@ -42,7 +42,7 @@ ffmpeg-python==0.2.0
 moviepy==2.2.1
 
 # Utilities
-tqdm==4.66.1
+tqdm==4.70.0
 requests==2.34.2
 httpx==0.28.1
 
@@ -50,4 +50,4 @@ httpx==0.28.1
 pytest==9.0.2
 pytest-asyncio>=0.23.0
 black==24.1.1
-ruff==0.2.1
+ruff==0.16.5
