@@ -64,6 +64,30 @@ def test_docker_granted_to_devops_allows():
     assert out.decision == ALLOW
 
 
+def test_governor_grant_allows_its_two_actions():
+    """Follow-up fix (parked I4 from the governor Phase 2 final review):
+    before this grant existed, governor was an unknown agent and every real
+    mint request ESCALATEd via the wildcard's file_read-only grant (rule 3
+    -> rule 9), never reaching a real ALLOW/BLOCK. Pins the exact request
+    shape shepherd_client.py sends -- category='docker' always, tool=the
+    literal action kind -- for both actions RequestedAction.kind's Literal
+    allows."""
+    out = d("governor", category="docker", tool="compose_profile.preview")
+    assert out.decision == ALLOW and out.rule == "default_allow"
+
+    out2 = d("governor", category="docker", tool="crew.workflow.preview")
+    assert out2.decision == ALLOW and out2.rule == "default_allow"
+
+
+def test_governor_grant_does_not_widen_to_other_docker_actions():
+    """The grant is scoped to the two literal action strings, not the whole
+    'docker' category -- an action shape governor's own pydantic model
+    could never actually send must still escalate, proving this isn't a
+    disguised blanket docker grant."""
+    out = d("governor", category="docker", tool="compose_profile.start")
+    assert out.decision == ESCALATE and out.rule == "tool_not_granted"
+
+
 def test_rate_ceiling_escalates():
     out = evaluate(
         MANIFEST,

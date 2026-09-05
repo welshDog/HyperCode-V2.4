@@ -64,6 +64,13 @@
       "domains": ["discord.com", "discordapp.com"],
       "max_actions": 500
     },
+    "governor": {
+      "_comment": "Phase 2 capability-token minter. Every plan-verify call arrives with category='docker' (shepherd_client.py hardcodes it) and tool=the requested action's literal kind string -- pydantic's Literal on RequestedAction.kind closes that set to exactly these two. Grant the literal strings, not the coarse 'docker' capability other agents get: rule 7 (tool not in allowlist) checks the tool string first, so 'docker' alone would still ESCALATE at rule 9 on every real request. No file_paths/domains: governor never touches files or makes outbound calls other than this /evaluate round trip.",
+      "tools": ["compose_profile.preview", "crew.workflow.preview"],
+      "file_paths": [],
+      "domains": [],
+      "max_actions": 100
+    },
     "coder_studio": {
       "_comment": "HyperStudio write path. Targets arrive worktree-relative, so '**' means 'anywhere inside the throwaway worktree' — the boundary is enforced in coder-studio/shepherd.py before this manifest is consulted. blocked_paths still wins (rule 2 precedes rule 5). 'bash' is deliberately NOT granted: its target is a shell command, which the blocked_paths globs cannot read.",
       "tools": ["file_read", "file_write", "git"],
