@@ -6,6 +6,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "check_fleet_manifest_containment
 
 
 def test_passes_on_clean_manifest(tmp_path):
+    """Test passes on clean manifest."""
     manifest = tmp_path / "render.yml"
     manifest.write_text(
         "services:\n"
@@ -22,6 +23,7 @@ def test_passes_on_clean_manifest(tmp_path):
 
 
 def test_fails_when_socket_mounted(tmp_path):
+    """Test fails when socket mounted."""
     manifest = tmp_path / "render.yml"
     manifest.write_text(
         "services:\n"
@@ -35,6 +37,7 @@ def test_fails_when_socket_mounted(tmp_path):
 
 
 def test_fails_on_docker_host_env(tmp_path):
+    """Test fails on docker host env."""
     manifest = tmp_path / "render.yml"
     manifest.write_text(
         "services:\n"

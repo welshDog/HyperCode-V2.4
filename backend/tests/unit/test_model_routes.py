@@ -3,6 +3,7 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_openrouter_chat_raises_on_missing_choices(monkeypatch):
+    """Test openrouter chat raises on missing choices."""
     from app.core import model_routes as routes_mod
 
     class DummyResponse:
@@ -10,16 +11,20 @@ async def test_openrouter_chat_raises_on_missing_choices(monkeypatch):
         text = "{}"
 
         def json(self):
+            """Helper: json."""
             return {"choices": []}
 
     class DummyClient:
         async def __aenter__(self):
+            """Enter the mock async context manager."""
             return self
 
         async def __aexit__(self, exc_type, exc, tb):
+            """Exit the mock async context manager."""
             return False
 
         async def post(self, *args, **kwargs):
+            """Helper: post."""
             return DummyResponse()
 
     monkeypatch.setattr(routes_mod.httpx, "AsyncClient", lambda *a, **k: DummyClient())
@@ -37,6 +42,7 @@ async def test_openrouter_chat_raises_on_missing_choices(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_openrouter_chat_raises_on_missing_content(monkeypatch):
+    """Test openrouter chat raises on missing content."""
     from app.core import model_routes as routes_mod
 
     class DummyResponse:
@@ -44,16 +50,20 @@ async def test_openrouter_chat_raises_on_missing_content(monkeypatch):
         text = "{}"
 
         def json(self):
+            """Helper: json."""
             return {"choices": [{"message": {}}]}
 
     class DummyClient:
         async def __aenter__(self):
+            """Enter the mock async context manager."""
             return self
 
         async def __aexit__(self, exc_type, exc, tb):
+            """Exit the mock async context manager."""
             return False
 
         async def post(self, *args, **kwargs):
+            """Helper: post."""
             return DummyResponse()
 
     monkeypatch.setattr(routes_mod.httpx, "AsyncClient", lambda *a, **k: DummyClient())
@@ -70,6 +80,7 @@ async def test_openrouter_chat_raises_on_missing_content(monkeypatch):
 
 
 def test_redact_secrets_masks_common_tokens():
+    """Test redact secrets masks common tokens."""
     from app.core.model_routes import redact_secrets
 
     sk = "sk-" + "abcdefghijklmnopqrstuvwxyz012345"
@@ -84,6 +95,7 @@ def test_redact_secrets_masks_common_tokens():
 
 
 def test_select_model_route_prefers_healer_for_incident_when_enabled():
+    """Test select model route prefers healer for incident when enabled."""
     from app.core.model_routes import ModelRouteContext, select_model_route
     from app.core.config import settings
 
@@ -96,6 +108,7 @@ def test_select_model_route_prefers_healer_for_incident_when_enabled():
 
 
 def test_select_model_route_uses_hunter_for_architecture_when_enabled():
+    """Test select model route uses hunter for architecture when enabled."""
     from app.core.model_routes import ModelRouteContext, select_model_route
     from app.core.config import settings
 
@@ -109,6 +122,7 @@ def test_select_model_route_uses_hunter_for_architecture_when_enabled():
 
 @pytest.mark.asyncio
 async def test_brain_routes_to_openrouter_when_requested(monkeypatch):
+    """Test brain routes to openrouter when requested."""
     from app.agents.brain import Brain
     from app.core.config import settings
     import app.core.model_routes as routes_mod
@@ -122,21 +136,26 @@ async def test_brain_routes_to_openrouter_when_requested(monkeypatch):
 
     class DummyResponse:
         def __init__(self, status_code: int, json_data: dict):
+            """Initialize the fake/mock object."""
             self.status_code = status_code
             self._json_data = json_data
             self.text = ""
 
         def json(self) -> dict:
+            """Helper: json."""
             return self._json_data
 
     class CloudClient:
         async def __aenter__(self):
+            """Enter the mock async context manager."""
             return self
 
         async def __aexit__(self, exc_type, exc, tb):
+            """Exit the mock async context manager."""
             return False
 
         async def post(self, url: str, json: dict, headers: dict):
+            """Helper: post."""
             post_capture["url"] = url
             post_capture["json"] = json
             post_capture["headers"] = headers

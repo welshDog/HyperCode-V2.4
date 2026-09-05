@@ -7,6 +7,7 @@ import redis_state
 
 @pytest.fixture(autouse=True)
 def _wire(monkeypatch, tmp_path):
+    """Helper: wire."""
     r = fakeredis.aioredis.FakeRedis(decode_responses=True)
     monkeypatch.setattr(redis_state, "get_redis", lambda: r)
     monkeypatch.setenv("GOVERNOR_KILL_FILE", str(tmp_path / "KILL"))
@@ -15,6 +16,7 @@ def _wire(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_kill_requires_operator_key(client):
+    """Test kill requires operator key."""
     assert (await client.post("/v1/kill", json={"reason": "x"})).status_code == 401
 
 
@@ -143,6 +145,7 @@ def test_operator_key_empty_file_falls_back_to_env(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_kill_then_unkill(client):
+    """Test kill then unkill."""
     h = {"X-Operator-Key": "s3cret-op"}
     assert (await client.post("/v1/kill", json={"reason": "halt"}, headers=h)).status_code == 200
     assert await killswitch.is_killed() is True
@@ -152,6 +155,7 @@ async def test_kill_then_unkill(client):
 
 @pytest.mark.asyncio
 async def test_unkill_requires_reason(client):
+    """Test unkill requires reason."""
     h = {"X-Operator-Key": "s3cret-op"}
     assert (await client.post("/v1/unkill", json={"reason": ""}, headers=h)).status_code == 422
 
@@ -197,6 +201,7 @@ async def test_approval_decision_bad_casing_422s_instead_of_silently_not_countin
 
 @pytest.mark.asyncio
 async def test_record_and_list_approvals(client):
+    """Test record and list approvals."""
     h = {"X-Operator-Key": "s3cret-op"}
     r = await client.post("/v1/approvals", json={
         "mission_id": "m9", "plan_hash": "sha256:p", "approver_id": "alice",

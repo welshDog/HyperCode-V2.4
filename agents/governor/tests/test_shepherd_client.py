@@ -7,16 +7,19 @@ import shepherd_client as sc
 
 
 def _transport(handler):
+    """Helper: transport."""
     return httpx.MockTransport(handler)
 
 
 @pytest.fixture(autouse=True)
 async def _reset():
+    """Helper: reset."""
     yield
     await sc.aclose()
 
 
 async def _run_with(monkeypatch, handler):
+    """Helper: run with."""
     client = httpx.AsyncClient(transport=_transport(handler), timeout=3.0)
     monkeypatch.setattr(sc, "_get_client", lambda: client)
     return await sc.evaluate_plan(
@@ -26,9 +29,11 @@ async def _run_with(monkeypatch, handler):
 
 @pytest.mark.asyncio
 async def test_structured_verdict_parsed(monkeypatch):
+    """Test structured verdict parsed."""
     captured = []
 
     def handler(request):
+        """Helper: handler."""
         captured.append(json.loads(request.content))
         return httpx.Response(200, json={
             "decision": "ESCALATE", "reason": "runtime state",
@@ -60,6 +65,7 @@ async def test_structured_verdict_parsed(monkeypatch):
     lambda request: httpx.Response(200, json={"reason": "no decision key"}),
 ])
 async def test_fail_closed_paths(monkeypatch, handler):
+    """Test fail closed paths."""
     v = await _run_with(monkeypatch, handler)
     assert v.decision == "BLOCK"
     assert v.shepherd_available is False
@@ -69,7 +75,9 @@ async def test_fail_closed_paths(monkeypatch, handler):
 
 @pytest.mark.asyncio
 async def test_connection_error_fail_closed(monkeypatch):
+    """Test connection error fail closed."""
     def handler(request):
+        """Helper: handler."""
         raise httpx.ConnectError("refused")
     v = await _run_with(monkeypatch, handler)
     assert v.fail_closed is True

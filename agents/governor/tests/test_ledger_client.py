@@ -27,6 +27,7 @@ async def test_record_posts_when_key_from_file(monkeypatch, tmp_path):
         status_code = 200
 
     async def fake_post(path, json=None):
+        """Helper: fake post."""
         seen.append((path, json))
         return _Resp()
 
@@ -113,6 +114,7 @@ def test_read_secret_file_non_utf8_fails_closed(tmp_path):
 
 
 def test_build_body_shape():
+    """Test build body shape."""
     body = ledger_client.build_body("capability.minted", "ALLOW", {"jti": "cap_1"})
     assert body == {
         "agent": "governor",
@@ -124,5 +126,6 @@ def test_build_body_shape():
 
 
 def test_record_is_noop_without_client():
+    """Test record is noop without client."""
     ledger_client._client = None
     ledger_client.record("x", "ALLOW", {})  # must not raise

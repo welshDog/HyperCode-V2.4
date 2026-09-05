@@ -38,6 +38,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _import_config_with_broken_secret(environment: str) -> subprocess.CompletedProcess:
+    """Helper: import config with broken secret."""
     with tempfile.TemporaryDirectory() as tmpdir:
         bad_secret = Path(tmpdir) / "bad_secret"
         bad_secret.write_bytes(b"\xff\xfe\x00\x01not-valid-utf8")
@@ -57,6 +58,7 @@ def _import_config_with_broken_secret(environment: str) -> subprocess.CompletedP
 
 
 def test_boot_error_aborts_startup_in_production():
+    """Test boot error aborts startup in production."""
     result = _import_config_with_broken_secret("production")
     assert result.returncode != 0, (
         "a Settings() construction failure must abort startup in production, "

@@ -43,6 +43,7 @@ def _ephemeral_signing_key(tmp_path_factory):
 
 @pytest_asyncio.fixture
 async def client():
+    """Helper: client."""
     import main
 
     async with AsyncClient(transport=ASGITransport(app=main.app), base_url="http://test") as ac:

@@ -14,6 +14,7 @@ import transitions as t
     ("DRY_RUN", "ALLOW", True, False, False, None),
 ])
 def test_table(mode, decision, kill, expect_mint, expect_appr, cap_mode):
+    """Test table."""
     out = t.resolve(mode=mode, decision=decision, kill_switch=kill, risk_class="INFRASTRUCTURE_MUTATION")
     assert out.mint is expect_mint
     assert out.needs_approval is expect_appr
@@ -21,6 +22,7 @@ def test_table(mode, decision, kill, expect_mint, expect_appr, cap_mode):
 
 
 def test_kill_switch_still_allows_readonly_preview():
+    """Test kill switch still allows readonly preview."""
     out = t.resolve(mode="DRY_RUN", decision="ALLOW", kill_switch=True, risk_class="READ_ONLY")
     assert out.mint is True
     assert out.capability_mode == "DRY_RUN"

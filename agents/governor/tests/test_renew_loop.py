@@ -10,6 +10,7 @@ import shepherd_client
 
 @pytest.fixture
 def fake(monkeypatch, tmp_path):
+    """Helper: fake."""
     r = fakeredis.aioredis.FakeRedis(decode_responses=True)
     monkeypatch.setattr(redis_state, "get_redis", lambda: r)
     monkeypatch.setenv("GOVERNOR_KILL_FILE", str(tmp_path / "KILL"))
@@ -17,6 +18,7 @@ def fake(monkeypatch, tmp_path):
 
 @pytest.mark.asyncio
 async def test_healthy_probe_true(monkeypatch, fake):
+    """Test healthy probe true."""
     import httpx
     client = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(200)))
     monkeypatch.setattr(shepherd_client, "_get_client", lambda: client)
@@ -26,8 +28,10 @@ async def test_healthy_probe_true(monkeypatch, fake):
 
 @pytest.mark.asyncio
 async def test_healthy_probe_failclosed(monkeypatch, fake):
+    """Test healthy probe failclosed."""
     import httpx
     def boom(r):
+        """Helper: boom."""
         raise httpx.ConnectError("no")
     client = httpx.AsyncClient(transport=httpx.MockTransport(boom))
     monkeypatch.setattr(shepherd_client, "_get_client", lambda: client)
@@ -37,8 +41,10 @@ async def test_healthy_probe_failclosed(monkeypatch, fake):
 
 @pytest.mark.asyncio
 async def test_one_renew_tick_via_loop_body(monkeypatch, fake):
+    """Test one renew tick via loop body."""
     monkeypatch.setattr(shepherd_client, "healthy", lambda: _true())
     async def _true():
+        """Helper: true."""
         return True
     ok = await lease.renew_tick(shepherd_healthy=await shepherd_client.healthy())
     assert ok is True
@@ -54,6 +60,7 @@ async def test_renew_loop_survives_raising_healthy(monkeypatch, fake):
     calls = {"n": 0}
 
     async def _boom():
+        """Helper: boom."""
         calls["n"] += 1
         raise RuntimeError("boom")
 
@@ -62,6 +69,7 @@ async def test_renew_loop_survives_raising_healthy(monkeypatch, fake):
     sleep_calls = {"n": 0}
 
     async def _fast_sleep(_seconds):
+        """Helper: fast sleep."""
         sleep_calls["n"] += 1
         if sleep_calls["n"] >= 2:
             raise asyncio.CancelledError()
@@ -86,6 +94,7 @@ async def test_renew_loop_survives_malformed_interval_env(monkeypatch, fake):
     monkeypatch.setenv("GOVERNOR_LEASE_RENEW_SECONDS", "not-a-number")
 
     async def _healthy():
+        """Helper: healthy."""
         return True
 
     monkeypatch.setattr(shepherd_client, "healthy", _healthy)
@@ -93,6 +102,7 @@ async def test_renew_loop_survives_malformed_interval_env(monkeypatch, fake):
     sleep_calls = {"n": 0}
 
     async def _fast_sleep(_seconds):
+        """Helper: fast sleep."""
         sleep_calls["n"] += 1
         raise asyncio.CancelledError()
 
@@ -114,6 +124,7 @@ async def test_lifespan_starts_and_cancels_renew_loop(monkeypatch, fake):
     import main
 
     async def _healthy():
+        """Helper: healthy."""
         return True
 
     monkeypatch.setattr(shepherd_client, "healthy", _healthy)

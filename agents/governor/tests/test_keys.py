@@ -4,6 +4,7 @@ import keys
 
 
 def test_missing_key_raises(monkeypatch):
+    """Test missing key raises."""
     monkeypatch.delenv("GOVERNOR_PRIVATE_KEY_PEM", raising=False)
     monkeypatch.setenv("GOVERNOR_PRIVATE_KEY_FILE", "/nonexistent/path")
     with pytest.raises(RuntimeError, match="signing key not configured"):
@@ -11,6 +12,7 @@ def test_missing_key_raises(monkeypatch):
 
 
 def test_env_pem_round_trips(monkeypatch, tmp_path):
+    """Test env pem round trips."""
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 

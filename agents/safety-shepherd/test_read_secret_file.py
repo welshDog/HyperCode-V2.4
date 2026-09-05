@@ -9,6 +9,7 @@ import safety_shepherd as ss
 
 
 def test_reads_utf8_file_exactly(tmp_path):
+    """Test reads utf8 file exactly."""
     key_file = tmp_path / "key.txt"
     original = "s3cret-café-🔑"
     key_file.write_text(original, encoding="utf-8")
@@ -16,12 +17,14 @@ def test_reads_utf8_file_exactly(tmp_path):
 
 
 def test_strips_utf8_bom(tmp_path):
+    """Test strips utf8 bom."""
     key_file = tmp_path / "key.txt"
     key_file.write_bytes(b"\xef\xbb\xbfsome-secret")
     assert ss._read_secret_file(str(key_file)) == "some-secret"
 
 
 def test_missing_file_returns_empty(tmp_path):
+    """Test missing file returns empty."""
     assert ss._read_secret_file(str(tmp_path / "does-not-exist.txt")) == ""
 
 

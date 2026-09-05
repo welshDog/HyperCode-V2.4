@@ -9,6 +9,7 @@ from models import PlanRequest, canonical_hash
 
 @pytest.fixture(autouse=True)
 def _wire(monkeypatch, tmp_path):
+    """Helper: wire."""
     r = fakeredis.aioredis.FakeRedis(decode_responses=True)
     monkeypatch.setattr(redis_state, "get_redis", lambda: r)
     monkeypatch.setenv("GOVERNOR_KILL_FILE", str(tmp_path / "KILL"))
@@ -16,6 +17,7 @@ def _wire(monkeypatch, tmp_path):
 
 
 def _plan():
+    """Helper: plan."""
     return {
         "schema_version": 1,
         "mission_id": "mission_demo_1",
@@ -27,6 +29,7 @@ def _plan():
 
 
 def _req(**over):
+    """Helper: req."""
     plan = _plan()
     base = {
         "plan": plan,
@@ -43,7 +46,9 @@ def _req(**over):
 
 
 def _verdict(monkeypatch, decision, risk="INFRASTRUCTURE_MUTATION"):
+    """Helper: verdict."""
     async def fake_eval(**kw):
+        """Helper: fake eval."""
         return shepherd_client.Verdict(
             decision=decision, reason="test", risk_class=risk,
             policy_version="safety-2026-09-04.1", event_id="evt_1",
@@ -53,6 +58,7 @@ def _verdict(monkeypatch, decision, risk="INFRASTRUCTURE_MUTATION"):
 
 @pytest.mark.asyncio
 async def test_allow_dry_run_mints(client, monkeypatch):
+    """Test allow dry run mints."""
     _verdict(monkeypatch, "ALLOW")
     resp = await client.post("/v1/capabilities/mint", json=_req())
     body = resp.json()
@@ -63,6 +69,7 @@ async def test_allow_dry_run_mints(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_block_no_capability(client, monkeypatch):
+    """Test block no capability."""
     _verdict(monkeypatch, "BLOCK")
     body = (await client.post("/v1/capabilities/mint", json=_req())).json()
     assert body["minted"] is False
@@ -71,6 +78,7 @@ async def test_block_no_capability(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_escalate_needs_approval(client, monkeypatch):
+    """Test escalate needs approval."""
     _verdict(monkeypatch, "ESCALATE")
     body = (await client.post("/v1/capabilities/mint", json=_req())).json()
     assert body["minted"] is False
@@ -79,6 +87,7 @@ async def test_escalate_needs_approval(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_kill_switch_refuses(client, monkeypatch):
+    """Test kill switch refuses."""
     _verdict(monkeypatch, "ALLOW")
     await killswitch.engage("halt")
     body = (await client.post("/v1/capabilities/mint", json=_req())).json()
@@ -88,7 +97,9 @@ async def test_kill_switch_refuses(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_shepherd_down_fail_closed(client, monkeypatch):
+    """Test shepherd down fail closed."""
     async def boom(**kw):
+        """Helper: boom."""
         return shepherd_client._FAIL_CLOSED
     monkeypatch.setattr(shepherd_client, "evaluate_plan", boom)
     body = (await client.post("/v1/capabilities/mint", json=_req())).json()
@@ -122,6 +133,7 @@ async def test_action_target_not_in_plan_422(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_denied_profile_422(client, monkeypatch):
+    """Test denied profile 422."""
     _verdict(monkeypatch, "ALLOW")
     bad = _req()
     bad["plan"]["requested_actions"][0]["profile"] = "gpu"
@@ -131,6 +143,7 @@ async def test_denied_profile_422(client, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_live_allow_mints_live_capability(client, monkeypatch):
+    """Test live allow mints live capability."""
     _verdict(monkeypatch, "ALLOW")
     # Deviation from the brief's verbatim test (see task-12-report.md): the
     # brief's test never seeds a system lease, but the spec (north-star

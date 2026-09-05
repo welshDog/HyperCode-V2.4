@@ -8,10 +8,12 @@ import keys
 
 
 def _decode(token: str) -> dict:
+    """Helper: decode."""
     return pyseto.decode(keys.load_public_key(), token, deserializer=__import__("json")).payload
 
 
 def test_mint_claims_present_and_bound():
+    """Test mint claims present and bound."""
     now = datetime(2026, 9, 4, 13, 0, 0, tzinfo=timezone.utc)
     token, claims = capability.mint(
         sub="fleet-controller",
@@ -39,6 +41,7 @@ def test_mint_claims_present_and_bound():
 
 
 def test_mint_jti_unique():
+    """Test mint jti unique."""
     kw = dict(
         sub="fleet-controller", mission_id="m", plan_hash="sha256:x",
         action="compose_profile.preview", target=None, mode="DRY_RUN",

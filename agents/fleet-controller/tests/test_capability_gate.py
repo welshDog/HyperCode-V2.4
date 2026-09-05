@@ -68,6 +68,7 @@ def _gov_token(priv_key, **over):
 
 
 def test_no_token():
+    """Test no token."""
     ok, reason = capability_verify.verify_or_none(
         None, plan_hash="sha256:demo", action="compose_profile.preview", target="agents", mode="DRY_RUN"
     )
@@ -76,6 +77,7 @@ def test_no_token():
 
 
 def test_valid_token(_ephemeral_gov_key):
+    """Test valid token."""
     ok, reason = capability_verify.verify_or_none(
         _gov_token(_ephemeral_gov_key),
         plan_hash="sha256:demo", action="compose_profile.preview", target="agents", mode="DRY_RUN"
@@ -84,6 +86,7 @@ def test_valid_token(_ephemeral_gov_key):
 
 
 def test_plan_hash_mismatch(_ephemeral_gov_key):
+    """Test plan hash mismatch."""
     ok, reason = capability_verify.verify_or_none(
         _gov_token(_ephemeral_gov_key),
         plan_hash="sha256:OTHER", action="compose_profile.preview", target="agents", mode="DRY_RUN"
@@ -113,9 +116,11 @@ def test_canonical_hash_stable_regardless_of_capability():
 
 @pytest.mark.asyncio
 async def test_preview_reports_capability_and_never_executes(client, monkeypatch):
+    """Test preview reports capability and never executes."""
     import safety_client
 
     async def fake_check(plan, plan_hash):
+        """Helper: fake check."""
         return safety_client.SafetyResult(decision="ALLOW", reason="ok")
     monkeypatch.setattr(safety_client, "check_infrastructure_mutation", fake_check)
 
@@ -142,6 +147,7 @@ async def test_preview_echoes_token_only_when_capability_valid(client, monkeypat
     import safety_client
 
     async def fake_check(plan, plan_hash):
+        """Helper: fake check."""
         return safety_client.SafetyResult(decision="ALLOW", reason="ok")
     monkeypatch.setattr(safety_client, "check_infrastructure_mutation", fake_check)
 
@@ -199,6 +205,7 @@ async def test_response_parses_against_plain_str_capability_mirror_model(client,
     import safety_client
 
     async def fake_check(plan, plan_hash):
+        """Helper: fake check."""
         return safety_client.SafetyResult(decision="ALLOW", reason="ok")
     monkeypatch.setattr(safety_client, "check_infrastructure_mutation", fake_check)
 
@@ -232,6 +239,7 @@ async def test_ledger_payload_includes_capability_check(monkeypatch):
 
     class _FakeClient:
         async def post(self, path, json):
+            """Helper: post."""
             captured["path"] = path
             captured["body"] = json
             return _FakeResponse()
@@ -271,6 +279,7 @@ async def test_ledger_payload_capability_check_none_when_not_evaluated(monkeypat
 
     class _FakeClient:
         async def post(self, path, json):
+            """Helper: post."""
             captured["body"] = json
             return _FakeResponse()
 
