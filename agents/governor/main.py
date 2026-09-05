@@ -180,7 +180,12 @@ async def verify_capability(req: VerifyRequest) -> dict:
 
 
 @app.post("/v1/capabilities/revoke")
-async def revoke_capability(req: RevokeRequest) -> dict:
+async def revoke_capability(req: RevokeRequest, x_operator_key: str | None = Header(default=None)) -> dict:
+    # CodeRabbit follow-up: this endpoint had zero auth -- the exact gap
+    # already closed on /v1/approvals and /v1/kill (final review Finding 2)
+    # was still open here. Anything on agents-net could revoke any
+    # capability or mission with no credential at all.
+    _require_operator(x_operator_key)
     if req.jti:
         await redis_state.revoke(req.jti)
     if req.mission_id:
