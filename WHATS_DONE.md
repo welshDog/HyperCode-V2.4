@@ -1,6 +1,39 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-04 by Claude Sonnet 5 (Governor + capability tokens, Phase 2 of the autonomous-control-plane north star; live smoke-tested) ⚡
+> Last synced: 2026-09-05 by Claude Sonnet 5 (PR #453 merged, Docker disk cleanup verified + extended) ⚡
+
+## 2026-09-05 — PR #453 (Governor + capability tokens Phase 2) merged; Docker cleanup report verified + extended
+
+Operational/cleanup session, no new feature code. Full detail:
+`docs/NEXT_SESSION_HANDOVER_2026-09-05.md`.
+
+- **PR #453 merged** (merge commit `94280b37`). Fixed CodeRabbit's
+  Docstring Coverage warning first (50.94%→100%, 146 one-line docstrings
+  added to test/fixture/helper functions across the 24 changed test
+  files, commit `4e27e8fd`) — it was Warning-status only and `main` has no
+  branch protection or rulesets, so it was never actually merge-blocking,
+  but fixed it anyway rather than merge past a real (if soft) warning.
+  Confirmed the 5 CI checks failing on the PR (CodeQL, `crew-orchestrator`,
+  Python Tests, fleet manifest containment, Ecosystem Health Check) are
+  all pre-existing and identical on the prior commit — not a regression,
+  not root-caused, just unenforced. Worth a decision next session.
+- **Verified the 2026-09-04 disk-recovery session's open items** live:
+  confirmed the Ollama image is genuinely gone (re-pull needed if that
+  agent restarts) but its 4.7GB model-blob volume survived intact;
+  corrected the report's "9 orphaned volumes" claim to the real count
+  (24, all individually inspected read-only first).
+- **Extended cleanup, safely**: removed 12 volumes outright (8 empty + 3
+  stale binary artifacts + 1 dead Supabase project cache), and reclaimed
+  1.8GB from `hypercode-v24_studio-worktrees` by deleting 12 stale
+  merged-task subdirectories while keeping the volume alive for future
+  tasks — only after confirming all 12 corresponding branches were merged
+  into `origin/main`. Zero containers restarted, zero data loss.
+- **Committed the cleanup prevention strategy** (commit `4b2f6252`):
+  session report, strategy/quick-start docs, a `docker-compose.memory-
+  limits.yml` overlay (tiered limits for 40+ agents, not yet rolled out),
+  and hardened `docker-cleanup.sh`/`.ps1` scripts — both log everything,
+  never touch volumes, and drop the risky quarterly `system prune` step
+  from the automated path.
 
 ## 2026-09-04 — Governor + capability tokens (Phase 2) shipped; fleet-controller's real Phase 0 compose gap closed
 
