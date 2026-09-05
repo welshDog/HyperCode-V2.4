@@ -181,6 +181,21 @@ async def test_approvals_get_requires_operator_key(client):
 
 
 @pytest.mark.asyncio
+async def test_approval_decision_bad_casing_422s_instead_of_silently_not_counting(client):
+    """CodeRabbit follow-up: decision was a plain str -- a case typo like
+    "Approved" previously got a 200 + approval_id, but satisfied()'s exact
+    "approved" match meant it silently never counted toward the two-person
+    rule. Literal on ApprovalRequest.decision turns that into an immediate
+    422 instead of a silent no-count the caller has no way to detect."""
+    h = {"X-Operator-Key": "s3cret-op"}
+    resp = await client.post("/v1/approvals", json={
+        "mission_id": "m11", "plan_hash": "sha256:p", "approver_id": "alice",
+        "decision": "Approved", "reason": "case typo",
+    }, headers=h)
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_record_and_list_approvals(client):
     h = {"X-Operator-Key": "s3cret-op"}
     r = await client.post("/v1/approvals", json={

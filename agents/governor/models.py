@@ -82,7 +82,12 @@ class ApprovalRequest(BaseModel):
     mission_id: str
     plan_hash: str
     approver_id: str
-    decision: str
+    # CodeRabbit follow-up: plain str let a case typo ("Approved") through
+    # with a 200 + approval_id, silently never counting toward
+    # satisfied()'s exact "approved" match -- the caller believed the
+    # approval was recorded when it could never satisfy the rule. Literal
+    # turns that into an immediate 422 instead of a silent no-count.
+    decision: Literal["approved", "rejected"]
     reason: str
 
 

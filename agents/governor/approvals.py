@@ -3,6 +3,21 @@
 Phase 2 has no dashboard — an approval is created by an authenticated call
 carrying an approver_id. The governor enforces the count rule; Phase 3
 adds the UI that calls this.
+
+KNOWN PHASE 2 LIMITATION (CodeRabbit follow-up, deliberately not patched
+here): /v1/approvals is gated by a single shared OPERATOR_KEY, not a
+per-person credential. satisfied()'s "2 distinct approvers" count is
+therefore a distinction between approver_id STRINGS in the request body,
+not between authenticated IDENTITIES — anyone holding the one shared key
+can submit two calls with two different approver_id values and satisfy
+the DANGEROUS_CLASSES two-person rule alone. Binding approver_id to "the
+authenticated caller" instead would not fix this: under one shared secret
+every caller IS the same authenticated identity, so that change would only
+make the rule permanently unsatisfiable. A real fix needs distinct
+per-approver credentials, which is exactly what Phase 3's dashboard is for.
+Until then, this endpoint's two-person guarantee is an audit-trail
+distinction, not an authentication one — treat it accordingly for any
+INFRASTRUCTURE_MUTATION/DESTRUCTIVE mint this gates.
 """
 from __future__ import annotations
 
