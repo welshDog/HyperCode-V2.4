@@ -1,6 +1,74 @@
 import pytest
 
 
+@pytest.mark.asyncio
+async def test_openrouter_chat_raises_on_missing_choices(monkeypatch):
+    from app.core import model_routes as routes_mod
+
+    class DummyResponse:
+        status_code = 200
+        text = "{}"
+
+        def json(self):
+            return {"choices": []}
+
+    class DummyClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return DummyResponse()
+
+    monkeypatch.setattr(routes_mod.httpx, "AsyncClient", lambda *a, **k: DummyClient())
+
+    with pytest.raises(RuntimeError, match="no choices"):
+        await routes_mod.openrouter_chat(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="k",
+            model="m",
+            messages=[{"role": "user", "content": "hi"}],
+            max_tokens=10,
+            privacy_mode="none",
+        )
+
+
+@pytest.mark.asyncio
+async def test_openrouter_chat_raises_on_missing_content(monkeypatch):
+    from app.core import model_routes as routes_mod
+
+    class DummyResponse:
+        status_code = 200
+        text = "{}"
+
+        def json(self):
+            return {"choices": [{"message": {}}]}
+
+    class DummyClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return DummyResponse()
+
+    monkeypatch.setattr(routes_mod.httpx, "AsyncClient", lambda *a, **k: DummyClient())
+
+    with pytest.raises(RuntimeError, match="no message content"):
+        await routes_mod.openrouter_chat(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="k",
+            model="m",
+            messages=[{"role": "user", "content": "hi"}],
+            max_tokens=10,
+            privacy_mode="none",
+        )
+
+
 def test_redact_secrets_masks_common_tokens():
     from app.core.model_routes import redact_secrets
 

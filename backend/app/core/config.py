@@ -163,10 +163,8 @@ class Settings(BaseSettings):
             if not self.JWT_SECRET or self.JWT_SECRET == "dev-secret-key":
                 raise ValueError("JWT_SECRET must be set to a strong value for non-development environments")
 
-            minio_endpoint_overridden = bool(os.getenv("MINIO_ENDPOINT")) or self.MINIO_ENDPOINT != "http://minio:9000"
-            if minio_endpoint_overridden:
-                if self.MINIO_ACCESS_KEY == "minioadmin" and self.MINIO_SECRET_KEY == "minioadmin":
-                    raise ValueError("MinIO credentials must be set to non-default values for non-development environments")
+            if self.MINIO_ACCESS_KEY == "minioadmin" or self.MINIO_SECRET_KEY == "minioadmin":
+                raise ValueError("MinIO credentials must be set to non-default values for non-development environments")
 
     @classmethod
     def settings_customise_sources(
@@ -213,6 +211,8 @@ try:
     settings = Settings()
 except Exception as exc:
     _settings_boot_error = str(exc)
+    if os.getenv("ENVIRONMENT", "").lower() != "development":
+        raise
     settings = Settings.model_validate({})
 
 @lru_cache()

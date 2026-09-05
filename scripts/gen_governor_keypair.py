@@ -7,6 +7,8 @@ Public  PEM -> agents/governor/governor_public_key.pem
 Run once per environment. Re-running rotates the key (invalidates every
 live capability — do it during a maintenance window).
 """
+import os
+import stat
 from pathlib import Path
 
 from cryptography.hazmat.primitives import serialization
@@ -24,8 +26,15 @@ pub_pem = priv.public_key().public_bytes(
     serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-(ROOT / "secrets").mkdir(exist_ok=True)
-(ROOT / "secrets" / "governor_ed25519_private_key.txt").write_bytes(priv_pem)
+secrets_dir = ROOT / "secrets"
+secrets_dir.mkdir(exist_ok=True)
+secrets_dir.chmod(stat.S_IRWXU)  # 0700 — owner-only
+
+priv_key_path = secrets_dir / "governor_ed25519_private_key.txt"
+fd = os.open(priv_key_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, stat.S_IRUSR | stat.S_IWUSR)  # 0600
+with os.fdopen(fd, "wb") as f:
+    f.write(priv_pem)
+
 for rel in ("agents/governor/governor_public_key.pem", "agents/fleet-controller/governor_public_key.pem"):
     (ROOT / rel).write_bytes(pub_pem)
 print("wrote private key to secrets/ and public key to both agent dirs")

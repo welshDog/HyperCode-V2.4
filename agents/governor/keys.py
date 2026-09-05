@@ -3,6 +3,19 @@
 The private key is the governor's one privileged asset. It is loaded once,
 from a Docker secret file by default, and never logged. Verifiers never see
 it — they hold only governor_public_key.pem.
+
+KNOWN PHASE 2 LIMITATION (CodeRabbit follow-up, deliberately not patched
+here): GOVERNOR_PRIVATE_KEY_PEM is accepted as a fallback whenever the
+secret-file path is missing, with no environment gate — a production
+deployment that leaked this env var (or was misconfigured to set it) could
+have its signing key read straight out of process environment instead of
+the Docker secret file the design doc names as the sole custody mechanism.
+The fallback exists because governor/tests/conftest.py and CI use it (no
+Docker secrets are mounted in either), and the governor module has no
+ENVIRONMENT concept to gate on — unlike backend/app/core/config.py, which
+already distinguishes development from production. Restricting this
+properly needs that concept added here first, which is more than a quick
+fix; tracked as Phase 3 hardening scope, not patched blind.
 """
 from __future__ import annotations
 

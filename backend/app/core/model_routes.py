@@ -130,6 +130,12 @@ async def openrouter_chat(
                 body_preview = (resp.text or "")[:500]
                 raise RuntimeError(f"OpenRouter error {resp.status_code}: {body_preview}")
             data = resp.json()
-            return data["choices"][0]["message"]["content"]
+            choices = data.get("choices") or []
+            if not choices:
+                raise RuntimeError(f"OpenRouter returned no choices: {str(data)[:500]}")
+            content = (choices[0].get("message") or {}).get("content")
+            if not isinstance(content, str):
+                raise RuntimeError("OpenRouter returned no message content")
+            return content
 
     return await _llm_breaker.call(_do_call)
