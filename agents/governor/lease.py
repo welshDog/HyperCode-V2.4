@@ -28,7 +28,21 @@ async def is_valid(now: Optional[datetime] = None) -> bool:
     rec = await current()
     if not rec:
         return False
-    return now < datetime.fromisoformat(rec["expires_at"])
+    # CodeRabbit follow-up: a malformed record (missing/non-string/
+    # unparsable expires_at) previously raised straight through -- main.py
+    # calls this unguarded on the LIVE mint path, so a corrupted Redis
+    # record would 500 the request instead of cleanly refusing it, same
+    # bug class as everywhere else in this codebase that fails closed. A
+    # naive (tzinfo-less) timestamp can't be safely compared to an
+    # aware `now` either -- treat it the same as invalid, not "expired
+    # sometime, who knows."
+    try:
+        expires_at = datetime.fromisoformat(rec["expires_at"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    if expires_at.tzinfo is None:
+        return False
+    return now < expires_at
 
 
 async def renew_tick(*, shepherd_healthy: bool, ttl_seconds: int = 300, now: Optional[datetime] = None) -> bool:
