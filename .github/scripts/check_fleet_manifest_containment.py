@@ -22,7 +22,7 @@ def main(path: str) -> int:
     for name in WATCHED:
         svc = services.get(name)
         if not svc:
-            print(f"note: {name} not in this manifest (skipped)")
+            failures.append(f"{name}: not present in the rendered manifest (expected)")
             continue
         for vol in svc.get("volumes", []) or []:
             if "docker.sock" in str(vol):
