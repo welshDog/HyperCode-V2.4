@@ -1,0 +1,92 @@
+# Fleet / Governance plane — Phase 0 (fleet-controller) + Phase 2 (governor).
+#
+# Launch:  docker compose -f docker-compose.yml -f docker-compose.fleet.yml \
+#            --profile agents --profile fleet up -d fleet-controller governor
+#
+# NOTE: do NOT also pass -f docker-compose.core.yml — docker-compose.yml
+# already pulls it (and docker-compose.agents.yml, docker-compose.secrets.yml
+# is separate/optional) in via `include:`; passing it again duplicates
+# list-type fields (e.g. hypercode-ollama's security_opt) and Compose
+# rejects the merge. --profile agents is required alongside --profile fleet
+# solely so `depends_on: safety-shepherd` (itself profiles: ["agents",
+# "safety"]) resolves — it does NOT add either service to the standard
+# fleet launch, which never passes --profile fleet. Naming the two services
+# on `up` keeps this command from also booting the full agents profile.
+#
+# Neither service can execute infrastructure changes: no docker.sock, no
+# DOCKER_HOST, no crew-orchestrator credential. governor additionally holds
+# the ONLY capability-signing key. See
+# docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
+
+services:
+  fleet-controller:
+    build:
+      context: ./agents/fleet-controller
+    image: hypercode-v24-fleet-controller:latest
+    container_name: fleet-controller
+    profiles: ["fleet"]
+    environment:
+      AGENT_NAME: fleet-controller
+      AGENT_PORT: "8080"
+      API_KEY: ${API_KEY:-dev}
+      SAFETY_SHEPHERD_URL: http://safety-shepherd:8096
+      CORE_URL: http://hypercode-core:8000
+    ports:
+      - "127.0.0.1:8094:8080"
+    networks:
+      - agents-net
+    depends_on:
+      safety-shepherd:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  governor:
+    build:
+      context: ./agents/governor
+    image: hypercode-v24-governor:latest
+    container_name: governor
+    profiles: ["fleet"]
+    environment:
+      AGENT_NAME: governor
+      AGENT_PORT: "8080"
+      API_KEY: ${API_KEY:-dev}
+      SAFETY_SHEPHERD_URL: http://safety-shepherd:8096
+      CORE_URL: http://hypercode-core:8000
+      GOVERNOR_REDIS_URL: redis://redis:6379/3
+      GOVERNOR_PRIVATE_KEY_FILE: /run/secrets/governor_ed25519_private_key
+      GOVERNOR_KILL_FILE: /governance/KILL
+      OPERATOR_KEY_FILE: /run/secrets/governor_operator_key
+      GOVERNOR_LEASE_RENEW_SECONDS: "120"
+    ports:
+      - "127.0.0.1:8089:8080"
+    volumes:
+      - ./governance-control:/governance:ro
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      safety-shepherd:
+        condition: service_started
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents_net
+  data-net:
+    external: true
+    name: hypercode_data_net

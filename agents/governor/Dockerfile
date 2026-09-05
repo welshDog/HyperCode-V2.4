@@ -1,7 +1,7 @@
-# Fleet Controller — Phase 0. Deliberately minimal: no Docker client, no LLM
-# client, no MCP tooling. It cannot execute anything because nothing in this
-# image is capable of executing anything, not because a policy check tells
-# it not to. See docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md
+# Governor — Phase 2. Governance-plane nucleus. Mints signed, scope-bound
+# capability tokens. Structurally inert: no Docker socket, no DOCKER_HOST, no
+# crew-orchestrator credential, no LLM/MCP client. See
+# docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md
 
 # ========================================
 # Stage 1: Builder
@@ -50,18 +50,15 @@ RUN pip install --upgrade --no-cache-dir \
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    AGENT_NAME=fleet-controller \
+    AGENT_NAME=governor \
     AGENT_PORT=8080
 
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* && rm -rf /wheels
 
-COPY main.py .
-COPY models.py .
-COPY plan_validator.py .
-COPY safety_client.py .
-COPY ledger_client.py .
-COPY capability_verify.py .
+COPY approvals.py capability.py keys.py killswitch.py lease.py ledger_client.py \
+     main.py models.py plan_validator.py redis_state.py shepherd_client.py \
+     transitions.py .
 COPY governor_public_key.pem .
 
 # Non-root user — security hardening

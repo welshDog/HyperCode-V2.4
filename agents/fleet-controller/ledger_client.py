@@ -18,7 +18,7 @@ from typing import Optional
 
 import httpx
 
-from models import PlanRequest
+from models import CapabilityView, PlanRequest
 from safety_client import SafetyResult
 
 LEDGER_PATH = "/api/v1/governance/ledger"
@@ -47,7 +47,14 @@ async def aclose() -> None:
         _client = None
 
 
-async def _write(plan: PlanRequest, plan_id: str, plan_hash: str, result: SafetyResult) -> None:
+async def _write(
+    plan: PlanRequest,
+    plan_id: str,
+    plan_hash: str,
+    result: SafetyResult,
+    capability_view: Optional[CapabilityView],
+) -> None:
+    """POST one preview ledger row; swallows every exception (fail-soft)."""
     client = _client
     if client is None:
         return
@@ -63,6 +70,11 @@ async def _write(plan: PlanRequest, plan_id: str, plan_hash: str, result: Safety
             "requested_actions": [a.model_dump() for a in plan.requested_actions],
             "safety_reason": result.reason,
             "performed": False,
+            # Phase 2: so the capability decision is reconstructable from the
+            # ledger alone, not just the (possibly-unlogged) API response.
+            "capability_check": (
+                capability_view.model_dump() if capability_view is not None else None
+            ),
         },
     }
     try:
@@ -71,10 +83,16 @@ async def _write(plan: PlanRequest, plan_id: str, plan_hash: str, result: Safety
         pass  # fail-soft by design
 
 
-def record_preview(plan: PlanRequest, plan_id: str, plan_hash: str, result: SafetyResult) -> None:
+def record_preview(
+    plan: PlanRequest,
+    plan_id: str,
+    plan_hash: str,
+    result: SafetyResult,
+    capability_view: Optional[CapabilityView] = None,
+) -> None:
     """Fire-and-forget. Never call `await` on this — that would defeat the point."""
     if _client is None:
         return
-    task = asyncio.create_task(_write(plan, plan_id, plan_hash, result))
+    task = asyncio.create_task(_write(plan, plan_id, plan_hash, result, capability_view))
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)

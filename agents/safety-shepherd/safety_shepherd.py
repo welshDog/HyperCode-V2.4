@@ -89,6 +89,7 @@ _manifest_mtime: float = 0.0
 
 
 def _swap_db(url: str, db: int) -> str:
+    """Rewrite a redis:// URL's trailing DB number to `db`."""
     head, sep, tail = url.rpartition("/")
     if sep and tail.isdigit():
         return f"{head}/{db}"
@@ -113,6 +114,7 @@ _ledger_tasks: set[asyncio.Task] = set()
 
 
 def _make_pool(url: str) -> aioredis.Redis:
+    """Create a 10-connection Redis pool for the given URL."""
     return aioredis.from_url(url, decode_responses=True, max_connections=10)
 
 
@@ -158,18 +160,23 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
 
 
 def _approvals_pool() -> aioredis.Redis:
+    """DB0 pool (shared approvals channel/keys), falling back to an ad-hoc
+    pool for tests that bypass the lifespan startup.
+    """
     if _pool_approvals is None:  # fallback for tests that bypass lifespan
         return _make_pool(REDIS_URL)
     return _pool_approvals
 
 
 def _cache_pool() -> aioredis.Redis:
+    """DB1 pool (events cache), falling back to an ad-hoc pool for tests."""
     if _pool_cache is None:
         return _make_pool(CACHE_URL)
     return _pool_cache
 
 
 def _ratelimit_pool() -> aioredis.Redis:
+    """DB2 pool (rate limits), falling back to an ad-hoc pool for tests."""
     if _pool_ratelimit is None:
         return _make_pool(RATELIMIT_URL)
     return _pool_ratelimit
@@ -195,14 +202,21 @@ def load_manifest(force: bool = False) -> dict[str, Any]:
 
 # ── auth (mirrors nemoclaw-agent) ─────────────────────────────────────────────
 def _read_secret_file(path: str) -> str:
+    """Read a secret file's contents, or "" if missing/unreadable/undecodable."""
+    # utf-8-sig strips a Windows-editor BOM at read time; UnicodeDecodeError
+    # is caught alongside OSError so a non-UTF-8 secret file fails closed
+    # (empty string) instead of crashing the request path that calls this.
+    # governor's ledger_client.py/main.py mirror this function -- keep them
+    # in sync.
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return f.read().strip()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ""
 
 
 def _expected_api_key() -> str:
+    """Load the API key callers must present: *_FILE first, then plain env var."""
     file_path = os.getenv("HYPERCODE_API_KEY_FILE") or os.getenv("AGENT_API_KEY_FILE", "")
     if file_path:
         from_file = _read_secret_file(file_path)
@@ -216,6 +230,9 @@ _OPEN_PATHS = ("/health", "/metrics", "/capabilities", "/safety/events")
 
 @app.middleware("http")
 async def _agent_auth(request: Request, call_next):
+    """Require a matching X-Agent-Key/X-API-Key on every route except
+    `_OPEN_PATHS`. 503s if no key is configured at all (fails closed).
+    """
     if request.url.path.startswith(_OPEN_PATHS):
         return await call_next(request)
     expected = _expected_api_key()
@@ -229,6 +246,8 @@ async def _agent_auth(request: Request, call_next):
 
 # ── models ────────────────────────────────────────────────────────────────────
 class EvaluateRequest(BaseModel):
+    """Body of `POST /evaluate`."""
+
     agent: str = Field(..., description="Requesting agent name")
     category: str = Field("generic", description="docker|http_external|file_write|stripe|discord|generic")
     tool: Optional[str] = Field(None, description="Specific tool/operation name")
@@ -239,6 +258,7 @@ class EvaluateRequest(BaseModel):
 
 # ── redis helpers (now using module-level pools) ──────────────────────────────
 async def _action_count(agent: str) -> int:
+    """Actions this agent has taken in the current rate-limit window (0 on error)."""
     window = int(time.time()) // RATE_WINDOW_SECONDS
     key = f"safety:count:{agent}:{window}"
     try:
@@ -249,6 +269,7 @@ async def _action_count(agent: str) -> int:
 
 
 async def _bump_action_count(agent: str) -> None:
+    """Increment the agent's action count for the current window (fail-soft)."""
     window = int(time.time()) // RATE_WINDOW_SECONDS
     key = f"safety:count:{agent}:{window}"
     try:
@@ -261,6 +282,7 @@ async def _bump_action_count(agent: str) -> None:
 
 
 async def _record_event(event: dict[str, Any]) -> None:
+    """Push one decision event onto the capped recent-events list (fail-soft)."""
     try:
         payload = json.dumps(event)
         async with _cache_pool().pipeline(transaction=False) as pipe:
@@ -334,6 +356,10 @@ async def _raise_approval(event: dict[str, Any]) -> str:
 # ── routes ────────────────────────────────────────────────────────────────────
 @app.post("/evaluate")
 async def evaluate_action(body: EvaluateRequest) -> dict[str, Any]:
+    """Decide ALLOW/BLOCK/ESCALATE for a proposed action, then record the
+    decision (metrics, recent-events list, fire-and-forget ledger push) and
+    raise a human approval request if the verdict is ESCALATE.
+    """
     manifest = load_manifest()
     count = await _action_count(body.agent)
     decision = evaluate(manifest, body.model_dump(), action_count=count)
@@ -374,11 +400,13 @@ async def evaluate_action(body: EvaluateRequest) -> dict[str, Any]:
 
 @app.get("/capabilities")
 async def capabilities() -> dict[str, Any]:
+    """Return the current capabilities manifest, unauthenticated read-only."""
     return load_manifest()
 
 
 @app.get("/safety/events")
 async def safety_events(limit: int = 50) -> dict[str, Any]:
+    """Return the most recent decisions (newest first), unauthenticated read-only."""
     limit = max(1, min(MAX_STORED_EVENTS, limit))
     events: list[dict[str, Any]] = []
     try:
@@ -391,11 +419,13 @@ async def safety_events(limit: int = 50) -> dict[str, Any]:
 
 @app.get("/metrics")
 async def metrics() -> Response:
+    """Prometheus scrape endpoint."""
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
+    """Liveness plus a few config-sanity fields (manifest size, key/ledger config)."""
     manifest = load_manifest()
     return {
         "status": "ok",

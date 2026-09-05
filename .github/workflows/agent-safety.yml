@@ -24,6 +24,7 @@ on:
     paths:
       - 'agents/crew-orchestrator/**'
       - 'agents/fleet-controller/**'
+      - 'agents/governor/**'
       - 'agents/shared/**'
       - 'pyproject.toml'
       - '.github/workflows/agent-safety.yml'
@@ -34,6 +35,7 @@ on:
     paths:
       - 'agents/crew-orchestrator/**'
       - 'agents/fleet-controller/**'
+      - 'agents/governor/**'
       - 'agents/shared/**'
       - 'pyproject.toml'
       - '.github/workflows/agent-safety.yml'
@@ -55,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        agent: [crew-orchestrator, fleet-controller]
+        agent: [crew-orchestrator, fleet-controller, governor]
     steps:
       - uses: actions/checkout@v4
 
@@ -68,7 +70,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r agents/${{ matrix.agent }}/requirements.txt
-          pip install pytest pytest-asyncio httpx
+          pip install pytest pytest-asyncio httpx fakeredis
 
       - name: Run ${{ matrix.agent }} safety suite
         working-directory: agents/${{ matrix.agent }}
@@ -97,3 +99,49 @@ jobs:
 
       - name: Prove every read_only executor is grant-clean
         run: python .github/scripts/check_readonly_executor_capabilities.py
+
+  fleet-manifest:
+    # Proves, against the REAL rendered docker compose config (not the
+    # source YAML), that fleet-controller and governor stay inert: no
+    # docker.sock mount, no DOCKER_HOST, no crew-orchestrator credential.
+    # Render command verified in docker-compose.fleet.yml's own header
+    # comment (Task 18) — do NOT also pass -f docker-compose.core.yml,
+    # it's already pulled in via docker-compose.yml's `include:` and
+    # passing it again duplicates list-type fields (e.g. security_opt),
+    # which Compose rejects. --profile agents is required alongside
+    # --profile fleet solely so `depends_on: safety-shepherd` resolves.
+    # This render does not pull in docker-compose.secrets.yml, so it
+    # does not require secrets/governor_ed25519_private_key.txt to
+    # exist — no keypair generation step needed here.
+    #
+    # It DOES need a literal .env file on disk: docker-compose.core.yml's
+    # `postgres`/`hypercode-core` services declare `env_file: [.env]`,
+    # which Compose validates for existence at config-render time (unlike
+    # plain ${VAR} substitution, which only warns when unset). .env is
+    # gitignored, so a fresh runner checkout has none — verified locally
+    # by hiding .env and re-running the render, which failed with
+    # "env file ... .env not found" until an empty .env was created.
+    # docker-compose.agents.yml also hard-requires POSTGRES_PASSWORD and
+    # API_KEY (${VAR:?err} syntax, unrelated services hyperhealth-api/
+    # hyperhealth-worker pulled in by the same include chain) — also
+    # verified locally to fail render without them.
+    name: fleet manifest containment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install pyyaml pytest
+      - name: Unit-test the checker
+        run: python -m pytest .github/scripts/tests/test_check_fleet_manifest_containment.py -q
+      - name: Render + check the fleet manifest
+        env:
+          POSTGRES_PASSWORD: ci-throwaway
+          API_KEY: ci-throwaway
+        run: |
+          touch .env
+          docker compose -f docker-compose.yml -f docker-compose.fleet.yml \
+            --profile agents --profile fleet config > /tmp/fleet-render.yml
+          python .github/scripts/check_fleet_manifest_containment.py /tmp/fleet-render.yml

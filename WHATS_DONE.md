@@ -1,6 +1,136 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-03 by Claude Sonnet 5 (observability infra fixes + full obs stack up + Grafana repair) ⚡
+> Last synced: 2026-09-04 by Claude Sonnet 5 (Governor + capability tokens, Phase 2 of the autonomous-control-plane north star; live smoke-tested) ⚡
+
+## 2026-09-04 — Governor + capability tokens (Phase 2) shipped; fleet-controller's real Phase 0 compose gap closed
+
+Full SDD cycle (spec → plan → 20 tasks, each implemented + independently
+reviewed) on branch `docs/autonomous-control-plane-north-star`. Ledger:
+`.superpowers/sdd/2026-09-04-governor-capability-tokens-phase2/progress.md`.
+Spec: `docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md`.
+
+**What shipped:**
+
+- **New `agents/governor/` service, `:8089`, `--profile fleet`.** The fleet's
+  sole capability-signing authority. Endpoints: `/v1/capabilities/mint`,
+  `/v1/capabilities/verify`, `/v1/capabilities/revoke`, `/v1/kill`,
+  `/v1/unkill`, `/v1/approvals` (+ `GET /v1/approvals/{id}`), `/v1/lease`,
+  `/health`. Holds the ONLY Ed25519 private key in the whole fleet (Docker
+  secret, gitignored); every other service gets only the public key baked
+  into its image.
+- **PASETO v4.public (Ed25519) capability tokens.** Mint binds a claim set
+  (`plan_hash`, `action`, `target`, `mode`, TTL, `not_before`, `jti`,
+  `verdict_id`, `policy_version`, optional `approval_id`) to a real Safety
+  Shepherd verdict computed at mint time — never issued speculatively. Every
+  mint call goes through Shepherd first and **fails closed** (no capability)
+  if Shepherd is unreachable.
+- **Redis-backed single-use replay guard** (dedicated DB 3, never mixed with
+  cache/rate-limit DBs). A capability can be verified+burned exactly once;
+  the replay-window TTL is derived from the token's own `expires_at`, not a
+  hardcoded constant (a real bug caught in Task 13's review before it ever
+  shipped — see the ledger).
+- **Kill-switch, two independent layers.** A Redis flag AND an off-box
+  sentinel file (`governance-control/KILL`) — the sentinel wins even if the
+  Redis flag is cleared, by design (proven live this session, see below).
+- **Renewing system lease.** `governor` renews a lease on a loop, but *only*
+  while the kill-switch is clear and Shepherd is healthy — a kill flip (or a
+  Shepherd outage) makes the whole execution plane go inert within one
+  lease period with zero cooperation required from anything downstream.
+- **Two-person approval rule** for dangerous action classes
+  (`INFRASTRUCTURE_MUTATION` and friends) — a single `approved` decision is
+  not enough to mint; a second, distinct approver is required.
+- **`fleet-controller` now requires a valid capability.** `/v1/plans/preview`
+  verifies the presented governor token (`capability_check.presented` /
+  `.valid` / `.reason`), but **`execution.performed` stays hard-`false`
+  regardless** — this phase only decides whether a capability *can* be
+  minted, never executes anything. Two real bugs caught and fixed before
+  merge (Task 17): a circular `canonical_hash()` that would have hashed the
+  capability field into the very hash the capability is supposed to bind to,
+  and a live wire-compatibility regression against `mission-director`'s
+  existing (mirrored) `PlanResponse` model that would have broken every real
+  `mission-director` → `fleet-controller` call in production.
+- **CI containment check** (`.github/scripts/check_fleet_manifest_containment.py`)
+  — asserts the rendered fleet manifest never grants `governor` or
+  `fleet-controller` a Docker socket, `DOCKER_HOST`, or a crew-orchestrator
+  credential, on every PR.
+- **The real Phase 0 gap this closes:** `fleet-controller` (built + tested
+  2026-08-20) had **no compose wiring at all** until Task 18 of this plan —
+  `docker-compose.fleet.yml` did not exist before this session. Every
+  earlier "Live" claim in `CLAUDE.md`/`docs/STATUS.md` described the built
+  image and its test suite, never an actual `docker compose up` that
+  included this service. `docker-compose.fleet.yml` now defines both
+  `fleet-controller` and `governor` under the same `--profile fleet` gate.
+
+**Test suites, all green (this session's final rerun, 125/125 total):**
+`agents/governor` 71/71 · `agents/fleet-controller` 36/36 ·
+`agents/safety-shepherd` (`test_policy.py` + `test_structured_verdict.py`)
+15/15 · `.github/scripts/tests/test_check_fleet_manifest_containment.py` 3/3.
+No regressions since the last task touched each service.
+
+**Live smoke test (Task 20, this session — ran 2026-09-04 23:38 → 2026-09-05
+00:09 local, straddling midnight; logged under this 09-04 entry since it's
+the same session)** — full run against real containers, not mocks. `.env` existed and Docker was already running 38
+containers (obs stack, per 2026-09-03); brought `governor` + `fleet-controller`
+up alongside the already-running `safety-shepherd`/`redis` rather than the
+full `--profile agents` fleet, given ~320 MB free RAM on the 8 GB box at the
+time (see `hyperfocuszone-8gb-ram-ceiling` — never risk an OOM to prove a
+smoke test). Used a scratchpad-only compose override (never committed) to
+supply `GOVERNOR_PRIVATE_KEY_PEM`/`OPERATOR_KEY` as plain env vars — exercises
+`keys.py`'s documented env-var fallback so `docker-compose.secrets.yml`
+(whose `agent_api_key_governor.txt` secret is still unprovisioned, per Task
+18) never needed to be layered in.
+
+Verified live, in order: real `ESCALATE` from a real Shepherd call for the
+`docker` category → two-approver two-person-rule flow → `minted:true` with a
+`cap_`-prefixed `jti` → `fleet-controller` recording `capability_check.valid:
+true` while `execution.performed` stayed hard-`false` → kill-switch blocking
+mint (`reason` names the kill-switch) → sentinel file overriding a Redis
+`unkill` (mint still `false` with the sentinel present, recovers the instant
+it's removed) → Shepherd stopped → `minted:false`/`verdict.shepherd_available:
+false` (real fail-closed, not a mock) → replay: first `/v1/capabilities/verify`
+with `burn:true` → `valid:true`, identical second call → `valid:false,
+code:"replayed"` → kill-switch engaged → lease's own TTL (5 min, unrenewed
+while killed) elapsed for real → `/v1/lease` → `valid:false` — confirms
+`renew_tick()`'s kill-check is load-bearing, not just code-reviewed.
+
+Two real, non-blocking findings from running this live (not caught by any
+task's unit tests, since none of them spin up the real compose stack):
+
+1. **`docker-compose.fleet.yml` sets no `API_KEY` for `governor` or
+   `fleet-controller` at all.** Both services' Safety Shepherd clients read
+   a plain `API_KEY` env var and send it as `X-Agent-Key`; with it unset,
+   every real call to Shepherd's `/evaluate` gets a real `401`, which both
+   clients correctly (but confusingly) surface as "Shepherd unavailable,
+   fail-closed BLOCK" — safe, but indistinguishable from an actual outage
+   without checking Shepherd's own logs. Worked around for this smoke test
+   via the same scratchpad override (`API_KEY: "${API_KEY}"`, pulled from
+   `.env`, never hardcoded or committed). **History, checked not assumed:**
+   `fleet-controller`'s original Phase 0 definition (`d6ec14b6`,
+   2026-08-20, `docker-compose.agents-full.yml`) *did* set
+   `API_KEY=${API_KEY:-dev}` — that August smoke-test proof was real. That
+   whole block was dropped from `agents-full.yml` in an unrelated rewrite
+   9 days later (`e1afd436`, mission-executor work), leaving
+   `fleet-controller` with zero compose wiring at all until this session's
+   Task 18 recreated it in the new `docker-compose.fleet.yml` — without
+   restoring the `API_KEY` line. So this isn't "never had it" and isn't a
+   deliberate Task 18 change either; it's a line that fell out during an
+   unrelated file rewrite and wasn't noticed missing when the wiring was
+   rebuilt. Fleet.yml should have it restored for real before Phase 3 makes
+   this path more heavily used.
+2. **The task-20 brief's own Step 2→3 example plan_hash (`"sha256:smoke"`)
+   can never satisfy Step 3** once Task 17's real (non-circular) hash
+   binding is in place — `fleet-controller` computes its own canonical hash
+   server-side from the actual request body, so a capability minted against
+   a literal placeholder string will always come back
+   `capability_check.valid: false, reason: "plan_hash mismatch"`. Not a code
+   bug (this is exactly the containment property Task 17 shipped); the
+   brief's own smoke-test text just predates that task. Worked around by
+   computing the real hash locally (`fleet_controller.models.canonical_hash`)
+   before minting — reproduced correctly, `capability_check.valid: true`.
+
+Docs updated: `CLAUDE.md`'s Phase 0-2 fleet table (added `governor`, corrected
+the `fleet-controller` row's history), `docs/STATUS.md`, this file,
+`docs/NEXT_SESSION_HANDOVER_2026-09-04.md`.
 
 ## 2026-09-03 — Observability infra: 2× Prometheus, Grafana repair, compose merge-bug; full obs stack UP
 
