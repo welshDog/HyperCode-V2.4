@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-github"
+        "@modelcontextprotocol/server-github@2025.4.8"
       ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
@@ -14,43 +14,26 @@
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-filesystem",
+        "@modelcontextprotocol/server-filesystem@2026.8.31",
         "."
-      ]
-    },
-    "docker": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-docker"
       ]
     },
     "supabase": {
       "command": "npx",
       "args": [
         "-y",
-        "@modelcontextprotocol/server-postgres",
+        "@modelcontextprotocol/server-postgres@0.6.2",
         "${SUPABASE_DB_URL}"
       ],
       "env": {
         "SUPABASE_DB_URL": "${SUPABASE_DB_URL}"
       }
     },
-    "vercel": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@vercel/mcp"
-      ],
-      "env": {
-        "VERCEL_TOKEN": "${VERCEL_TOKEN}"
-      }
-    },
     "playwright": {
       "command": "npx",
       "args": [
         "-y",
-        "@executeautomation/playwright-mcp-server"
+        "@executeautomation/playwright-mcp-server@1.0.12"
       ]
     }
   }
