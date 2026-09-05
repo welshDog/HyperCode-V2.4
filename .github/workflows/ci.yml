@@ -104,7 +104,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Backend Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -113,7 +113,7 @@ jobs:
           outputs: type=docker,dest=/tmp/hypercode-core.tar
 
       - name: Build Dashboard Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./agents/dashboard
           file: ./agents/dashboard/Dockerfile
