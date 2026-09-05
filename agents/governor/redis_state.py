@@ -10,6 +10,13 @@ _JTI = "gov:jti:"
 _REVOKED_JTI = "gov:revoked:jti:"
 _REVOKED_MISSION = "gov:revoked:mission:"
 
+# Revocation keys only need to outlive a capability token's own lifetime
+# (capability.mint()'s default ttl_seconds=300; the burn/replay window in
+# main.py derives its TTL from that same expiry). 24h is a generous multiple
+# with no security cost -- without a TTL these keys accumulated in Redis
+# DB 3 for the life of the deployment (CodeRabbit follow-up).
+_REVOCATION_TTL_SECONDS = 86_400
+
 _r: Optional[redis.Redis] = None
 
 
@@ -24,7 +31,12 @@ def get_redis() -> redis.Redis:
 async def aclose() -> None:
     global _r
     if _r is not None:
-        await _r.aclose()
+        # requirements.txt pins redis>=5.0.0 (floor only); .aclose() was
+        # only added in redis-py 5.0.1, replacing the deprecated .close().
+        # Tolerate either without touching the pin itself (CI can't verify
+        # a pin change right now -- billing-locked) or the dependency graph.
+        close = getattr(_r, "aclose", None) or _r.close
+        await close()
         _r = None
 
 
@@ -38,11 +50,11 @@ async def is_revoked(jti: str) -> bool:
 
 
 async def revoke(jti: str) -> None:
-    await get_redis().set(f"{_REVOKED_JTI}{jti}", "1")
+    await get_redis().set(f"{_REVOKED_JTI}{jti}", "1", ex=_REVOCATION_TTL_SECONDS)
 
 
 async def revoke_mission(mission_id: str) -> None:
-    await get_redis().set(f"{_REVOKED_MISSION}{mission_id}", "1")
+    await get_redis().set(f"{_REVOKED_MISSION}{mission_id}", "1", ex=_REVOCATION_TTL_SECONDS)
 
 
 async def is_mission_revoked(mission_id: str) -> bool:

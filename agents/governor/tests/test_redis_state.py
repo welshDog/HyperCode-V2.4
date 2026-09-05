@@ -28,3 +28,19 @@ async def test_revoke_jti(fake):
 async def test_revoke_mission(fake):
     await redis_state.revoke_mission("mission_x")
     assert await redis_state.is_mission_revoked("mission_x") is True
+
+
+@pytest.mark.asyncio
+async def test_revoke_jti_sets_ttl(fake):
+    """CodeRabbit follow-up: revocation keys previously had no expiry and
+    accumulated in Redis DB 3 for the deployment's lifetime."""
+    await redis_state.revoke("cap_3")
+    ttl = await fake.ttl("gov:revoked:jti:cap_3")
+    assert 0 < ttl <= redis_state._REVOCATION_TTL_SECONDS
+
+
+@pytest.mark.asyncio
+async def test_revoke_mission_sets_ttl(fake):
+    await redis_state.revoke_mission("mission_y")
+    ttl = await fake.ttl("gov:revoked:mission:mission_y")
+    assert 0 < ttl <= redis_state._REVOCATION_TTL_SECONDS
