@@ -16,6 +16,7 @@ class PlanValidationError(Exception):
     """A plan failed validation; `detail` is the human-readable reason."""
 
     def __init__(self, detail: str) -> None:
+        """Store the human-readable reason for HTTP handlers to surface."""
         self.detail = detail
         super().__init__(detail)
 

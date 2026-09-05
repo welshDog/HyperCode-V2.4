@@ -83,6 +83,7 @@ class VerifyError(Exception):
     """A capability failed verification; `code` names which check failed."""
 
     def __init__(self, code: str, detail: str = "") -> None:
+        """Store `code` for callers to branch on; `detail` defaults to it."""
         self.code = code
         super().__init__(detail or code)
 
