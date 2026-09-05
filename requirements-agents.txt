@@ -3,12 +3,12 @@
 # and the unit test suite (tests/unit/)
 
 # --- Runtime deps (imported by the agents themselves) ---
-fastapi==0.135.3          # base_agent.py: FastAPI app per agent
+fastapi==0.141.1          # base_agent.py: FastAPI app per agent
 pydantic==2.9.2           # base_agent.py: BaseModel for health/error responses
 httpx==0.28.1             # base_agent.py: register_with_crew() (lazy import)
 
 # --- Test runner deps ---
-requests==2.32.5          # hypercode.py (imported by test_hypercode.py)
+requests==2.34.2          # hypercode.py (imported by test_hypercode.py)
 pytest==8.3.4
 pytest-asyncio==0.24.0    # asyncio_mode = auto (set in pytest.ini)
-anyio==4.12.1             # required by pytest-asyncio
+anyio==4.14.2             # required by pytest-asyncio
