@@ -198,18 +198,28 @@ async def get_lease() -> dict:
 
 def _read_secret_file(path: str) -> str:
     # Mirrors ledger_client.py's _read_secret_file() / safety_shepherd.py's
-    # _read_secret_file(): explicit UTF-8 (not the platform locale default,
-    # cp1252 on this box, which would silently mojibake a non-ASCII secret
-    # and lock the real operator out) + fail-closed on any OSError.
+    # _read_secret_file(): explicit utf-8-sig (not the platform locale
+    # default, cp1252 on this box, which would silently mojibake a
+    # non-ASCII secret and lock the real operator out) so a UTF-8 BOM a
+    # Windows editor left in the secret file is stripped at read time
+    # instead of becoming part of the compared value + fail-closed on any
+    # OSError or decode failure.
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return f.read().strip()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ""
 
 
 def _operator_key() -> str:
-    path = os.getenv("OPERATOR_KEY_FILE", "/run/secrets/api_key")
+    # No hardcoded fallback path: OPERATOR_KEY_FILE is always set explicitly
+    # in the deployed compose (docker-compose.fleet.yml), pointing at the
+    # dedicated governor_operator_key secret. Defaulting here to any file
+    # path -- previously /run/secrets/api_key, the shared broski-bot
+    # credential -- is a loaded gun: if the env var were ever unset, the
+    # operator key would silently become whatever secret happens to sit at
+    # that default path instead of failing closed to plain OPERATOR_KEY.
+    path = os.getenv("OPERATOR_KEY_FILE", "")
     if path:
         from_file = _read_secret_file(path)
         if from_file:
@@ -220,10 +230,13 @@ def _operator_key() -> str:
 def _require_operator(x_operator_key: str | None) -> None:
     expected = _operator_key()
     # Compare as bytes, not str: hmac.compare_digest raises TypeError on
-    # non-ASCII str input (e.g. a UTF-8 BOM left by a Windows editor in the
-    # secret file), which would turn a wrong/malformed key into an
-    # unhandled 500 instead of a clean 401. Bytes comparison keeps the
-    # constant-time property without that foot-gun.
+    # non-ASCII str input (e.g. an accented character in the operator key
+    # itself, or in the X-Operator-Key header value), which would turn a
+    # wrong/malformed key into an unhandled 500 instead of a clean 401.
+    # Bytes comparison keeps the constant-time property without that
+    # foot-gun. A BOM specifically can't reach this point any more --
+    # _read_secret_file() now opens with utf-8-sig, which strips it at
+    # read time -- but non-ASCII secret content is a live case regardless.
     if (
         not expected
         or not x_operator_key

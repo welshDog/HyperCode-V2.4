@@ -96,6 +96,22 @@ def test_init_noop_when_key_file_referenced_but_missing(monkeypatch, tmp_path):
         ledger_client._client = None
 
 
+def test_read_secret_file_strips_bom(tmp_path):
+    """Follow-up fix (parked R1/R2): utf-8-sig strips a Windows-editor BOM
+    at read time instead of it becoming part of the returned key."""
+    key_file = tmp_path / "k.txt"
+    key_file.write_bytes(b"\xef\xbb\xbfhc_test_key")
+    assert ledger_client._read_secret_file(str(key_file)) == "hc_test_key"
+
+
+def test_read_secret_file_non_utf8_fails_closed(tmp_path):
+    """Follow-up fix (parked R1): a non-UTF-8 secret file must return ""
+    like a missing file, not raise UnicodeDecodeError into init()."""
+    key_file = tmp_path / "k.txt"
+    key_file.write_bytes(b"\xff\xfe\x00bad")
+    assert ledger_client._read_secret_file(str(key_file)) == ""
+
+
 def test_build_body_shape():
     body = ledger_client.build_body("capability.minted", "ALLOW", {"jti": "cap_1"})
     assert body == {

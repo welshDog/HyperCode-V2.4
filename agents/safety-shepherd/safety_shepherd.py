@@ -195,10 +195,15 @@ def load_manifest(force: bool = False) -> dict[str, Any]:
 
 # ── auth (mirrors nemoclaw-agent) ─────────────────────────────────────────────
 def _read_secret_file(path: str) -> str:
+    # utf-8-sig strips a Windows-editor BOM at read time; UnicodeDecodeError
+    # is caught alongside OSError so a non-UTF-8 secret file fails closed
+    # (empty string) instead of crashing the request path that calls this.
+    # governor's ledger_client.py/main.py mirror this function -- keep them
+    # in sync.
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return f.read().strip()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ""
 
 

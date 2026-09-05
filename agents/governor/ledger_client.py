@@ -16,10 +16,14 @@ _tasks: set = set()
 
 
 def _read_secret_file(path: str) -> str:
+    # utf-8-sig strips a Windows-editor BOM at read time instead of letting
+    # it become part of the compared/sent value; UnicodeDecodeError is
+    # caught alongside OSError so a non-UTF-8 secret file fails closed
+    # (empty string, same as a missing file) instead of crashing init().
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return f.read().strip()
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return ""
 
 

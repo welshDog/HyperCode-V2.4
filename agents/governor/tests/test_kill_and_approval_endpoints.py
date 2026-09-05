@@ -75,6 +75,53 @@ def test_operator_key_file_referenced_but_missing_falls_back(monkeypatch, tmp_pa
     assert main._operator_key() == "fallback-key"
 
 
+def test_operator_key_file_strips_bom(monkeypatch, tmp_path):
+    """Follow-up fix (parked R2): the comment above _read_secret_file
+    previously claimed BOM-handling that encoding="utf-8" does not
+    actually provide. utf-8-sig does -- prove the BOM never reaches the
+    returned key."""
+    import main
+
+    key_file = tmp_path / "operator_key.txt"
+    key_file.write_bytes(b"\xef\xbb\xbfs3cret-op")
+    monkeypatch.setenv("OPERATOR_KEY_FILE", str(key_file))
+
+    assert main._operator_key() == "s3cret-op"
+
+
+def test_operator_key_file_non_utf8_fails_closed_to_env(monkeypatch, tmp_path):
+    """Follow-up fix (parked R1): a non-UTF-8 secret file must fail closed
+    to the plain OPERATOR_KEY fallback, not raise UnicodeDecodeError
+    (which would crash /v1/kill and /v1/unkill into an unhandled 500
+    instead of a clean 401)."""
+    import main
+
+    key_file = tmp_path / "operator_key.txt"
+    key_file.write_bytes(b"\xff\xfe\x00bad")
+    monkeypatch.setenv("OPERATOR_KEY_FILE", str(key_file))
+    monkeypatch.setenv("OPERATOR_KEY", "fallback-key")
+
+    assert main._operator_key() == "fallback-key"
+
+
+def test_operator_key_no_hardcoded_secret_default(monkeypatch):
+    """Follow-up fix (parked R3): _operator_key() must not default
+    OPERATOR_KEY_FILE to the shared /run/secrets/api_key path -- if the env
+    var is genuinely unset, it must fall straight through to plain
+    OPERATOR_KEY without ever attempting a file read, rather than silently
+    reading whatever secret happens to be mounted at that shared default."""
+    import main
+
+    monkeypatch.delenv("OPERATOR_KEY_FILE", raising=False)
+    monkeypatch.setenv("OPERATOR_KEY", "the-real-operator-key")
+
+    calls = []
+    monkeypatch.setattr(main, "_read_secret_file", lambda p: calls.append(p) or "")
+
+    assert main._operator_key() == "the-real-operator-key"
+    assert calls == [], f"_read_secret_file was called with no OPERATOR_KEY_FILE set: {calls}"
+
+
 def test_operator_key_empty_file_falls_back_to_env(monkeypatch, tmp_path):
     """Deliberate precedence change from this fix, pinned by test: the old
     `if path and os.path.isfile(path): return open(path).read().strip()`
