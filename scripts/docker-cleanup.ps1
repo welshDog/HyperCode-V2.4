@@ -1,202 +1,246 @@
-# Docker Cleanup for HyperCode (PowerShell)
-# Safely removes unused Docker resources
+# Docker Cleanup Script for Windows PowerShell
+# Schedule via Task Scheduler or run manually
+# Usage: powershell -ExecutionPolicy Bypass -File docker-cleanup.ps1 -Action all
 
 param(
-    [switch]$All,
-    [switch]$Containers,
-    [switch]$Images,
-    [switch]$Volumes,
-    [switch]$Cache,
-    [switch]$Networks,
-    [switch]$Deep,
-    [switch]$HyperCode,
-    [switch]$Help
+    [ValidateSet("build-cache", "images", "containers", "system", "all")]
+    [string]$Action = "all",
+    
+    [string]$LogDir = "C:\logs",
+    
+    [switch]$Verbose
 )
 
-Write-Host "🧹 HyperCode Docker Cleanup Utility" -ForegroundColor Cyan
-Write-Host "====================================" -ForegroundColor Cyan
-Write-Host ""
+# Configuration
+$LogFile = Join-Path $LogDir "docker-cleanup.log"
+$ErrorLogFile = Join-Path $LogDir "docker-cleanup-error.log"
 
-function Show-DiskUsage {
-    Write-Host "Current Docker disk usage:" -ForegroundColor Yellow
-    docker system df
-    Write-Host ""
+# Ensure log directory exists
+if (-not (Test-Path $LogDir)) {
+    New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
 }
 
-function Clean-StoppedContainers {
-    Write-Host "Removing stopped containers..." -ForegroundColor Yellow
-    $count = (docker ps -a -q -f status=exited).Count
-    if ($count -gt 0) {
-        docker container prune -f | Out-Null
-        Write-Host "✓ Removed $count stopped container(s)" -ForegroundColor Green
-    } else {
-        Write-Host "No stopped containers to remove"
-    }
-    Write-Host ""
-}
-
-function Clean-DanglingImages {
-    Write-Host "Removing dangling images..." -ForegroundColor Yellow
-    $count = (docker images -f "dangling=true" -q).Count
-    if ($count -gt 0) {
-        docker image prune -f | Out-Null
-        Write-Host "✓ Removed $count dangling image(s)" -ForegroundColor Green
-    } else {
-        Write-Host "No dangling images to remove"
-    }
-    Write-Host ""
-}
-
-function Clean-UnusedVolumes {
-    Write-Host "Removing unused volumes..." -ForegroundColor Yellow
-    $count = (docker volume ls -qf dangling=true).Count
-    if ($count -gt 0) {
-        docker volume prune -f | Out-Null
-        Write-Host "✓ Removed $count unused volume(s)" -ForegroundColor Green
-    } else {
-        Write-Host "No unused volumes to remove"
-    }
-    Write-Host ""
-}
-
-function Clean-BuildCache {
-    Write-Host "Removing build cache..." -ForegroundColor Yellow
-    docker builder prune -f | Out-Null
-    Write-Host "✓ Build cache cleaned" -ForegroundColor Green
-    Write-Host ""
-}
-
-function Clean-UnusedNetworks {
-    Write-Host "Removing unused networks..." -ForegroundColor Yellow
-    docker network prune -f | Out-Null
-    Write-Host "✓ Unused networks removed" -ForegroundColor Green
-    Write-Host ""
-}
-
-function Clean-OldImages {
-    Write-Host "Removing old image versions (keeping last 3)..." -ForegroundColor Yellow
-    
-    $repos = @(
-        "hypercode-core", "crew-orchestrator", 
-        "frontend-specialist", "backend-specialist",
-        "database-architect", "qa-engineer",
-        "devops-engineer", "security-engineer",
-        "system-architect", "project-strategist"
+# Logging function
+function Write-Log {
+    param(
+        [ValidateSet("INFO", "WARN", "ERROR", "DEBUG")]
+        [string]$Level = "INFO",
+        [string]$Message
     )
     
-    foreach ($repo in $repos) {
-        $images = docker images --format "{{.ID}}" $repo 2>$null | Select-Object -Skip 3
-        if ($images) {
-            Write-Host "Cleaning old versions of $repo..."
-            $images | ForEach-Object { docker rmi -f $_ 2>$null }
+    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $LogEntry = "[$Timestamp] [$Level] $Message"
+    
+    # Write to console
+    switch ($Level) {
+        "ERROR" {
+            Write-Host $LogEntry -ForegroundColor Red
+            Add-Content -Path $ErrorLogFile -Value $LogEntry
+        }
+        "WARN" {
+            Write-Host $LogEntry -ForegroundColor Yellow
+            Add-Content -Path $LogFile -Value $LogEntry
+        }
+        "INFO" {
+            Write-Host $LogEntry -ForegroundColor Green
+            Add-Content -Path $LogFile -Value $LogEntry
+        }
+        "DEBUG" {
+            if ($Verbose) {
+                Write-Host $LogEntry -ForegroundColor Cyan
+            }
+            Add-Content -Path $LogFile -Value $LogEntry
         }
     }
-    Write-Host ""
 }
 
-function Deep-Clean {
-    Write-Host "⚠️  WARNING: This will remove ALL unused Docker resources" -ForegroundColor Yellow
-    Write-Host "This includes:"
-    Write-Host "  - All stopped containers"
-    Write-Host "  - All networks not used by at least one container"
-    Write-Host "  - All dangling images"
-    Write-Host "  - All dangling build cache"
-    Write-Host ""
-    
-    $confirm = Read-Host "Are you sure? (yes/no)"
-    
-    if ($confirm -eq "yes") {
-        docker system prune -a -f --volumes
-        Write-Host "✓ Deep clean complete" -ForegroundColor Green
-    } else {
-        Write-Host "Deep clean cancelled"
+# Check Docker daemon
+function Test-DockerDaemon {
+    try {
+        $null = docker ps 2>$null
+        Write-Log -Level INFO "Docker daemon is running"
+        return $true
     }
-    Write-Host ""
+    catch {
+        Write-Log -Level ERROR "Docker daemon is not running or not accessible"
+        return $false
+    }
 }
 
-function Clean-HyperCodeResources {
-    Write-Host "⚠️  WARNING: This will remove all HyperCode containers and volumes" -ForegroundColor Yellow
-    Write-Host ""
+# Get disk usage
+function Get-DockerDiskUsage {
+    try {
+        $output = docker system df --format='table {{.Type}}`t{{.Size}}`t{{.Reclaimable}}'
+        return $output
+    }
+    catch {
+        Write-Log -Level ERROR "Failed to get disk usage: $_"
+        return $null
+    }
+}
+
+# Build cache prune
+function Invoke-BuildCachePrune {
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level INFO "Step 1: Build Cache Prune (Monthly)"
+    Write-Log -Level INFO "=========================================="
     
-    $confirm = Read-Host "Are you sure? (yes/no)"
+    try {
+        $before = docker system df --format='{{.BuildCache.Size}}'
+        Write-Log -Level INFO "Before: $before"
+        
+        docker builder prune -f --verbose 2>&1 | Add-Content -Path $LogFile
+        
+        $after = docker system df --format='{{.BuildCache.Size}}'
+        Write-Log -Level INFO "After: $after"
+        Write-Log -Level INFO "✓ Build cache prune completed"
+        
+        return $true
+    }
+    catch {
+        Write-Log -Level ERROR "Build cache prune failed: $_"
+        return $false
+    }
+}
+
+# Image prune
+function Invoke-ImagePrune {
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level INFO "Step 2: Image Prune - Unused Images (Weekly)"
+    Write-Log -Level INFO "=========================================="
     
-    if ($confirm -eq "yes") {
-        Write-Host "Stopping and removing HyperCode containers..."
+    try {
+        $before = docker system df --format='{{.Images.Size}}'
+        $imageCount = (docker images -q | Measure-Object -Line).Lines
+        Write-Log -Level INFO "Before: $before (total images: $imageCount)"
+        Write-Log -Level WARN "This will remove images not used by any container"
         
-        docker-compose -f docker-compose.yml down -v 2>$null
-        docker-compose -f docker-compose.prod.yml down -v 2>$null
-        docker-compose -f docker-compose.agents.yml down -v 2>$null
-        docker-compose -f docker-compose.monitoring.yml down -v 2>$null
+        docker image prune -a -f --verbose 2>&1 | Add-Content -Path $LogFile
         
-        Write-Host "Removing HyperCode images..."
-        docker images | Select-String "hypercode" | ForEach-Object {
-            $imageId = ($_ -split '\s+')[2]
-            docker rmi -f $imageId 2>$null
+        $after = docker system df --format='{{.Images.Size}}'
+        $imageCountAfter = (docker images -q | Measure-Object -Line).Lines
+        Write-Log -Level INFO "After: $after (total images: $imageCountAfter)"
+        Write-Log -Level INFO "✓ Image prune completed"
+        
+        return $true
+    }
+    catch {
+        Write-Log -Level ERROR "Image prune failed: $_"
+        return $false
+    }
+}
+
+# Container prune
+function Invoke-ContainerPrune {
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level INFO "Step 3: Container Prune - Exited Containers (Weekly)"
+    Write-Log -Level INFO "=========================================="
+    
+    try {
+        $exited = (docker ps -a -f status=exited -q | Measure-Object -Line).Lines
+        Write-Log -Level INFO "Found $exited exited containers"
+        
+        if ($exited -gt 0) {
+            docker container prune -f --verbose 2>&1 | Add-Content -Path $LogFile
+            Write-Log -Level INFO "✓ Container prune completed"
+        }
+        else {
+            Write-Log -Level INFO "No exited containers to prune"
         }
         
-        Write-Host "✓ HyperCode resources cleaned" -ForegroundColor Green
-    } else {
-        Write-Host "Cleanup cancelled"
+        return $true
     }
-    Write-Host ""
+    catch {
+        Write-Log -Level ERROR "Container prune failed: $_"
+        return $false
+    }
 }
 
-function Show-Help {
-    Write-Host "Usage: .\docker-cleanup.ps1 [OPTIONS]"
-    Write-Host ""
-    Write-Host "Options:"
-    Write-Host "  -All              Clean all unused resources (default)"
-    Write-Host "  -Containers       Clean stopped containers only"
-    Write-Host "  -Images           Clean dangling images only"
-    Write-Host "  -Volumes          Clean unused volumes only"
-    Write-Host "  -Cache            Clean build cache only"
-    Write-Host "  -Networks         Clean unused networks only"
-    Write-Host "  -Deep             Deep clean (removes ALL unused resources)"
-    Write-Host "  -HyperCode        Remove all HyperCode specific resources"
-    Write-Host "  -Help             Show this help message"
-    Write-Host ""
+# System prune
+function Invoke-SystemPrune {
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level INFO "Step 4: System Prune - Full Cleanup (Quarterly)"
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level WARN "This is a full system prune. Volumes will NOT be touched."
+    
+    try {
+        docker system prune -f --verbose 2>&1 | Add-Content -Path $LogFile
+        Write-Log -Level INFO "✓ System prune completed"
+        
+        return $true
+    }
+    catch {
+        Write-Log -Level ERROR "System prune failed: $_"
+        return $false
+    }
 }
 
-# Main execution
-Show-DiskUsage
-
-if ($Help) {
-    Show-Help
-    exit
+# Report disk usage
+function Get-DiskUsageReport {
+    Write-Log -Level INFO "=========================================="
+    Write-Log -Level INFO "Final Disk Usage Summary"
+    Write-Log -Level INFO "=========================================="
+    
+    $usage = Get-DockerDiskUsage
+    if ($usage) {
+        Write-Host ""
+        $usage | Tee-Object -FilePath $LogFile -Append
+        Write-Host ""
+        
+        Write-Log -Level INFO "Note: Reclaimable excludes volumes (preserved for data safety)"
+    }
 }
 
-if ($Containers) {
-    Clean-StoppedContainers
-}
-elseif ($Images) {
-    Clean-DanglingImages
-}
-elseif ($Volumes) {
-    Clean-UnusedVolumes
-}
-elseif ($Cache) {
-    Clean-BuildCache
-}
-elseif ($Networks) {
-    Clean-UnusedNetworks
-}
-elseif ($Deep) {
-    Deep-Clean
-}
-elseif ($HyperCode) {
-    Clean-HyperCodeResources
-}
-else {
-    # Default: clean all
-    Clean-StoppedContainers
-    Clean-DanglingImages
-    Clean-UnusedVolumes
-    Clean-BuildCache
-    Clean-UnusedNetworks
-    Clean-OldImages
+# Main function
+function Main {
+    Write-Log -Level INFO "========================================"
+    Write-Log -Level INFO "Docker Cleanup Script Started"
+    Write-Log -Level INFO "Action: $Action"
+    Write-Log -Level INFO "========================================"
+    
+    # Test Docker daemon
+    if (-not (Test-DockerDaemon)) {
+        exit 1
+    }
+    
+    # Execute action
+    $success = $true
+    switch ($Action) {
+        "build-cache" {
+            $success = Invoke-BuildCachePrune
+        }
+        "images" {
+            $success = Invoke-ImagePrune
+        }
+        "containers" {
+            $success = Invoke-ContainerPrune
+        }
+        "system" {
+            $success = Invoke-SystemPrune
+        }
+        "all" {
+            $success = Invoke-BuildCachePrune
+            $success = $success -and (Invoke-ImagePrune)
+            $success = $success -and (Invoke-ContainerPrune)
+        }
+        default {
+            Write-Log -Level ERROR "Invalid action: $Action"
+            exit 1
+        }
+    }
+    
+    # Report
+    Get-DiskUsageReport
+    
+    if ($success) {
+        Write-Log -Level INFO "✓ Cleanup completed successfully"
+        exit 0
+    }
+    else {
+        Write-Log -Level ERROR "✗ Cleanup completed with errors"
+        exit 1
+    }
 }
 
-Write-Host "====================================" -ForegroundColor Cyan
-Write-Host "After cleanup:" -ForegroundColor Yellow
-Show-DiskUsage
-Write-Host "✅ Cleanup complete!" -ForegroundColor Green
+# Run main
+Main

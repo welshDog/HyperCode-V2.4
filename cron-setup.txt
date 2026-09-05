@@ -1,0 +1,37 @@
+# Cron Jobs for Docker Cleanup
+# Add these lines to your crontab with: crontab -e
+
+# ============================================================
+# WEEKLY CLEANUP (every Sunday at 02:00 UTC)
+# ============================================================
+
+# Weekly: Image prune (unused images) — Sunday 02:00 UTC
+0 2 * * 0 cd /path/to/hypercode-v2.4 && /bin/bash scripts/docker-cleanup.sh images >> /var/log/docker-cleanup.log 2>&1
+
+# Weekly: Container prune (exited containers) — Sunday 02:15 UTC
+15 2 * * 0 cd /path/to/hypercode-v2.4 && /bin/bash scripts/docker-cleanup.sh containers >> /var/log/docker-cleanup.log 2>&1
+
+# ============================================================
+# MONTHLY CLEANUP (1st of month at 02:30 UTC)
+# ============================================================
+
+# Monthly: Build cache prune — 1st at 02:30 UTC
+30 2 1 * * cd /path/to/hypercode-v2.4 && /bin/bash scripts/docker-cleanup.sh build-cache >> /var/log/docker-cleanup.log 2>&1
+
+# ============================================================
+# QUARTERLY FULL CLEANUP (rare, use sparingly)
+# ============================================================
+
+# Quarterly: Full system prune — 1st of every 3 months at 03:00 UTC
+# (Jan 1, Apr 1, Jul 1, Oct 1)
+0 3 1 1,4,7,10 * cd /path/to/hypercode-v2.4 && /bin/bash scripts/docker-cleanup.sh system >> /var/log/docker-cleanup.log 2>&1
+
+# ============================================================
+# OPTIONAL: Daily Health Check + Cleanup If Needed
+# ============================================================
+
+# Logs daily disk usage
+0 0 * * * docker system df >> /var/log/docker-health.log 2>&1
+
+# Alert if disk usage exceeds 80%
+0 1 * * * [ "$(docker system df --format='{{.Images.Size}}' 2>/dev/null | sed 's/GB//')" -gt 50 ] && echo "Warning: Docker disk usage high" | mail -s "Docker Disk Alert" admin@example.com

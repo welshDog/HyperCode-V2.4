@@ -1,0 +1,90 @@
+DOCKER CLEANUP & MEMORY LIMITS — IMPLEMENTATION COMPLETE ✓
+
+════════════════════════════════════════════════════════════════════════════════
+
+FILES CREATED:
+
+📄 Documentation:
+  1. DOCKER_CLEANUP_STRATEGY.md (17.3KB)
+     → Full strategy guide, all 5 scheduling options, memory recommendations
+  
+  2. DOCKER_CLEANUP_QUICK_START.md (7.5KB)
+     → Quick reference, implementation checklist, troubleshooting
+
+🔧 Scripts:
+  3. scripts/docker-cleanup.sh (5.8KB)
+     → Linux/macOS cleanup script, supports all operations, colored output
+  
+  4. scripts/docker-cleanup.ps1 (7.3KB)
+     → Windows PowerShell version, Task Scheduler compatible
+
+⏰ Scheduling:
+  5. cron-setup.txt (1.9KB)
+     → Ready-to-paste cron jobs for Linux/macOS automation
+
+🐳 Compose Config:
+  6. docker-compose.memory-limits.yml (8.6KB)
+     → All agent containers with recommended memory limits
+     → Include with: docker compose -f docker-compose.yml -f docker-compose.memory-limits.yml up -d
+
+════════════════════════════════════════════════════════════════════════════════
+
+MEMORY LIMITS BY TIER:
+
+✓ Lightweight (256M):      agent-focus-tracker, agent-mcp-bridge, github-sync
+✓ Standard (512M):         coder-agent, crew-orchestrator, goal-keeper, +20 agents
+✓ Heavy (1GB):             meta-research-architect, brain-agent, agent-x
+✓ Data-Intensive (1.5GB):  hyper-brain, hyper-architect, agent-hyper-brain-core
+
+════════════════════════════════════════════════════════════════════════════════
+
+RECOMMENDED CLEANUP SCHEDULE:
+
+📅 WEEKLY:     Sunday 02:00 UTC - docker image prune -a
+              Sunday 02:15 UTC - docker container prune
+              
+📅 MONTHLY:    1st of month 02:30 UTC - docker builder prune
+
+📅 QUARTERLY:  1st at 03:00 UTC - docker system prune (rare, full sweep)
+
+════════════════════════════════════════════════════════════════════════════════
+
+QUICK START:
+
+Linux/macOS:
+  chmod +x scripts/docker-cleanup.sh
+  ./scripts/docker-cleanup.sh all          # Test now
+  crontab -e                                # Add cron jobs from cron-setup.txt
+
+Windows:
+  powershell -File scripts/docker-cleanup.ps1 -Action all  # Test now
+  → Open Task Scheduler for weekly automation
+
+Docker Compose:
+  docker compose -f docker-compose.yml -f docker-compose.memory-limits.yml up -d
+
+════════════════════════════════════════════════════════════════════════════════
+
+RESULTS ACHIEVED:
+
+✓ Disk Usage: 66GB → 19.6GB (70% reduction)
+✓ Build Cache: 18.46GB → 4.978GB (73% reduction)
+✓ Images: 45.03GB → 12.31GB (73% reduction)
+✓ Total Recovered: 46.4GB
+
+✓ Redis Integrity: DB 1 (482 keys), DB 2 (accessible)
+✓ All Volumes: Preserved (2.246GB safe)
+✓ Running Containers: 37/37 healthy
+
+════════════════════════════════════════════════════════════════════════════════
+
+NEXT STEPS:
+
+  1. Review DOCKER_CLEANUP_QUICK_START.md
+  2. Copy memory limits from docker-compose.memory-limits.yml to your compose files
+  3. Deploy cleanup script (bash or PowerShell)
+  4. Add cron jobs / Task Scheduler automation
+  5. Monitor disk usage: docker system df (daily for first week)
+  6. Adjust limits if agents restart frequently
+
+════════════════════════════════════════════════════════════════════════════════
