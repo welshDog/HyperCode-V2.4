@@ -87,6 +87,7 @@ export function StudioView(): React.JSX.Element {
           <StatusPill label={meta.label} color={meta.color} live={meta.live} />
 
           <textarea
+            aria-label="Task description"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -144,7 +145,7 @@ export function StudioView(): React.JSX.Element {
               {running ? 'Building…' : 'Build it'}
             </button>
             {(s.status !== 'idle' && !running) && (
-              <button className="btn" type="button" onClick={s.reset}>New task</button>
+              <button className="btn" type="button" onClick={() => { s.reset(); setPrompt('') }}>New task</button>
             )}
             <span style={{ flex: 1 }} />
             <span style={{ color: 'var(--text-secondary)', fontSize: 10, opacity: 0.6 }}>⌘⏎</span>
