@@ -242,3 +242,27 @@ constraints change.
 5. `mcp-gateway` `Exited (1)` — 15 minutes of logs before it becomes a mystery
 6. `chromadb` 2-critical recheck against the latest release, or write the
    accepted-risk note
+
+---
+
+## If this goes public — scrub first
+
+This report and its visual companion
+(`claude.ai/code/artifact/2f17cb73-e8e0-40b1-9af6-14f8abd09f3b`, private) are
+**internal**. A per-image CVE table plus stale dependency names is a target list;
+the service names, network layout, rollback path and the "agents prefer
+Anthropic when the key is set" line are soft spots written down.
+
+Before any showcase-web / sponsor-deck use:
+
+- **Aggregate the CVE numbers** — drop the per-image rows and every dependency
+  name/version; keep one figure (e.g. "assumed 0 → measured, 248 fixable
+  findings").
+- **Remove service names** (`hypercode-ollama`, `mcp-gateway`, …) and
+  `model-runner.docker.internal`; keep the diagram abstract —
+  consumers → shim → runtime.
+- **Drop** the rollback command + `hosted-llm.yml` reference, the commit SHAs
+  (keep "5 commits, gate green"), the repo path (while the repo is private), the
+  ~4 GB WSL constraint, and the Anthropic-fallback detail.
+- **Keep** the story: `1 GB → 944 KiB`, config-only cutover, the honest
+  trade-offs, the timeline.
