@@ -1,139 +1,79 @@
-# 🐳 Docker Model Runner — Integration Guide
+# 🐳 Docker Model Runner — HyperCode-V2.4
 
-> **Port:** 11434
-> **Role:** Local LLM runner — OpenAI-compatible API
-> **Last Updated:** 2026-03-25
-
----
-
-## 🧠 What is Docker Model Runner?
-
-Docker Model Runner lets you **run LLMs locally inside Docker** — no OpenAI API key needed, no cloud costs, full privacy.
-
-Agent X uses it to power all autonomous agent decisions.
-
-Think of it like:
-> 🧠 "Your own private brain — runs on your machine, talks OpenAI language."
+> **Since:** 2026-09-07 (replaced the standalone `ollama/ollama` container)
+> **Spike / decision record:** `docs/health-reports/dmr-spike-2026-09-07.md`
+> **Plan:** `~/.claude/plans/…-hypercode-v2-4-parallel-lighthouse.md`
 
 ---
 
-## ⚡ Quick Start
+## What this is
 
-### Pull a model:
-```bash
-docker exec model-runner ollama pull tinyllama
-```
+Local LLM inference is served by **Docker Model Runner (DMR)** — the
+`docker model` engine built into Docker Desktop — not a container we run.
+It loads a model on first request and unloads it after **5 minutes idle**, so
+there is no always-on multi-GB Ollama container on this 4 GB box any more.
 
-### Test it's working:
-```bash
-curl http://localhost:11434/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "tinyllama",
-    "messages": [{"role": "user", "content": "Say hello!"}]
-  }'
-```
+DMR v1.2.8+ serves **both** APIs:
 
-### List downloaded models:
-```bash
-docker exec model-runner ollama list
-```
+| API | Base (host) | Base (in-container) |
+|---|---|---|
+| Ollama-native (`/api/tags`, `/api/generate`, `/api/chat`) | `http://localhost:12434` | `http://model-runner.docker.internal` |
+| OpenAI-compatible (`/engines/v1/...`) | `http://localhost:12434/engines/v1` | `http://model-runner.docker.internal/engines/v1` |
 
----
+## How HyperCode reaches it
 
-## 🤖 Supported Models
+The compose service still called **`hypercode-ollama`** is now a ~1 MB
+`alpine/socat` shim (in `docker-compose.core.yml`) that forwards
+`:11434 → model-runner.docker.internal:80`. Every consumer keeps its existing
+`OLLAMA_HOST=http://hypercode-ollama:11434` and every `depends_on: hypercode-ollama`
+still works — the shim has a health check.
 
-| Model | Size | Best for | Speed |
-|-------|------|----------|-------|
-| `tinyllama` | 637MB | Quick tasks, low RAM | ⚡⚡⚡ |
-| `phi` | 1.6GB | Code tasks | ⚡⚡ |
-| `mistral` | 4.1GB | Complex reasoning | ⚡ |
-| `codellama` | 3.8GB | Code generation | ⚡ |
-| `llama3` | 4.7GB | General purpose | ⚡ |
+`backend/app/llm/ollama.py` (`OllamaModelResolver`) and `backend/app/agents/brain.py`
+are unchanged: DMR's `/api/tags` and `/api/generate` responses match the Ollama
+shapes they already parse. `DEFAULT_LLM_MODEL=auto` resolves via
+`OLLAMA_MODEL_PREFERRED` (now DMR names — `smollm2,qwen2.5-coder,qwen2.5`).
 
-> 💡 **Default:** TinyLlama (fastest, works on most machines)
-
----
-
-## 🔗 Agent X Integration
-
-Agent X connects to Docker Model Runner automatically.
-
-Config in `agents/agent_x/config.yaml`:
-```yaml
-model_runner:
-  api_base: http://localhost:11434/v1
-  default_model: tinyllama
-  fallback_models:
-    - phi
-    - mistral
-  timeout_seconds: 60
-  max_tokens: 2048
-  temperature: 0.7
-```
-
----
-
-## 🐳 Docker Compose Setup
-
-In `docker-compose.yml`:
-```yaml
-model-runner:
-  image: ollama/ollama:latest
-  ports:
-    - "11434:11434"
-  volumes:
-    - ollama_data:/root/.ollama
-  restart: unless-stopped
-  deploy:
-    resources:
-      reservations:
-        devices:
-          - capabilities: [gpu]  # Remove if no GPU
-```
-
----
-
-## ⚙️ Switching Models at Runtime
-
-```python
-import httpx
-
-response = httpx.post(
-    "http://localhost:11434/v1/chat/completions",
-    json={
-        "model": "mistral",  # swap model here
-        "messages": [{"role": "user", "content": "Write a Python class"}]
-    }
-)
-```
-
----
-
-## 🚨 Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| Port 11434 not responding | `docker restart model-runner` |
-| Model not found | Pull it: `docker exec model-runner ollama pull <model>` |
-| Out of memory | Switch to `tinyllama` (smallest model) |
-| Slow responses | Normal for CPU-only — use GPU if available |
-| GPU not detected | Check Docker Desktop GPU settings |
-
----
-
-## 💾 Storage
-
-Models stored in Docker volume `ollama_data`.
-To save disk space — only pull what you use!
+## First-time setup
 
 ```bash
-# Remove a model
-docker exec model-runner ollama rm mistral
-
-# Check disk usage
-docker exec model-runner ollama list
+docker desktop enable model-runner --tcp=12434     # once; no restart needed
+docker model pull ai/smollm2                        # the default fallback model
+docker model list
 ```
 
----
-> **built with WelshDog + BROski 🚀🌙**
+## Models
+
+| HyperCode use | Env var(s) | Model |
+|---|---|---|
+| brain / `auto` / general | `OLLAMA_MODEL`, `OLLAMA_MODEL_PREFERRED`, `BRAIN_OLLAMA_MODEL` | `ai/smollm2` |
+| coder agents | `CODER_OLLAMA_MODEL`, agent-x `OLLAMA_MODEL` | `ai/smollm2` (upgrade to `ai/qwen2.5-coder` once the catalog name/auth is sorted — `insufficient_scope` on pull as of 2026-09-07) |
+| pets | `PETS_OLLAMA_MODEL` | `ai/smollm2` |
+
+Pull a model the catalog doesn't carry straight from Hugging Face:
+```bash
+docker model pull hf.co/<user>/<repo>-GGUF:Q4_K_M
+```
+
+## Notes / gotchas
+
+- **CPU only** on this box (`llama.cpp b9879-cpu`) — inference speed is the same
+  as Ollama was. The win is RAM lifecycle, not latency.
+- **Cold start:** first request after 5 min idle reloads the model from disk
+  before the first token. Bursty agent traffic will occasionally see a slow
+  first response.
+- DMR `/api/tags` reports `"size":0`; the resolver's `OLLAMA_MAX_MODEL_SIZE_MB`
+  filter treats 0 as "unknown" and skips it — harmless no-op.
+- Model names from `/api/tags` come back fully qualified
+  (`docker.io/ai/smollm2:latest`); DMR accepts that form in `/api/generate`.
+- **Rollback:** `docker compose … -f docker-compose.hosted-llm.yml up -d` routes
+  agents to Anthropic and takes the shim out of the path.
+
+## Commands
+
+```bash
+docker model list                 # pulled models
+docker model ps                   # loaded now + idle-unload countdown
+docker model pull  <ref>
+docker model rm    <ref>
+docker model status               # engine + backend
+```

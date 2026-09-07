@@ -118,7 +118,11 @@ services:
       - STRIPE_PRICE_HYPER_YEARLY=${STRIPE_PRICE_HYPER_YEARLY:-}
       - OLLAMA_HOST=http://hypercode-ollama:11434
       - DEFAULT_LLM_MODEL=auto
-      - OLLAMA_MODEL_PREFERRED=tinyllama:latest,tinyllama,phi3:latest,phi3
+      # 2026-09-07: Docker Model Runner names (was tinyllama/phi3). The resolver
+      # (backend/app/llm/ollama.py) substring-matches these against /api/tags
+      # names like "docker.io/ai/smollm2:latest". Add ai/qwen2.5-coder etc once
+      # pulled. DMR reports size:0 so OLLAMA_MAX_MODEL_SIZE_MB is a harmless no-op.
+      - OLLAMA_MODEL_PREFERRED=smollm2,qwen2.5-coder,qwen2.5
       - OLLAMA_MAX_MODEL_SIZE_MB=2500
       - OLLAMA_MODEL_REFRESH_SECONDS=300
       - OLLAMA_TEMPERATURE=0.3
@@ -180,41 +184,39 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # 2026-09-07: was `ollama/ollama:0.3.14`. Replaced by a thin socat shim that
+  # forwards :11434 -> Docker Model Runner (`model-runner.docker.internal:80`).
+  # DMR v1.2.8 serves the Ollama-native API (/api/tags, /api/generate, /api/chat),
+  # loads models on demand and unloads them after 5m idle — so the always-on
+  # 1G-reserved Ollama container is gone. Keeping the service NAME means every
+  # OLLAMA_HOST=http://hypercode-ollama:11434 consumer and every `depends_on:
+  # hypercode-ollama` is untouched. Models: `docker model pull ai/smollm2`.
+  # Spike: docs/health-reports/dmr-spike-2026-09-07.md.
+  # Rollback: `-f docker-compose.hosted-llm.yml` (agents -> Anthropic).
   hypercode-ollama:
-    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    image: alpine/socat:1.8.0.1
     container_name: hypercode-ollama
-    volumes:
-      - ollama-data:/root/.ollama
+    command: >-
+      TCP-LISTEN:11434,fork,reuseaddr
+      TCP:model-runner.docker.internal:80
     ports:
-      # SECURITY 2026-07-19: was 0.0.0.0. The Ollama API is UNAUTHENTICATED —
-      # anyone who could reach it could run inference on your machine, and
-      # pull or delete your models. Agents reach it via OLLAMA_HOST=
-      # http://hypercode-ollama:11434 (internal DNS), so this bind is only
-      # for your own local tools.
+      # Loopback only — local tools reach DMR through the shim on this port too.
       - "127.0.0.1:11434:11434"
     networks:
       - agents-net
-    environment:
-      # 2026-09-07: was 24h — pinned the model in RAM permanently on an 8GB box.
-      # 5m lets Ollama unload idle models itself (cold-load latency on next call
-      # is the tradeoff). Captures most of the Docker Model Runner RAM win with
-      # no cutover. See docs/health-reports/ + the DMR plan.
-      - OLLAMA_KEEP_ALIVE=5m
-      - OLLAMA_NUM_PARALLEL=2
-      - OLLAMA_MAX_LOADED_MODELS=2
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 3G
+          cpus: "0.25"
+          memory: 64M
         reservations:
-          cpus: "1"
-          memory: 1G
+          memory: 16M
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test: ["CMD-SHELL", "socat -T2 - TCP:127.0.0.1:11434 </dev/null || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
+    restart: unless-stopped
     logging:
       driver: "json-file"
       options:

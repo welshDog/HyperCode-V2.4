@@ -324,20 +324,22 @@ foreach ($svc in $services) {
 Write-Step "📦 STEP 11: RUNNING CONTAINERS"
 docker compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>&1
 
-# ─── STEP 12: Ollama model warm-up ────────────────────────────────────────────
-Write-Step "🧠 STEP 12: OLLAMA MODEL WARM-UP"
-$ollamaModels = docker exec hypercode-ollama ollama list 2>&1
+# ─── STEP 12: Model Runner warm-up ───────────────────────────────────────────
+# 2026-09-07: hypercode-ollama is now a socat shim -> Docker Model Runner.
+# Models are pulled with `docker model pull` and load on demand (5m idle TTL).
+Write-Step "🧠 STEP 12: MODEL RUNNER WARM-UP"
+$dmrModels = docker model list 2>&1
 if ($LASTEXITCODE -eq 0) {
-    $modelLines = $ollamaModels | Where-Object { $_ -notmatch "^NAME" -and $_ -ne "" }
+    $modelLines = $dmrModels | Where-Object { $_ -notmatch "^MODEL NAME" -and $_ -ne "" }
     if ($modelLines.Count -gt 0) {
-        Write-Ok "Loaded models:"
+        Write-Ok "Docker Model Runner models:"
         $modelLines | ForEach-Object { Write-Info "  $_" }
     } else {
-        Write-Warn "No Ollama models found — pulling tinyllama (this happens once)..."
-        docker exec hypercode-ollama ollama pull tinyllama 2>&1 | Select-Object -Last 3 | ForEach-Object { Write-Info "  $_" }
+        Write-Warn "No models found — pulling ai/smollm2 (this happens once)..."
+        docker model pull ai/smollm2 2>&1 | Select-Object -Last 3 | ForEach-Object { Write-Info "  $_" }
     }
 } else {
-    Write-Warn "Ollama not ready yet — models will load on first request"
+    Write-Warn "Docker Model Runner not available — enable it in Docker Desktop (docker desktop enable model-runner --tcp=12434)"
 }
 
 # ─── STEP 13: Redis connectivity verification ─────────────────────────────────

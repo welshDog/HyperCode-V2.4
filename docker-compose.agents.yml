@@ -696,7 +696,7 @@ services:
       AGENT_PORT: "8080"
       CREW_ORCHESTRATOR_URL: http://crew-orchestrator:8080
       OLLAMA_HOST: http://hypercode-ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5-coder:3b}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-ai/smollm2}
       DOCKER_HOST: tcp://docker-socket-proxy-build:2375
       WORKSPACE_PATH: /workspace
       HYPER_AGENTS_COMPOSE: /workspace/docker-compose.hyper-agents.yml
@@ -733,50 +733,14 @@ services:
         condition: service_started
 
   # ====================================================================
-  # GPU OLLAMA — replaces hypercode-ollama (core.yml) when --profile gpu
+  # GPU OLLAMA — REMOVED 2026-09-07.
+  # The `ollama/ollama` image was pruned in the Sept disk cleanup and local
+  # inference moved to Docker Model Runner (see hypercode-ollama shim in
+  # core.yml + docs/health-reports/dmr-spike-2026-09-07.md). `--profile gpu`
+  # no longer starts a second Ollama. For GPU-backed DMR, enable a GPU
+  # inference backend in Docker Desktop and use the same shim — no separate
+  # service needed.
   # ====================================================================
-
-  hypercode-ollama-gpu:
-    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
-    profiles: ["gpu"]
-    environment:
-      # Mirror hypercode-ollama (core.yml) so the GPU variant has the same
-      # LLM lifecycle. 2026-09-07: 5m idle-unload, not the old 24h pin.
-      - OLLAMA_KEEP_ALIVE=5m
-      - OLLAMA_NUM_PARALLEL=2
-      - OLLAMA_MAX_LOADED_MODELS=2
-    volumes:
-      - ollama-data:/root/.ollama
-    ports:
-      - "127.0.0.1:11434:11434"
-    networks:
-      agents-net:
-        aliases:
-          - hypercode-ollama
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 3G
-        reservations:
-          cpus: "1"
-          memory: 1G
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: ["gpu"]
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    security_opt:
-      - no-new-privileges:true
 
   # ====================================================================
   # AI BACKEND (heavy AI deps) — `--profile ai`
@@ -1031,7 +995,7 @@ services:
       - PROMETHEUS_URL=http://prometheus:9090
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
-      - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-qwen2.5:3b}
+      - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-ai/smollm2}
       - AGENT_PORT=8002
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
     volumes:
@@ -1182,7 +1146,7 @@ services:
       - EVOLVE_WEBHOOK_URL=${EVOLVE_WEBHOOK_URL:-http://evolve-relay:8097/evolve}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/3
       - OLLAMA_URL=http://hypercode-ollama:11434
-      - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-qwen2.5:7b}
+      - PETS_OLLAMA_MODEL=${PETS_OLLAMA_MODEL:-ai/smollm2}
       - PETS_NUM_PREDICT=${PETS_NUM_PREDICT:-80}
       - WORKSPACE_PATH=/workspace
       - SQUAD_JSON_PATH=/workspace/squad.json

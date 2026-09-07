@@ -118,7 +118,8 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-bropets_secret}
       - OBSIDIAN_VAULT_PATH=/vault
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://hypercode-ollama:11434}
-      - OLLAMA_MODEL=${BRAIN_OLLAMA_MODEL:-tinyllama:latest}
+      # 2026-09-07: hypercode-ollama is now a shim -> Docker Model Runner.
+      - OLLAMA_MODEL=${BRAIN_OLLAMA_MODEL:-ai/smollm2}
     volumes:
        - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}:/vault:ro
        - ${OBSIDIAN_VAULT_PATH:-H:/HYPERFOCUSZONE/HperCore/BROski-Obsidian-Brain-for-HyperFocus-z0ne/HYPERFOCUS_ZONE}/06-AI-Context:/vault/06-AI-Context:rw

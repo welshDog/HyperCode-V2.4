@@ -1,6 +1,35 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-07 by Claude Sonnet 5 (Docker "level-up": Scout CVE baseline + Ollama idle-unload + Docker Model Runner spike) ⚡
+> Last synced: 2026-09-07 by Claude Sonnet 5 (Docker "level-up": Scout CVE baseline + Ollama → Docker Model Runner cutover shipped) ⚡
+
+## 2026-09-07 (cont.) — Phase 4: Ollama → Docker Model Runner cutover SHIPPED (config-swap)
+
+Standalone `ollama/ollama` is gone. `hypercode-ollama` is now a ~1 MB
+`alpine/socat:1.8.0.1` shim forwarding `:11434 → model-runner.docker.internal:80`
+(`docker-compose.core.yml`). DMR serves the Ollama-native API, so **zero
+application-code changes** — `backend/app/llm/ollama.py`, `brain.py`, and the
+agents are untouched; keeping the service name means every
+`OLLAMA_HOST=…hypercode-ollama:11434` and `depends_on: hypercode-ollama` still
+resolves.
+
+- **RAM:** shim RSS **944 KiB** vs the old container's 1 GB reservation / 3 GB
+  limit. DMR loads models on demand, unloads after 5 min idle.
+- **Model names** → DMR catalog IDs across `.env`, `docker-compose.core.yml`,
+  `.agents.yml`, `.brain.yml`, `.registry.yml`, `.mcp-gateway.yml`:
+  `tinyllama`/`phi3`/`qwen2.5*` → `ai/smollm2` (default) and
+  `OLLAMA_MODEL_PREFERRED=smollm2,qwen2.5-coder,qwen2.5`. `ai/qwen2.5-coder`
+  upgrade deferred — catalog pull returns `insufficient_scope` (name/auth TBD).
+- **Deleted** the `hypercode-ollama-gpu` service (`--profile gpu`) — the image
+  was pruned in the Sept cleanup; GPU DMR is a backend toggle, not a service.
+- **Verified live:** shim `healthy`; `/api/tags` + `/api/generate` through the
+  shim from `hypercode-core`, `hyper-brain`, `agent-mcp-bridge` and the host;
+  the running `OllamaModelResolver` resolves `auto` → `docker.io/ai/smollm2:latest`
+  and DMR accepts that name.
+- `scripts/boot.ps1` STEP 12 warm-up → `docker model pull ai/smollm2`.
+  `docs/DOCKER_MODEL_RUNNER.md` rewritten (was Ollama relabelled).
+- **Rollback:** `-f docker-compose.hosted-llm.yml` (agents → Anthropic).
+- **CPU-only backend** (`llama.cpp b9879-cpu`) → same inference speed as Ollama;
+  the win is the RAM lifecycle. Cold-start on first call after idle.
 
 ## 2026-09-07 — Docker feature review acted on: Scout CVE baseline, Ollama idle-unload, DMR cutover verified
 

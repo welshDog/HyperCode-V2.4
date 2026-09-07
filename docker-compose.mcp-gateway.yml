@@ -88,17 +88,15 @@ services:
   # copy here would silently drift from the live one.
 
   # ====================
-  # LOCAL LLM (OLLAMA)
+  # LOCAL LLM — socat shim -> Docker Model Runner (2026-09-07)
+  # Was `ollama/ollama:0.3.14`; see docker-compose.core.yml hypercode-ollama.
   # ====================
   ollama:
-    image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
+    image: alpine/socat:1.8.0.1
     container_name: ollama
-    environment:
-      - OLLAMA_HOST=0.0.0.0
-      # 2026-09-07: was 24h — see docker-compose.core.yml. Idle-unload on 8GB box.
-      - OLLAMA_KEEP_ALIVE=5m
-    volumes:
-      - ollama-data:/root/.ollama
+    command: >-
+      TCP-LISTEN:11434,fork,reuseaddr
+      TCP:model-runner.docker.internal:80
     ports:
       - "127.0.0.1:11434:11434"
     networks:
@@ -106,20 +104,19 @@ services:
         aliases:
           - hypercode-ollama
     healthcheck:
-      test: ["CMD", "ollama", "list"]
+      test: ["CMD-SHELL", "socat -T2 - TCP:127.0.0.1:11434 </dev/null || exit 1"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 10s
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 6G
+          cpus: "0.25"
+          memory: 64M
         reservations:
-          cpus: "1"
-          memory: 2G
+          memory: 16M
     security_opt:
       - no-new-privileges:true
     logging:
@@ -234,7 +231,7 @@ services:
       - MCP_TOOLS_ENABLED=true
       - MCP_TOOLS_LIST=github,postgres,filesystem,vectordb
       - LLM_ENDPOINT=http://ollama:11434
-      - LLM_MODEL=phi3:mini
+      - LLM_MODEL=ai/smollm2
     volumes:
       - ./agents/02-backend-specialist:/app
       - ./Configuration_Kit:/app/hive_mind:ro
