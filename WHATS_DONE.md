@@ -1,6 +1,43 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-05 by Claude Sonnet 5 (PR #453 merged, Docker disk cleanup verified + extended) ⚡
+> Last synced: 2026-09-07 by Claude Sonnet 5 (Docker "level-up": Scout CVE baseline + Ollama idle-unload + Docker Model Runner spike) ⚡
+
+## 2026-09-07 — Docker feature review acted on: Scout CVE baseline, Ollama idle-unload, DMR cutover verified
+
+Triaged `DOCKER_NEW_FEATURES_REPORT.md` against this box's real constraints
+(4 GB WSL VM, solo operator, no paid Docker tier). Two features worth acting on
+now — Scout and Model Runner; the rest (DHI wholesale, MCP Gateway, Sandboxes,
+Offload, Build Cloud) deferred as cost- or RAM-negative. Plan:
+`~/.claude/plans/…-hypercode-v2-4-parallel-lighthouse.md`.
+
+- **Phase 1 — Scout CVE baseline** (`docs/health-reports/scout-baseline-2026-09-07.md`,
+  new re-runnable `scripts/docker-scout-baseline.ps1`). First first-party Scout
+  scan of the *local* images (the existing `docker-scout-audit.ps1` only hits
+  the pushed `:v2.4.2` registry tags). **24 CRITICAL / 224 HIGH across 10
+  images** — the "0 known vulns" note is stale. Mostly stale bases, not app
+  code: `agent-mcp-bridge` (rebuilt days ago for the v5 bake) scans 0C/2H.
+  Worst app dep is `gitpython 3.1.50` in `hypercode-core` (1C + ~20H, fixed in
+  3.1.59). `memstream` still on `python:3.9-slim` (3C/26H from the base alone).
+- **Phase 2 — Ollama idle-unload** (commit `3c14cecf`): `OLLAMA_KEEP_ALIVE`
+  `24h → 5m` in `docker-compose.core.yml` / `.mcp-gateway.yml`, and an explicit
+  `environment:` block on the `hypercode-ollama-gpu` variant. Lets Ollama drop
+  idle models from RAM itself — most of the Model Runner benefit, zero cutover.
+  Not yet applied to a running container (`hypercode-ollama` isn't up).
+- **Phase 3 — Docker Model Runner spike** (`docs/health-reports/dmr-spike-2026-09-07.md`).
+  Enabled Model Runner (`docker desktop enable model-runner --tcp=12434`, no
+  Desktop restart). **DMR v1.2.8 serves the Ollama-native API** (`/api/tags`,
+  `/api/generate`, `/api/chat` all 200, correct shapes) — so Phase 4 is a
+  **config swap, not the pre-approved code migration**. Reachable as
+  `model-runner.docker.internal` from every non-internal compose network and
+  verified from `hypercode-core` / `hyper-brain` / `agent-mcp-bridge`
+  themselves. CPU-only backend (`llama.cpp b9879-cpu`) → no speed gain vs
+  Ollama, RAM lifecycle only. Native 5 min idle-unload TTL. Two gaps to close
+  before deleting `hypercode-ollama`: model names aren't 1:1 (`phi3`/`tinyllama`
+  need HF-GGUF pulls or `ai/phi4`/`ai/smollm2` swaps), and the `/api/tags`
+  `"size":0` field vs the `OLLAMA_MAX_MODEL_SIZE_MB` filter needs an env tweak.
+- **Follow-on docs**: `SECURITY_QUICK_WINS.md` (verified pins — `gitpython>=3.1.59`,
+  `mcp>=1.28.1,<2` with the SDK-v2 breaking-change trap called out) and
+  `DHI_PILOT_CHECKLIST.md` (4-phase pilot, Phase 0 = this Scout baseline).
 
 ## 2026-09-05 — PR #453 (Governor + capability tokens Phase 2) merged; Docker cleanup report verified + extended
 
