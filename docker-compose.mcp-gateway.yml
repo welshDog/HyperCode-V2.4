@@ -95,7 +95,8 @@ services:
     container_name: ollama
     environment:
       - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_KEEP_ALIVE=24h
+      # 2026-09-07: was 24h — see docker-compose.core.yml. Idle-unload on 8GB box.
+      - OLLAMA_KEEP_ALIVE=5m
     volumes:
       - ollama-data:/root/.ollama
     ports:

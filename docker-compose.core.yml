@@ -195,7 +195,11 @@ services:
     networks:
       - agents-net
     environment:
-      - OLLAMA_KEEP_ALIVE=24h
+      # 2026-09-07: was 24h — pinned the model in RAM permanently on an 8GB box.
+      # 5m lets Ollama unload idle models itself (cold-load latency on next call
+      # is the tradeoff). Captures most of the Docker Model Runner RAM win with
+      # no cutover. See docs/health-reports/ + the DMR plan.
+      - OLLAMA_KEEP_ALIVE=5m
       - OLLAMA_NUM_PARALLEL=2
       - OLLAMA_MAX_LOADED_MODELS=2
     deploy:

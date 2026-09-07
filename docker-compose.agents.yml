@@ -739,6 +739,12 @@ services:
   hypercode-ollama-gpu:
     image: ${OLLAMA_IMAGE:-ollama/ollama:0.3.14}
     profiles: ["gpu"]
+    environment:
+      # Mirror hypercode-ollama (core.yml) so the GPU variant has the same
+      # LLM lifecycle. 2026-09-07: 5m idle-unload, not the old 24h pin.
+      - OLLAMA_KEEP_ALIVE=5m
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
     volumes:
       - ollama-data:/root/.ollama
     ports:
