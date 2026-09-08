@@ -77,7 +77,7 @@ function FleetCard({ agent }: { agent: FleetAgent }): React.JSX.Element {
 }
 
 export default function FleetGridPanel(): React.JSX.Element {
-  const { summary, agents, error, loading } = useFleet()
+  const { summary, agents, error, recovery, loading } = useFleet()
 
   const sorted = useMemo(
     () =>
@@ -96,9 +96,13 @@ export default function FleetGridPanel(): React.JSX.Element {
       {summary && <FleetSummaryStrip summary={summary} />}
 
       {error && (
-        <p role="alert" className="text-xs text-red-400">
-          Registry unreachable: {error}
-        </p>
+        <div role="alert" className="rounded-md border border-red-500/50 bg-red-950/30 p-2 text-xs text-red-300">
+          <span className="font-semibold text-red-400">Fleet registry ({error})</span>
+          {' — agent-registry :8077 is the source for this panel.'}
+          {recovery && (
+            <span className="mt-1 block font-mono text-[10px] text-red-300/80">{recovery}</span>
+          )}
+        </div>
       )}
 
       {loading && !error && (

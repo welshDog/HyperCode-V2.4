@@ -6,7 +6,7 @@ import { useDockerServices } from '@/hooks/useDockerServices'
 import { OfflineAgentsPanel } from '@/components/panels/OfflineAgentsPanel'
 import { KNOWN_SERVICES } from '@/data/knownServices'
 
-type Status = 'healthy' | 'degraded' | 'down' | 'unknown'
+type Status = 'healthy' | 'degraded' | 'down' | 'unknown' | 'dormant'
 
 function toStatus(v: unknown): Status {
   if (!v) return 'unknown'
@@ -31,6 +31,7 @@ function badge(status: Status) {
     degraded: { label: 'degraded', color: 'var(--status-warning)', bg: 'rgba(255,170,0,0.12)' },
     down:     { label: 'down',     color: 'var(--status-error)',   bg: 'rgba(255,68,102,0.12)' },
     unknown:  { label: 'unknown',  color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.04)' },
+    dormant:  { label: 'dormant',  color: '#7c93b8',               bg: 'rgba(124,147,184,0.10)' },
   }
   const s = map[status]
   return (
@@ -90,28 +91,59 @@ export function HealthView(): React.JSX.Element {
   const coreObj = asRecord(core) ?? {}
   const orchObj = asRecord(orchestrator) ?? {}
   const healerObj = asRecord(healer) ?? {}
-  const orchStatus = toStatus(orchObj.status ?? orchObj.healthy)
-  const orchDetail = orchStatus === 'unknown'
-    ? `No health report — check crew-orchestrator${orchObj.error ? ` (${String(orchObj.error).slice(0, 60)})` : ''}`
-    : (orchObj.error ? String(orchObj.error).slice(0, 80) : '—')
+
+  const lookupLive = useCallback((name: string) => {
+    return services[name]
+      ?? services[name.replace(/_/g, '-')]
+      ?? services[name.replace(/-/g, '_')]
+  }, [services])
+
+  // Which compose profiles are actually live right now — inferred from the
+  // Docker feed: a profile counts as active if ANY service that carries it
+  // shows up in the feed. Lets us tell "off because its profile isn't running"
+  // (dormant, expected) apart from "should be here but isn't" (unknown).
+  const activeProfiles = useMemo(() => {
+    const set = new Set<string>()
+    for (const svc of KNOWN_SERVICES) {
+      if (svc.profiles.length && lookupLive(svc.name)) {
+        for (const p of svc.profiles) set.add(p)
+      }
+    }
+    return set
+  }, [lookupLive])
+
+  const isDormant = useCallback((profiles: string[], live: unknown) => {
+    return !live && profiles.length > 0 && !profiles.some((p) => activeProfiles.has(p))
+  }, [activeProfiles])
+
+  const crewLive = lookupLive('crew-orchestrator')
+  const crewDormant = isDormant(['agents'], crewLive)
+  const orchErr = String(orchObj.error ?? '')
+  const orchTransportFail = /fetch failed|econnrefused|enotfound|getaddrinfo|network|timeout|abort/i.test(orchErr)
+  let orchStatus = toStatus(orchObj.status ?? orchObj.healthy)
+  let orchDetail = orchStatus === 'unknown'
+    ? `No health report — check crew-orchestrator${orchErr ? ` (${orchErr.slice(0, 60)})` : ''}`
+    : (orchErr ? orchErr.slice(0, 80) : '—')
+  if (crewDormant && (orchTransportFail || orchStatus === 'degraded' || orchStatus === 'down' || orchStatus === 'unknown')) {
+    orchStatus = 'dormant'
+    orchDetail = 'not started · profile: agents — docker compose --profile agents up -d crew-orchestrator'
+  }
 
   const knownRows = useMemo(() => {
     return KNOWN_SERVICES.map((svc) => {
-      const direct = services[svc.name]
-      const alt = services[svc.name.replace(/_/g, '-')] ?? services[svc.name.replace(/-/g, '_')]
-      const h = direct ?? alt
-      const s = toStatus(h?.status)
+      const h = lookupLive(svc.name)
+      const s = isDormant(svc.profiles, h) ? 'dormant' : toStatus(h?.status)
       return {
         name: svc.name,
         label: svc.label,
         group: svc.group,
-        status: s,
+        status: s as Status,
         latency_ms: typeof h?.latency_ms === 'number' ? h?.latency_ms : null,
         last_checked: typeof h?.last_checked === 'string' ? h?.last_checked : null,
         color: svc.color,
       }
     })
-  }, [services])
+  }, [lookupLive, isDormant])
 
   const groups = useMemo(() => {
     const order: Array<(typeof KNOWN_SERVICES)[number]['group']> = ['infra', 'core', 'observability', 'proxy', 'agent']
@@ -176,6 +208,11 @@ export function HealthView(): React.JSX.Element {
       </div>
 
       <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.02)' }}>
+        {servicesError && (
+          <div role="alert" style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--status-error)', background: 'rgba(255,68,102,0.10)', color: 'var(--status-error)', fontSize: 11 }}>
+            Docker feed unavailable — <span style={{ fontFamily: 'var(--font-mono)' }}>{servicesError.slice(0, 120)}</span>. Rows below show last-known / can’t-tell state, not live.
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
             Services (Docker)

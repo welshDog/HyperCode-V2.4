@@ -33,6 +33,7 @@ interface UseFleetReturn {
   summary: FleetSummary | null
   agents: FleetAgent[]
   error: string | null
+  recovery: string | null
   loading: boolean
 }
 
@@ -40,6 +41,7 @@ export function useFleet(): UseFleetReturn {
   const [summary, setSummary] = useState<FleetSummary | null>(null)
   const [agents, setAgents] = useState<FleetAgent[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [recovery, setRecovery] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,8 +56,12 @@ export function useFleet(): UseFleetReturn {
         setSummary(data?.summary ?? null)
         setAgents(Array.isArray(data?.agents) ? data.agents : [])
         setError(data?.error ?? null)
+        setRecovery(typeof data?.recovery === 'string' ? data.recovery : null)
       } catch (e) {
-        if (!destroyed) setError(e instanceof Error ? e.message : 'Fleet fetch failed')
+        if (!destroyed) {
+          setError(e instanceof Error ? e.message : 'Fleet fetch failed')
+          setRecovery('docker compose up -d agent-registry')
+        }
       } finally {
         if (!destroyed) setLoading(false)
       }
@@ -69,5 +75,5 @@ export function useFleet(): UseFleetReturn {
     }
   }, [])
 
-  return { summary, agents, error, loading }
+  return { summary, agents, error, recovery, loading }
 }

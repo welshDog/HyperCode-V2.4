@@ -211,47 +211,13 @@ export interface SystemHealthData {
 }
 
 export async function fetchSystemHealth(): Promise<Record<string, SystemHealthData>> {
-  try {
-    // Attempt to fetch from API
-    const res = await apiFetch(`/orchestrator/system/health`);
-    if (!res.ok) throw new Error(`Status ${res.status}`);
-    return await res.json();
-  } catch (error) {
-    console.error("API Error (fetchSystemHealth):", error);
-    // Return mock data for demo/fallback if API is down
-    const last_checked = new Date().toISOString();
-    return {
-      "redis": { status: "healthy", latency_ms: 2, last_checked },
-      "postgres": { status: "healthy", latency_ms: 8, last_checked },
-      "hypercode-core": { status: "healthy", latency_ms: 12, last_checked },
-      "ai-backend": { status: "healthy", latency_ms: 32, last_checked },
-      "broski-bot": { status: "healthy", latency_ms: 45, last_checked },
-      "crew-orchestrator": { status: "healthy", latency_ms: 27, last_checked },
-      "dashboard": { status: "healthy", latency_ms: 8, last_checked },
-      "prometheus": { status: "healthy", latency_ms: 18, last_checked },
-      "grafana": { status: "healthy", latency_ms: 20, last_checked },
-      "loki": { status: "healthy", latency_ms: 16, last_checked },
-      "tempo": { status: "healthy", latency_ms: 25, last_checked },
-      "promtail": { status: "healthy", latency_ms: 9, last_checked },
-      "node-exporter": { status: "healthy", latency_ms: 10, last_checked },
-      "cadvisor": { status: "healthy", latency_ms: 14, last_checked },
-      "minio": { status: "healthy", latency_ms: 15, last_checked },
-      "chroma": { status: "healthy", latency_ms: 22, last_checked },
-      "celery-worker": { status: "healthy", latency_ms: 28, last_checked },
-      "celery-exporter": { status: "healthy", latency_ms: 11, last_checked },
-      "docker-socket-proxy": { status: "healthy", latency_ms: 6, last_checked },
-      "docker-socket-proxy-healer": { status: "healthy", latency_ms: 6, last_checked },
-      "docker-socket-proxy-build": { status: "healthy", latency_ms: 6, last_checked },
-      "auto-prune": { status: "healthy", latency_ms: 7, last_checked },
-      "security-scanner": { status: "healthy", latency_ms: 12, last_checked },
-      "coder-agent": { status: "healthy", latency_ms: 30, last_checked },
-      "mcp-gateway": { status: "healthy", latency_ms: 19, last_checked },
-      "hypercode-mcp-server": { status: "healthy", latency_ms: 18, last_checked },
-      "hypercode-ollama": { status: "healthy", latency_ms: 40, last_checked },
-      "healer-agent": { status: "healthy", latency_ms: 20, last_checked },
-      "alertmanager": { status: "healthy", latency_ms: 13, last_checked },
-    };
-  }
+  // No fallback mock. A backend outage must READ as an outage — the caller
+  // (useDockerServices) surfaces the throw as an error the Health page shows,
+  // instead of the old all-"healthy" block that painted a green wall over a
+  // dead backend.
+  const res = await apiFetch(`/orchestrator/system/health`);
+  if (!res.ok) throw new Error(`system/health HTTP ${res.status}`);
+  return await res.json();
 }
 
 export interface HyperSyncMessage {

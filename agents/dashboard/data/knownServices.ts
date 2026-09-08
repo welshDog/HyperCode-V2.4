@@ -18,7 +18,7 @@ export const KNOWN_SERVICES: KnownService[] = [
   // --- INFRA (always on) ---
   { name: 'redis',                    label: 'Redis',                   group: 'infra',        profiles: [],                  port: 6379,  isAgent: false, color: '#FF4500' },
   { name: 'postgres',                 label: 'Postgres',                group: 'infra',        profiles: [],                  port: 5432,  isAgent: false, color: '#006400' },
-  { name: 'hypercode-ollama',         label: 'Ollama',                  group: 'infra',        profiles: [],                  port: 11434, isAgent: false, color: '#FFD700' },
+  { name: 'hypercode-ollama',         label: 'Model Runner (shim)',     group: 'infra',        profiles: [],                  port: 11434, isAgent: false, color: '#FFD700' },
   { name: 'minio',                    label: 'MinIO',                   group: 'infra',        profiles: [],                  port: 9000,  isAgent: false, color: '#0078D4' },
   { name: 'chroma',                   label: 'Chroma',                  group: 'infra',        profiles: [],                  port: 8009,  isAgent: false },
 

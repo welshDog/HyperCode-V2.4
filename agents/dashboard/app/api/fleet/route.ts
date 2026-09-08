@@ -10,9 +10,11 @@ export async function GET() {
     const res = await fetch(`${REGISTRY_URL}/agents/status`, {
       headers: { Accept: 'application/json' },
       cache: 'no-store',
-      signal: AbortSignal.timeout(5000),
+      // registry scans ~45 agents on a 30s cycle; 5s was too tight and showed
+      // as "TimeoutError" on a registry that was merely slow (or not started).
+      signal: AbortSignal.timeout(10000),
     })
-    if (!res.ok) throw new Error(`Agent registry ${res.status}`)
+    if (!res.ok) throw new Error(`Agent registry HTTP ${res.status}`)
     const data = await res.json()
     return NextResponse.json({
       summary: data?.summary ?? null,
@@ -20,8 +22,20 @@ export async function GET() {
       updatedAt: new Date().toISOString(),
     })
   } catch (err) {
+    const raw = err instanceof Error ? err.name : String(err)
+    const reason = /timeout|abort/i.test(raw)
+      ? 'no response within 10s'
+      : /fetch failed|ECONNREFUSED|ENOTFOUND|getaddrinfo/i.test(String(err))
+        ? 'not reachable (is agent-registry running?)'
+        : String(err)
     return NextResponse.json(
-      { summary: null, agents: [], updatedAt: new Date().toISOString(), error: String(err) },
+      {
+        summary: null,
+        agents: [],
+        updatedAt: new Date().toISOString(),
+        error: reason,
+        recovery: 'docker compose up -d agent-registry',
+      },
       { status: 200 }
     )
   }

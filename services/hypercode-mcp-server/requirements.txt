@@ -1,3 +1,7 @@
-mcp[cli]>=1.26.0
-httpx>=0.28.0
-uvicorn>=0.35.0
+# MCP Python SDK — MUST stay on v1.x. v2 (stable 2026-07-28) is a protocol
+# rewrite: `mcp.server.fastmcp.FastMCP` / `mcp.sse_app()` (used in server.py)
+# do not exist there, so an unpinned `>=` rebuild pulls v2 and the container
+# Exits(1) on startup — the same failure class as the Sept 2026 prod outage.
+mcp[cli]>=1.28.1,<2
+httpx>=0.28.0,<1
+uvicorn>=0.35.0,<1

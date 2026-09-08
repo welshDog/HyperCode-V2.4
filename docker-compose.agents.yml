@@ -216,9 +216,12 @@ services:
       hypercode-core:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8823/sse')"]
+      # /sse is a streaming endpoint — urlopen() never returns and every probe
+      # burned the full timeout. getresponse() returns on headers; we exit on
+      # the status line without draining the stream.
+      test: ["CMD", "python", "-c", "import http.client,sys; c=http.client.HTTPConnection('localhost',8823,timeout=3); c.request('GET','/sse'); sys.exit(0 if c.getresponse().status < 500 else 1)"]
       interval: 30s
-      timeout: 10s
+      timeout: 5s
       retries: 3
       start_period: 15s
     restart: unless-stopped

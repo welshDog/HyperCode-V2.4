@@ -438,16 +438,16 @@ export function TasksView(): React.JSX.Element {
           </div>
         )}
 
-        {(error || dlqError) && (
+        {error && (
           <div className="hc-tasks-empty hc-tasks-error" role="alert">
             <div className="hc-tasks-empty-title">Tasks unavailable</div>
             <div className="hc-tasks-empty-subtitle hc-mono">
-              {error ?? dlqError}
+              {error}
             </div>
           </div>
         )}
 
-        {!loading && !dlqLoading && !error && !dlqError && visibleLanes.every((l) => (l === 'dead' ? dlqItems.length === 0 : grouped[l].length === 0)) && (
+        {!loading && !dlqLoading && !error && visibleLanes.every((l) => (l === 'dead' ? dlqItems.length === 0 : grouped[l].length === 0)) && !dlqError && (
           <div className="hc-tasks-empty">
             <div className="hc-tasks-empty-title">No tasks yet — waiting for activity…</div>
             <div className="hc-tasks-empty-subtitle">
@@ -456,7 +456,7 @@ export function TasksView(): React.JSX.Element {
           </div>
         )}
 
-        {!loading && !dlqLoading && !error && !dlqError && (
+        {!loading && !dlqLoading && !error && (
           <div className="hc-tasks-lanes">
             {visibleLanes.map((lane) => {
               if (lane === 'dead') {
@@ -474,7 +474,11 @@ export function TasksView(): React.JSX.Element {
                       </div>
                     </div>
 
-                    {dlqItems.length === 0 ? (
+                    {dlqError ? (
+                      <div className="hc-tasks-lane-empty hc-tasks-error hc-mono" role="alert">
+                        DLQ unavailable — {dlqError}
+                      </div>
+                    ) : dlqItems.length === 0 ? (
                       <div className="hc-tasks-lane-empty">No dead letters</div>
                     ) : (
                       <div className="hc-tasks-lane-list">

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { serviceAuthHeader } from '@/lib/server-auth'
 
 const CORE_URL_CANDIDATES = [
   process.env.HYPERCODE_CORE_URL,
@@ -32,7 +33,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid task id' }, { status: 400 })
     }
 
-    const token = req.headers.get('authorization') ?? ''
+    const token = req.headers.get('authorization') || serviceAuthHeader()
     const body = await req.json().catch(() => ({}))
     const res = await fetchFromCore(`/api/v1/tasks/${taskIdNum}`, {
       method: 'PUT',

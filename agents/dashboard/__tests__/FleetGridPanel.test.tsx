@@ -55,9 +55,18 @@ describe('FleetGridPanel', () => {
     expect(screen.getByText('CRASH LOOP')).toBeInTheDocument()
   })
 
-  it('shows the registry error state', () => {
-    mockUseFleet.mockReturnValue({ summary: null, agents: [], error: 'boom', loading: false })
+  it('shows the registry error state with a cause and recovery hint', () => {
+    mockUseFleet.mockReturnValue({
+      summary: null,
+      agents: [],
+      error: 'not reachable (is agent-registry running?)',
+      recovery: 'docker compose up -d agent-registry',
+      loading: false,
+    })
     render(<FleetGridPanel />)
-    expect(screen.getByRole('alert')).toHaveTextContent('Registry unreachable: boom')
+    const alert = screen.getByRole('alert')
+    expect(alert).toHaveTextContent('Fleet registry')
+    expect(alert).toHaveTextContent('not reachable (is agent-registry running?)')
+    expect(alert).toHaveTextContent('docker compose up -d agent-registry')
   })
 })
