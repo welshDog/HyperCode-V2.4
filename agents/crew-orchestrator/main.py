@@ -154,6 +154,8 @@ async def lifespan(app: FastAPI):
     redis_client = await get_redis_pool()
     logger.info("Redis connected")
 
+    settings.warn_on_misconfig()
+
     # Skill-loadout boot gate — confirm this agent's mandatory HYPER-SILLs skills
     # are available. strict (LOADOUT_STRICT) refuses boot on a missing required
     # skill; fail-open if the /skills mount is absent so a misconfig can't brick it.

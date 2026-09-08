@@ -1,8 +1,11 @@
+import logging
 import os
 from typing import Any, Dict, List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic_settings.sources import PydanticBaseSettingsSource
+
+_logger = logging.getLogger("crew-orchestrator")
 
 
 class Settings(BaseSettings):
@@ -44,6 +47,29 @@ class Settings(BaseSettings):
             if key in self.agents:
                 enabled.append(key)
         return enabled
+
+    def warn_on_misconfig(self) -> None:
+        """Loud log line for an ORCHESTRATOR_ENABLED_AGENTS that resolves to
+        nothing (e.g. the literal 'true') — call once at startup so the next
+        typo is a warning in the logs, not a silently empty system:health."""
+        raw = (self.enabled_agents or "").strip()
+        if not raw:
+            return  # empty => monitor every agent in the map, by design
+        tokens = [t.strip() for t in raw.split(",") if t.strip()]
+        unknown = [t for t in tokens if t.lower().replace("-", "_") not in self.agents]
+        resolved = self.enabled_agent_keys()
+        if not resolved:
+            _logger.warning(
+                "ORCHESTRATOR_ENABLED_AGENTS=%r matched ZERO known agent keys — no "
+                "agents will be monitored and system:health will stay empty. Use a "
+                "comma list of %s, or leave it empty to monitor all.",
+                raw, sorted(self.agents.keys()),
+            )
+        elif unknown:
+            _logger.warning(
+                "ORCHESTRATOR_ENABLED_AGENTS: ignoring unrecognised %s; monitoring %s.",
+                unknown, resolved,
+            )
 
     @classmethod
     def settings_customise_sources(
