@@ -1,11 +1,19 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Pane } from '@/components/shell/Pane'
 import { StreamFeed } from '@/components/studio/StreamFeed'
 import { DiffPanel } from '@/components/studio/DiffPanel'
 import { useToast } from '@/components/ui/ToastProvider'
-import { useStudioSession, pendingApprovals, type StudioStatus, type StreamItem } from '@/hooks/useStudioSession'
+import { useStudioSession, pendingApprovals, type StudioStatus, type StreamItem, type SessionMeta } from '@/hooks/useStudioSession'
+
+// Golden-path examples so a first-time user isn't staring at a blank box. Each
+// is a small, well-scoped, test-backed change — the shape Studio does best.
+const SAMPLE_TASKS: string[] = [
+  'Add a /healthz route that returns { ok: true } and a test that hits it.',
+  'Rate-limit the /events route to 60 req/min per IP, with a test for the 429.',
+  'Extract the retry/backoff logic in the worker into a helper + unit tests.',
+]
 
 const STATUS_META: Record<StudioStatus, { label: string; color: string; live: boolean }> = {
   idle: { label: 'ready', color: 'var(--text-secondary)', live: false },
@@ -42,6 +50,27 @@ export function StudioView(): React.JSX.Element {
   const meta = STATUS_META[s.status]
   const running = s.status === 'running' || s.status === 'pending'
   const pending = useMemo(() => pendingApprovals(s.stream), [s.stream])
+
+  // Elapsed clock — ticks only while a run is in flight, freezes on settle.
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!s.startedAt || !running) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [s.startedAt, running])
+  const elapsedMs = s.startedAt ? (running ? now : Math.max(now, s.startedAt)) - s.startedAt : 0
+
+  const verdicts = useMemo(() => {
+    const c = { ALLOW: 0, ESCALATE: 0, BLOCK: 0 }
+    for (const it of s.stream) if (it.kind === 'decision') c[it.decision] = (c[it.decision] ?? 0) + 1
+    return c
+  }, [s.stream])
+
+  const runCost = useMemo(() => {
+    let total = 0
+    for (const it of s.stream) if (it.kind === 'message' && typeof it.cost_usd === 'number') total += it.cost_usd
+    return total
+  }, [s.stream])
 
   const gridTemplate = focus
     ? `"${focus} ${focus} ${focus}" 1fr / 1fr 1fr 1fr`
@@ -85,6 +114,16 @@ export function StudioView(): React.JSX.Element {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
           <StatusPill label={meta.label} color={meta.color} live={meta.live} />
+
+          {s.sessionId && (
+            <RunHeader
+              sessionId={s.sessionId}
+              metaInfo={s.meta}
+              elapsedMs={elapsedMs}
+              verdicts={verdicts}
+              costUsd={runCost}
+            />
+          )}
 
           <textarea
             value={prompt}
@@ -145,6 +184,15 @@ export function StudioView(): React.JSX.Element {
             </button>
             {(s.status !== 'idle' && !running) && (
               <button className="btn" type="button" onClick={s.reset}>New task</button>
+            )}
+            {s.status === 'idle' && prompt.trim().length === 0 && (
+              <button
+                className="btn"
+                type="button"
+                onClick={() => setPrompt(SAMPLE_TASKS[Math.floor(Math.random() * SAMPLE_TASKS.length)])}
+              >
+                Try a sample
+              </button>
             )}
             <span style={{ flex: 1 }} />
             <span style={{ color: 'var(--text-secondary)', fontSize: 10, opacity: 0.6 }}>⌘⏎</span>
@@ -245,6 +293,64 @@ export function ApprovalCard({
           Approve
         </button>
       </div>
+    </div>
+  )
+}
+
+function fmtElapsed(ms: number): string {
+  const s = Math.floor(ms / 1000)
+  if (s < 60) return `${s}s`
+  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s`
+}
+
+function RunHeader({
+  sessionId,
+  metaInfo,
+  elapsedMs,
+  verdicts,
+  costUsd,
+}: {
+  sessionId: string
+  metaInfo: SessionMeta
+  elapsedMs: number
+  verdicts: { ALLOW: number; ESCALATE: number; BLOCK: number }
+  costUsd: number
+}): React.JSX.Element {
+  const model = (metaInfo.model ?? '').replace(/^claude-/, '') || '—'
+  const cell = { color: 'var(--text-secondary)' as const }
+  const val = { color: 'var(--text-primary)' as const }
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '4px 12px',
+        alignItems: 'center',
+        padding: '6px 8px',
+        borderRadius: 6,
+        border: '1px solid var(--pane-border)',
+        background: 'rgba(255,255,255,0.02)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: 10,
+      }}
+    >
+      <span style={cell}>run <span style={val}>{sessionId.slice(0, 8)}</span></span>
+      <span style={cell}>model <span style={val}>{model}</span></span>
+      <span style={cell}>elapsed <span style={val}>{fmtElapsed(elapsedMs)}</span></span>
+      <span style={cell}>
+        shepherd{' '}
+        <span style={{ color: 'var(--accent-green)' }}>✓{verdicts.ALLOW}</span>{' '}
+        <span style={{ color: 'var(--accent-amber)' }}>⚠{verdicts.ESCALATE}</span>{' '}
+        <span style={{ color: 'var(--accent-red)' }}>✗{verdicts.BLOCK}</span>
+      </span>
+      {costUsd > 0 && <span style={cell}>cost <span style={val}>${costUsd.toFixed(costUsd < 1 ? 3 : 2)}</span></span>}
+      {(metaInfo.repo || metaInfo.branch || metaInfo.worktree) && (
+        <span style={{ ...cell, flexBasis: '100%', opacity: 0.8 }}>
+          {[metaInfo.repo, metaInfo.branch && `@ ${metaInfo.branch}`, metaInfo.worktree && `· ${metaInfo.worktree}`]
+            .filter(Boolean)
+            .join(' ')}
+        </span>
+      )}
     </div>
   )
 }

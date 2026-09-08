@@ -4,6 +4,17 @@ import React, { useMemo, useState } from 'react'
 
 type GrafanaView = 'launchpad' | 'dashboards' | 'explore' | 'alerting' | 'custom'
 
+// Pinned boards — the ones worth one click, each with a "reach for this when…"
+// line. UIDs match monitoring/grafana/provisioning/dashboards/*.json.
+const PINNED: { uid: string; name: string; when: string }[] = [
+  { uid: 'hypercode-ecosystem-launchpad', name: 'Ecosystem Launchpad', when: 'first look — is the whole stack alive?' },
+  { uid: 'hypercode-mission-control', name: 'Mission Control v2.4', when: 'a mission is running and you want the at-a-glance' },
+  { uid: 'safety-shepherd', name: 'Safety Shepherd', when: 'an allow/escalate/block decision needs explaining' },
+  { uid: 'hyperswarm-hud', name: 'HyperSwarm HUD', when: 'watching the agent swarm work in real time' },
+  { uid: 'broski-agents', name: 'BROski Agent Intelligence', when: 'chasing a slow or hungry agent (CPU / mem / restarts)' },
+  { uid: 'smoke-metrics', name: 'Crew Orchestrator', when: 'the orchestrator target looks down or flaky' },
+]
+
 function getGrafanaBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_GRAFANA_URL) return process.env.NEXT_PUBLIC_GRAFANA_URL
   if (typeof window !== 'undefined') {
@@ -36,6 +47,12 @@ export function GrafanaBrowser(): React.JSX.Element {
     if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) return pathOrUrl
     return `${grafanaBaseUrl}${pathOrUrl}`
   }, [grafanaBaseUrl, view, customPath])
+
+  const goTo = (path: string) => {
+    setCustomPath(path)
+    setView('custom')
+  }
+  const activePath = viewToPath(view, customPath)
 
   return (
     <div className="pane" style={{ height: '100%' }}>
@@ -78,10 +95,47 @@ export function GrafanaBrowser(): React.JSX.Element {
             }}
           />
           <a className="btn" href={src} target="_blank" rel="noreferrer">
-            Pop out
+            Pop out to :3001
           </a>
         </div>
       </div>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: 6,
+          flexWrap: 'wrap',
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--pane-border)',
+        }}
+      >
+        {PINNED.map((b) => {
+          const path = `/d/${b.uid}`
+          const active = activePath === path
+          return (
+            <button
+              key={b.uid}
+              className="btn"
+              onClick={() => goTo(path)}
+              aria-pressed={active}
+              title={`Use this when: ${b.when}`}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                gap: 2,
+                textAlign: 'left',
+                maxWidth: 230,
+                borderColor: active ? 'var(--accent-cyan)' : undefined,
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 700 }}>{b.name}</span>
+              <span style={{ fontSize: 9, opacity: 0.65, whiteSpace: 'normal', lineHeight: 1.3 }}>{b.when}</span>
+            </button>
+          )
+        })}
+      </div>
+
       <div style={{ height: '100%', overflow: 'hidden' }}>
         <iframe
           data-testid="grafana-iframe"

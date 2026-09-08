@@ -27,7 +27,13 @@ describe('/grafana embeds Grafana', () => {
     expect(screen.getByRole('button', { name: 'Dashboards' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Explore' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Alerting' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Pop out' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Pop out to :3001' })).toBeInTheDocument()
+  })
+
+  it('renders pinned quick-launch cards', () => {
+    render(<PricingPage />)
+    expect(screen.getByRole('button', { name: /Ecosystem Launchpad/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Safety Shepherd/ })).toBeInTheDocument()
   })
 })
 

@@ -22,6 +22,13 @@ export type StreamItem =
   | { kind: 'approval_request'; approvalId: string; toolName: string; target: string; rule: string; reason: string; expiresAt: string; seq: number }
   | { kind: 'approval_resolved'; approvalId: string; status: string; seq: number }
 
+export interface SessionMeta {
+  repo?: string
+  branch?: string
+  worktree?: string
+  model?: string
+}
+
 interface State {
   sessionId: string | null
   status: StudioStatus
@@ -30,6 +37,8 @@ interface State {
   diff: string
   mergeSha: string | null
   error: string | null
+  startedAt: number | null
+  meta: SessionMeta
 }
 
 const initial: State = {
@@ -40,10 +49,12 @@ const initial: State = {
   diff: '',
   mergeSha: null,
   error: null,
+  startedAt: null,
+  meta: {},
 }
 
 type Action =
-  | { type: 'start'; id: string }
+  | { type: 'start'; id: string; meta: SessionMeta }
   | { type: 'connected'; value: boolean }
   | { type: 'item'; item: StreamItem }
   | { type: 'status'; status: StudioStatus }
@@ -56,7 +67,7 @@ type Action =
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'start':
-      return { ...initial, sessionId: action.id, status: 'pending' }
+      return { ...initial, sessionId: action.id, status: 'pending', startedAt: Date.now(), meta: action.meta }
     case 'connected':
       return { ...state, connected: action.value }
     case 'item':
@@ -214,7 +225,15 @@ export function useStudioSession() {
       return
     }
     const data = await res.json()
-    dispatch({ type: 'start', id: data.id })
+    // coder-studio may echo run context (repo/branch/worktree/model) alongside id;
+    // surface whatever it sends, fall back to the model the user picked.
+    const meta: SessionMeta = {
+      repo: typeof data.repo === 'string' ? data.repo : undefined,
+      branch: typeof data.branch === 'string' ? data.branch : undefined,
+      worktree: typeof data.worktree === 'string' ? data.worktree : undefined,
+      model: typeof data.model === 'string' ? data.model : model,
+    }
+    dispatch({ type: 'start', id: data.id, meta })
     dispatch({ type: 'status', status: 'running' })
     openStream(data.id)
   }, [openStream])

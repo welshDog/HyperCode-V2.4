@@ -177,7 +177,7 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
   <div class="page-header">
     <div class="breadcrumb">HyperCode / Docker / <span>Dashboard</span></div>
     <h1 class="page-title">Docker Command Centre 🐳</h1>
-    <p class="page-sub">Live status — Hot-reload active · 13 agents covered · Security scanning ✓</p>
+    <p class="page-sub">Live status — Hot-reload active · Ollama → Docker Model Runner shipped (944&nbsp;KiB shim) · Scout CVE baseline captured 2026-09-07</p>
   </div>
 
   <!-- KPIs -->
@@ -203,14 +203,14 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
       <div class="kpi-sub">architect · observer · worker · X</div>
     </div>
     <div class="kpi-card gold">
-      <div class="kpi-label">Security Tools</div>
-      <div class="kpi-value">2</div>
-      <div class="kpi-sub">Trivy + Semgrep ✓</div>
+      <div class="kpi-label">LLM Runtime</div>
+      <div class="kpi-value">944 KiB</div>
+      <div class="kpi-sub">socat shim → Model Runner (was ~1 GB) · 5m idle-unload</div>
     </div>
     <div class="kpi-card orange">
-      <div class="kpi-label">Sync Speed</div>
-      <div class="kpi-value">~1s</div>
-      <div class="kpi-sub">code → container latency</div>
+      <div class="kpi-label">Scout CVE Baseline</div>
+      <div class="kpi-value">24C · 224H</div>
+      <div class="kpi-sub">10 images · 2026-09-07 · fix order pinned</div>
     </div>
   </div>
 
@@ -227,9 +227,15 @@ hr{border:none;border-top:1px solid var(--color-divider);margin:var(--space-6) 0
     </div>
     <div class="update-card done">
       <div class="update-icon" style="background:color-mix(in oklab,var(--color-success) 15%,var(--color-surface))">🛡️</div>
-      <div class="update-title">Docker Scout / Security</div>
-      <div class="update-desc">Already ahead — trivy.yaml + semgrep.yaml in place. Scout is a UI layer but Trivy is more powerful for your CI/CD.</div>
-      <span class="tag">✓ ALREADY DONE</span>
+      <div class="update-title">Docker Scout — CVE Baseline</div>
+      <div class="update-desc">First Scout scan of the local images (2026-09-07): <strong>24 CRITICAL / 224 HIGH across 10 images</strong> — mostly stale bases, not app code. Fix order pinned in SECURITY_QUICK_WINS.md; re-runnable via scripts/docker-scout-baseline.ps1.</div>
+      <span class="tag">✓ BASELINED</span>
+    </div>
+    <div class="update-card done">
+      <div class="update-icon" style="background:color-mix(in oklab,var(--color-primary-highlight) 15%,var(--color-surface))">🧠</div>
+      <div class="update-title">Ollama → Docker Model Runner</div>
+      <div class="update-desc">Standalone <code>ollama/ollama</code> gone. <code>hypercode-ollama</code> is now a 944&nbsp;KiB <code>alpine/socat</code> shim → <code>model-runner.docker.internal</code>. Zero app-code changes; DMR serves the Ollama-native API. Native 5&nbsp;min idle model-unload.</div>
+      <span class="tag">✓ SHIPPED</span>
     </div>
     <div class="update-card done">
       <div class="update-icon" style="background:color-mix(in oklab,var(--color-gold) 15%,var(--color-surface))">📦</div>

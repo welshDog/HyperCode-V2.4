@@ -4,7 +4,17 @@
 
 'use client'
 
+import { useMemo, useState } from 'react'
 import { useSafetyFeed, type SafetyEvent } from '../../hooks/useSafetyFeed'
+
+type Bucket = 'all' | 'action' | 'blocked'
+
+function isToday(ts: string): boolean {
+  const d = new Date(ts)
+  if (isNaN(d.getTime())) return false
+  const now = new Date()
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+}
 
 const DECISION_CONFIG: Record<string, { badge: string; row: string }> = {
   ALLOW:    { badge: 'bg-emerald-950/70 text-emerald-400', row: 'border-l-emerald-500/30' },
@@ -43,6 +53,34 @@ function FeedRow({ event }: { event: SafetyEvent }): React.JSX.Element {
 
 export default function SafetyFeedPanel(): React.JSX.Element {
   const { events, error, loading } = useSafetyFeed()
+  const [bucket, setBucket] = useState<Bucket>('all')
+
+  const stats = useMemo(() => {
+    let pending = 0, blockedToday = 0, allowedToday = 0, escalatedToday = 0
+    let lastTs = ''
+    for (const e of events) {
+      if (e.decision === 'ESCALATE' && e.approval_id) pending++
+      if (e.ts > lastTs) lastTs = e.ts
+      if (isToday(e.ts)) {
+        if (e.decision === 'BLOCK') blockedToday++
+        else if (e.decision === 'ALLOW') allowedToday++
+        else if (e.decision === 'ESCALATE') escalatedToday++
+      }
+    }
+    return { pending, blockedToday, allowedToday, escalatedToday, lastTs }
+  }, [events])
+
+  const shown = useMemo(() => {
+    if (bucket === 'action') return events.filter((e) => e.decision === 'ESCALATE' && e.approval_id)
+    if (bucket === 'blocked') return events.filter((e) => e.decision === 'BLOCK')
+    return events
+  }, [events, bucket])
+
+  const TABS: { id: Bucket; label: string; count?: number }[] = [
+    { id: 'action', label: 'Awaiting approval', count: stats.pending },
+    { id: 'blocked', label: 'Blocked', count: stats.blockedToday },
+    { id: 'all', label: 'All' },
+  ]
 
   return (
     <section
@@ -59,6 +97,39 @@ export default function SafetyFeedPanel(): React.JSX.Element {
         />
       </div>
 
+      {/* operator status strip */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-gray-500">
+        <span className={stats.pending > 0 ? 'text-amber-400 font-semibold' : ''}>
+          {stats.pending} awaiting approval
+        </span>
+        <span>·</span>
+        <span className={stats.blockedToday > 0 ? 'text-red-400' : ''}>{stats.blockedToday} blocked today</span>
+        <span>·</span>
+        <span>{stats.allowedToday} allowed today</span>
+        <span>·</span>
+        <span>{error ? 'feed offline' : 'feed live'}</span>
+        {stats.lastTs && <><span>·</span><span>last {eventTime(stats.lastTs)}</span></>}
+      </div>
+
+      {/* buckets */}
+      <div className="flex gap-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setBucket(t.id)}
+            aria-pressed={bucket === t.id}
+            className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+              bucket === t.id ? 'bg-gray-800 text-gray-200' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {t.label}
+            {typeof t.count === 'number' && t.count > 0 && (
+              <span className="ml-1 text-amber-400">{t.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <p role="alert" className="text-xs text-red-400">
           Shepherd unreachable: {error}
@@ -73,8 +144,14 @@ export default function SafetyFeedPanel(): React.JSX.Element {
         <p className="text-xs text-gray-500">No verdicts yet — the Shepherd is watching.</p>
       )}
 
+      {!loading && !error && events.length > 0 && shown.length === 0 && (
+        <p className="text-xs text-gray-500">
+          {bucket === 'action' ? 'Nothing awaiting a human right now.' : 'Nothing blocked in this view.'}
+        </p>
+      )}
+
       <ul className="flex flex-col gap-0.5 overflow-y-auto max-h-[70vh]">
-        {events.map((event) => (
+        {shown.map((event) => (
           <FeedRow key={event.id} event={event} />
         ))}
       </ul>
