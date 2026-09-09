@@ -260,3 +260,7 @@ _vendor/
 **/.cache/pip/
 
 docs/reports/baseline-incr0/
+docs/reports/baseline-incr1/
+
+# Claude Code session scratchpad (symlinked/created at repo root)
+scratchpad/
