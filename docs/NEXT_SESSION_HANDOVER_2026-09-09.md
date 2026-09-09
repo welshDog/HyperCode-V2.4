@@ -25,7 +25,7 @@ Three merge/commit landed on `main` and pushed (evo-harness gate 26/26 green):
 | 6 | Picker groups `Cloud — Claude` + `Free / Local — needs FCC proxy (coming soon)` | ✅ |
 | 7 | Free opts (Nemotron 3 Super 120B, Qwen3 4B) disabled; 4 Cloud opts normal; default Sonnet 5 | ✅ |
 | 8 | Helper line "…uses credits · … wiring in progress" | ✅ |
-| 9 | Cloud `/ide` run completes; RunHeader shows "Sonnet 5" | ⚠️ **billing-blocked** — `ANTHROPIC_API_KEY` was added to `.env` (line 70, renamed from `ANTHROPIC_AUTH_TOKEN`) + `coder-studio` recreated; key **authenticates** and the run goes full pipeline (`preparing sandbox → running → review → end`), but the account returns `"Credit balance is too low"` → empty diff. Next: add credit to that Anthropic account or swap a funded key. Everything else in the hop is proven. |
+| 9 | A real `/ide` run completes to a reviewable diff | ✅ **DONE — via the FREE path.** No Anthropic credit, so stood up `fcc-proxy` (Free Claude Code → NVIDIA NIM Nemotron 3 Super 120B) and pointed `coder-studio` at it. Run went the full distance: `preparing sandbox → running → Write BLOCK (worktree-escape) → Write ALLOW → result → review` with a real git diff (`SMOKE_TEST.md` created). Model reasoned, called tools, self-corrected; **safety-shepherd gate proven live** (BLOCK on escape, ALLOW in worktree). Cloud/Sonnet-5 path stays billing-blocked but that's now moot for daily use. |
 | bonus | CSS chunk hash changed | ✅ `0.8ppsn43~8wl.css` → `0cog7pzo65kb~.css` |
 | bonus | New tokens resolve to identical values | ✅ `--pane-bg #0f1420`, `--pane-border #1e2a3a`, `--text-primary #e8f0fe` — exact match to baseline |
 | bonus | 10-route HTTP sweep post-merge | ✅ all 200 (the new every-route `@import tokens.css` broke nothing) |
@@ -82,6 +82,44 @@ Root cause was exactly the runbook's: `coder-studio` had no image and no contain
    failed". Make it actionable ("Studio backend unreachable — is coder-studio
    running?"). Frontend-only, fold into the next Studio pass.
 
+## `/ide` runs FREE via fcc-proxy (added 2026-09-10 ~00:50Z)
+
+No Anthropic credit → `coder-studio` now points at a local Free Claude Code proxy.
+
+- **`fcc-proxy`** (`:8083`, `container_name: fcc-proxy`, `hypercode_agents_net`) —
+  built from `Dockerfile.fcc` (clones `Alishahryar1/free-claude-code`, `uv sync`),
+  image `fcc-proxy:local`. Serves the Anthropic Messages API, routes to NVIDIA NIM
+  (`NVIDIA_NIM_API_KEY` already in `.env`). Added `init: true` to
+  `docker-compose.fcc.yml` (reaps the child procs that cause its "hangs 75%" rep) —
+  came up healthy first try, restarts=0.
+- **`docker-compose.studio-fcc.yml`** (new, committed) — override adding
+  `ANTHROPIC_BASE_URL=http://fcc-proxy:8083` + `ANTHROPIC_API_KEY=freecc` to
+  `coder-studio`.
+- **Recreate command** (both extra `-f` files required, else it reverts to Cloud =
+  broken):
+  ```
+  docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+    -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml \
+    -f docker-compose.fcc.yml -f docker-compose.studio-fcc.yml \
+    --profile agents up -d --no-deps fcc-proxy coder-studio
+  ```
+- FCC accepts unmapped model ids (`claude-sonnet-5` → routes to Nemotron), so the
+  **picker works as-is from the UI** — a run just goes to the free backend.
+- **safety-shepherd key fix (needed this to work):** shepherd had been Up 5h on a
+  stale `API_KEY` (`hc_b040…`, 67 ch) while `.env` + coder-studio were on
+  `hc_d104ae9…` (51 ch). `coder-studio` → shepherd `/evaluate` was 401 → every tool
+  call BLOCKed. Recreated shepherd (4-file, no rotation — `.env` was already
+  current); both now `hc_d104ae9…`. **This supersedes the earlier "defer §3b" note:
+  the mismatch was staleness, not a pending rotation.** `API_KEY` value is still
+  burned (tool-output leaks) — a real rotation later still needs dashboard +
+  coder-studio + safety-shepherd together.
+
+### Follow-up (not blocking): picker honesty
+The `/ide` picker still shows Cloud/Claude models as the enabled default while runs
+actually go to free Nemotron. Layer 2 proper = flip `ModelPicker.tsx` MODELS so the
+FCC/free options are `enabled: true` and the default, and label the Cloud ones
+"needs credit". Small TSX change + a dashboard build.
+
 ## Stack state at handover
 
 - **Observability stack (12): DELIBERATELY LEFT DOWN.** Restoring obs + the tier-2
@@ -93,26 +131,32 @@ Root cause was exactly the runbook's: `coder-studio` had no image and no contain
   together** (matches the 2026-09-03 note: "do NOT restore the agents while obs is
   up"). Bring obs back only after stopping idle agents first —
   `scratchpad/incr1-restore-list.txt` has the command.
-- `coder-studio` (:8087, `--profile agents`/`studio`) + `agent-base:latest`: **new, up, healthy.**
+- `coder-studio` (:8087) + `agent-base:latest`: new, up, healthy — **now pointed at
+  `fcc-proxy` for free runs** (see the FCC section above; needs the 2 extra `-f`
+  files on every recreate).
+- `fcc-proxy` (:8083, `fcc-proxy:local`): new, up, healthy, restarts=0.
+- `safety-shepherd`: recreated to pick up the current `API_KEY` (was 5h-stale).
 - New dashboard image `hypercode-v24-dashboard:latest` (was `a0f531ac9708`) deployed
   via plain `up -d --no-deps dashboard` — that step itself was clean, core stayed
   healthy restarts=0 (no `--force-recreate` — the 2026-09-09 15-min-outage trap).
   Core's later death was the obs-restore storm, not the build/deploy.
-- **Final state: 27 containers up, 0 unhealthy** (agent fleet + all core infra +
-  coder-studio; obs down). core / dashboard / `POST /api/studio/sessions` all 200
-  after recovery.
+- **Final state: 28 containers up, 0 unhealthy** (agent fleet + core infra +
+  coder-studio + fcc-proxy; obs down). core / dashboard / `POST /api/studio/sessions`
+  / free `/ide` run-to-diff all verified.
 
 ## ONE next task
 
-Fund the Anthropic account behind `.env`'s `ANTHROPIC_API_KEY` (or swap in a key
-with balance) → re-run the tiny `/ide` prompt for the first successful Cloud run
-(closes §6.9 — pipeline already proven, only the credit balance is missing),
-**then** start Increment 1c (ND persistence) + Increment 2 (primitives + per-page)
-per the plan.
+`/ide` now works end-to-end for free (fcc-proxy). Next: **Increment 1c** (ND
+persistence) + **Increment 2** (primitives + per-page) per the plan. Optional
+polish first: flip `ModelPicker.tsx` so the free options are the enabled default
+(picker honesty follow-up above).
 
-⚠️ Also on the rotation list now: `.env` line 70's previous `ANTHROPIC_AUTH_TOKEN`
-value leaked to a tool-output this session (bad mask) — burn it. And `fcc.yml`
-line 30/43 still reference `ANTHROPIC_AUTH_TOKEN` (now renamed) — harmless
-(`:-freecc` default, fcc-proxy isn't launched), but fix if fcc-proxy ever comes up.
+⚠️ Rotation list for the next full-fleet cycle:
+- `.env` `API_KEY` (`hc_d104ae9…`) — burned via tool-output leaks. Rotate +
+  recreate **dashboard + coder-studio + safety-shepherd** together.
+- `.env` line 70's previous `ANTHROPIC_AUTH_TOKEN` value — also leaked this session
+  (bad mask). Burn it. `fcc.yml:30/43` still name `ANTHROPIC_AUTH_TOKEN` (now
+  renamed to `ANTHROPIC_API_KEY`) but it's harmless — `:-freecc` default and
+  fcc-proxy uses the `freecc` token anyway.
 
 🎉 Nice one BROski♾️ — design system + picker + `/ide` all landed in one RAM-gated window.

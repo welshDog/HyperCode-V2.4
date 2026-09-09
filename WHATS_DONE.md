@@ -45,8 +45,24 @@ One RAM-gated window (`docs/reports/INCREMENT_1_RUNBOOK.md`), pushed to `main`
   the `X-Agent-Key` `coder-studio` sends on every fail-closed tool call) would
   401 every `/ide` run. Next rotation must recreate `dashboard` + `coder-studio`
   + `safety-shepherd` together.
-- **Known gap (in scope):** `ANTHROPIC_API_KEY` blank in `.env` → a Cloud `/ide`
-  run starts then dies at the model call. Proxy hop itself is verified.
+- **§6.9 CLOSED via the FREE path** (2026-09-10 ~00:50): no Anthropic credit →
+  built + started `fcc-proxy` (`Dockerfile.fcc` → `Alishahryar1/free-claude-code`,
+  routes to NVIDIA NIM Nemotron 3 Super 120B; added `init: true`), pointed
+  `coder-studio` at it via new `docker-compose.studio-fcc.yml`
+  (`ANTHROPIC_BASE_URL=http://fcc-proxy:8083`). A real `/ide` run went
+  `preparing sandbox → running → Write BLOCK (worktree-escape) → Write ALLOW →
+  review` with a real git diff — model reasoned + used tools + self-corrected,
+  **safety-shepherd gate proven live**. Recreate needs the 2 extra `-f` files
+  (`fcc.yml` + `studio-fcc.yml`) or it reverts to the credit-blocked Cloud path.
+- **safety-shepherd key fix:** it had been Up 5h on a stale `API_KEY`
+  (`hc_b040…`) while `.env`/coder-studio were current (`hc_d104ae9…`) → every
+  coder-studio tool call 401'd at shepherd `/evaluate`. Recreated shepherd (no
+  rotation — `.env` was already current). Supersedes the earlier "defer §3b"
+  framing: it was staleness, not a pending rotation. `API_KEY` value still burned
+  (leaks) → a real rotation later still needs dashboard + coder-studio +
+  safety-shepherd together.
+- Follow-up (not blocking): `ModelPicker.tsx` still shows Cloud/Claude as the
+  enabled default while runs go to free Nemotron — flip the MODELS flags.
 
 ## 2026-09-07 (cont.) — Phase 4: Ollama → Docker Model Runner cutover SHIPPED (config-swap)
 

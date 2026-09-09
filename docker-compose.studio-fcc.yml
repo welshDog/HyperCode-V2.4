@@ -1,0 +1,13 @@
+# TEMP override — point coder-studio's bundled Claude Code CLI at the local
+# fcc-proxy (Free Claude Code → NVIDIA NIM) instead of api.anthropic.com, so
+# /ide runs work without Anthropic credit. Remove this -f to go back to Cloud.
+#
+# Usage: add `-f docker-compose.studio-fcc.yml` to the 4-file set, then
+#   docker compose <...> --profile agents up -d --no-deps coder-studio
+# Pick the model per-run in the POST body, e.g.
+#   "model": "claude-3-freecc-no-thinking/nvidia_nim/nvidia/nemotron-3-super-120b-a12b"
+services:
+  coder-studio:
+    environment:
+      - ANTHROPIC_BASE_URL=http://fcc-proxy:8083
+      - ANTHROPIC_API_KEY=freecc

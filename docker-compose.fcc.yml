@@ -14,6 +14,9 @@ services:
     image: fcc-proxy:local
     container_name: fcc-proxy
     restart: unless-stopped
+    # FCC's server spawns child procs and does not reap them → the documented
+    # "hangs ~75% of starts". An init shim forwards signals and reaps zombies.
+    init: true
 
     ports:
       - "127.0.0.1:8083:8083"
