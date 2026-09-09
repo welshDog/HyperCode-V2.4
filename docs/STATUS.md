@@ -1,6 +1,18 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **September 4, 2026** — Governor + capability tokens (Phase 2 of
+> Last updated: **September 9, 2026 (late)** — Increment 1 design-system foundation
+> + Studio model-picker Layer 1 merged to `main` (`fd78cb8e`), and `/ide` "fetch
+> failed" fixed: built `agent-base:latest` + `coder-studio:latest`, `coder-studio`
+> (`:8087`, `--profile agents`/`studio`) is now a **permanent resident** (count 39
+> not 38 *when obs is up*). ⚠️ **obs stack left DOWN** — restoring obs + the agent
+> fleet together wedged the box → `hypercode-core` Exited(137), recovered via
+> `up -d --no-deps hypercode-core`; the 4GB box can't run both (see the 2026-09-03
+> rule). Final: 27 up, 0 unhealthy. `.env` `API_KEY` rotation deferred (would 401
+> `/ide` via `safety-shepherd` — next rotation must recreate dashboard +
+> coder-studio + safety-shepherd together). `ANTHROPIC_API_KEY` still blank →
+> Cloud `/ide` runs die at the model call (proxy hop verified). See
+> `docs/NEXT_SESSION_HANDOVER_2026-09-09.md` + `WHATS_DONE.md`'s 2026-09-09 entry.
+> _(Prev: September 4 — Governor + capability tokens (Phase 2 of
 > the autonomous-control-plane north star) shipped: new `governor` service `:8089`,
 > compose-wired via a new `docker-compose.fleet.yml` alongside `fleet-controller`.
 > That same file closes a real Phase 0 gap — `fleet-controller` had **no compose

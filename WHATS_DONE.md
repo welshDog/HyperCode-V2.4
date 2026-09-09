@@ -1,6 +1,52 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-07 by Claude Sonnet 5 (Docker "level-up": Scout CVE baseline + Ollama → Docker Model Runner cutover shipped) ⚡
+> Last synced: 2026-09-09 by Claude Sonnet 5 (Increment 1 design-system + Studio model-picker Layer 1 + `/ide` unblocked, one RAM-gated window) ⚡
+
+## 2026-09-09 (late) — Increment 1 design foundation + Studio model-picker Layer 1 + `/ide` "fetch failed" FIXED
+
+One RAM-gated window (`docs/reports/INCREMENT_1_RUNBOOK.md`), pushed to `main`
+`fd78cb8e`, evo-harness gate 26/26 green. Full detail:
+`docs/NEXT_SESSION_HANDOVER_2026-09-09.md`.
+
+- **Merged `feat/dashboard-design-system` (`79b4c0c1`)** — 9 self-hosted woff2
+  (Inter / Space Grotesk / JetBrains Mono / OpenDyslexic), `app/fonts.css`
+  @font-face, `app/tokens.css` @theme alias layer imported by `globals.css`. The
+  dashboard rendered in `system-ui` before this (fonts were declared, never
+  loaded). Aliases proven a **visual no-op**: `.pane`/`.btn` computed
+  bg/border/radius **byte-identical** pre↔post in both ND modes; new tokens
+  resolve to the exact existing values (`--pane-bg #0f1420`, `--pane-border
+  #1e2a3a`, `--text-primary #e8f0fe`). CSS chunk hash changed
+  (`0.8ppsn43~8wl` → `0cog7pzo65kb`). 10-route HTTP sweep all 200.
+- **Merged `feat/studio-model-picker` (`413e88fc`, from origin `7812072b`)** —
+  `/ide` picker grouped into `Cloud — Claude` (4 Claude models, default Sonnet 5)
+  and `Free / Local — needs FCC proxy (coming soon)` (Nemotron 3 Super 120B +
+  Qwen3 4B, rendered `disabled` — `enabled:false` until FCC routing lands).
+  Layer 1 (UI) only; Layers 2–3 (backend wiring) still spec-only.
+- **`/ide` "fetch failed" fixed** — `coder-studio` had no image / no container
+  (`profiles: [agents, studio]`, never in the 4-file launch). Built
+  `agent-base:latest` (505 MB, had been pruned — the real build stopper), then
+  `coder-studio:latest`; started with the 4-file set + `--profile agents`.
+  Hops verified end-to-end: `hypercode-dashboard` → `coder-studio:8087` (node
+  `fetch`), `coder-studio` → `safety-shepherd:8096`, browser →
+  `GET/POST /api/studio/*` all 200. **coder-studio is now a permanent resident** —
+  when obs is also up the count is 39 (was 38).
+- **🪤 RAM incident at window end:** restoring the obs stack (12) + tier-2 idle
+  agents simultaneously wedged the 4GB box → `hypercode-core` Exited(137)
+  (`OOMKilled=false`, same as 2026-09-09). Recovered: re-stop obs → RAM freed →
+  `up -d --no-deps hypercode-core` (4-file), healthy in ~25s, alembic on boot, no
+  data loss. **obs left DOWN** — the box can't run obs + the agent fleet together
+  (confirms the 2026-09-03 rule). Final: 27 up, 0 unhealthy.
+- **New verify probes committed** (`fd78cb8e`): `verify-incr1.mjs` (woff2 200s,
+  computed-style, `document.fonts.check`, pre/post `.pane`/`.btn` diff) +
+  `verify-incr1-picker.mjs` (optgroups, disabled Free opts, helper copy, token
+  resolution). Repo-local playwright 1.58.2 — never `npx playwright` on this box.
+- **DEFERRED — `API_KEY` rotation (runbook §3b):** `.env` untouched. Rotating
+  without also recreating `safety-shepherd` (runs on the old key, `compare_digest`s
+  the `X-Agent-Key` `coder-studio` sends on every fail-closed tool call) would
+  401 every `/ide` run. Next rotation must recreate `dashboard` + `coder-studio`
+  + `safety-shepherd` together.
+- **Known gap (in scope):** `ANTHROPIC_API_KEY` blank in `.env` → a Cloud `/ide`
+  run starts then dies at the model call. Proxy hop itself is verified.
 
 ## 2026-09-07 (cont.) — Phase 4: Ollama → Docker Model Runner cutover SHIPPED (config-swap)
 
