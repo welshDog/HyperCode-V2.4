@@ -219,6 +219,7 @@ These apply **everywhere**, no exceptions:
 | `git fetch` BEFORE any push | Parallel auto-commit workflow — origin can move between your fetch and push; rebase clean, **NEVER force-push** |
 | Nothing is done until committed + pushed | Saying "done" without a push = not done |
 | Never commit `.env` files | Secrets stay local — NEVER |
+| Never print an env var's value in a shell command | To check a var is set: `[ -n "$VAR" ] && echo SET \|\| echo UNSET` — NEVER `echo $VAR`, NEVER `${VAR:+SET}${VAR:-UNSET}` (the `:-` fallback prints the value), NEVER `docker compose config` after a secret change. 3 token/key leaks to tool-output this way in one week (2026-09-09) |
 | Check `WHATS_DONE.md` (or `CHANGELOG.md` where that's authoritative) before suggesting anything | Never rebuild what's already built |
 | One repo at a time | No cross-repo commits in same commit |
 | Keep LLM costs low | Cap tokens, avoid polling AI Gateway |

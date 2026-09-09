@@ -51,6 +51,30 @@ cd agents/dashboard && npm test        # vitest run — must be green
 cd ../..
 ```
 
+## 3b. Align + rotate the Studio agent key — BEFORE the build (saves a recreate cycle)
+
+Only needed if you're doing §5b (`coder-studio`) this window. Do it now so the §4
+dashboard recreate and the §5b `coder-studio` start each happen **once**, not twice.
+
+- Dashboard sends `X-Agent-Key` = its `HYPERCODE_API_KEY`.
+- `coder-studio` (`docker-compose.agents.yml:1320`) reads its key from
+  `HYPERCODE_API_KEY=${API_KEY:-dev-master-key}` — a **different `.env` var**. If the
+  two don't match, every `/ide` run 401s the moment the backend is up.
+- The current dashboard value (`hc_b040…f7449`) was printed to a session tool-output
+  2026-09-09 → burned, rotate it.
+
+```bash
+NEW="hc_$(openssl rand -hex 32)"        # or: python -c "import secrets;print('hc_'+secrets.token_hex(32))"
+cp .env ".env.bak-$(date +%Y%m%d-%H%M%S)-studiokey"
+# edit .env: set  HYPERCODE_API_KEY=<NEW>  AND  API_KEY=<NEW>  to the SAME value.
+# Do NOT echo $NEW to the terminal. To confirm a var is set without printing it:
+#   [ -n "$HYPERCODE_API_KEY" ] && echo SET || echo UNSET
+```
+
+§4's `up -d --no-deps dashboard` picks up the new `HYPERCODE_API_KEY` automatically
+(changed `.env` → recreate) — no extra dashboard step.
+⚠️ Still **never `docker compose config`** after this edit — it dumps resolved `.env`.
+
 ## 4. Build dashboard ONLY (crew-orchestrator image is already built — do not touch it)
 
 ```bash
@@ -84,6 +108,41 @@ docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
   --profile agents up -d --no-deps agent-registry
 ```
 
+## 5b. Studio backend — build + start `coder-studio` (fixes `/ide` "fetch failed")
+
+**Root cause (2026-09-09):** `/ide` run-submit dies at the proxy hop. Dashboard route
+`app/api/studio/[...path]/route.ts` does `fetch('http://coder-studio:8087/…')` → the
+name doesn't resolve → the route catches and returns raw `detail: "fetch failed"`,
+which the UI shows verbatim. **`coder-studio` has no image and no container on this
+box** — it's `profiles: ["agents","studio"]`, never started by the standard 4-file
+launch. Prompt size is irrelevant; the agent is never reached (no stream, no diff).
+`safety-shepherd` (its only `depends_on`, `service_healthy`) is already up + healthy.
+
+```bash
+wsl -e free -m     # need free comfortably > 900 MB — coder-studio mem limit is 1G
+
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+  -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml \
+  --profile agents build coder-studio
+
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
+  -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml \
+  --profile agents up -d --no-deps coder-studio
+```
+
+Verify the hop that was broken:
+```bash
+until [ "$(docker inspect coder-studio --format '{{.State.Health.Status}}')" = healthy ]; do sleep 5; done
+docker exec hypercode-dashboard curl -fsS http://coder-studio:8087/health   # expect 200
+```
+
+Then §6 check 9 (a real Cloud run) exercises it end to end. If the run now **401s**
+instead of "fetch failed" → the §3b key align didn't take: recheck `.env`
+`HYPERCODE_API_KEY` == `API_KEY`, re-run `up -d --no-deps dashboard coder-studio`.
+
+If RAM won't allow it tonight: `/ide` stays down, everything else in this window is
+independent — ship the rest, do `coder-studio` next window.
+
 ## 6. Verify — one browser pass
 
 **GO / NO-GO (this is the whole gate — everything else is bonus):**
@@ -105,8 +164,10 @@ diagnose on the branch, don't ship.
 7. [ ] Free options (Nemotron 3 Super 120B, Qwen3 4B) are visible + greyed
        (`disabled`); the 4 Cloud options behave as before; default still Sonnet 5.
 8. [ ] Helper line under the select reads "…uses credits · … wiring in progress".
-9. [ ] Start a Cloud run → completes as today; `RunHeader` shows "Sonnet 5"
-       (friendly label), not `sonnet-5` or a raw id.
+9. [ ] Start a Cloud run → completes; `RunHeader` shows "Sonnet 5" (friendly label),
+       not `sonnet-5` or a raw id. **Needs §5b done** (`coder-studio` running) — until
+       then a run submit fails with "fetch failed", which is the §5b bug, not a
+       picker regression.
    If 6–9 fail but 1–5 passed: revert only the `feat/studio-model-picker` merge,
    keep the design-system ship.
 
@@ -152,3 +213,18 @@ Then: memory update, and pick up **Increment 1c** (ND consolidation) + **Increme
 - **fonts still 404** → confirm `public/fonts/*.woff2` are in the build context at build
   time (they were committed on the branch; a stale context snapshot was the 2026-09-09
   gotcha — don't edit files mid-build).
+- **`/ide` "fetch failed" on run submit** → `coder-studio` not running. `docker ps |
+  grep coder-studio`; if absent, build + start per §5b. If it's up but the run 401s →
+  §3b key mismatch (`HYPERCODE_API_KEY` != `API_KEY` in `.env`).
+
+---
+
+## Follow-ups this window surfaced
+
+- **P3 candidate — Studio proxy returns raw `fetch failed`.** The catch blocks in
+  `agents/dashboard/app/api/studio/[...path]/route.ts` return `detail: err.message`
+  verbatim, so `/ide` shows "fetch failed" — which cost two debugging rounds to trace
+  to "backend not running". Make it actionable, e.g. _"Studio backend unreachable — is
+  coder-studio running? (`docker compose --profile agents up -d coder-studio`)"_. Same
+  fix class as the `/mcp` honest up/down copy and the P3/P4 recovery hints.
+  Frontend-only, fold into the next Studio code pass.
