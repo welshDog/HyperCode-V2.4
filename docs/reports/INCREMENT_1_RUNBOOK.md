@@ -26,16 +26,23 @@ docker stop grafana prometheus prometheus-cloud grafana-agent loki tempo pyrosco
 wsl -e free -m        # need: free >= 900 MB  AND  swap-used < 1024 MB
 ```
 
-## 2. Merge the branch
+## 2. Merge both branches (one build covers both — failure domains don't overlap)
 
 ```bash
 git fetch origin
 git checkout main && git pull --ff-only
 git merge --no-ff feat/dashboard-design-system
-# expect a clean merge: app/fonts.css, app/tokens.css, app/globals.css,
-# public/fonts/*.woff2, 3 doc deprecation headers. .gitignore already has
-# docs/reports/baseline-incr0/.
+# clean merge: app/fonts.css, app/tokens.css, app/globals.css,
+# public/fonts/*.woff2, 3 doc deprecation headers.
+git merge --no-ff feat/studio-model-picker
+# clean merge, ZERO file overlap with the above: components/views/ModelPicker.tsx
+# + ModelPicker.test.tsx (new) + StudioView.tsx. Studio model-picker Layer 1.
 ```
+
+> Bundling is safe: the fonts check (`document.fonts.check` / computed `fontFamily`)
+> is CSS/asset-level; the picker change is TSX-only and touches no styles. If step 6's
+> fonts GO/NO-GO fails, it's unambiguously the design-system branch — revert just that
+> merge (`git rebase --onto` or re-merge without it) and rebuild picker-only.
 
 ## 3. Tests first (cheap, catches the @theme / @import risk before a 10-min build)
 
@@ -92,8 +99,20 @@ docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
 If 1–5 pass: merge is good, push (step 8). If any fail: `git reset --hard` the merge,
 diagnose on the branch, don't ship.
 
+**Model-picker Layer 1 checks (`/ide`) — gate for the picker branch:**
+6. [ ] Picker shows two groups: `Cloud — Claude` and `Free / Local — needs FCC proxy
+       (coming soon)`.
+7. [ ] Free options (Nemotron 3 Super 120B, Qwen3 4B) are visible + greyed
+       (`disabled`); the 4 Cloud options behave as before; default still Sonnet 5.
+8. [ ] Helper line under the select reads "…uses credits · … wiring in progress".
+9. [ ] Start a Cloud run → completes as today; `RunHeader` shows "Sonnet 5"
+       (friendly label), not `sonnet-5` or a raw id.
+   If 6–9 fail but 1–5 passed: revert only the `feat/studio-model-picker` merge,
+   keep the design-system ship.
+
 **Bonus (nice to see, NOT gate):** headings visibly Space Grotesk · CSS chunk hash
-!= `0.8ppsn43~8wl.css` · re-screenshot 10 pages → `docs/reports/baseline-incr1/`.
+!= `0.8ppsn43~8wl.css` · re-screenshot 10 pages → `docs/reports/baseline-incr1/`
+(`/ide` picker region is an **expected** diff vs `baseline-incr0/ide.png`).
 
 **NOT in tonight's scope — do not chase:**
 - ND persistence / Focus-mode density → that's Increment 1c, not on this branch;
