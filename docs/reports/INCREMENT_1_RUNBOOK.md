@@ -51,28 +51,37 @@ cd agents/dashboard && npm test        # vitest run — must be green
 cd ../..
 ```
 
-## 3b. Align + rotate the Studio agent key — BEFORE the build (saves a recreate cycle)
+## 3b. Rotate the Studio agent key — BEFORE the build (saves a recreate cycle)
 
-Only needed if you're doing §5b (`coder-studio`) this window. Do it now so the §4
-dashboard recreate and the §5b `coder-studio` start each happen **once**, not twice.
+Only needed if you're doing §5b (`coder-studio`) this window. Do it now so §4's
+dashboard recreate picks up the new key for free.
 
-- Dashboard sends `X-Agent-Key` = its `HYPERCODE_API_KEY`.
-- `coder-studio` (`docker-compose.agents.yml:1320`) reads its key from
-  `HYPERCODE_API_KEY=${API_KEY:-dev-master-key}` — a **different `.env` var**. If the
-  two don't match, every `/ide` run 401s the moment the backend is up.
-- The current dashboard value (`hc_b040…f7449`) was printed to a session tool-output
-  2026-09-09 → burned, rotate it.
+**What actually drives the auth (verified 2026-09-09):** both the dashboard proxy
+(`agents.yml:175`) and `coder-studio` (`agents.yml:1321`) build their `X-Agent-Key`
+from `${API_KEY:-dev-master-key}` — i.e. **`.env`'s `API_KEY` (line 162)**. They are
+already matched by construction; there is nothing to "align". `.env`'s
+`HYPERCODE_API_KEY` is NOT read by either (only `broski-coo` uses it).
+
+Two fixes to `.env`:
+1. **`HYPERCODE_API_KEY` is defined twice** (lines 161 + 217, different values).
+   dotenv = last-wins → line 161 is dead, editing it is a silent no-op.
+   **Delete line 161.** (217 stays — it's `broski-coo`'s key.)
+2. **Rotate `API_KEY` (line 162).** Its value (`hc_b040…f7449`, the one that resolves
+   into the running dashboard container) was printed to a tool-output → burned.
 
 ```bash
-NEW="hc_$(openssl rand -hex 32)"        # or: python -c "import secrets;print('hc_'+secrets.token_hex(32))"
 cp .env ".env.bak-$(date +%Y%m%d-%H%M%S)-studiokey"
-# edit .env: set  HYPERCODE_API_KEY=<NEW>  AND  API_KEY=<NEW>  to the SAME value.
-# Do NOT echo $NEW to the terminal. To confirm a var is set without printing it:
-#   [ -n "$HYPERCODE_API_KEY" ] && echo SET || echo UNSET
+# generate, do NOT echo it back:
+#   python -c "import secrets; print('hc_' + secrets.token_hex(32))"
+# edit .env:  delete the line-161 HYPERCODE_API_KEY  ·  set  API_KEY=<new hc_ value>
+# confirm without printing:  [ -n "$API_KEY" ] && echo SET || echo UNSET
 ```
 
-§4's `up -d --no-deps dashboard` picks up the new `HYPERCODE_API_KEY` automatically
-(changed `.env` → recreate) — no extra dashboard step.
+`API_KEY` also feeds ~10 other agents (some with `${API_KEY:?...}` guards) — down
+tonight, they pick up the new value when they next start. Tonight only `dashboard`
+(§4 recreate) and `coder-studio` (§5b) need it, both automatically.
+
+§4's `up -d --no-deps dashboard` picks up the changed `.env` on recreate — no extra step.
 ⚠️ Still **never `docker compose config`** after this edit — it dumps resolved `.env`.
 
 ## 4. Build dashboard ONLY (crew-orchestrator image is already built — do not touch it)
@@ -118,6 +127,23 @@ box** — it's `profiles: ["agents","studio"]`, never started by the standard 4-
 launch. Prompt size is irrelevant; the agent is never reached (no stream, no diff).
 `safety-shepherd` (its only `depends_on`, `service_healthy`) is already up + healthy.
 
+**5b.0 — build `agent-base:latest` first (the real build stopper).**
+`Dockerfile.coder-studio` (and safety-shepherd, and coder) do `FROM agent-base:latest`.
+That image is built by NEITHER compose NOR any running container — a dangling base
+layer, so `docker image prune -a` deletes it and nothing notices until the next child
+build. Rebuild from the repo root (documented in `agents/Dockerfile.base`'s header):
+```bash
+docker images --format '{{.Repository}}' | grep -qx agent-base \
+  || docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+```
+`python:3.12-slim` + apt upgrade + `docker-ce-cli` + one pip layer — a few minutes,
+modest RAM. Worth adding that one-liner to `boot.ps1` pre-flight (same "never pull,
+always build what's local" guard as the Scout script).
+
+**5b.1 — build + start with the 4-file set ONLY. Do NOT hand-roll a
+`core.yml + agents.yml` 2-file command** — `frontend-net` is created by the root
+`docker-compose.yml` (`name: hypercode_frontend_net`); a 2-file set skips it and the
+dashboard (which sits on `frontend-net`) can't recreate.
 ```bash
 wsl -e free -m     # need free comfortably > 900 MB — coder-studio mem limit is 1G
 
@@ -136,9 +162,16 @@ until [ "$(docker inspect coder-studio --format '{{.State.Health.Status}}')" = h
 docker exec hypercode-dashboard curl -fsS http://coder-studio:8087/health   # expect 200
 ```
 
-Then §6 check 9 (a real Cloud run) exercises it end to end. If the run now **401s**
-instead of "fetch failed" → the §3b key align didn't take: recheck `.env`
-`HYPERCODE_API_KEY` == `API_KEY`, re-run `up -d --no-deps dashboard coder-studio`.
+If the earlier 2-file attempt left the dashboard down, re-run §4's `up -d --no-deps
+dashboard` with the 4-file set and confirm `docker ps | grep dashboard` = healthy.
+
+Then a real `/ide` run (the tiny `/healthz` prompt): expect plan → stream → diff.
+- **401** instead → `API_KEY` (`.env` line 162) is stale in one of the two
+  containers; re-run the 4-file `up -d --no-deps dashboard coder-studio`.
+- run starts, then **fails on the model** → `ANTHROPIC_API_KEY` blank in `.env`
+  (Studio default = Sonnet 5). Add a valid key, or accept the first verified run
+  being a local model via DMR (the ModelPicker Free/Local path — `enabled:false` in
+  Layer 1, so flip the flag or pass the id manually for one test).
 
 If RAM won't allow it tonight: `/ide` stays down, everything else in this window is
 independent — ship the rest, do `coder-studio` next window.
@@ -214,8 +247,15 @@ Then: memory update, and pick up **Increment 1c** (ND consolidation) + **Increme
   time (they were committed on the branch; a stale context snapshot was the 2026-09-09
   gotcha — don't edit files mid-build).
 - **`/ide` "fetch failed" on run submit** → `coder-studio` not running. `docker ps |
-  grep coder-studio`; if absent, build + start per §5b. If it's up but the run 401s →
-  §3b key mismatch (`HYPERCODE_API_KEY` != `API_KEY` in `.env`).
+  grep coder-studio`; if absent, do §5b (build `agent-base` first; 4-file set for the
+  compose calls). If it's up but the run 401s → `API_KEY` (`.env` line 162) stale in
+  the dashboard or coder-studio container; re-run the 4-file `up -d --no-deps
+  dashboard coder-studio`.
+- **build fails `pull access denied for agent-base`** → §5b.0, the base image was
+  pruned. `docker build -t agent-base:latest -f agents/Dockerfile.base agents/`.
+- **`network frontend-net declared as external, but could not be found`** → you used a
+  hand-rolled compose file set. Use the 4-file set (§5b.1) — the root
+  `docker-compose.yml` creates it.
 
 ---
 
