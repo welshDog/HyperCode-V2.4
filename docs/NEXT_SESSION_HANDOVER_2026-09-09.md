@@ -25,7 +25,7 @@ Three merge/commit landed on `main` and pushed (evo-harness gate 26/26 green):
 | 6 | Picker groups `Cloud — Claude` + `Free / Local — needs FCC proxy (coming soon)` | ✅ |
 | 7 | Free opts (Nemotron 3 Super 120B, Qwen3 4B) disabled; 4 Cloud opts normal; default Sonnet 5 | ✅ |
 | 8 | Helper line "…uses credits · … wiring in progress" | ✅ |
-| 9 | Cloud `/ide` run completes; RunHeader shows "Sonnet 5" | ⚠️ **env-blocked** — `ANTHROPIC_API_KEY` blank in `.env` (runbook §5b.2 pre-authorised this). Proxy hop **is** verified: `POST /api/studio/sessions` → 200 + session id; `modelLabel` unit-tested in the 81 green. |
+| 9 | Cloud `/ide` run completes; RunHeader shows "Sonnet 5" | ⚠️ **billing-blocked** — `ANTHROPIC_API_KEY` was added to `.env` (line 70, renamed from `ANTHROPIC_AUTH_TOKEN`) + `coder-studio` recreated; key **authenticates** and the run goes full pipeline (`preparing sandbox → running → review → end`), but the account returns `"Credit balance is too low"` → empty diff. Next: add credit to that Anthropic account or swap a funded key. Everything else in the hop is proven. |
 | bonus | CSS chunk hash changed | ✅ `0.8ppsn43~8wl.css` → `0cog7pzo65kb~.css` |
 | bonus | New tokens resolve to identical values | ✅ `--pane-bg #0f1420`, `--pane-border #1e2a3a`, `--text-primary #e8f0fe` — exact match to baseline |
 | bonus | 10-route HTTP sweep post-merge | ✅ all 200 (the new every-route `@import tokens.css` broke nothing) |
@@ -104,9 +104,15 @@ Root cause was exactly the runbook's: `coder-studio` had no image and no contain
 
 ## ONE next task
 
-Add a valid `ANTHROPIC_API_KEY` to `.env` and recreate `coder-studio` → run the
-tiny `/healthz` prompt on `/ide` for the first end-to-end Cloud run (closes §6.9),
+Fund the Anthropic account behind `.env`'s `ANTHROPIC_API_KEY` (or swap in a key
+with balance) → re-run the tiny `/ide` prompt for the first successful Cloud run
+(closes §6.9 — pipeline already proven, only the credit balance is missing),
 **then** start Increment 1c (ND persistence) + Increment 2 (primitives + per-page)
 per the plan.
+
+⚠️ Also on the rotation list now: `.env` line 70's previous `ANTHROPIC_AUTH_TOKEN`
+value leaked to a tool-output this session (bad mask) — burn it. And `fcc.yml`
+line 30/43 still reference `ANTHROPIC_AUTH_TOKEN` (now renamed) — harmless
+(`:-freecc` default, fcc-proxy isn't launched), but fix if fcc-proxy ever comes up.
 
 🎉 Nice one BROski♾️ — design system + picker + `/ide` all landed in one RAM-gated window.
