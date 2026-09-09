@@ -1,3 +1,10 @@
+> ⚠️ **SUPERSEDED — 2026-09-09.** The canonical design system for the HyperCode IDE
+> dashboard is now `.claude/skills/design-brain` + `agents/dashboard/app/tokens.css`
+> (OLED black `#0a0a0a`, purple/gold/cyan colour roles, glassmorphism only on modals,
+> no gradient CTAs, headings not Inter/Orbitron alone). Kept for history and for its
+> BROski identity notes (colour meaning, gamified copy tone, ND-first principles). Where
+> this doc conflicts with design-brain on glassmorphism, heading font, or gradients,
+> **design-brain wins.**
 
 # 🎨 BROski Hyper Design System (BDS)
 

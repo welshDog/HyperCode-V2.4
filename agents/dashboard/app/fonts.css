@@ -1,0 +1,81 @@
+/* ====================================================
+   HyperCode IDE — self-hosted webfonts
+   ----------------------------------------------------
+   Until 2026-09-09 the dashboard named 'Inter' / 'JetBrains Mono' /
+   'OpenDyslexic' in its font stacks but loaded NONE of them — every screen
+   fell through to system-ui, and [data-nd-mode="dyslexia"] was a no-op.
+   These faces are vendored under /public/fonts (latin subset, from
+   @fontsource, OFL/SIL licensed). font-display: swap — text paints
+   immediately in the fallback, then swaps when the face arrives.
+   ==================================================== */
+
+/* — Body: Inter (latin) — */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/inter-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/inter-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/inter-700.woff2') format('woff2');
+}
+
+/* — Headings: Space Grotesk (latin) — design-brain: "headings never Inter alone" — */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/space-grotesk-700.woff2') format('woff2');
+}
+
+/* — Data / code: JetBrains Mono (latin) — */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/jetbrains-mono-700.woff2') format('woff2');
+}
+
+/* — Dyslexia mode: OpenDyslexic — */
+@font-face {
+  font-family: 'OpenDyslexic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/opendyslexic-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/opendyslexic-700.woff2') format('woff2');
+}
