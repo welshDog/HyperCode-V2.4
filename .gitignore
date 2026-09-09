@@ -259,3 +259,4 @@ _vendor/
 **/Temp/extra/
 **/.cache/pip/
 
+docs/reports/baseline-incr0/
