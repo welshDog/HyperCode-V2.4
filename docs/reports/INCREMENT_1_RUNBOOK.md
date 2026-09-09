@@ -77,23 +77,31 @@ docker compose -f docker-compose.yml -f docker-compose.secrets.yml \
   --profile agents up -d --no-deps agent-registry
 ```
 
-## 6. Verify — one browser pass (checklist from MEASURED_BASELINE.md §"Post-Increment-1")
+## 6. Verify — one browser pass
 
-- [ ] Network tab: `inter-*`, `space-grotesk-*`, `jetbrains-mono-*` woff2 → 200
-- [ ] `document.fonts.check('16px Inter')` true **and**
-      `getComputedStyle(document.body).fontFamily` starts `Inter` (not `system-ui`)
-- [ ] headings visibly Space Grotesk
-- [ ] Dyslexia toggle → body + headings become OpenDyslexic;
-      `document.fonts.check('16px OpenDyslexic')` true
-- [ ] ND mode choice persists across reload (localStorage) — **NOTE:** 1c (persistence +
-      Focus-mode density) is NOT in this branch yet; current `data-nd-mode` still resets
-      on reload. Only verify the *fonts* behave; persistence lands in the next commit.
-- [ ] `.pane` / `.btn` visually identical to the `baseline-incr0/` PNGs (aliases = no-op)
-- [ ] CSS chunk hash != `0.8ppsn43~8wl.css`
-- [ ] P3: `/health` profile-gated agents = DORMANT not UNKNOWN; Crew Orchestrator card
-      = "not started · profile: agents" + recovery cmd
-- [ ] P4: `/control` fleet panel renders (data if step 5 done; else new cause+recovery copy)
-- [ ] screenshot the 10 pages again → `docs/reports/baseline-incr1/` for the diff
+**GO / NO-GO (this is the whole gate — everything else is bonus):**
+1. [ ] Network tab: `inter-*`, `space-grotesk-*`, `jetbrains-mono-*` woff2 → 200
+2. [ ] `getComputedStyle(document.body).fontFamily` starts `Inter` (not `system-ui`)
+       AND `document.fonts.check('16px Inter')` true
+3. [ ] `.pane` / `.btn` computed `background` / `border-color` / `border-radius`
+       byte-identical to clean HEAD (aliases are a no-op — any shift = NO-GO)
+4. [ ] Dyslexia toggle → `getComputedStyle(document.body).fontFamily` becomes
+       `OpenDyslexic`; `document.fonts.check('16px OpenDyslexic')` true
+5. [ ] `npm test` green (already run in step 3 — re-confirm nothing regressed)
+
+If 1–5 pass: merge is good, push (step 8). If any fail: `git reset --hard` the merge,
+diagnose on the branch, don't ship.
+
+**Bonus (nice to see, NOT gate):** headings visibly Space Grotesk · CSS chunk hash
+!= `0.8ppsn43~8wl.css` · re-screenshot 10 pages → `docs/reports/baseline-incr1/`.
+
+**NOT in tonight's scope — do not chase:**
+- ND persistence / Focus-mode density → that's Increment 1c, not on this branch;
+  `data-nd-mode` still resets on reload, expected.
+- P4 fleet *data* → only if step 5 brought `agent-registry` up and RAM is fine; else skip.
+- Error-rate 403 classification → Increment 2c.
+- P3/P4 already rendered-verified on clean HEAD (`baseline-incr0/health.png`,
+  `control.png`) — no need to re-verify unless Increment 1 visibly changed them.
 
 ## 7. Restore steady state
 
