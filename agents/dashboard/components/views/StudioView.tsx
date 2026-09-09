@@ -6,6 +6,7 @@ import { StreamFeed } from '@/components/studio/StreamFeed'
 import { DiffPanel } from '@/components/studio/DiffPanel'
 import { useToast } from '@/components/ui/ToastProvider'
 import { useStudioSession, pendingApprovals, type StudioStatus, type StreamItem, type SessionMeta } from '@/hooks/useStudioSession'
+import { ModelPicker, MODELS, modelLabel } from './ModelPicker'
 
 // Golden-path examples so a first-time user isn't staring at a blank box. Each
 // is a small, well-scoped, test-backed change — the shape Studio does best.
@@ -28,16 +29,6 @@ const STATUS_META: Record<StudioStatus, { label: string; color: string; live: bo
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32) || 'task'
 }
-
-// Per-task model choice. Sonnet is the default — near-Opus on coding at a
-// fraction of the cost. The service accepts any valid id; these are the set
-// worth offering in the UI.
-const MODELS: { id: string; label: string }[] = [
-  { id: 'claude-sonnet-5', label: 'Sonnet 5 · balanced (default)' },
-  { id: 'claude-opus-4-8', label: 'Opus 4.8 · most capable' },
-  { id: 'claude-haiku-4-5', label: 'Haiku 4.5 · fast & cheap' },
-  { id: 'claude-fable-5', label: 'Fable 5 · top tier' },
-]
 
 export function StudioView(): React.JSX.Element {
   const [focus, setFocus] = useState<string | null>(null)
@@ -148,30 +139,7 @@ export function StudioView(): React.JSX.Element {
             }}
           />
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>
-            <span style={{ letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>Model</span>
-            <select
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              disabled={running}
-              style={{
-                flex: 1,
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--pane-border)',
-                borderRadius: 6,
-                color: 'var(--text-primary)',
-                padding: '6px 8px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: 11,
-                outline: 'none',
-                cursor: running ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id} style={{ background: 'var(--pane-bg)' }}>{m.label}</option>
-              ))}
-            </select>
-          </label>
+          <ModelPicker value={model} onChange={setModel} disabled={running} />
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -316,7 +284,7 @@ function RunHeader({
   verdicts: { ALLOW: number; ESCALATE: number; BLOCK: number }
   costUsd: number
 }): React.JSX.Element {
-  const model = (metaInfo.model ?? '').replace(/^claude-/, '') || '—'
+  const model = modelLabel(metaInfo.model)
   const cell = { color: 'var(--text-secondary)' as const }
   const val = { color: 'var(--text-primary)' as const }
   return (
