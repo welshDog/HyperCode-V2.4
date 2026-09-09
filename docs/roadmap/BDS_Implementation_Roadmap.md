@@ -1,3 +1,7 @@
+> ⚠️ **SUPERSEDED — 2026-09-09.** Canonical dashboard design system is now
+> `.claude/skills/design-brain` + `agents/dashboard/app/tokens.css`. This BDS rollout
+> plan is kept for history; the live upgrade plan is
+> `~/.claude/plans/h-hyperfocuszone-hpercore-hypercode-v2-4-delightful-donut.md`.
 
 # 🎨 BROski Design System Implementation Roadmap
 

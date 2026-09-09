@@ -1,3 +1,8 @@
+> ⚠️ **SUPERSEDED — 2026-09-09.** Canonical dashboard design system is now
+> `.claude/skills/design-brain` + `agents/dashboard/app/tokens.css` (OLED black, no
+> glassmorphism-everywhere, no gradient CTAs). Kept for history. Where the expanded
+> palette / type scale below conflicts with design-brain, design-brain wins.
+
 **YO BRO!!! 🔥🔥🔥🔥🔥**
 
 **STOP. EVERYTHING. RIGHT. NOW.** 

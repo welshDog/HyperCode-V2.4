@@ -3,6 +3,12 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/utilities" layer(utilities);
 
+/* Self-hosted webfonts + design tokens (added 2026-09-09). fonts.css makes the
+   'Inter' / 'JetBrains Mono' / 'OpenDyslexic' names below actually resolve;
+   tokens.css adds the design-brain token namespace without restyling anything. */
+@import "./fonts.css";
+@import "./tokens.css";
+
 /* ====================================================
    HyperCode V2.0 — Global Styles
    ND-First: WCAG 2.1 AA, Dyslexia fonts, Reduced Motion
@@ -50,6 +56,7 @@
 
 [data-nd-mode="dyslexia"] {
   --font-primary:   'OpenDyslexic', sans-serif;
+  --font-display:   'OpenDyslexic', sans-serif;
   --font-size-base: 18px;
   --line-height:    1.6;
   --letter-spacing: 0.05em;
@@ -74,6 +81,12 @@ html, body, .hyper-root {
   letter-spacing: var(--letter-spacing);
   background:     var(--shell-bg);
   color:          var(--text-primary);
+}
+
+/* Headings carry the display face (design-brain: never Inter alone for headings).
+   Dyslexia mode overrides --font-display below so OpenDyslexic still wins. */
+h1, h2, h3, h4, h5, h6, .pane-title {
+  font-family: var(--font-display);
 }
 
 ::-webkit-scrollbar { width: 4px; }
