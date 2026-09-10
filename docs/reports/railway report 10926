@@ -1,0 +1,84 @@
+🔴 HEALTH CHECK REPORT: cozy-luck
+CRITICAL ISSUE: HyperCode V2.4 Service
+Status: 🔴 DOWN (10 consecutive deployment failures in 24h)
+Last Successful Deploy: 2026-08-21 (20 days ago)
+Current State: Container builds, starts, but fails /health endpoint → Railway kills it
+
+Infrastructure Status
+Service	State	Issues	Last Deploy	Notes
+Postgres	✅ Online	None	2026-08-14	Healthy, volume mounted, no drift
+Redis	✅ Online	None	2026-08-14	Healthy, volume mounted, no drift
+HyperCode V2.4	🔴 Offline	122 warnings	2026-08-21	Build succeeds → Container fails startup
+Plan: Hobby tier | Replicas: 1 | Region: SFO | CPU: 4–8 vCPU | RAM: 4–8 GB
+
+Root Cause (Most Recent Failure)
+Deployment ID: 04e95f8a-ca37-474a-aa94-dc2cff068972 (Sept 10, 07:27)
+
+Stages:
+
+✅ SNAPSHOT_CODE: ~24s
+✅ BUILD_IMAGE: ~22s
+✅ PUBLISH_IMAGE: <1s
+✅ CREATE_CONTAINER: ~11s
+🔴 HEALTHCHECK: FAILED (~3 minutes, then timeout)
+What's happening: The app builds fine, but when Railway tries to hit /health, the endpoint hangs for 180 seconds (your configured timeout), then the healthcheck fails. This is usually:
+
+Startup crash (Alembic, Pydantic, import error, missing secrets)
+Database unavailable (connection string wrong, Postgres down, migrations stuck)
+Infinite loop in healthcheck or startup code
+Slow startup (blocking operations before the server is ready)
+What I'd Do to Level Up
+Phase 1: Get It Running Again (Do this first)
+Inspect the latest build logs for hidden errors — build logs don't show in the tool output, so read them directly:
+
+→ Clone the repo to sandbox
+→ Inspect backend/app/main.py and healthcheck logic
+→ Check backend/requirements.txt for version conflicts
+→ Look for startup blocking code (migrations, indexing, warmups)
+
+Validate the environment variables are actually set in Railway (not just referenced):
+
+HYPERCODE_DB_URL (is the Postgres connection string working?)
+HYPERCODE_REDIS_URL (is Redis reachable?)
+All secrets (STRIPE_*, SHOP_SYNC_SECRET, COURSE_SYNC_SECRET)
+Reduce the healthcheck timeout or fix the endpoint:
+
+If startup legitimately takes >30s, increase the timeout cautiously
+If /health is running migrations, move that to a separate init step
+Roll back to the last working commit (Aug 21) to confirm the repo is the issue, not the platform:
+
+→ Redeploy commit c8216b11 manually
+→ If it goes green, bisect which commit broke it
+
+Phase 2: Production Hardening (After it's live)
+Observability:
+
+ Add structured logging to startup sequence (print → sys.stderr for each init phase)
+ Instrument the /health endpoint with detailed checks (DB ping, Redis ping, cache hit rate)
+ Add deployment webhooks to Slack/email on failures (I can set this up)
+Resilience:
+
+ Configure restart policy: ON_FAILURE with max retries (already set; good)
+ Add a pre-deploy command to run pytest -x so broken code doesn't reach container stage
+ Set up monitoring alerts on 5xx error rate + health endpoint latency
+Scale & Performance:
+
+ Current setup: 1 replica. If traffic grows, add 1–2 more replicas (multiRegionConfig)
+ Monitor CPU/memory during peak hours → if sustained >70%, scale vertically (upgrade plan) or split into services
+Security:
+
+ Rotate the leaked Anthropic keys (saw references in commit messages)
+ Use Railway's secret templates instead of hardcoded values in .env docs
+ Add rate limiting to the public endpoints
+By the Numbers
+Infrastructure: ✅ Healthy (databases stable 20 days, no drift)
+Application: 🔴 Critical (100% failure rate, 20-day outage)
+Config: ⚠️ Untested (no pre-deploy validation, no staging)
+Observability: ⚠️ Minimal (healthcheck timeout is your only signal)
+Next Step
+I need to inspect the app code to diagnose the startup failure. Shall I:
+
+Clone the repo and read the startup logic (main.py, requirements.txt, Alembic migrations)?
+Check the healthcheck endpoint — is it doing DB queries, cache lookups, or blocking I/O?
+Validate the Railway config — healthcheck path, timeout, restart policy correct?
+Which would you like me to dig into first,
