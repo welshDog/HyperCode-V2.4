@@ -22,6 +22,7 @@ from src.agents.hyper_agents.base_agent import (
     HyperAgent,
     NDErrorResponse,
 )
+from .retry_helper import retry_with_backoff, RetryError
 
 
 class TaskPriority(Enum):
@@ -187,48 +188,49 @@ class WorkerAgent(HyperAgent):
 
     async def _execute_with_retry(self, task: Task) -> TaskResult:
         """Attempt task execution with exponential backoff retry."""
-        last_error: Optional[str] = None
 
-        for attempt in range(task.max_retries + 1):
-            if attempt > 0:
-                wait_time = 2 ** attempt
-                self._log(
+        async def _attempt_task() -> Any:
+            # One timeout layer only: retry_with_backoff() applies task.timeout to
+            # this coroutine. Wrapping again here double-applied it for async
+            # handlers and left sync handlers with no timeout at all.
+            if asyncio.iscoroutinefunction(task.handler):
+                return await task.handler(*task.args, **task.kwargs)
+            return await asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: task.handler(*task.args, **task.kwargs),
+            )
+
+        try:
+            raw_result, attempt_index = await retry_with_backoff(
+                _attempt_task,
+                max_retries=task.max_retries,
+                backoff_base=2.0,
+                timeout=task.timeout,
+                retry_exceptions=(asyncio.TimeoutError, Exception),
+                on_retry=lambda attempt, wait_time: self._log(
                     f"Retry {attempt}/{task.max_retries} for [{task.task_id}] "
                     f"- waiting {wait_time}s before retry"
-                )
-                await asyncio.sleep(wait_time)
-
-            try:
-                if asyncio.iscoroutinefunction(task.handler):
-                    raw_result = await asyncio.wait_for(
-                        task.handler(*task.args, **task.kwargs),
-                        timeout=task.timeout,
-                    )
-                else:
-                    raw_result = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda: task.handler(*task.args, **task.kwargs),
-                    )
-
-                return TaskResult(
-                    task_id=task.task_id,
-                    task_name=task.name,
-                    success=True,
-                    result=raw_result,
-                    retries_used=attempt,
-                )
-
-            except asyncio.TimeoutError:
+                ),
+            )
+            return TaskResult(
+                task_id=task.task_id,
+                task_name=task.name,
+                success=True,
+                result=raw_result,
+                retries_used=attempt_index,
+            )
+        except RetryError as exc:
+            last_exc = exc.last_exception
+            if isinstance(last_exc, asyncio.TimeoutError):
                 last_error = (
                     f"Task timed out after {task.timeout}s. "
                     "Consider increasing timeout or breaking into smaller tasks."
                 )
-                self._log(f"Timeout on attempt {attempt + 1}: {task.task_id}")
-
-            except Exception as exc:  # noqa: BLE001
+                self._log(f"Timeout on attempt {exc.attempt_index + 1}: {task.task_id}")
+            else:
                 nd_err = self.format_nd_error(
                     title="Task Execution Error",
-                    what_happened=str(exc),
+                    what_happened=str(last_exc),
                     why_it_matters="The task could not complete successfully.",
                     options=[
                         "Check the task handler for issues.",
@@ -237,15 +239,15 @@ class WorkerAgent(HyperAgent):
                     error_code="TASK_EXECUTION_ERROR",
                 )
                 last_error = f"[{nd_err.error_code}] {nd_err.what_happened}"
-                self._log(f"Error on attempt {attempt + 1}: {exc}")
+                self._log(f"Error on attempt {exc.attempt_index + 1}: {last_exc}")
 
-        return TaskResult(
-            task_id=task.task_id,
-            task_name=task.name,
-            success=False,
-            error=last_error,
-            retries_used=task.max_retries,
-        )
+            return TaskResult(
+                task_id=task.task_id,
+                task_name=task.name,
+                success=False,
+                error=last_error,
+                retries_used=task.max_retries,
+            )
 
     async def run_queue(self) -> List[TaskResult]:
         """Process all queued tasks in priority order.
