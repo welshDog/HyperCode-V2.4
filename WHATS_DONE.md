@@ -1,6 +1,32 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-10 by Claude Sonnet 5 (first Studio agent-run output merged to main) ⚡
+> Last synced: 2026-09-10 by Claude Sonnet 5 (agent-registry :8077 brought back up — Mission Control fleet panel resolved) ⚡
+
+## 2026-09-10 (later) — `agent-registry` :8077 rebuilt + started, fleet panel resolved
+
+Mission Control's "Fleet registry" panel was showing `not reachable (is
+agent-registry running?)` — the `agent-registry` container did not exist (no
+image ever built on this box; likely never started since the last full stack
+bring-up).
+
+- **Fix:** `docker compose up -d agent-registry` from repo root (root
+  `docker-compose.yml` pulls in `docker-compose.registry.yml` via `include:` —
+  do **not** `-f docker-compose.registry.yml`, it breaks on the external-net
+  merge). Built `hypercode-v24-agent-registry:latest` (~90s, python:3.11-slim +
+  curl + fastapi/uvicorn/httpx/redis) then started.
+- **Verified end-to-end:**
+  - container `healthy`, `127.0.0.1:8077` bound
+  - `GET :8077/health` → `{"status":"healthy","agents_tracked":42}`
+  - routes live: `/health`, `/agents/status`, `/agents/status/{name}`,
+    `/agents/ping`, `/agents/{name}/restart`, `/agents/{name}/reset`
+  - `hypercode-dashboard` reaches `agent-registry:8077` over `agents-net`
+  - dashboard `/api/fleet` (the panel's data source) → HTTP 200 with real data:
+    `total 42 · healthy 7 · running 6 · down 13 · not_deployed 16 · crash_looping 0`
+- Deps were already up: `redis`, `docker-socket-proxy`,
+  `docker-socket-proxy-healer` all healthy.
+- Orphan-container warning for `fcc-proxy` is expected (studio-FCC proxy, not in
+  this compose project) — do **not** run `--remove-orphans`.
+- RAM: obs stack was up; registry only reserves 64M / limits 256M — no pressure.
 
 ## 2026-09-10 — First Studio agent run merged to `main` (`c78cc808`)
 
