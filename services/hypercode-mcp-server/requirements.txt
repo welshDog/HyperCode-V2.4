@@ -9,4 +9,4 @@
 # TransportSecuritySettings kwarg). Bump deliberately + re-test, never with `>=`.
 mcp[cli]==1.27.1
 httpx>=0.28.0,<1
-uvicorn>=0.35.0,<1
+uvicorn>=0.52.4,<1
