@@ -1,6 +1,52 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-10 by Claude Sonnet 5 (agent-registry :8077 brought back up — Mission Control fleet panel resolved) ⚡
+> Last synced: 2026-09-10 by Claude Sonnet 5 (MCP Gateway panel "down" fixed — SDK DNS-rebinding 421 + healthcheck) ⚡
+
+## 2026-09-10 (later still) — MCP Gateway panel "down" fixed (`acdd812b`)
+
+Dashboard's "🧩 MCP Gateway Status" panel showed `HyperCode MCP Server: down`.
+Three layered causes, all from the **Sep 8 rebuild pulling a newer `mcp` SDK
+(1.27.1)**:
+
+1. **421 Misdirected Request on every in-cluster call.** `mcp` SDK ≥1.9 turns
+   DNS-rebinding protection ON by default —
+   `allowed_hosts=['127.0.0.1:*','localhost:*','[::1]:*']`. The dashboard's MCP
+   proxy (`app/api/mcp/[...path]/route.ts`) hits
+   `http://hypercode-mcp-server:8823/sse` by Docker service name → not in the
+   allow-list → 421. `route.ts` treats a 421 as a "successful fetch" and returns
+   `down` immediately.
+   **Fix:** `server.py` now passes
+   `transport_security=TransportSecuritySettings(allowed_hosts=[…, "hypercode-mcp-server:*", "0.0.0.0:*"])`
+   — SDK localhost defaults kept so an IDE's `http://localhost:8823/sse` still
+   works.
+2. **Container `unhealthy`.** Healthcheck probed `/sse` (a long-lived stream);
+   `getresponse()` blocked past the timeout every cycle. `server.py` adds a
+   non-streaming `@mcp.custom_route("/health")`; `docker-compose.agents.yml`
+   healthcheck now probes `/health`.
+3. **`mcp` version drift.** `requirements.txt` said `mcp[cli]>=1.28.1,<2` but the
+   image had 1.27.1 (the `>=` line was never built). Pinned **exact
+   `mcp[cli]==1.27.1`** — the version `server.py`'s API usage (`custom_route`,
+   `TransportSecuritySettings` kwarg) is validated against. Bump deliberately +
+   re-test, never `>=` (the Sept 2026 outage class).
+
+Verified: `/health` 200, `/sse` 200 by service name with **no `Invalid Host
+header` warnings**, dashboard `/api/mcp/health` → `{"status":"ok","transport":"sse"}`,
+container `healthy` (FailingStreak 0), agent-registry sees it healthy.
+
+- **`mcp-gateway:8820` + `mcp-rest-adapter:8821`** (the panel's *preferred*
+  REST path, `--profile agents`) remain **down** — not built, `mcp-gateway` has
+  an Exited(1) history. Deferred: not worth 2 containers + a debug session for a
+  status panel while RAM is tight. The SSE-direct fallback in `route.ts` is what
+  the panel now uses.
+- **🪤 Obs stack was torn down to do this.** The 4 GB box was at 110 MB free /
+  1 GB swap with the `--profile observability` stack up — Docker Desktop was
+  thrashing (21-min build, `docker exec` overlayfs errors, `docker logs` empty,
+  probe timeouts). Stopped all 12 obs containers by name (`docker stop`, not
+  `compose down` — all data on named volumes, zero loss) → 1.2 GB free.
+  **Restart with `docker start grafana grafana-agent prometheus prometheus-cloud
+  loki tempo pyroscope alertmanager promtail cadvisor node-exporter
+  celery-exporter`** — but NOT alongside a full agent fleet (the 2026-09-03
+  rule).
 
 ## 2026-09-10 (later) — `agent-registry` :8077 rebuilt + started, fleet panel resolved
 
