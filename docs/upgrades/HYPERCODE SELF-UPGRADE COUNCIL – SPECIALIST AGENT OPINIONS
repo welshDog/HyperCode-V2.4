@@ -1,0 +1,266 @@
+**HYPERCODE SELF-UPGRADE COUNCIL – SPECIALIST AGENT OPINIONS**
+
+### 1. Product Agent
+*What would make HyperCode more useful?*
+- **Core Issue:** Users struggle to discover and combine capabilities efficiently. The skill system is powerful but opaque; agent orchestration requires deep system knowledge.
+- **Upgrade Idea:** Implement a natural language "skill orchestrator" that interprets user goals (e.g., "deploy a Discord bot with moderation") and automatically proposes a sequence of skills/agents with pre-filled parameters, reducing cognitive load and accelerating time-to-value.
+- **Evidence:** WHATS_DONE.md shows frequent manual skill invocation (e.g., broski-coo using OpenRouter/Ollama fallback). NEXT_TASKS.md highlights documentation debt and process gaps in agent handoffs.
+
+### 2. UX Agent
+*What would reduce friction for ADHD, dyslexic, and autistic users?*
+- **Core Issue:** Walls of text, inconsistent UI states, and unexplained state changes (e.g., dashboard healthchecks showing "down" incorrectly) increase anxiety and cognitive load.
+- **Upgrade Idea:** Introduce a unified, step‑by‑step "focus mode" UI that breaks complex workflows (agent spawning, skill chaining, deployment) into atomic, validated steps with clear success/failure states, reduced visual clutter, and optional voice‑output for key notifications.
+- **Evidence:** CLAUDE.md SACRED RULES emphasize short sentences and ADHD‑friendly communication, but dashboard/P2-1 shows theme toggle is a no‑op, and P2-3/P2-4 reveal stale/incorrect UI state.
+
+### 3. Reliability Agent
+*What currently fails or feels fragile?*
+- **Core Issue:** The crew‑orchestrator is a documented SPOF (single point of failure) for health checks; launch‑time bugs (dockerignore gaps, build context, phantom networks) only surface when containers start together; throttle‑agent has a missing MemStream dependency.
+- **Upgrade Idea:** Decouple agent health checking from the crew‑orchestrator by introducing a lightweight, decentralized health‑check sidecar per agent that reports to a resilient pub/sub system (e.g., Redis Streams), eliminating the SPOF and catching runtime‑only issues earlier via pre‑start validation.
+- **Evidence:** CLAUDE.md explicitly notes the crew‑orchestrator SPOF and the fleet‑controller exception. WHATS_DONE.md/2026-08-20 details launch‑time bugs. NEXT_TASKS.md item 2b confirms the MemStream gap.
+
+### 4. Security Agent
+*What must be hardened before adding autonomy?*
+- **Core Issue:** Autonomous agents (via mission‑director/fleet‑controller/governor) could escalate privileges if compromised; current agent sandboxing relies on Docker defaults and Sacred Rules (e.g., no .env commits), which are insufficient for untrusted AI‑generated code.
+- **Upgrade Idea:** Enforce strict OCI runtime restrictions (read‑only rootfs, drop all capabilities, non‑root user, sealed secrets via Vault‑sidecar) for all dynamically spawned agents, and integrate the governor’s capability‑token system to require cryptographic approval for any privileged action (e.g., file writes, network binds).
+- **Evidence:** WHATS_DONE.md/2026-09-04 shows governor already mints PASETO tokens requiring Safety Shepherd approval. SACRED RULES forbid .env commits but lack runtime enforcement.
+
+### 5. Cost Agent
+*How should cloud and free/local models work together?*
+- **Core Issue:** Over‑reliance on paid Anthropic API increases operational cost and creates availability risk; free/local models (Ollama, Nemotron) are underutilized due to manual model‑switching friction.
+- **Upgrade Idea:** Build a dynamic model router into the base_agent.py that analyzes task prompts for complexity, length, and required tool use, then automatically selects the cheapest viable model (local Ollama → free OpenRouter → paid Claude) with fallback chains, while logging cost/token savings per invocation.
+- **Evidence:** WHATS_DONE.md/2026-09-10 shows broski‑coo already uses a free‑model fallback chain (OpenRouter → Ollama). NEXT_TASKS.md item P3‑2 hints at cost‑signal confusion (DLQ 400s misinterpreted as error rate).
+
+### 6. Agent Architect
+*How should agents plan, execute, test, and recover?*
+- **Core Issue:** Agents are long‑running services with no clear task lifecycle; error handling is ad‑hoc (e.g., throttle‑agent’s MemStream logs), and recovery relies on manual restart.
+- **Upgrade Idea:** Redesign agents around the "task actor" pattern: each agent exposes a `/execute` endpoint that accepts a structured task, runs it in a sandboxed subprocess with timeouts/retries, returns structured results, and self‑terminates on idle. Integrate with the governor for capability‑bounded task execution.
+- **Evidence:** WHATS_DONE.md/2026-09-10 shows the first Studio agent run used retry/helpers. AGENT‑START.md outlines the specialist‑agent pattern but lacks task‑level isolation.
+
+### 7. Testing Agent
+*What tests would prove the upgrade really works?*
+- **Core Issue:** Current tests are unit‑heavy but lack real‑world integration and chaos validation; CI is frequently broken (see NEXT_TASKS.md N14/N15).
+- **Upgrade Idea:** Implement a "fault injection test suite" that simulates agent crashes, network partitions, and model‑API failures while verifying that the system degrades gracefully (e.g., falls back to local models, queues tasks, alerts operators) without data loss or privilege escalation.
+- **Evidence:** WHATS_DONE.md/2026-09-04 shows live smoke tests for governor/fleet‑controller. NEXT_TASKS.md N15 documents repo‑wide CI recovery needs.
+
+### 8. Founder Agent
+*What single improvement creates the biggest visible win?*
+- **Core Idea:** **Unified "One‑Click Agent Spawner"** – a natural language interface where users type a goal (e.g., "make a Twitter bot that replies to mentions") and the system automatically: selects appropriate skills, spins up task‑bound agents with capability tokens, executes the task, and returns a working artifact — all visible in the dashboard with real‑time progress.
+- **Why It Wins:** Combines product (usefulness), UX (reduced friction), reliability (isolated tasks), security (capacity‑bounded), cost (model routing), and agent architecture (task lifecycle) into a single, demonstrable flow that showcases HyperCode’s autonomy vision.
+- **Evidence:** WHATS_DONE.md/2026-09-01 shows Studio agent runs producing real code. AGENT‑START.md’s roadmap ends with "Course AI Agents 2.0" as the final piece, indicating a user‑facing agentic workflow is the north star.
+
+---
+
+### A. TOP 10 UPGRADE IDEAS
+
+1. **Smart Model Router** – Dynamic selection of free/local (Ollama) vs. cloud (Anthropic) models per task to reduce cost and improve responsiveness.  
+2. **Fix CI/CD Pipeline** – Restore broken workflows (health‑check.yml, ghost‑agents‑build.yml, quality‑gate.yml) and resolve GitHub Actions billing lock.  
+3. **Enhance Agent Autonomy & Safety** – Wire the dispatch‑seam (card c) to enforce strict dispatch checks and add guards preventing post‑DONE agent action (SDD process incident fix).  
+4. **Improve Observability & Debugging** – Integrate distributed tracing (Tempo) and enhance logging for real‑time agent introspection.  
+5. **Reduce Crew‑Orchestrator SPOF** – Decouple health checks via decentralized sidecars or add automated failover/restart.  
+6. **Fix Known Runtime Issues** – Resolve throttle‑agent MemStream dependency and dashboard malfunctions (theme toggle, agent count, ghost‑agent healthchecks).  
+7. **Strengthen Agent Security** – Enforce strict OCI runtime restrictions (read‑only rootfs, dropped capabilities, non‑root) for all dynamically spawned agents.  
+8. **Improve Skill System Discoverability** – Add natural language skill search and guided invocation with pre‑filled parameters.  
+9. **Enhance Onboarding Experience** – Create interactive tutorials for building first agent skill or accomplishing a user goal.  
+10. **Resolve Port Collisions & Profile Conflicts** – Gate services like hypercode‑ollama‑gpu and prometheus‑cloud behind dedicated profiles or adjust architecture to avoid unnecessary conflicts.  
+
+---
+
+### B. RANKED TABLE
+
+| Idea | Impact (1‑5) | Effort (1‑5) | Risk (1‑5) | Cost (1‑5) | Confidence (1‑5) |
+|------|--------------|--------------|------------|------------|------------------|
+| 1. Smart Model Router | 5 | 4 | 3 | 2 | 4 |
+| 2. Fix CI/CD Pipeline | 4 | 3 | 2 | 2 | 5 |
+| 3. Enhance Agent Autonomy & Safety | 5 | 3 | 3 | 2 | 4 |
+| 4. Improve Observability | 4 | 3 | 2 | 2 | 4 |
+| 5. Reduce Crew‑Orchestrator SPOF | 4 | 4 | 3 | 3 | 3 |
+| 6. Fix Runtime Issues | 3 | 2 | 1 | 1 | 5 |
+| 7. Strengthen Security | 4 | 4 | 3 | 3 | 3 |
+| 8. Improve Skill System | 3 | 3 | 2 | 2 | 4 |
+| 9. Enhance Onboarding | 3 | 3 | 1 | 2 | 4 |
+|10. Resolve Port Collisions | 2 | 2 | 1 | 1 | 5 |
+
+*Scoring:* Impact/Confidence = higher is better; Effort/Risk/Cost = lower is better (values reflect raw level).
+
+---
+
+### C. THREE UPGRADES TO DO FIRST
+
+1. **Smart Model Router** (Idea 1) – High impact on cost and usability, enables broader autonomy by reducing API dependence.  
+2. **Fix CI/CD Pipeline** (Idea 2) – Foundational for reliable development; unlocks safe iteration on all other upgrades.  
+3. **Enhance Agent Autonomy & Safety** (Idea 3) – Critical prerequisite for trustworthy autonomous operation; addresses the most severe risk (agent escape).  
+
+---
+
+### D. SAFE PHASED IMPLEMENTATION PLAN
+
+**Phase 0: Preparation (1 day)**  
+- Freeze non‑essential work; create feature branches for each upgrade.  
+- Run full test suite to establish baseline health.  
+- Document rollback procedures (see Section F).  
+
+**Phase 1: Fix CI/CD Pipeline (Days 2‑4)**  
+- **Step 1:** Restore `workflow_call` in `ci-python.yml` and fix mangled headers in `.github/workflows/*`.  
+- **Step 2:** Resolve GitHub Actions billing lock (contact billing/organization admin; reduce workflow concurrency if needed).  
+- **Step 3:** Verify all workflows (health‑check.yml, ghost‑agents‑build.yml, quality‑gate.yml) run successfully on push to `main`.  
+- **Definition of Done:** `gh run list --workflow=health-check.yml` shows ≥1 successful run in last 24h; no failed jobs due to YAML or billing.  
+
+**Phase 2: Smart Model Router (Days 5‑9)**  
+- **Step 1:** Design routing logic in `base_agent.py` (prompt complexity heuristic → model selection).  
+- **Step 2:** Integrate with existing LLM client fallback chain (Ollama → OpenRouter → Claude) used in broski‑coo.  
+- **Step 3:** Add telemetry to log model choice, latency, and token cost per invocation.  
+- **Step 4:** Update `docker-compose*.yml` to ensure Ollama/OpenRouter services are healthy dependencies.  
+- **Definition of Done:**  
+  - 90% of simple tasks (e.g., "summarize this text") use local Ollama.  
+  - 100% of failed local/model‑unavailable attempts fall back to OpenRouter/Claude without manual intervention.  
+  - No increase in agent error rates; average cost per invocation reduced by ≥30%.  
+
+**Phase 3: Enhance Agent Autonomy & Safety (Days 10‑14)**  
+- **Step 1:** Wire the dispatch‑seam (card c) in `agents/crew‑orchestrator/main.py:524` to call `safety_client.check_dispatch()` for mutation verdicts and record/compare results.  
+- **Step 2:** Implement an automated guard in the agent spawner that terminates any agent process that attempts to execute after reporting `DONE` (based on WHATS_DONE.md SDD incident).  
+- **Step 3:** Add integration tests verifying that a compromised agent cannot bypass the dispatch seal or act post‑DONE.  
+- **Definition of Done:**  
+  - All agent‑safety CI jobs (crew‑38 + fleet‑27 + honesty‑15) pass.  
+  - Live smoke test shows agent correctly rejects a post‑DONE execution attempt with `409 Conflict`.  
+  - No regression in existing agent‑safety test suites (71/71 governor, 36/36 fleet‑controller, 15/15 safety‑shepherd).  
+
+**Phase 4: Observability & Runtime Fixes (Days 15‑18)**  
+- **Step 1:** Integrate Tempo tracing into agent workflows (trace ID propagation via headers).  
+- **Step 2:** Fix throttle‑agent MemStream dependency: either deploy a minimal MemStream service (based on broski‑bot’s expectations) or remove the polling if non‑essential (per NEXT_TASKS.md 2b).  
+- **Step 3:** Fix dashboard issues:  
+  - Make theme toggle actually switch CSS classes (fix P1‑1).  
+  - Update `/agents` page to show live container count (fix P2‑3).  
+  - Correct ghost‑agent healthchecks to use real ports (fix P2‑4).  
+- **Definition of Done:**  
+  - Tempo traces visible in Grafana for agent‑to‑agent calls.  
+  - Throttle‑agent `/health` shows `memstream:"ok"` or dependency removed.  
+  - Dashboard theme toggle changes visual state; `/agents` reports 42 agents; `/health` shows correct ports.  
+
+**Phase 5: Security Hardening (Days 19‑22)**  
+- **Step 1:** Research and select an OCI runtime restriction profile (e.g., `security_opt: [no-new-privileges:true, drop-all-capabilities:true, read-only-rootfs:true]`).  
+- **Step 2:** Apply profile to all agent services in `docker-compose.agents-full.yml` and `docker-compose.agents.yml`.  
+- **Step 3:** Test that agents still function (health checks, skill execution) under restrictions.  
+- **Definition of Done:**  
+  - `docker inspect` shows agents running with `ReadonlyRootfs=true`, `CapDrop=ALL`, `User=non‑root`.  
+  - All agent health checks pass; no loss of functionality in skill execution tests.  
+
+**Phase 6: Skill System & Onboarding (Days 23‑26)**  
+- **Step 1:** Build a natural language skill matcher (e.g., fuzzy match on skill name/description) exposed via `/ide/skill-suggest`.  
+- **Step 2:** Create an interactive onboarding tutorial in `/ide` that guides the user through:  
+  - Creating a simple skill (e.g., "say hello").  
+  - Spawning an agent to execute it.  
+  - Viewing results in the dashboard.  
+- **Step 3:** Update `SKILLS.md` and `AGENTS.md` with clear, concise examples.  
+- **Definition of Done:**  
+  - New user can complete the tutorial in <5 minutes without external help.  
+  - Skill suggestion returns relevant results for common queries (e.g., "discord bot" → `hypercode-discord-bot-skill`).  
+  - `SKILLS.md` includes a "Getting Started" section with copy‑paste examples.  
+
+**Phase 7: Port Collision Resolution (Days 27‑28)**  
+- **Step 1:** Gate `hypercode‑ollama‑gpu` and `prometheus‑cloud` behind their own `--profile gpu` and `--profile grafana‑cloud` (or adjust aliases to avoid collisions).  
+- **Step 2:** Verify `docker compose config` shows no duplicate `published:` ports.  
+- **Definition of Done:**  
+  - `docker compose config --profile agents --profile hyper --profile gpu` runs without port conflict errors.  
+  - No agent fails to start due to port assignment in `docker compose up`.  
+
+**Phase 8: Crew‑Orchestrator SPOF Reduction (Days 29‑31)**  
+- **Step 1:** Implement a decentralized health‑check sidecar (e.g., using `redis‑pubsub`) that each agent updates; expose a `/fleet/health` endpoint aggregating results.  
+- **Step 2:** Update `docker‑compose.*.yml` to remove `depends_on: crew‑orchestrator:condition:service_healthy` for non‑critical agents (retain for mission‑critical where appropriate).  
+- **Step 3:** Validate that the fleet remains healthy if crew‑orchestrator is temporarily stopped (simulate with `docker pause crew‑orchestrator`).  
+- **Definition of Done:**  
+  - Fleet health endpoint shows accurate status even when crew‑orchestrator is paused.  
+  - No increase in false‑positive/unhealthy agent reports.  
+  - Mission‑critical agents (e.g., safety‑shepherd) retain hard dependency if required.  
+
+**Phase 9: Final Integration & Testing (Days 32‑35)**  
+- **Step 1:** Run end‑to‑end scenarios (e.g., user spawns agent via IDE → executes skill → uses model router → logs to Tempo → visible in dashboard).  
+- **Step 2:** Conduct fault‑injection tests (kill agents, corrupt config, simulate model‑API failure).  
+- **Step 3:** Perform security review (pen‑test style) on agent sandboxing.  
+- **Definition of Done:**  
+  - All end‑to‑end scenarios succeed.  
+  - Fault‑injection tests show graceful degradation (e.g., fallback to local models, task queuing, alerts).  
+  - No critical security findings in agent sandboxing review.  
+- **Step 4:** Merge to `main` after branch approval and final `docker compose config` validation.  
+
+---
+
+### E. DEFINITION OF DONE FOR EACH PHASE
+
+| Phase | Definition of Done |
+|-------|--------------------|
+| **0** | Baseline test suite passed; branches created; rollback docs complete. |
+| **1** | CI workflows green; no YAML or billing‑lock failures; `gh run list` shows recent success. |
+| **2** | Model router reduces cost ≥30%; 90% simple tasks use local Ollama; fallback chain works 100% of the time. |
+| **3** | Agent‑safety CI jobs pass; live test shows post‑DONE blocked; no regression in safety test suites. |
+| **4** | Tempo traces active; throttle‑agent memstream resolved; dashboard UI correct and functional. |
+| **5** | Agents run with strict OCI restrictions (readonly rootfs, dropped caps, non‑root); health checks pass. |
+| **6** | Users complete onboarding tutorial in <5m; skill search returns relevant results; `SKILLS.md` updated. |
+| **7** | No port conflicts in `docker compose config`; all agents start successfully. |
+| **8** | Fleet health accurate during crew‑orchestrator pause; mission‑critical agents retain needed dependencies. |
+| **9** | End‑to‑end scenarios pass; fault‑injection shows graceful degradation; no critical security findings. |
+
+---
+
+### F. ROLLBACK PLAN
+
+- **General:** All changes are made in feature branches; merging to `main` is blocked until Phase 9 Definition of Done is met.  
+- **Per‑Phase Rollback:**  
+  - **Phase 1:** Revert `.github/workflows/*` commits; if billing lock persists, temporarily disable workflows.  
+  - **Phase 2:** Revert `base_agent.py` and routing logic; restore original LLM client fallback chain.  
+  - **Phase 3:** Revert `main.py:524` dispatch‑seam wiring and post‑DONE guard; restore original safety logic.  
+  - **Phase 4:** Remove Tempo integration; revert dashboard/UI fixes; restore throttle‑agent to prior state.  
+  - **Phase 5:** Revert `security_opt` changes in compose files; restore original Docker defaults.  
+  - **Phase 6:** Remove skill suggestion endpoint; revert onboarding tutorial and `SKILLS.md`/`AGENTS.md` changes.  
+  - **Phase 7:** Revert profile gating changes; restore original compose aliases.  
+  - **Phase 8:** Revert decentralized health‑check sidecar; restore original `depends_on` for crew‑orchestrator.  
+  - **Phase 9:** If critical failure detected, revert all Phase 1‑8 changes and investigate before retrying.  
+- **Emergency Rollback:** If `main` becomes unhealthy, use `git revert <merge-commit>` for the offending feature branch; restore last known‑good `docker-compose*.yml` and agent images from GHCR.  
+- **Validation:** After any rollback, run `docker compose config` and basic health checks (`crew‑orchestrator`, `safety‑shepherd`) to confirm stability.  
+
+---
+
+### G. TESTS THAT MUST PASS BEFORE ANYTHING IS MERGED
+
+1. **Unit Tests:**  
+   - All existing unit tests for modified components (e.g., `base_agent.py`, `crew‑orchestrator/main.py`, skill system) must pass.  
+   - New unit tests for added logic (model router, dispatch‑seam, post‑DONE guard) must achieve ≥90% coverage.  
+2. **Integration Tests:**  
+   - `test_live_repo_integration.py` (fix existing failures per NEXT_TASKS.md N16).  
+   - New end‑to‑end test simulating a user goal via IDE → agent spawn → skill execution → model routing → dashboard update.  
+   - Fault‑injection test: kill crew‑orchestrator, verify fleet health via decentralized sidecar; kill model‑API, verify fallback to local models.  
+3. **Security Tests:**  
+   - Verify agents cannot escape OCI restrictions (e.g., no privileged writes, no host network access).  
+   - Verify governor capability‑token system blocks unauthorized privileged actions (e.g., file writes outside sandbox).  
+4. **Performance Tests:**  
+   - Model router latency overhead <100ms per invocation.  
+   - Cost tracking accuracy: logged token usage matches actual API usage within 5%.  
+5. **CI/CD Tests:**  
+   - All workflows (health‑check.yml, ghost‑agents‑build.yml, quality‑gate.yml) must succeed on push to `main` for three consecutive commits.  
+   - No new failures in `docker-push.yml` or `agent‑safety.yml`.  
+
+---
+
+### H. ONE SMALL UPGRADE SUITABLE FOR A SCREEN RECORDING
+
+**Idea:** Fix the dashboard theme toggle (P1‑1) to actually switch between Default and High‑Contrast themes.  
+
+- **Why It’s Small:** Involves editing `app/globals.css` or `app/theme.js` to toggle a CSS class on the `<body>` element; <10 lines of code.  
+- **Why It’s Visible:** Users immediately see the visual change (colors, contrast) when toggling.  
+- **Why It’s Valuable:** Addresses a known neurodivergent‑friendliness gap (ADSHD/dyslexia/autism) with minimal risk.  
+- **Recording Steps:**  
+  1. Open HyperCode dashboard.  
+  2. Open theme toggle dropdown.  
+  3. Select "High‑Contrast".  
+  4. Show screen flicker/update to new color scheme (e.g., darker background, brighter text).  
+  5. Select "Default" to revert.  
+  6. Optional: Show inspector view of the `<body>` class changing.  
+
+This upgrade delivers instant, observable value while demonstrating attention to UX detail.  
+
+---  
+
+**Do first:** Smart Model Router, Fix CI/CD Pipeline, Enhance Agent Autonomy & Safety  
+**Do later:** Improve Observability, Reduce Crew‑Orchestrator SPOF, Strengthen Security, Improve Skill System, Enhance Onboarding, Resolve Port Collisions  
+**Do not do yet:** Major architectural overhauls (e.g., replacing crew‑orchestrator with Kubernetes) until foundational upgrades are stable  
+**Evidence needed:** For the MemStream dependency (Phase 4), confirm whether the service is truly required or can be safely removed (check broski‑bot and throttle‑agent usage logs)
+

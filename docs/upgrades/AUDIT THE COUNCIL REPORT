@@ -1,0 +1,126 @@
+the council run worked, but it exposed a serious safety signal.
+
+The good news
+The agents produced a detailed upgrade strategy instead of changing files. That matches your instruction. It covered:
+
+Product and UX.
+
+Reliability and security.
+
+Model routing and costs.
+
+Agent lifecycle.
+
+Testing and rollback.
+
+A phased implementation plan.
+
+The strongest recommendations are:
+
+Fix reliability and CI foundations.
+
+Improve model routing and fallback visibility.
+
+Harden agent dispatch and sandbox boundaries.
+
+Build fault-injection tests.
+
+Improve the neurodivergent-first focus experience.
+
+The big warning
+The run shows:
+
+Fable 5
+
+5 minutes 44 seconds
+
+$5.09 cost
+
+0 allowed
+
+0 warnings
+
+9 blocked actions
+
+The nine blocked actions are mainly attempts to read outside the worktree:
+
+/app/CLAUDE.md
+
+/CLAUDE.md
+
+/app/.claude
+
+/app/.git
+
+/app/.agents
+
+old worktree paths
+
+That is actually a successful Shepherd result. The agent wanted broader context, but the sandbox refused access. Nothing escaped the worktree.
+
+The important quality issue
+The report is useful, but it also contains signs of overconfident inference:
+
+It claims specific files and line numbers without proving they were safely inspected.
+
+It recommends changes based on WHATS_DONE.md and NEXT_TASKS.md, but the run was blocked from reading important root-level files.
+
+It suggests Nemotron 3 Super 120B even though that is wildly unsuitable for your 8 GB CPU-only box.
+
+It says “90% of simple tasks use local Ollama,” but there is no baseline proving that target is realistic.
+
+It proposes a 35-day roadmap before validating the current repo state.
+
+So I would treat this as a hypothesis report, not an implementation plan yet.
+
+My verdict
+Do not merge anything. There is no diff anyway, and the page correctly shows “No diff yet.”
+
+The run proves three things:
+
+Area	Result
+Prompt following	Good
+Safety boundary	Strong — 9 out-of-scope reads blocked
+Repository evidence	Incomplete
+Cost efficiency	Poor for a planning-only task
+Upgrade ideas	Useful, but needs verification
+Merge readiness	Not ready
+The $5.09 spend is the biggest lesson. For a planning council, use Haiku or the cheapest available model, not Fable. Save Fable for architecture decisions that have already been grounded in verified evidence.
+
+Best next prompt
+Run a cheaper, evidence-first follow-up:
+
+text
+AUDIT THE COUNCIL REPORT — DO NOT IMPLEMENT
+
+Review the previous council output as a skeptical technical auditor.
+
+For every recommendation:
+1. Mark it as VERIFIED, PLAUSIBLE, UNSUPPORTED, or CONTRADICTED.
+2. Cite the exact file and line evidence available inside the current worktree.
+3. Remove any claim based on files you could not access.
+4. Do not invent paths, line numbers, incidents, services, models, or test counts.
+5. Respect this hardware constraint:
+   - 8 GB RAM
+   - CPU-only
+   - no GPU
+   - Docker Model Runner already uses the local LLM path
+6. Separate confirmed current problems from future ideas.
+7. Produce only the top three safe next actions.
+
+For each action include:
+- exact files likely to change
+- why it is needed
+- smallest implementation
+- tests required
+- rollback plan
+- evidence still missing
+
+Do not edit files.
+Do not read outside the worktree.
+Do not inspect old worktrees.
+Do not access secrets or Docker configuration.
+Final call
+This was a successful red-team test of the Studio, not yet a successful architecture audit.
+
+The biggest win is not the 10 upgrade ideas. It is that HyperCode proved its safety boundary by blocking nine out-of-scope reads. Nice one BROski♾️! That is exactly the kind of behaviour your platform is supposed to demonstrate.
