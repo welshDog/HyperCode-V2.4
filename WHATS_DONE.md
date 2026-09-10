@@ -1,6 +1,27 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-09 by Claude Sonnet 5 (Increment 1 design-system + Studio model-picker Layer 1 + `/ide` unblocked, one RAM-gated window) ⚡
+> Last synced: 2026-09-10 by Claude Sonnet 5 (first Studio agent-run output merged to main) ⚡
+
+## 2026-09-10 — First Studio agent run merged to `main` (`c78cc808`)
+
+The first `/ide` run to produce real code — "extract retry/backoff into a helper +
+tests" (ran on free Nemotron via fcc-proxy, not paid Sonnet despite the run header;
+see `docs/reports/STUDIO_FIRST_AGENT_RUN_2026-09-10.md`). Landed after a pre-merge
+review — five findings applied (`518e69e0`) before merge:
+- **F1** — `_execute_with_retry._attempt_task()` was wrapping async handlers in
+  `asyncio.wait_for` *and* `retry_with_backoff()` re-wraps the same coroutine →
+  async double-timed, sync not timed at all. Now one timeout layer (the helper's).
+- **F2** — `test_retry_with_backoff_all_retries_fail` asserted `captured_exc ==
+  ValueError("always fails")`; `BaseException` has no `__eq__` so it was **always
+  False** — the test was red. Now `isinstance` + `str()`. Suite **7/7 green**
+  (verified on merged main).
+- F3 dropped `summary.md` (agent artifact), F4 EOF newlines, F5 collapsed a
+  timeout test that redefined its fixture 4× with the agent's scratch comments.
+- New: `src/agents/hyper_agents/retry_helper.py` (`retry_with_backoff` + `RetryError`,
+  sync/async, exponential backoff) + its test suite; `worker.py` delegates to it.
+- Side fix: `.git/hooks/{pre,post}-commit` had CRLF endings → container-side
+  `git commit` died on `exit 0\r`. Normalised to LF (local files, not versioned).
+- Studio worktree + `agent/…` branch cleaned up post-merge.
 
 ## 2026-09-09 (late) — Increment 1 design foundation + Studio model-picker Layer 1 + `/ide` "fetch failed" FIXED
 
