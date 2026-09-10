@@ -79,19 +79,41 @@ Files changed: `services/hypercode-mcp-server/server.py`,
 
 ## Stack state at handover
 
-- **Observability stack (12): taken DOWN this session.** It was found UP at session
-  start (someone restarted it after the 2026-09-09 handover left it down). The 4 GB
-  box was at **110 MB free / 1 GB swap** with obs + the agent fleet both up — Docker
-  Desktop was thrashing (21-min image build, `docker exec` overlayfs errors,
-  `docker logs` returning empty, healthcheck probe timeouts). Stopped all 12 by name
-  (`docker stop`, **not** `compose down` — `--profile observability down` targets the
-  whole project; all obs data is on named volumes so stop→start loses nothing but the
-  downtime scrape gap). Freed → ~1.2 GB free / 2.2 GB available.
-  **Restore command (only when NOT running a full agent fleet — the 2026-09-03 rule):**
-  ```
-  docker start grafana grafana-agent prometheus prometheus-cloud loki tempo \
-    pyroscope alertmanager promtail cadvisor node-exporter celery-exporter
-  ```
+**FINAL state (2026-09-10 ~20:00Z): 41 containers up, obs stack UP.**
+
+- **Observability stack (12): taken down mid-session, then RESTARTED at Lyndz's
+  request (~20:00Z).** It was found UP at session start (restarted after the
+  2026-09-09 handover left it down). During the MCP rebuild the 4 GB box was at
+  **110 MB free / 1 GB swap** with obs + fleet both up — Docker Desktop was thrashing
+  (21-min image build, `docker exec` overlayfs errors, `docker logs` empty, probe
+  timeouts). Stopped all 12 by name (`docker stop`, **not** `compose down` —
+  `--profile observability down` targets the whole project; all obs data is on named
+  volumes so stop→start loses nothing but the downtime scrape gap) → freed ~1 GB,
+  did the MCP rebuild, then **`docker start`ed all 12 back in two batches** (exporters
+  first, then TSDBs), checking `hypercode-core` health between. **Core stayed
+  `healthy`, 0 restarts** — no repeat of the 2026-09-09 Exited(137) cascade.
+  - Now healthy: grafana (:3001, login `welshdog`), prometheus, prometheus-cloud,
+    loki, tempo, alertmanager, cadvisor, node-exporter, promtail. pyroscope +
+    grafana-agent have no healthcheck (show "running" — normal).
+  - Stop/start commands if needed again:
+    ```
+    docker stop  grafana grafana-agent prometheus prometheus-cloud loki tempo pyroscope alertmanager promtail cadvisor node-exporter celery-exporter
+    docker start grafana grafana-agent prometheus prometheus-cloud loki tempo pyroscope alertmanager promtail cadvisor node-exporter celery-exporter
+    ```
+  - ⚠️ The box runs obs + the *current* minimal fleet (~29 pre-obs) fine. It does
+    **not** survive obs + the full agent fleet (`--profile agents`/`hyper`) — the
+    2026-09-03 rule still holds. Stop idle agents before scaling the fleet with obs up.
+- **`celery-exporter`: `unhealthy`** after the obs restart — **app is fine** (logs:
+  `Started celery-exporter on port 9808`, actively reporting "Task queue depth"). The
+  healthcheck probe times out at 10s under the tighter RAM with obs back. Cosmetic /
+  probe-only; may self-settle. It's just a metrics exporter.
+- **`hypercode-dashboard`: `unhealthy`** — pre-existing, since the mid-session
+  memory-thrash window (NOT caused by the obs restart). Docker Desktop bug:
+  `open /var/lib/docker/rootfs/overlayfs/661eff…: no such file` — the container's
+  exec mount is broken so the healthcheck can't run. **The Node app serves fine**
+  (verified `/api/mcp/health` + `/api/fleet` → 200 this session). Fix:
+  `docker restart hypercode-dashboard` recreates the mount. Not done this session
+  (left to Lyndz's call).
 - `agent-registry` (:8077): **new this session**, built + up + healthy, 42 agents
   tracked. `restart: unless-stopped` — stays up across reboots now.
 - `hypercode-mcp-server` (:8823): rebuilt (`mcp==1.27.1` pinned) + recreated, healthy,

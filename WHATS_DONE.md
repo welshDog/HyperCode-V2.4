@@ -38,15 +38,19 @@ container `healthy` (FailingStreak 0), agent-registry sees it healthy.
   an Exited(1) history. Deferred: not worth 2 containers + a debug session for a
   status panel while RAM is tight. The SSE-direct fallback in `route.ts` is what
   the panel now uses.
-- **🪤 Obs stack was torn down to do this.** The 4 GB box was at 110 MB free /
-  1 GB swap with the `--profile observability` stack up — Docker Desktop was
-  thrashing (21-min build, `docker exec` overlayfs errors, `docker logs` empty,
-  probe timeouts). Stopped all 12 obs containers by name (`docker stop`, not
-  `compose down` — all data on named volumes, zero loss) → 1.2 GB free.
-  **Restart with `docker start grafana grafana-agent prometheus prometheus-cloud
-  loki tempo pyroscope alertmanager promtail cadvisor node-exporter
-  celery-exporter`** — but NOT alongside a full agent fleet (the 2026-09-03
-  rule).
+- **🪤 Obs stack was torn down for the rebuild, then restarted.** The 4 GB box was
+  at 110 MB free / 1 GB swap with the `--profile observability` stack up — Docker
+  Desktop was thrashing (21-min build, `docker exec` overlayfs errors, `docker
+  logs` empty, probe timeouts). Stopped all 12 obs containers by name (`docker
+  stop`, not `compose down` — all data on named volumes, zero loss) → 1.2 GB free,
+  did the rebuild, then **`docker start`ed all 12 back (~20:00Z) in two batches,
+  checking `hypercode-core` between — core stayed healthy, 0 restarts.** Final:
+  41 containers up, 11/12 obs healthy (pyroscope/grafana-agent have no
+  healthcheck). `celery-exporter` unhealthy (probe timeout under RAM, app fine);
+  `hypercode-dashboard` unhealthy (pre-existing Docker Desktop overlayfs bug on its
+  exec mount — Node app serves fine; `docker restart hypercode-dashboard` clears
+  it). Stop/start commands + the "not with a full agent fleet" caveat are in
+  `docs/NEXT_SESSION_HANDOVER_2026-09-10.md`.
 
 ## 2026-09-10 (later) — `agent-registry` :8077 rebuilt + started, fleet panel resolved
 
