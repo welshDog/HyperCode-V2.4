@@ -7,6 +7,6 @@
 #      request by Docker service name until server.py set transport_security.
 # server.py is validated against exactly 1.27.1 (custom_route + the
 # TransportSecuritySettings kwarg). Bump deliberately + re-test, never with `>=`.
-mcp[cli]==1.27.1
+mcp[cli]==2.2.0
 httpx>=0.28.0,<1
 uvicorn>=0.35.0,<1
