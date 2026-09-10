@@ -216,10 +216,13 @@ services:
       hypercode-core:
         condition: service_healthy
     healthcheck:
-      # /sse is a streaming endpoint — urlopen() never returns and every probe
-      # burned the full timeout. getresponse() returns on headers; we exit on
-      # the status line without draining the stream.
-      test: ["CMD", "python", "-c", "import http.client,sys; c=http.client.HTTPConnection('localhost',8823,timeout=3); c.request('GET','/sse'); sys.exit(0 if c.getresponse().status < 500 else 1)"]
+      # Probe the dedicated /health route (server.py custom_route), NOT /sse.
+      # /sse is a long-lived MCP event stream: getresponse() blocks until the
+      # header terminator, which the SDK's SSE impl no longer flushes promptly,
+      # so every probe burned the full timeout and the container went unhealthy.
+      # http.client sends Host: localhost:8823 -> passes the SDK's DNS-rebinding
+      # allow-list; /health returns instantly.
+      test: ["CMD", "python", "-c", "import http.client,sys; c=http.client.HTTPConnection('localhost',8823,timeout=3); c.request('GET','/health'); sys.exit(0 if c.getresponse().status == 200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -1,7 +1,12 @@
-# MCP Python SDK — MUST stay on v1.x. v2 (stable 2026-07-28) is a protocol
-# rewrite: `mcp.server.fastmcp.FastMCP` / `mcp.sse_app()` (used in server.py)
-# do not exist there, so an unpinned `>=` rebuild pulls v2 and the container
-# Exits(1) on startup — the same failure class as the Sept 2026 prod outage.
-mcp[cli]>=1.28.1,<2
+# MCP Python SDK — PINNED EXACT on purpose. Two separate traps here:
+#   1. v2 (stable 2026-07-28) is a protocol rewrite: `mcp.server.fastmcp.FastMCP`
+#      / `mcp.sse_app()` (used in server.py) don't exist there -> Exits(1) on
+#      startup (the Sept 2026 prod-outage failure class).
+#   2. Even within v1.x, minor bumps change behaviour: >=1.9 turned on
+#      DNS-rebinding protection by default (Host allow-list), which 421'd every
+#      request by Docker service name until server.py set transport_security.
+# server.py is validated against exactly 1.27.1 (custom_route + the
+# TransportSecuritySettings kwarg). Bump deliberately + re-test, never with `>=`.
+mcp[cli]==1.27.1
 httpx>=0.28.0,<1
 uvicorn>=0.35.0,<1

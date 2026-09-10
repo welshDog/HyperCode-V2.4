@@ -25,12 +25,27 @@ from typing import Any, Optional
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 # ── Config ────────────────────────────────────────────────────────────────────
 CORE_URL    = os.getenv("HYPERCODE_CORE_URL", "http://hypercode-core:8000")
 ORCH_URL    = os.getenv("HYPERCODE_ORCH_URL", "http://crew-orchestrator:8080")
 API_PREFIX  = "/api/v1"
 TIMEOUT     = 10.0
+
+# The mcp SDK (>=1.9) turns DNS-rebinding protection ON by default and only
+# accepts Host headers matching 127.0.0.1:* / localhost:* / [::1]:* — so every
+# request that arrives by Docker service name (the dashboard's MCP proxy hits
+# http://hypercode-mcp-server:8823/sse) is rejected with 421 Misdirected
+# Request. Re-allow the in-cluster name explicitly; the SDK defaults are kept so
+# `http://localhost:8823/sse` from an IDE (Claude Code / Cursor) still works.
+_ALLOWED_HOSTS = [
+    "127.0.0.1:*", "localhost:*", "[::1]:*",   # SDK defaults
+    "hypercode-mcp-server:*",                   # Docker service name (dashboard proxy, in-cluster clients)
+    "0.0.0.0:*",
+]
 
 mcp = FastMCP(
     "HyperCode",
@@ -39,7 +54,24 @@ mcp = FastMCP(
         "Use these tools to inspect running agents, manage tasks, generate implementation "
         "plans, and query the system health. Always check system_health first if unsure."
     ),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=_ALLOWED_HOSTS,
+        allowed_origins=(
+            [f"http://{h}" for h in _ALLOWED_HOSTS]
+            + [f"https://{h}" for h in _ALLOWED_HOSTS]
+        ),
+    ),
 )
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(_request: Request) -> JSONResponse:
+    """Cheap, non-streaming liveness probe for the Docker healthcheck and the
+    dashboard's MCP Gateway panel. The real MCP endpoint (/sse) is a long-lived
+    stream — probing *it* hangs the check until it times out (the old bug that
+    left this container `unhealthy`)."""
+    return JSONResponse({"status": "ok", "service": "hypercode-mcp-server", "transport": "sse"})
 
 # ── HTTP helper ───────────────────────────────────────────────────────────────
 
