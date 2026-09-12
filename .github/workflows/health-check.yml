@@ -48,15 +48,7 @@ jobs:
           fi
 
       - name: 🔍 Lint Sacred Rules — check Redis DB assignments
-        run: |
-          echo "Checking Redis DB assignments in compose files..."
-          # Throttle-agent must use DB 1, never DB 0
-          if grep -A5 "throttle-agent" docker-compose.agents-full.yml | grep "REDIS_URL" | grep -v "redis:6379/1"; then
-            echo "FAIL: throttle-agent must use Redis DB 1 (rate limits)!"
-            exit 1
-          else
-            echo "PASS: throttle-agent Redis DB 1 confirmed."
-          fi
+        run: python .github/scripts/check_redis_db_assignment.py
 
       - name: 🔍 Check .env not committed
         run: |
