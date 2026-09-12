@@ -22,6 +22,12 @@ FILES = [
     "docker-compose.agents-full.yml",
     "docker-compose.bropets.yml",
     "docker-compose.brain.yml",
+    # Added 2026-09-12: fleet-controller/governor/mission-director moved here
+    # 2026-09-04 (Phase 0-2 fleet/governance plane) but this list was never
+    # updated, so the roster check always failed on the first of these three
+    # it checked alphabetically ("fleet-controller not found in any fleet
+    # compose file") even though all three were correctly defined and live.
+    "docker-compose.fleet.yml",
 ]
 
 _OVERLAY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fleet_overlay.yml")

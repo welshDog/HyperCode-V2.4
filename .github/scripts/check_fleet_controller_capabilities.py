@@ -13,12 +13,14 @@ import yaml
 
 
 def main():
-    with open("docker-compose.agents-full.yml", encoding="utf-8") as f:
+    # fleet-controller moved to docker-compose.fleet.yml 2026-09-04 (Phase 0-2
+    # fleet/governance plane); this reference was never updated until 2026-09-12.
+    with open("docker-compose.fleet.yml", encoding="utf-8") as f:
         doc = yaml.safe_load(f)
 
     svc = (doc.get("services") or {}).get("fleet-controller")
     if svc is None:
-        print("FAIL: fleet-controller service not found in docker-compose.agents-full.yml")
+        print("FAIL: fleet-controller service not found in docker-compose.fleet.yml")
         sys.exit(1)
 
     errors = []

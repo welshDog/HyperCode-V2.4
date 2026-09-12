@@ -1,7 +1,17 @@
-# Fleet / Governance plane — Phase 0 (fleet-controller) + Phase 2 (governor).
+# Fleet / Governance plane — Phase 0 (fleet-controller) + Phase 1
+# (mission-director) + Phase 2 (governor).
 #
 # Launch:  docker compose -f docker-compose.yml -f docker-compose.fleet.yml \
-#            --profile agents --profile fleet up -d fleet-controller governor
+#            --profile agents --profile fleet up -d fleet-controller mission-director governor
+#
+# 🪤 mission-director restored 2026-09-12: deleted alongside 11 other agents by
+# commit e1afd436 (2026-08-29), which wholesale-replaced docker-compose.agents-
+# full.yml instead of only touching coderabbit-webhook as its message claimed.
+# It never lived in this file before (fleet-controller/governor moved here
+# 2026-09-04, after mission-director was already gone) — added here rather than
+# back into agents-full.yml because it belongs to the same Phase 0-2 fleet/
+# governance plane as its two siblings (see CLAUDE.md's "Phase 0-2: Fleet
+# Controller + Mission Director + Governor" section).
 #
 # NOTE: do NOT also pass -f docker-compose.core.yml — docker-compose.yml
 # already pulls it (and docker-compose.agents.yml, docker-compose.secrets.yml
@@ -38,6 +48,44 @@ services:
     depends_on:
       safety-shepherd:
         condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  mission-director:
+    build:
+      context: ./agents/mission-director
+    image: hypercode-v24-mission-director:latest
+    container_name: mission-director
+    profiles: ["fleet"]
+    environment:
+      AGENT_NAME: mission-director
+      AGENT_PORT: "8080"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AGENT_MODEL: ${AGENT_MODEL:-claude-sonnet-4-6}
+      FLEET_CONTROLLER_URL: http://fleet-controller:8080
+      CORE_URL: http://hypercode-core:8000
+      CORE_AGENT_KEY: ${MISSION_DIRECTOR_CORE_AGENT_KEY:-}
+    ports:
+      - "127.0.0.1:8086:8080"
+    volumes:
+      # impact_snapshot.py / truth_snapshot.py hard-require this mount —
+      # sys.path.insert(0, "/app/truth") + fleet_registry.py's FILES constant
+      # both assume the real compose files are readable here. Read-only.
+      - ./.github/scripts/fleet_registry.py:/app/truth/fleet_registry.py:ro
+      - ./.github/scripts/fleet_overlay.yml:/app/truth/fleet_overlay.yml:ro
+      - ./docker-compose.agents.yml:/app/truth/docker-compose.agents.yml:ro
+      - ./docker-compose.agents-full.yml:/app/truth/docker-compose.agents-full.yml:ro
+      - ./docker-compose.bropets.yml:/app/truth/docker-compose.bropets.yml:ro
+      - ./docker-compose.brain.yml:/app/truth/docker-compose.brain.yml:ro
+      - ./docker-compose.fleet.yml:/app/truth/docker-compose.fleet.yml:ro
+      - ./docker-compose.core.yml:/app/truth/docker-compose.core.yml:ro
+    networks:
+      - agents-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
