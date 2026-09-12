@@ -130,14 +130,47 @@ narrower and more mechanical than the council assumed.
 
 ### Tier 5 — Real, but lower urgency than infra/safety
 
-8. **Skill/agent discoverability + onboarding.** Confirmed genuinely unaddressed
-   — no `/ide/skill-suggest` or matcher exists in the dashboard, no onboarding
-   tutorial route. The separate HYPER-SILLs project (semantic search, MiniLM
-   embeddings) does NOT close this gap — it's wired into HyperCode-V2.4 only as a
-   static, non-searchable agent-boot loadout injection (`agents/shared/loadout.py`
-   reading two JSON files), never exposed to a human through `/ide`. This is a
-   real, vaguer, product-shaped feature — worth keeping on the roadmap, but
-   behind the infra/safety tiers above since it doesn't unblock anything else.
+8. **Skill/agent discoverability + onboarding.** Re-confirmed 2026-09-12 (still
+   true after everything else this session shipped): no `/ide/skill-suggest` or
+   matcher exists in the dashboard, no onboarding tutorial route. The separate
+   HYPER-SILLs project (semantic search, MiniLM embeddings) does NOT close this
+   gap — it's wired into HyperCode-V2.4 only as a static, non-searchable
+   agent-boot loadout injection (`agents/shared/loadout.py` reading two JSON
+   files), never exposed to a human through `/ide`. This is a real, vaguer,
+   product-shaped feature — worth keeping on the roadmap, but behind the
+   infra/safety tiers above since it doesn't unblock anything else.
+
+   **What `/ide` actually is today**: `agents/dashboard/app/ide/page.tsx` is a
+   9-line file that renders `<StudioView />` — the coder-agent code-run studio
+   (model picker, agent execution surface), not a skill browser of any kind.
+   "Add skill discoverability to `/ide`" means adding a genuinely new capability
+   to (or alongside) this view, not extending an existing partial one.
+
+   **Approach options, not yet chosen or built**:
+   - **(a) Static fuzzy-match search** — a small `/api/skills/search` endpoint
+     doing keyword/fuzzy matching over each skill's name+description (the same
+     metadata already in every `SKILL.md` frontmatter across `.claude/skills/`),
+     surfaced as a search box in `/ide`. Smallest effort, no new infra, no LLM
+     call — closest to what the original council doc's Product Agent described.
+     Weakest for vague/natural-language goals ("deploy a Discord bot" won't
+     obviously match a skill named `hypercode-broski-discord-bot`).
+   - **(b) LLM-backed matcher** — a small endpoint that sends the user's goal +
+     the skill catalog (name+description, already compact) to a cheap model
+     (matches this repo's own established free/local-first pattern —
+     OpenRouter/Ollama fallback, same as `broski-coo`) and returns ranked
+     suggestions with a one-line rationale. Better recall for natural-language
+     goals, small ongoing cost/latency, reuses existing LLM-client plumbing
+     rather than inventing new infra.
+   - **(c) Wire in HYPER-SILLs' real semantic search** — the MiniLM embedding
+     index already exists and is live for a different project; exposing it to
+     HyperCode-V2.4 would mean a new cross-project API call (HYPER-SILLs isn't
+     currently network-reachable from HyperCode-V2.4, only filesystem-mounted
+     as static JSON). Best long-term fit if HYPER-SILLs is meant to be the
+     canonical skill index across projects, but the largest lift — needs
+     HYPER-SILLs to expose a real endpoint first, not just files.
+   - Onboarding tutorial (the doc's second half of this item) is a separate,
+     smaller, unrelated deliverable (a guided first-skill walkthrough) that
+     doesn't depend on which search approach is picked.
 
 ### Drop from active planning (stale, already resolved, or minor cleanup only)
 
