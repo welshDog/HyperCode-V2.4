@@ -36,14 +36,7 @@ jobs:
         run: python .github/scripts/check_no_dockerio.py
 
       - name: 🔍 Lint Sacred Rules — check no backend.app imports
-        run: |
-          echo "Checking for forbidden 'from backend.app' imports..."
-          if grep -r "from backend\.app" --include="*.py" .; then
-            echo "FAIL: 'from backend.app' import found! Use 'from app.X import Y'."
-            exit 1
-          else
-            echo "PASS: No forbidden imports found."
-          fi
+        run: python .github/scripts/check_no_backend_app_imports.py
 
       - name: 🔍 Lint Sacred Rules — check Python indentation (no 3-space indent)
         run: |

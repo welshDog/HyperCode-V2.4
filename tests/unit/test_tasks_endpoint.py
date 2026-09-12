@@ -6,12 +6,8 @@ from celery.exceptions import OperationalError as CeleryOperationalError
 
 @pytest.fixture
 def client():
-    try:
-        from fastapi.testclient import TestClient
-        from backend.app.main import app
-    except ImportError:
-        from fastapi.testclient import TestClient
-        from app.main import app
+    from fastapi.testclient import TestClient
+    from app.main import app
     return TestClient(app)
 
 
@@ -21,8 +17,8 @@ def auth_headers():
     return {"X-API-Key": "test-key"}
 
 
-@patch("backend.app.api.v1.endpoints.tasks.celery_app")
-@patch("backend.app.api.v1.endpoints.tasks.get_db")
+@patch("app.api.v1.endpoints.tasks.celery_app")
+@patch("app.api.v1.endpoints.tasks.get_db")
 def test_create_task_celery_down(mock_db, mock_celery, client, auth_headers):
     mock_celery.send_task.side_effect = CeleryOperationalError("Broker down")
     mock_db.return_value = MagicMock()
@@ -35,8 +31,8 @@ def test_create_task_celery_down(mock_db, mock_celery, client, auth_headers):
     assert "unavailable" in resp.json().get("detail", "").lower()
 
 
-@patch("backend.app.api.v1.endpoints.tasks.celery_app")
-@patch("backend.app.api.v1.endpoints.tasks.get_db")
+@patch("app.api.v1.endpoints.tasks.celery_app")
+@patch("app.api.v1.endpoints.tasks.get_db")
 def test_create_task_success(mock_db, mock_celery, client, auth_headers):
     mock_celery.send_task.return_value = MagicMock(id="abc-123")
     mock_db.return_value = MagicMock()
@@ -49,7 +45,7 @@ def test_create_task_success(mock_db, mock_celery, client, auth_headers):
     assert resp.status_code in (200, 201)
 
 
-@patch("backend.app.api.v1.endpoints.memory.rag")
+@patch("app.api.v1.endpoints.memory.rag")
 def test_memory_query_chroma_down(mock_rag, client, auth_headers):
     mock_rag.query.side_effect = Exception("ChromaDB unavailable")
     resp = client.post(
@@ -60,7 +56,7 @@ def test_memory_query_chroma_down(mock_rag, client, auth_headers):
     assert resp.status_code == 503
 
 
-@patch("backend.app.api.v1.endpoints.orchestrator.httpx")
+@patch("app.api.v1.endpoints.orchestrator.httpx")
 def test_orchestrator_execute_down(mock_httpx, client, auth_headers):
     mock_httpx.AsyncClient.return_value.__aenter__.return_value.post.side_effect = Exception(
         "Connection refused"

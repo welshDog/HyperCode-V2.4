@@ -5,12 +5,8 @@ from unittest.mock import patch
 
 
 def _get_security_module():
-    try:
-        from backend.app.core import security
-        return security
-    except ImportError:
-        from app.core import security
-        return security
+    from app.core import security
+    return security
 
 
 def test_valid_token_roundtrip():

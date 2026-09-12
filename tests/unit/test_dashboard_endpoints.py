@@ -25,12 +25,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _client():
-    try:
-        from fastapi.testclient import TestClient
-        from backend.app.main import app
-    except ImportError:
-        from fastapi.testclient import TestClient
-        from app.main import app
+    from fastapi.testclient import TestClient
+    from app.main import app
     return TestClient(app)
 
 
@@ -271,12 +267,8 @@ class TestPublicTasksCRUD:
         """In-memory SQLite session for route tests."""
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
-        try:
-            from backend.app.db.base_class import Base
-            from backend.app.models.dashboard_task import DashboardTask  # noqa: F401
-        except ImportError:
-            from app.db.base_class import Base
-            from app.models.dashboard_task import DashboardTask  # noqa: F401
+        from app.db.base_class import Base
+        from app.models.dashboard_task import DashboardTask  # noqa: F401
 
         engine = create_engine(
             "sqlite:///:memory:",
@@ -290,12 +282,8 @@ class TestPublicTasksCRUD:
         Base.metadata.drop_all(engine)
 
     def test_list_tasks_empty(self, client, db_session):
-        try:
-            from backend.app.db.session import get_db
-            from backend.app.main import app
-        except ImportError:
-            from app.db.session import get_db
-            from app.main import app
+        from app.db.session import get_db
+        from app.main import app
 
         app.dependency_overrides[get_db] = lambda: db_session
         resp = client.get("/api/v1/tasks")
@@ -318,12 +306,8 @@ class TestPublicTasksCRUD:
         r_mock.aclose = AsyncMock()
         mock_redis.return_value = r_mock
 
-        try:
-            from backend.app.db.session import get_db
-            from backend.app.main import app
-        except ImportError:
-            from app.db.session import get_db
-            from app.main import app
+        from app.db.session import get_db
+        from app.main import app
 
         app.dependency_overrides[get_db] = lambda: db_session
 

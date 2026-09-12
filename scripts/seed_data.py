@@ -7,12 +7,13 @@ import os
 import sys
 from pathlib import Path
 
-# Allow imports from project root
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Allow `from app.X import Y` (Sacred Rule: never `from backend.app.X`) —
+# app is only importable as a top-level package with backend/ on sys.path.
+sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
 try:
-    from backend.app.core.database import engine, Base
-    from backend.app.models import user, broski, mission  # noqa: F401
+    from app.core.database import engine, Base
+    from app.models import user, broski, mission  # noqa: F401
 except ImportError as e:
     print(f"⚠️  Import error: {e}")
     print("   Make sure you're running from the repo root with venv active.")
