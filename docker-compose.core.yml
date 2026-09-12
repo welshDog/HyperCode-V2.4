@@ -144,6 +144,7 @@ services:
     volumes:
       - ./backend/alembic:/app/alembic:ro
       - ./backend/alembic.ini:/app/alembic.ini:ro
+      - ./.claude/skills:/app/skills-catalog:ro
     depends_on:
       redis:
         condition: service_healthy
