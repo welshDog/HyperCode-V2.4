@@ -113,6 +113,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -159,6 +163,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=core"
@@ -204,6 +212,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -246,6 +258,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=specialist"
@@ -306,6 +322,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -353,6 +373,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -404,6 +428,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"
@@ -462,6 +490,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -504,6 +536,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -547,6 +583,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -593,6 +633,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=utility"
@@ -644,6 +688,10 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     labels:
       - "com.hypercode.tier=infrastructure"

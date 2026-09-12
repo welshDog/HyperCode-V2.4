@@ -48,6 +48,10 @@ services:
     depends_on:
       safety-shepherd:
         condition: service_started
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -86,6 +90,10 @@ services:
       - ./docker-compose.core.yml:/app/truth/docker-compose.core.yml:ro
     networks:
       - agents-net
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -123,6 +131,10 @@ services:
         condition: service_started
       redis:
         condition: service_started
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]

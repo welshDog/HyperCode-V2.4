@@ -198,6 +198,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   hypercode-mcp-server:
     build:
@@ -243,6 +245,8 @@ services:
         max-file: "2"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   dashboard:
     build:
@@ -304,6 +308,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ====================================================================
   # GITHUB SYNC — always-on, no profile
@@ -405,6 +411,13 @@ services:
       - ALL
 
   hyper-mission-ui:
+    # cap_add here is load-bearing, not decorative: this service's cap_drop:
+    # ALL below strips CAP_NET_BIND_SERVICE too, and nginx binds container
+    # port 80 (a privileged port, <1024) -- without this it can't start.
+    # Dropping all capabilities removes root's implicit ones too, this isn't
+    # optional even though the container's default user is root.
+    cap_add:
+      - NET_BIND_SERVICE
     profiles: ["mission"]
     build:
       context: ./hyper-mission-system/client
@@ -867,6 +880,10 @@ services:
       options:
         max-size: "5m"
         max-file: "2"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   security-scanner:
     profiles: ["ops", "health"]
@@ -898,6 +915,10 @@ services:
         reservations:
           cpus: "0.05"
           memory: 64M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   docker-janitor:
     profiles: ["disabled"]
@@ -913,6 +934,10 @@ services:
       - CLEAN_STOPPED_CONTAINERS=false
       - CLEAN_UNUSED_IMAGES=false
       - CLEAN_UNUSED_VOLUMES=false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   # ====================================================================
   # CORE AGENTS — `--profile agents`
@@ -989,6 +1014,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   coder-agent:
     profiles: ["agents"]
@@ -1047,6 +1074,15 @@ services:
       - --servers=github
       - --transport=streaming
       - --port=8820
+    # Accepted Sacred Rule exception, documented not silent: mcp-gateway
+    # needs direct docker.sock access for its own container-management
+    # features (official docker/mcp-gateway image) -- re-plumbing through
+    # docker-socket-proxy (the pattern every other agent uses) would need
+    # verifying the proxy exposes every API surface this image calls, which
+    # hasn't been checked. Read-only mount, cap_drop: ALL + no-new-privileges
+    # still apply below -- this is scoped to socket access only, not a
+    # general carve-out. Flagged as a follow-up if/when re-plumbing is worth
+    # doing, not attempted here (2026-09-12).
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
@@ -1416,6 +1452,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   project-strategist:
     profiles: ["agents"]
@@ -1471,6 +1509,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   frontend-specialist:
     profiles: ["agents"]
@@ -1520,6 +1560,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   backend-specialist:
     profiles: ["agents"]
@@ -1569,6 +1611,8 @@ services:
         max-file: "3"
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
 
   database-architect:
     profiles: ["agents"]
