@@ -10,6 +10,11 @@ metadata:
 # HyperCode V2.4 — Kubernetes Deployment
 # Multi-region ready with KEDA auto-scaling
 # Created: May 21, 2026
+# NOTE (2026-09-12): image refs point at ghcr.io/welshdog/hypercode-SERVICE:latest,
+# matching docker-push.yml's naming. docker-push.yml currently fails on every run
+# (mixed-case repo-name bug in its own tag interpolation) so nothing is actually
+# published at this path yet — fixing it here removes the (unrelated) docker.io
+# Sacred Rules lint false-fail without claiming these tags are live.
 # ════════════════════════════════════════════════════════════════════════════════
 
 apiVersion: apps/v1
@@ -46,7 +51,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: hypercode-core
-        image: docker.io/w3lshdog/hypercode-core:v2.4.2
+        image: ghcr.io/welshdog/hypercode-core:latest
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
@@ -201,7 +206,7 @@ spec:
         runAsUser: 1000
       containers:
       - name: crew-orchestrator
-        image: docker.io/w3lshdog/hypercode-crew-orchestrator:v2.4.2
+        image: ghcr.io/welshdog/hypercode-crew-orchestrator:latest
         ports:
         - name: http
           containerPort: 8080

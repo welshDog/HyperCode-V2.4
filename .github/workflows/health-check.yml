@@ -33,14 +33,7 @@ jobs:
           pip install pyyaml requests
 
       - name: 🔍 Lint Sacred Rules — check no docker.io references
-        run: |
-          echo "Checking for forbidden docker.io references..."
-          if grep -r "docker.io" --include="*.py" --include="*.yml" --include="*.yaml" --include="*.sh" .; then
-            echo "FAIL: docker.io found! Use docker-ce-cli only."
-            exit 1
-          else
-            echo "PASS: No docker.io references found."
-          fi
+        run: python .github/scripts/check_no_dockerio.py
 
       - name: 🔍 Lint Sacred Rules — check no backend.app imports
         run: |

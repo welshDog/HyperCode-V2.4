@@ -3,6 +3,12 @@
 # mTLS, network policies, secrets management
 # Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # Created: May 21, 2026
+# NOTE (2026-09-12): image refs point at ghcr.io/welshdog/hypercode-SERVICE:latest,
+# matching docker-push.yml's push-agents/push-backend naming. As of this date,
+# docker-push.yml fails on every run (mixed-case repo-name bug in its own tag
+# interpolation) so nothing is actually published at this path yet. This file is
+# not consumed by any active launch script; fixing it here removes the (unrelated)
+# docker.io Sacred Rules lint false-fail without claiming these tags are live.
 # ════════════════════════════════════════════════════════════════════════════════
 
 version: "3.9"
@@ -14,7 +20,7 @@ services:
   # ──────────────────────────────────────────────────────────────────────────────
 
   crew-orchestrator:
-    image: docker.io/w3lshdog/hypercode-crew-orchestrator:v2.4.2
+    image: ghcr.io/welshdog/hypercode-crew-orchestrator:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
@@ -44,7 +50,7 @@ services:
       - NET_BIND_SERVICE
 
   agent-x:
-    image: docker.io/w3lshdog/hypercode-agent-x:v2.4.2
+    image: ghcr.io/welshdog/hypercode-agent-x:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
@@ -72,7 +78,7 @@ services:
       - ALL
 
   brain-agent:
-    image: docker.io/w3lshdog/hypercode-brain-agent:v2.4.2
+    image: ghcr.io/welshdog/hypercode-brain-agent:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
@@ -98,7 +104,7 @@ services:
       - ALL
 
   coder-agent:
-    image: docker.io/w3lshdog/hypercode-coder-agent:v2.4.2
+    image: ghcr.io/welshdog/hypercode-coder:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
@@ -124,7 +130,7 @@ services:
       - ALL
 
   tips-tricks-writer:
-    image: docker.io/w3lshdog/hypercode-tips-tricks-agent:v2.4.2
+    image: ghcr.io/welshdog/hypercode-tips-tricks-writer:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
@@ -152,7 +158,7 @@ services:
   # ──────────────────────────────────────────────────────────────────────────────
 
   hypercode-core:
-    image: docker.io/w3lshdog/hypercode-core:v2.4.2
+    image: ghcr.io/welshdog/hypercode-core:latest
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
