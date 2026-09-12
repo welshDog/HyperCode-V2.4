@@ -53,7 +53,12 @@
 # :8020  business-agent
 # :8024  coderabbit-webhook
 # :8082  brain-agent
-# :8000  mission-executor        ← added 2026-08-29, unaffected by this restore
+# :8026  mission-executor        ← moved off :8000 2026-09-12 (collided with
+#                                    hypercode-core's real, live :8000 binding
+#                                    in docker-compose.core.yml -- never
+#                                    caught by check_duplicate_ports.py, which
+#                                    only scans the 4 fleet-roster files, not
+#                                    core.yml)
 # ─────────────────────────────────
 # ✅ All agents depend_on crew-orchestrator (healthy) — via docker-compose.agents.yml
 # ✅ All healthchecks have start_period
@@ -658,7 +663,16 @@ services:
       dockerfile: Dockerfile
     container_name: mission-executor
     ports:
-      - "127.0.0.1:8000:8000"
+      # Host port moved off :8000 2026-09-12 (build+start verification of the
+      # restored fleet) -- collided with hypercode-core's real, live
+      # 127.0.0.1:8000:8000 (docker-compose.core.yml). check_duplicate_ports.py
+      # never caught this because it only scans the 4 fleet-roster compose
+      # files, not core.yml -- this collision made mission-executor
+      # unlaunchable since its creation (2026-08-29), invisible until an
+      # actual `docker compose up` was attempted for the first time.
+      # Container-internal port is unaffected (still 8000, see healthcheck
+      # below) -- only the host binding changed.
+      - "127.0.0.1:8026:8000"
     environment:
       - AGENT_NAME=mission-executor
       - LOG_LEVEL=INFO

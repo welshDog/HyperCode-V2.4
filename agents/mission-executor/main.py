@@ -23,7 +23,7 @@ import redis.asyncio as redis
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from agent_delegator import AgentDelegator, DelegationResult
+from agent_delegator import AgentDelegator
 from models import ExecutionRequest, ExecutionResult, ExecutionStatus
 
 # Configure logging
