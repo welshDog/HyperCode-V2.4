@@ -1,6 +1,6 @@
 ---
 name: hyper-load-tester
-description: Load testing and performance benchmarking for HyperCode V2.4. Use when writing k6 or locust load tests, setting up performance baselines, running stress tests against the API, verifying P99 latency targets, or adding load testing to CI. Target: 1000 req/sec, P99 < 100ms.
+description: "Load testing and performance benchmarking for HyperCode V2.4. Use when writing k6 or locust load tests, setting up performance baselines, running stress tests against the API, verifying P99 latency targets, or adding load testing to CI. Target: 1000 req/sec, P99 < 100ms."
 ---
 
 # HyperCode Load Tester Skill
