@@ -1,6 +1,57 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-13 (later) by Claude Sonnet 5 (N18 fixed — dead OpenRouter default model + a bigger reasoning-tokens bug in the shared LLM client — not yet re-verified live) ⚡
+> Last synced: 2026-09-13 (evening) by Claude Sonnet 5 (PR #526 merged + live-verified; full dashboard playtest found + fixed a real BROski Pulse route-collision bug; the box's RAM ceiling re-confirmed the hard way, N22) ⚡
+
+## 2026-09-13 (evening) — PR #526 merged, dashboard playtest, BROski Pulse route-collision bug fixed
+
+Wrap-up of the whole day's arc: spec review → plan → build → review → fix →
+**merge to `main` (`91359687`)** → branch deleted → full live dashboard
+playtest → one more real bug found and fixed.
+
+- **PR #526 merged.** `hypercode-core` rebuilt from `main`, re-verified live:
+  both the LLM-success path (`nvidia/nemotron-3-super-120b-a12b:free`, real
+  ranked results, `usedFallback: false`) and the substring-fallback path work
+  correctly against the real container.
+- **Full dashboard playtest, live in a real browser** (Claude in Chrome)
+  against every nav page — full write-up in
+  `docs/dashboard-playtest-2026-09-13.md`. Headline finding: `hypercode-dashboard`
+  was running a **build from 2026-09-09**, 4 days stale, silently missing
+  `SkillFinder` and everything else merged since (no errors — just absent
+  code). Rebuilt (`docker compose -f docker-compose.yml -f
+  docker-compose.agents.yml build dashboard` — the compose **service name is
+  `dashboard`**, `hypercode-dashboard` is only the `container_name`), then
+  re-tested: `SkillFinder` works end-to-end for real through the actual UI —
+  genuine LLM results, copy-to-clipboard, empty-input guard, dyslexia-mode
+  theming all correct.
+- **New real bug found + fixed (`876ceda7`)**: `backend/app/api/v1/endpoints/broski.py`
+  had **two** `@router.get("/pulse")` handlers in the same router. FastAPI
+  silently keeps only the first exact path+method match, so a leftover stub
+  (`return {"status": "ok"}`) had been permanently shadowing the real,
+  fully-implemented handler (Redis-cached real coins/XP/level/agentsOnline
+  data, explicitly documented "Used by dashboard") — dead code for who knows
+  how long. This is what the BROski Pulse panel had actually been fed. Fixed
+  by deleting the stub; added `test_broski_pulse_returns_real_data_not_stub`
+  so this exact shadowing can't silently regress. Confirmed live: real data
+  now (`xp: 6655, level: 7 "BROski Legend ♾️"` — genuinely earned from
+  tonight's own git-commit XP hooks firing on every commit made this
+  session).
+- **🪤 N22 (new, needs its own session) — this box's RAM ceiling is tighter
+  than previously documented.** Across the whole session, free RAM sat at
+  0.4–0.9 GB nearly continuously. Concrete symptoms, all reproduced live, not
+  theorized: two `pytest` OOM-kills; the Docker daemon itself 500-erroring on
+  every API call (`docker version` included) — only fixed by a full Docker
+  Desktop restart, not anything container-level; `hypercode-core` silently
+  stalling after fully booting and serving real traffic for an extended
+  stretch (`RestartCount` stayed 0 — it didn't crash, it just stopped
+  accepting connections); and `hypercode-dashboard` intermittently
+  `Recv failure: Connection was reset` specifically on routes that make a
+  live cross-container fetch (`/api/broski`) — reproduced twice, both times
+  correlated with RAM in the 0.5–0.7 GB range, both times self-resolving
+  within a few retries once RAM ticked back up. Stopping the 12-container
+  observability stack only freed ~0.2–0.3 GB each time — helpful but not a
+  full fix on its own. Everything was worked around live (toggle obs
+  off/on, wait, retry, rebuild at opportune moments) rather than actually
+  fixed. See `docs/NEXT_TASKS.md` N22 for the concrete next-session ask.
 
 ## 2026-09-13 (later) — N18 fixed: dead OpenRouter default model + reasoning-tokens bug (`b28c26b8`, same branch/PR #526)
 

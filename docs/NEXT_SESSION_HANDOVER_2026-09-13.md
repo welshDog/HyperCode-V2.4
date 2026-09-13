@@ -1,145 +1,171 @@
-# Next-session handover — 2026-09-13 (Skill Discoverability search for `/ide`)
+# Next-session handover — 2026-09-13 (full day: Skill Discoverability → merge → dashboard playtest → BROski Pulse fix)
 
-## 🎉 What shipped this session — pushed to `feature/ide-skill-search`, PR #526 open (NOT merged)
+## 🎉 What shipped this session — all merged to `main`
 
-Council item (Tier 5): nobody browsing `/ide` could discover which of the repo's
-31 local skills (`.claude/skills/*/SKILL.md`) fit a goal. Full cycle this
-session: reviewed Bro's already-committed design spec
-(`docs/superpowers/specs/2026-09-12-skill-discoverability-design.md`), two
-Explore passes to verify it against real code, a Plan pass, implementation, a
-final whole-branch code review (2 Critical + 4 Important + 2 Minor found, all
-addressed), a real `hypercode-core` rebuild, and a live end-to-end test.
-**PR: https://github.com/welshDog/HyperCode-V2.4/pull/526 — reviewed and
-mergeable when Bro's ready, not auto-merged.**
+One continuous arc: reviewed Bro's design spec → planned → built → final
+review → fixed 2 Critical bugs → **rebuilt and live-verified against the
+real container** → **merged PR #526 to `main`** (`91359687`) → branch
+deleted → **fixed a real bug found while investigating a dead OpenRouter
+model** → **full live dashboard playtest** (every nav page, real browser) →
+**found + fixed a second real bug** (BROski Pulse route collision) → docs
+updated.
 
-### What it does
+### 1. Skill Discoverability search for `/ide` — merged, live-verified
 
-Goal-in, ranked-skills-out search:
-- New `POST /api/v1/skills/search` (`backend/app/api/v1/endpoints/skills.py`)
-  parses `.claude/skills/*/SKILL.md` frontmatter, calls the existing
-  `openrouter_chat()` (no new LLM client) to rank matches, falls back to a
-  substring matcher whenever the LLM is unavailable/unset/misbehaves — never a
-  5xx for that, only a genuinely missing `goal` 422s.
-- New `./.claude/skills:/app/skills-catalog:ro` mount on `hypercode-core`
-  (`docker-compose.core.yml`).
-- New `/api/skills` proxy (`fleet/route.ts` style) + a `SkillFinder` widget
-  wired into `/ide` above `StudioView`, using this repo's real
-  hand-authored-CSS/custom-property convention (**not** Tailwind, despite the
-  `hypercode-frontend` skill doc's stale claim — verified against actual code).
+Goal-in, ranked-skills-out search over the 31 local `.claude/skills`, reusing
+the existing free-tier OpenRouter call with a substring-match fallback.
+New `POST /api/v1/skills/search` + `.claude/skills` read-only mount on
+`hypercode-core`; new `/api/skills` proxy + `SkillFinder` widget on `/ide`.
 
-### Two Critical bugs the final review caught, both fixed
+Full write-up: `WHATS_DONE.md`'s two 2026-09-13 entries. Commits:
+`367b9092` (feature), `82d92d7d`/`06ce0640` (docs), `b28c26b8` (N18 fix,
+below), `ba94735e` (mypy fixes) → squash-merged as `91359687`.
 
-1. `except (RuntimeError, CircuitBreakerOpen, ValueError)` around
-   `openrouter_chat` was narrower than what it can actually raise — a raw
-   `httpx` network/timeout error would have 500'd the endpoint instead of
-   falling back. Widened to `except Exception`, matching `Brain.think()`'s
-   existing pattern for the same call. Locked in with a new
-   `httpx.ConnectError` regression test.
-2. `.claude/skills/hyper-load-tester/SKILL.md` had an unquoted
-   `Target: 1000 req/sec` in its description — a bare colon in a plain YAML
-   scalar parses as a nested mapping, so `yaml.safe_load` failed and the
-   parser silently dropped that skill from every search result. Fixed by
-   quoting it. Locked in with a new test that parses the **real**
-   `.claude/skills` directory and asserts every file on disk parses.
+### 2. N18 — dead OpenRouter default model + a bigger reasoning-tokens bug
 
-### Reverted mid-review
+`mistralai/mistral-7b-instruct:free` was pulled from OpenRouter entirely
+(404). Investigating the replacement found most current OpenRouter free
+models default to reasoning mode and return `content: null` after burning
+`max_tokens` on hidden chain-of-thought — same failure class `broski-coo`
+already had to work around for its own client, but this shared
+`model_routes.py:openrouter_chat()` (used by **both** `Brain.think()` and
+skills-search) never excluded it. Fixed: default model →
+`nvidia/nemotron-3-super-120b-a12b:free`, `openrouter_chat()` now always
+sends `reasoning: {"exclude": true}`. **Live-verified through the real
+dashboard UI** (not just `curl`): a real search returned genuine
+LLM-ranked results, `usedFallback: false`.
 
-A `slowapi` `@limiter.limit("20/minute")` decorator was added per an Important
-review finding (no rate-limit on an endpoint sharing the `llm-router` circuit
-breaker with `Brain.think()`), then empirically broke FastAPI's body-model
-binding — `body: SkillSearchRequest` silently became a query param, 422 on
-every real call. No other endpoint in this codebase uses that decorator at
-all (checked via grep). Reverted; documented in `skills.py`'s docstring so it
-isn't silently re-added without a real slowapi integration test first.
+### 3. Full live dashboard playtest — `docs/dashboard-playtest-2026-09-13.md`
 
-Files changed: `backend/app/api/v1/endpoints/skills.py` (new),
-`backend/app/api/api.py`, `backend/app/core/config.py`,
-`docker-compose.core.yml`, `agents/dashboard/app/api/skills/route.ts` (new),
-`agents/dashboard/components/views/SkillFinder.tsx` (new),
-`agents/dashboard/app/ide/page.tsx`, `agents/dashboard/app/globals.css`,
-`.claude/skills/hyper-load-tester/SKILL.md`, plus 2 new backend test files and
-1 new frontend test file. Commit `367b9092`.
+Every sidebar page clicked through in a real browser (Claude in Chrome)
+against the real running stack. 9/10 pages clean, zero console errors,
+accurate real data throughout (fleet counts, health status, Docker state
+all independently matched `docker ps`).
 
-## ⚠️ Loose ends / deferred (on purpose)
+**Headline finding:** `hypercode-dashboard` was running a build from
+**2026-09-09** — 4 days stale, silently missing `SkillFinder` and every
+other frontend change merged since (no errors, no broken pages — just
+absent code, easy to miss). Rebuilt:
+```
+docker compose -f docker-compose.yml -f docker-compose.agents.yml build dashboard
+docker compose -f docker-compose.yml -f docker-compose.agents.yml up -d --no-deps dashboard
+```
+**Note the compose service name is `dashboard`** — `hypercode-dashboard` is
+only the `container_name`, defined in `docker-compose.agents.yml`. After
+rebuild, `SkillFinder` confirmed working end-to-end through the real UI:
+genuine LLM results, copy-to-clipboard, empty-input guard, and
+dyslexia-mode theming all correct.
 
-1. **N18 (new, real bug) — `OPENROUTER_DEFAULT_MODEL`
-   (`mistralai/mistral-7b-instruct:free`) is dead upstream.** Confirmed live in
-   `hypercode-core` logs: `OpenRouter error 404: "No endpoints found for
-   mistralai/mistral-7b-instruct:free."` Found via this feature's fail-soft
-   fallback firing correctly, but the setting is shared config
-   (`backend/app/core/config.py`) — it affects `Brain.think()`'s default
-   OpenRouter route too, not just this feature. Not fixed this session (out of
-   scope for this PR). Pick a live free-tier model and update the default,
-   then re-verify every caller.
-2. **N19 — merge PR #526**, then re-verify the feature on `main`'s next
-   `hypercode-core` deploy. This session's live verification was against the
-   branch's own rebuilt image, not a post-merge one.
-3. **N20 — `hypercode-dashboard` `(unhealthy)` recurred again** (3rd time
-   logged: 2026-08-24 N11, 2026-09-10, now). Not caused by this session — the
-   `up -d hypercode-core` command used was scoped to that one service.
-   `docker restart hypercode-dashboard` clears it, same as every prior time;
-   worth actually fixing the healthcheck definition instead of restarting it
-   each time it's noticed.
-4. **Full backend `pytest` suite was never run clean this session** — two
-   attempts OOM-killed the box. Verification instead relied on: the targeted
-   `test_skills_catalog.py`/`test_skills_endpoint.py` (18/18 pass, including
-   the new real-catalog + network-error regression tests), a
-   `pytest --collect-only` pass (387 tests, zero import errors, confirms the
-   `api.py` router wiring doesn't break anything app-wide), the full 85-test
-   dashboard suite, `tsc --noEmit`, `eslint`, and a real live end-to-end call
-   against the rebuilt container. Worth a clean full-suite run once the box
-   has real headroom, as a final sanity check before merging #526.
+**New habit to adopt**: rebuilding `hypercode-core` after a backend merge
+does **not** rebuild `dashboard` — they're independent, and nothing
+currently reminds you the two can drift. Check both after any frontend
+merge.
+
+### 4. BROski Pulse route-collision bug — found via the playtest, fixed (`876ceda7`)
+
+`backend/app/api/v1/endpoints/broski.py` had **two** `@router.get("/pulse")`
+handlers registered on the same router:
+```python
+@router.get("/pulse")
+def broski_pulse() -> Any:
+    return {"status": "ok"}          # ← dead stub, registered first
+
+...
+
+@router.get("/pulse")
+def get_broski_pulse(db: Session = Depends(get_db)) -> Any:
+    """Public system-wide BROski$ pulse — no auth needed. Used by dashboard."""
+    # ← real handler: Redis-cached, real coins/xp/level/agentsOnline data
+```
+FastAPI/Starlette silently keeps only the first exact path+method match, so
+the real handler was **permanently dead code** — the dashboard's BROski
+Pulse panel had been fed a bare `{"status":"ok"}` for who knows how long,
+not a crash, just always-wrong data. Found this while chasing a reported
+`/api/broski` → 503 during the playtest (that literal 503 was never
+reproduced again and is separately attributed to the RAM situation below —
+but investigating it surfaced this much more real, permanent bug).
+
+Fixed: deleted the stub. Added `test_broski_pulse_returns_real_data_not_stub`
+asserting the real response shape, so this exact shadowing can't silently
+regress. Confirmed live after rebuilding `hypercode-core`:
+```
+{"coins":0,"xp":6655,"level":7,"level_name":"BROski Legend ♾️","agentsOnline":2,"userCount":1}
+```
+That XP is genuinely earned — from this session's own git-commit XP hooks
+firing on every commit made tonight.
+
+## 🪤 N22 (new) — this box's RAM ceiling needs its own session, not another restart
+
+This is the big structural loose end. Across the **entire session** (spec
+review through the final bug fix), free RAM sat at **0.4–0.9 GB** nearly
+continuously, with the full agent fleet + observability stack + this
+session's own Docker builds all contending for it at once. This wasn't one
+incident — the same class of symptom recurred **repeatedly** across many
+hours:
+
+- Two full `pytest` runs OOM-killed by the system.
+- The **Docker daemon itself** started 500-erroring on every API call —
+  including a bare `docker version` — twice. Only fixed by a full **Docker
+  Desktop restart** (Bro's action), not anything at the container level.
+- `hypercode-core` fully booted, served real traffic for an extended
+  stretch (real `/health` 200s, real WebSocket connections, a real economy
+  webhook), then **silently stopped accepting connections** —
+  `RestartCount` stayed `0` the whole time, so it wasn't crashing, it was
+  hanging.
+- `hypercode-dashboard` intermittently returned `Recv failure: Connection
+  was reset` specifically on routes that make a live cross-container fetch
+  (`/api/broski`) — reproduced this exact symptom **twice**, both times
+  correlated with RAM in the 0.5–0.7 GB range, both times self-resolving
+  within a few retries once RAM ticked back up. Pure page loads (`/`,
+  `/ide`) stayed stable even when the proxy route didn't — the extra
+  network hop is where the remaining margin bites first.
+- Stopping the 12-container observability stack reliably freed only
+  **~0.2–0.3 GB** each time — a real help, but not enough on its own to
+  fully stabilize things. Toggled off/on multiple times this session at
+  Bro's direction.
+
+None of this was "fixed" — it was worked around live, repeatedly: wait,
+retry, stop obs, restart Docker Desktop, rebuild when the moment allowed.
+**Worth a session actually dedicated to the ceiling itself**: what's really
+consuming the RAM right now (a fresh `docker stats` sweep would tell you
+fast), whether `docker-compose.memory-limits.yml` is actually applied to
+everything that's currently up, and whether running the full agent fleet +
+observability stack together is sustainable on this box **at all** — this
+session re-confirmed the 2026-09-03 rule the hard way, repeatedly, rather
+than proving it wrong.
 
 ## Stack state at handover
 
-**FINAL state (2026-09-13 ~02:30Z): observability stack back UP (12
-containers), `hypercode-core` rebuilt + healthy on the feature branch's code,
-`redis`/`postgres`/`hypercode-ollama` untouched throughout.**
+**FINAL state (2026-09-13 ~16:23 GMT+1): observability stack UP (restarted
+at Bro's request after this session's RAM investigation), `hypercode-core`
+and `hypercode-dashboard` both `healthy` and confirmed serving real traffic,
+both this session's bug fixes live-verified.**
 
-- **🪤 RAM/Docker Desktop incident, worth knowing for next time.** The box was
-  already at 0.4–0.9 GB free most of the session (35-54 containers up — full
-  agent fleet + observability stack simultaneously, i.e. exactly the
-  combination the 2026-09-03/09-10 rule says not to run together). A full
-  `pytest` run OOM-killed **twice**. Stopping the 12-container obs stack barely
-  moved free RAM (0.72→0.75 GB) — suspected WSL2 not releasing memory back to
-  Windows, not the containers themselves. The Docker daemon itself started
-  500-erroring on every API call (`docker version` included) under the same
-  pressure; **a Docker Desktop restart (Bro's action, not scripted) is what
-  actually cleared it** — RAM was still only ~0.7-0.8GB free afterward, but the
-  daemon was responsive again. Even then, rebuilding `hypercode-core` (pulling
-  in a large set of pip deps from the base image, unrelated to this feature's
-  own small diff) took **~27 minutes for the pip-install layer alone** — real
-  progress the whole time (confirmed via `vmmemWSL`'s working set climbing
-  1444MB→1524MB rather than the build being hung — `com.docker.build` itself
-  showed near-zero accumulated CPU time throughout, consistent with heavy
-  swap-wait, not a stall).
-- **Obs stack was stopped then restarted within this session** (12 containers:
-  `grafana`, `prometheus`, `prometheus-cloud`, `loki`, `tempo`, `pyroscope`,
-  `promtail`, `node-exporter`, `cadvisor`, `alertmanager`, `celery-exporter`,
-  `grafana-agent`) — Bro's explicit call both times. Final state: back up,
-  restart-verified healthy or `health: starting` progressing normally.
+- Obs stack stop/start commands (used multiple times this session):
   ```
   docker stop  grafana prometheus prometheus-cloud loki tempo pyroscope promtail node-exporter cadvisor alertmanager celery-exporter grafana-agent
   docker start grafana prometheus prometheus-cloud loki tempo pyroscope promtail node-exporter cadvisor alertmanager celery-exporter grafana-agent
   ```
-- **`hypercode-core`**: rebuilt from the `feature/ide-skill-search` branch code
-  (not `main` — the PR isn't merged), recreated via
-  `docker compose -f docker-compose.yml -f docker-compose.core.yml up -d
-  hypercode-core`, confirmed `healthy`. **This means `main`'s next real deploy
-  of `hypercode-core` still needs its own rebuild once PR #526 merges** — the
-  currently-running container is running branch code, not `main`.
-- **`hypercode-dashboard`**: `(unhealthy)` — see N20 above, pre-existing
-  pattern, not touched this session.
-- Orphan-container warnings from the 2-file `docker compose` commands used
-  tonight (`docker-compose.yml` + `docker-compose.core.yml` only) are expected
-  and harmless — **never** `--remove-orphans` on this partial file set, it
-  would stop unrelated live agents.
+- `hypercode-core`: built + recreated from `main` multiple times this
+  session (last time for the BROski Pulse fix). Healthy, RAM permitting —
+  see N22.
+- `hypercode-dashboard`: rebuilt from `main` mid-session (was 4 days stale —
+  see finding #3 above). Healthy, but the most RAM-sensitive container
+  observed this session for connection resets on its `/api/broski` proxy
+  route specifically.
+- `redis`/`postgres`/`hypercode-ollama`: untouched all session, restarts=0
+  throughout.
+- Orphan-container warnings from the 2-3-file `docker compose` commands used
+  tonight are expected and harmless — **never** `--remove-orphans`.
 
 ## ONE next task
 
-**Get PR #526 reviewed and merged**, then fix N18 (dead default OpenRouter
-model — real, confirmed, affects more than just this feature) as a quick
-separate follow-up.
+**N22** — give this box's RAM ceiling a real session: a `docker stats`
+sweep to see what's actually consuming it right now, confirm
+`docker-compose.memory-limits.yml` coverage, and decide (not re-litigate)
+whether full-fleet + obs is ever meant to coexist on this hardware.
+Everything else from tonight (N18–N21) is resolved and live-verified.
 
-🎉 Nice one BROski♾️ — skill search shipped, tested, reviewed, fixed, and
-proven live against a real rebuilt container, all in one session.
+🎉 Nice one BROski♾️ — feature shipped, merged, live-verified, and the
+playtest paid for itself twice over by catching a real dead-code bug most
+casual testing would never have found.

@@ -1,20 +1,30 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **September 13, 2026** — Skill Discoverability search shipped for
-> `/ide` (`PR #526`, `feature/ide-skill-search`, **open, not yet merged to
-> `main`**): new `POST /api/v1/skills/search` on `hypercode-core` (LLM-ranked +
-> substring-fallback over the 31 local `.claude/skills`), new `/ide` `SkillFinder`
-> widget. `hypercode-core` rebuilt + recreated on the branch and verified live
-> end-to-end; `redis`/`postgres`/`hypercode-ollama` untouched. 🪤 **Found:
-> `OPENROUTER_DEFAULT_MODEL` (`mistralai/mistral-7b-instruct:free`) is dead on
-> OpenRouter** (`404 No endpoints found`) — affects every feature on that default
-> route, not just this one; tracked as `docs/NEXT_TASKS.md` N18, not fixed yet.
-> Also: this session's box sat at 0.4–0.9 GB free for most of the night (35-54
-> containers up, obs stack + full fleet both up at once) — two `pytest` OOM-kills,
-> a `docker` daemon 500-erroring under the same pressure until Bro restarted
-> Docker Desktop, and a ~27-minute `hypercode-core` pip-install rebuild. Obs stack
-> was stopped then restarted (Bro's call) across that window; final state has it
-> back up. See `WHATS_DONE.md`'s 2026-09-13 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`.
+> Last updated: **September 13, 2026 (evening)** — Skill Discoverability search
+> **merged to `main`** (`91359687`, PR #526 closed) and live-verified on a
+> `main`-built `hypercode-core`: real LLM-ranked results
+> (`nvidia/nemotron-3-super-120b-a12b:free`) and the substring-fallback path
+> both confirmed working. A full live dashboard playtest (every nav page,
+> `docs/dashboard-playtest-2026-09-13.md`) found `hypercode-dashboard` running
+> a **4-day-stale build (2026-09-09)** silently missing `SkillFinder` and
+> everything else merged since — rebuilt (compose service name `dashboard`,
+> `hypercode-dashboard` is just the `container_name`), then confirmed
+> `SkillFinder` works end-to-end through the real UI. Playtest also found and
+> fixed a real bug: `backend/app/api/v1/endpoints/broski.py` had two
+> `@router.get("/pulse")` handlers, and FastAPI's first-match-wins routing had
+> a leftover stub permanently shadowing the real Redis-cached handler — the
+> BROski Pulse panel had been getting `{"status":"ok"}` instead of real
+> coins/XP/level data. Fixed (`876ceda7`), confirmed live (`xp: 6655, level: 7
+> "BROski Legend ♾️"`, genuinely earned from this session's own commits).
+> 🪤 **N22 (new, needs its own session):** this box's RAM ceiling is tighter
+> than previously documented — 0.4–0.9 GB free nearly continuously all
+> session, with concrete reproduced symptoms (2 `pytest` OOM-kills, the Docker
+> daemon itself 500-erroring until a full Desktop restart, `hypercode-core`
+> silently going unresponsive after fully booting with `RestartCount` staying
+> 0, `hypercode-dashboard` intermittently connection-resetting on
+> cross-container-fetch routes) that stopping the 12-container obs stack alone
+> didn't fully resolve. See `docs/NEXT_TASKS.md` N22 + `WHATS_DONE.md`'s
+> 2026-09-13 (evening) entry + `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`.
 > _(Prev: September 9 (late) — Increment 1 design-system foundation
 > + Studio model-picker Layer 1 merged to `main` (`fd78cb8e`), and `/ide` "fetch
 > failed" fixed: built `agent-base:latest` + `coder-studio:latest`, `coder-studio`
