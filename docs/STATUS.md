@@ -1,6 +1,21 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **September 9, 2026 (late)** — Increment 1 design-system foundation
+> Last updated: **September 13, 2026** — Skill Discoverability search shipped for
+> `/ide` (`PR #526`, `feature/ide-skill-search`, **open, not yet merged to
+> `main`**): new `POST /api/v1/skills/search` on `hypercode-core` (LLM-ranked +
+> substring-fallback over the 31 local `.claude/skills`), new `/ide` `SkillFinder`
+> widget. `hypercode-core` rebuilt + recreated on the branch and verified live
+> end-to-end; `redis`/`postgres`/`hypercode-ollama` untouched. 🪤 **Found:
+> `OPENROUTER_DEFAULT_MODEL` (`mistralai/mistral-7b-instruct:free`) is dead on
+> OpenRouter** (`404 No endpoints found`) — affects every feature on that default
+> route, not just this one; tracked as `docs/NEXT_TASKS.md` N18, not fixed yet.
+> Also: this session's box sat at 0.4–0.9 GB free for most of the night (35-54
+> containers up, obs stack + full fleet both up at once) — two `pytest` OOM-kills,
+> a `docker` daemon 500-erroring under the same pressure until Bro restarted
+> Docker Desktop, and a ~27-minute `hypercode-core` pip-install rebuild. Obs stack
+> was stopped then restarted (Bro's call) across that window; final state has it
+> back up. See `WHATS_DONE.md`'s 2026-09-13 entry + `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`.
+> _(Prev: September 9 (late) — Increment 1 design-system foundation
 > + Studio model-picker Layer 1 merged to `main` (`fd78cb8e`), and `/ide` "fetch
 > failed" fixed: built `agent-base:latest` + `coder-studio:latest`, `coder-studio`
 > (`:8087`, `--profile agents`/`studio`) is now a **permanent resident** (count 39
@@ -11,7 +26,7 @@
 > `/ide` via `safety-shepherd` — next rotation must recreate dashboard +
 > coder-studio + safety-shepherd together). `ANTHROPIC_API_KEY` still blank →
 > Cloud `/ide` runs die at the model call (proxy hop verified). See
-> `docs/NEXT_SESSION_HANDOVER_2026-09-09.md` + `WHATS_DONE.md`'s 2026-09-09 entry.
+> `docs/NEXT_SESSION_HANDOVER_2026-09-09.md` + `WHATS_DONE.md`'s 2026-09-09 entry.)_
 > _(Prev: September 4 — Governor + capability tokens (Phase 2 of
 > the autonomous-control-plane north star) shipped: new `governor` service `:8089`,
 > compose-wired via a new `docker-compose.fleet.yml` alongside `fleet-controller`.

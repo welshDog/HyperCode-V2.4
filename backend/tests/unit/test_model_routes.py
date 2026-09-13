@@ -79,6 +79,51 @@ async def test_openrouter_chat_raises_on_missing_content(monkeypatch):
         )
 
 
+@pytest.mark.asyncio
+async def test_openrouter_chat_excludes_reasoning_tokens(monkeypatch):
+    """Every call excludes reasoning tokens — most current OpenRouter free
+    models default to reasoning mode and return content: null without this
+    (confirmed 2026-09-13 against nemotron/cohere/inclusionai's :free tiers)."""
+    from app.core import model_routes as routes_mod
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+        text = "{}"
+
+        def json(self):
+            """Helper: json."""
+            return {"choices": [{"message": {"content": "ok"}}]}
+
+    class DummyClient:
+        async def __aenter__(self):
+            """Enter the mock async context manager."""
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            """Exit the mock async context manager."""
+            return False
+
+        async def post(self, url, json, headers):
+            """Helper: post — captures the payload for assertion."""
+            captured["json"] = json
+            return DummyResponse()
+
+    monkeypatch.setattr(routes_mod.httpx, "AsyncClient", lambda *a, **k: DummyClient())
+
+    await routes_mod.openrouter_chat(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="k",
+        model="m",
+        messages=[{"role": "user", "content": "hi"}],
+        max_tokens=10,
+        privacy_mode="none",
+    )
+
+    assert captured["json"]["reasoning"] == {"exclude": True}
+
+
 def test_redact_secrets_masks_common_tokens():
     """Test redact secrets masks common tokens."""
     from app.core.model_routes import redact_secrets

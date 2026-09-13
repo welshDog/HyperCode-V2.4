@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import auth, users, projects, tasks, dashboard, memory, orchestrator, broski, planning, hypersync, hypersplit, agent_keys, ops_dlq, discord_actions
-from app.api.v1.endpoints import health
+from app.api.v1.endpoints import health, skills
 from app.ws import metrics_broadcaster, agents_broadcaster, events_broadcaster, logs_broadcaster
 from app.routes import reliability, tasks as public_tasks
 
@@ -99,6 +99,7 @@ if _HAS_MISSIONS:
 if _HAS_MISSION_EVALUATIONS:
     api_router.include_router(mission_evaluations.router, prefix="/mission-evaluations", tags=["mission-evaluator"])  # Mission Evaluator v1
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
+api_router.include_router(skills.router,   prefix="/skills",    tags=["skills"])      # Skill discoverability search
 
 # Dashboard live data — Task 2: GET /api/v1/metrics + WS /api/v1/ws/metrics
 api_router.include_router(metrics_broadcaster.router, prefix="", tags=["metrics"])

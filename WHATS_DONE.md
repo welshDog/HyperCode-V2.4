@@ -1,6 +1,129 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-10 by Claude Sonnet 5 (MCP Gateway panel "down" fixed — SDK DNS-rebinding 421 + healthcheck) ⚡
+> Last synced: 2026-09-13 (later) by Claude Sonnet 5 (N18 fixed — dead OpenRouter default model + a bigger reasoning-tokens bug in the shared LLM client — not yet re-verified live) ⚡
+
+## 2026-09-13 (later) — N18 fixed: dead OpenRouter default model + reasoning-tokens bug (`b28c26b8`, same branch/PR #526)
+
+Follow-up to the entry below. `OPENROUTER_DEFAULT_MODEL` →
+`nvidia/nemotron-3-super-120b-a12b:free` (`mistralai/mistral-7b-instruct:free`
+was dead — 404 "no endpoints found"; `google/gemma-4-26b-a4b-it:free` was tried
+next but its shared free pool, Google AI Studio, 429-rate-limited on every
+single attempt this session). Bigger finding while picking a replacement:
+tested nemotron, cohere, and inclusionai's `:free` tiers directly against
+OpenRouter and **all three returned `content: null`** — they default to
+reasoning mode and burn the whole `max_tokens` budget on hidden
+chain-of-thought before ever writing the actual answer. This is the exact
+failure class `broski-coo`'s own separate OpenRouter client already had to
+work around (`HYPER-AGENT-BIBLE.md` §6) — but `backend/app/core/model_routes.py`'s
+shared `openrouter_chat()`, used by **both** `Brain.think()` and the new
+skills-search endpoint, never excluded it. Fixed at the root: `openrouter_chat()`
+now always sends `reasoning: {"exclude": true}`, confirmed via a direct
+OpenRouter call (nemotron went from `content: null` to `content: "OK"` with
+that one field added). New regression test locks in the payload shape.
+24/24 backend unit tests pass.
+
+**Not independently re-verified live tonight.** Two rebuild/redeploy cycles for
+this fix (fast — cache-hit on the pip layer, ~1min each) went fine, but the
+container hung after alembic migrations on the third redeploy attempt with no
+further log output; investigated (no Postgres lock contention, process state
+`R` but near-zero CPU) and the box's free RAM had dropped to **0.39 GB** by
+then — even a plain health-check-polling shell loop got OOM-killed. Far more
+consistent with host resource starvation than a regression from a two-line
+diff (a payload dict key + a config string) unrelated to startup/migrations,
+but genuinely unconfirmed either way. **Left running as-is at Bro's call — verify
+`docker ps`/`docker logs hypercode-core` and re-test `POST
+/api/v1/skills/search` before trusting the LLM path.** See `docs/NEXT_TASKS.md`
+N18.
+
+## 2026-09-13 — Skill Discoverability search for `/ide` (`367b9092`, PR #526 — open, not merged)
+
+Council item (Tier 5, `HYPERCODE-SELF-UPGRADE-COUNCIL-VERIFIED-RERANK.md`): nobody
+browsing `/ide` could discover which of the repo's 31 local skills
+(`.claude/skills/*/SKILL.md`) fit a goal. Full cycle this session: reviewed Bro's
+already-committed design spec
+(`docs/superpowers/specs/2026-09-12-skill-discoverability-design.md`), two Explore
+passes to verify it against real code, a Plan pass, implementation, a final
+whole-branch code review, fixes, a real `hypercode-core` rebuild, and a live
+end-to-end test against the real container. Branch `feature/ide-skill-search`,
+committed, pushed, **PR #526 open — not merged to `main` yet**, so nothing below
+is live on `main` until that lands.
+
+**What it does:** goal-in, ranked-skills-out search — new `POST
+/api/v1/skills/search` (`backend/app/api/v1/endpoints/skills.py`) parses the
+`.claude/skills` frontmatter, calls the existing `openrouter_chat()` (no new LLM
+client) to rank matches, falls back to a substring matcher whenever the LLM is
+unavailable/unset/misbehaves (never a 5xx for that — only a genuinely missing
+`goal` 422s). New `./.claude/skills:/app/skills-catalog:ro` mount on
+`hypercode-core` (`docker-compose.core.yml`). Frontend: new `/api/skills` proxy
+(`fleet/route.ts` style) + a `SkillFinder` widget wired into `/ide` above
+`StudioView`, using this repo's real hand-authored-CSS/custom-property convention
+— **not** Tailwind utility classes, despite Tailwind being installed and despite
+the `hypercode-frontend` skill doc's stale claim otherwise (verified against the
+actual code, not assumed).
+
+**Two Critical bugs the final review caught by testing against real data, both
+fixed:**
+1. The `except (RuntimeError, CircuitBreakerOpen, ValueError)` around
+   `openrouter_chat` was narrower than what it can actually raise — a raw `httpx`
+   network/timeout error would have 500'd the whole endpoint instead of falling
+   back. Widened to `except Exception`, same pattern `Brain.think()` already uses
+   for this exact call. Locked in with a new test that raises `httpx.ConnectError`.
+2. `.claude/skills/hyper-load-tester/SKILL.md`'s description had an unquoted
+   `Target: 1000 req/sec` — a bare colon in a plain YAML scalar parses as a nested
+   mapping, so `yaml.safe_load` failed and the parser silently dropped that skill
+   from every search result. Fixed by quoting the description. Locked in with a
+   new test that parses the **real** `.claude/skills` directory and asserts every
+   file on disk parses (would have caught this before it ever shipped).
+
+**Reverted mid-review:** a `slowapi` `@limiter.limit("20/minute")` decorator was
+added per an Important review finding (no rate-limit on an endpoint that shares
+the `llm-router` circuit breaker with `Brain.think()`), then empirically broke
+FastAPI's body-model binding — `body: SkillSearchRequest` silently became a query
+param, 422 on every real call. No other endpoint in this codebase uses that
+decorator at all (checked). Reverted; documented in `skills.py`'s docstring so
+it isn't silently re-added without a real slowapi integration test first.
+
+**🪤 RAM/Docker Desktop incident during this session, box behavior worth knowing
+for next time:** the 8 GB box was already at 0.4–0.7 GB free with 35-54 containers
+up (full agent fleet + observability stack) before any of this session's Docker
+work started. A full `pytest` run OOM-killed twice. Stopping the 12-container obs
+stack barely moved free RAM (WSL2 not releasing memory back to Windows is the
+suspected cause, not the containers themselves) — a **Docker Desktop restart**
+(done by Bro, not scripted) was what actually helped. Even then the
+`hypercode-core` image rebuild (new pip deps pulled in via the base image, not
+by this feature) took **~27 minutes for pip install alone** under continued RAM
+pressure — confirmed via `vmmemWSL`'s working set climbing slowly rather than
+the build being hung (near-zero CPU-seconds on `com.docker.build` the whole
+time). Build and recreate both eventually succeeded clean; `redis`/`postgres`/
+`hypercode-ollama` were never touched or restarted throughout.
+
+**Verified live, not just tested:** rebuilt `hypercode-core`, confirmed the
+`.claude/skills` mount (31 dirs visible via `docker exec`), and called the real
+`POST /api/v1/skills/search` inside the container — got a real substring-fallback
+response including `cve-trivy-scan` for a CVE-related goal, `usedFallback: true`,
+because the **default free OpenRouter model
+(`OPENROUTER_DEFAULT_MODEL="mistralai/mistral-7b-instruct:free"`) has apparently
+been deprecated/pulled upstream** (`OpenRouter error 404: "No endpoints found for
+mistralai/mistral-7b-instruct:free."`, confirmed in `hypercode-core` logs). This
+is a **pre-existing, unrelated condition** — the fail-soft design handled it
+exactly as intended — but it likely affects every other feature using this same
+default model (e.g. `Brain.think()`'s OpenRouter path). Not fixed this session
+(out of scope); tracked as `docs/NEXT_TASKS.md` N18.
+
+**`hypercode-dashboard` observed `(unhealthy)` again this session** — not
+touched or caused by this session's work (the `up -d hypercode-core` command
+used was scoped to that one service). Matches the same recurring pre-existing
+overlayfs/healthcheck pattern from the 2026-09-10 and 2026-08-24 entries
+(N11). Not re-fixed this session — still just `docker restart
+hypercode-dashboard` if it needs clearing.
+
+Tests: 18/18 backend (`test_skills_catalog.py` + `test_skills_endpoint.py`,
+including the new real-catalog and network-error regression tests), 85/85
+dashboard (`vitest`), `tsc --noEmit` clean, `eslint` clean on changed files.
+First Next.js route-handler test in this repo (`api.skills.test.ts`) needed
+`// @vitest-environment node` — the repo's default `jsdom` environment hangs
+importing `next/server`'s `NextResponse`, discovered this session, not a
+known-good pattern copied from anywhere.
 
 ## 2026-09-10 (later still) — MCP Gateway panel "down" fixed (`acdd812b`)
 

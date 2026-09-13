@@ -255,6 +255,62 @@ h1, h2, h3, h4, h5, h6, .pane-title {
   padding: 8px;
 }
 
+.skill-finder-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.skill-finder-input {
+  flex: 1;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--pane-border);
+  border-radius: 4px;
+  background: var(--shell-bg);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.skill-finder-input:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+}
+
+.skill-finder-notice {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.skill-finder-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skill-card {
+  border: 1px solid var(--pane-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.skill-card-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.skill-card-rationale {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 4px 0 8px;
+}
+
+.skill-card-copy {
+  font-size: 11px;
+}
+
 .status-dot {
   width:         8px;
   height:        8px;

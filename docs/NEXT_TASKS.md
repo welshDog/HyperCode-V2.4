@@ -1,7 +1,19 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **August 31, 2026 (dispatch-boundary safety cards e/a/b shipped; CI outage root-caused to `60e1b351` + `3a00f449` + an account billing lock — see `WHATS_DONE.md`'s 2026-08-31 entry and `docs/NEXT_SESSION_HANDOVER_2026-08-31.md`)**
+> Last updated: **September 13, 2026 (Skill Discoverability search shipped for `/ide`, PR #526 open — see `WHATS_DONE.md`'s 2026-09-13 entry and `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`)**
+
+---
+
+## 🆕 New from 2026-09-13 session (Skill Discoverability search)
+
+> Full write-up: `WHATS_DONE.md`'s 2026-09-13 entry, `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`.
+
+| # | Task | Priority |
+|---|---|---|
+| N18 | **✅ Fix committed (`b28c26b8`, same branch/PR), NOT yet re-verified live.** `OPENROUTER_DEFAULT_MODEL` → `nvidia/nemotron-3-super-120b-a12b:free` (the dead `mistralai/mistral-7b-instruct:free` 404'd; `google/gemma-4-26b-a4b-it:free` was tried next but its shared free pool 429'd on every attempt). Bigger finding along the way: `model_routes.py`'s shared `openrouter_chat()` — used by **both** `Brain.think()` and skills-search — never excluded reasoning tokens, so most current OpenRouter free models return `content: null` after burning `max_tokens` on hidden chain-of-thought (confirmed live against nemotron/cohere/inclusionai's `:free` tiers; same class of bug `broski-coo`'s own separate client already had to work around). Fixed: `openrouter_chat()` now always sends `reasoning: {"exclude": true}`. 24/24 backend tests pass (new regression test added). **Not confirmed live** — the box hit 0.39GB free mid-rebuild and the container's post-fix health is unconfirmed; check `docker ps`/`docker logs hypercode-core` and re-test `POST /api/v1/skills/search` before trusting the LLM path again. | 🟡 verify live next session |
+| N19 | **Merge PR #526 (`feature/ide-skill-search`) once reviewed**, then confirm the feature is live on `main`'s next `hypercode-core` deploy — this session's live verification was against the branch's own rebuilt image, not a post-merge one. | 🟡 follow-up |
+| N20 | **`hypercode-dashboard` `(unhealthy)` recurred again** (3rd time logged: 2026-08-24 N11, 2026-09-10, now 2026-09-13) — not caused by this session, `docker restart hypercode-dashboard` clears it same as before. Worth actually fixing the healthcheck definition itself instead of restarting it each time it's noticed. | 🟢 recurring cosmetic, low priority |
 
 ---
 

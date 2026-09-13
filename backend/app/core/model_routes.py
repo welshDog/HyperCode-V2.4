@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, cast
 
 import httpx
 from app.core.circuit_breaker import get_breaker
@@ -140,6 +140,13 @@ async def openrouter_chat(
         "messages": safe_messages,
         "max_tokens": max_tokens,
         "temperature": 0.2,
+        # Most current OpenRouter free-tier models default to reasoning mode
+        # and burn the whole max_tokens budget on hidden chain-of-thought,
+        # returning content: null (confirmed 2026-09-13 against nemotron,
+        # cohere, and inclusionai's :free models — same failure class
+        # broski-coo's HYPER-AGENT-BIBLE.md §6 already documented for its own
+        # separate client). Every caller here wants the direct answer.
+        "reasoning": {"exclude": True},
     }
 
     async def _do_call() -> str:
@@ -160,4 +167,4 @@ async def openrouter_chat(
                 raise RuntimeError("OpenRouter returned no message content")
             return content
 
-    return await _llm_breaker.call(_do_call)
+    return cast(str, await _llm_breaker.call(_do_call))
