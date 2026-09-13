@@ -138,9 +138,22 @@ iframe.
    Worth a habit/checklist item: rebuild `dashboard` alongside `hypercode-core`
    after merging frontend work, or better, a note in the deploy docs that the
    two aren't coupled.
-2. **`/api/broski` → 503**: single observation, not chased further this
-   session. Worth a repro attempt and a look at `agents/dashboard/app/api/broski/route.ts`
-   + whatever backend service it proxies to, next time someone's in this area.
+2. **`/api/broski` → 503 — ✅ root cause found and fixed (`876ceda7`).** Not
+   the literal 503 itself (that stayed a single unreproduced sample, likely
+   an infra-level flake from the same RAM pressure everything else hit
+   tonight) — but investigating turned up a real, separate, and worse bug:
+   `backend/app/api/v1/endpoints/broski.py` had **two** `@router.get("/pulse")`
+   handlers registered on the same router. FastAPI/Starlette silently keeps
+   only the first exact path+method match, so a leftover stub
+   (`return {"status": "ok"}`) was permanently shadowing the real,
+   fully-implemented handler — Redis-cached, real coins/XP/level/agentsOnline
+   data, explicitly documented "Used by dashboard" — which had been dead code
+   for who knows how long. Removed the stub, rebuilt `hypercode-core`,
+   confirmed live: `{"coins":0,"xp":6655,"level":7,"level_name":"BROski
+   Legend ♾️","agentsOnline":2,"userCount":1}` — real data now, not a stub.
+   Added a regression test (`test_broski_pulse_returns_real_data_not_stub`)
+   asserting the real response shape so this exact shadowing can't silently
+   regress again.
 
 ## Not tested this pass (scope call, not an oversight)
 
