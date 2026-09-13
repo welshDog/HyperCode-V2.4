@@ -228,6 +228,20 @@ def test_broski_pulse_exists(client):
     assert resp.status_code in (200, 404)
 
 
+def test_broski_pulse_returns_real_data_not_stub(client):
+    """Guards against the real get_broski_pulse() handler being shadowed by
+    a duplicate @router.get("/pulse") registered earlier in the file — that
+    exact bug shipped a bare {"status": "ok"} to the dashboard for a long
+    time (FastAPI/Starlette registers the first exact path+method match and
+    silently ignores later duplicates)."""
+    resp = client.get("/api/v1/broski/pulse")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body.keys() >= {"coins", "xp", "level", "level_name"}, (
+        f"got {body!r} — looks like the /pulse stub is shadowing the real handler again"
+    )
+
+
 def test_discord_actions_ai_ask_returns_embed(client, monkeypatch):
     from app.core.config import settings
 
