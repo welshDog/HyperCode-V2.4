@@ -86,7 +86,15 @@ class Settings(BaseSettings):
     # AI
     ANTHROPIC_API_KEY: Optional[str] = None
     OPENROUTER_API_KEY: Optional[str] = None
-    OPENROUTER_DEFAULT_MODEL: str = "mistralai/mistral-7b-instruct:free"
+    # mistralai/mistral-7b-instruct:free was pulled from OpenRouter (404 "No
+    # endpoints found") — confirmed live 2026-09-13. google/gemma-4-26b-a4b-it
+    # was tried next but its shared free pool (Google AI Studio) was 429
+    # rate-limited on every attempt that session. Settled on NVIDIA's pool,
+    # which actually responded — paired with model_routes.py's now-mandatory
+    # `reasoning: {"exclude": true}` (most current free models default to
+    # reasoning mode and return content: null without it). Re-verify against
+    # https://openrouter.ai/api/v1/models if this one is ever retired too.
+    OPENROUTER_DEFAULT_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
     SKILLS_CATALOG_PATH: str = "/app/skills-catalog"
     HYPERCODE_MEMORY_KEY: Optional[str] = None
     OLLAMA_HOST: str = "http://hypercode-ollama:11434"
