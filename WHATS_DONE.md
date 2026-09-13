@@ -1,6 +1,39 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-13 by Claude Sonnet 5 (Skill Discoverability search shipped for `/ide` — PR #526 open, not yet merged) ⚡
+> Last synced: 2026-09-13 (later) by Claude Sonnet 5 (N18 fixed — dead OpenRouter default model + a bigger reasoning-tokens bug in the shared LLM client — not yet re-verified live) ⚡
+
+## 2026-09-13 (later) — N18 fixed: dead OpenRouter default model + reasoning-tokens bug (`b28c26b8`, same branch/PR #526)
+
+Follow-up to the entry below. `OPENROUTER_DEFAULT_MODEL` →
+`nvidia/nemotron-3-super-120b-a12b:free` (`mistralai/mistral-7b-instruct:free`
+was dead — 404 "no endpoints found"; `google/gemma-4-26b-a4b-it:free` was tried
+next but its shared free pool, Google AI Studio, 429-rate-limited on every
+single attempt this session). Bigger finding while picking a replacement:
+tested nemotron, cohere, and inclusionai's `:free` tiers directly against
+OpenRouter and **all three returned `content: null`** — they default to
+reasoning mode and burn the whole `max_tokens` budget on hidden
+chain-of-thought before ever writing the actual answer. This is the exact
+failure class `broski-coo`'s own separate OpenRouter client already had to
+work around (`HYPER-AGENT-BIBLE.md` §6) — but `backend/app/core/model_routes.py`'s
+shared `openrouter_chat()`, used by **both** `Brain.think()` and the new
+skills-search endpoint, never excluded it. Fixed at the root: `openrouter_chat()`
+now always sends `reasoning: {"exclude": true}`, confirmed via a direct
+OpenRouter call (nemotron went from `content: null` to `content: "OK"` with
+that one field added). New regression test locks in the payload shape.
+24/24 backend unit tests pass.
+
+**Not independently re-verified live tonight.** Two rebuild/redeploy cycles for
+this fix (fast — cache-hit on the pip layer, ~1min each) went fine, but the
+container hung after alembic migrations on the third redeploy attempt with no
+further log output; investigated (no Postgres lock contention, process state
+`R` but near-zero CPU) and the box's free RAM had dropped to **0.39 GB** by
+then — even a plain health-check-polling shell loop got OOM-killed. Far more
+consistent with host resource starvation than a regression from a two-line
+diff (a payload dict key + a config string) unrelated to startup/migrations,
+but genuinely unconfirmed either way. **Left running as-is at Bro's call — verify
+`docker ps`/`docker logs hypercode-core` and re-test `POST
+/api/v1/skills/search` before trusting the LLM path.** See `docs/NEXT_TASKS.md`
+N18.
 
 ## 2026-09-13 — Skill Discoverability search for `/ide` (`367b9092`, PR #526 — open, not merged)
 
