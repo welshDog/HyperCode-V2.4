@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-import yaml
+import yaml  # type: ignore[import-untyped]  # no stub package installed for PyYAML
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -161,7 +161,9 @@ def _parse_llm_response(raw: str, catalog: list[dict]) -> list[dict]:
             continue
         name = item.get("name")
         rationale = item.get("rationale")
-        if name in valid_names and isinstance(rationale, str) and name not in seen_names:
+        if not isinstance(name, str) or not isinstance(rationale, str):
+            continue
+        if name in valid_names and name not in seen_names:
             matches.append({"name": name, "rationale": rationale})
             seen_names.add(name)
 
@@ -198,7 +200,9 @@ async def search_skills(body: SkillSearchRequest) -> SkillSearchResponse:
     if not settings.OPENROUTER_API_KEY:
         fallback = _fallback_match(body.goal, catalog)
         return SkillSearchResponse(
-            matches=fallback, usedFallback=True, error="OPENROUTER_API_KEY not configured"
+            matches=[SkillMatch(**m) for m in fallback],
+            usedFallback=True,
+            error="OPENROUTER_API_KEY not configured",
         )
 
     try:
@@ -221,7 +225,9 @@ async def search_skills(body: SkillSearchRequest) -> SkillSearchResponse:
             timeout_seconds=12.0,
         )
         matches = _parse_llm_response(raw, catalog)
-        return SkillSearchResponse(matches=matches, usedFallback=False, error=None)
+        return SkillSearchResponse(
+            matches=[SkillMatch(**m) for m in matches], usedFallback=False, error=None
+        )
     except Exception as exc:
         # Broad on purpose: openrouter_chat can raise RuntimeError (bad
         # response shape), CircuitBreakerOpen, or an unwrapped httpx
@@ -232,7 +238,7 @@ async def search_skills(body: SkillSearchRequest) -> SkillSearchResponse:
         logger.warning("Skill search falling back to substring match: %s", exc)
         fallback = _fallback_match(body.goal, catalog)
         return SkillSearchResponse(
-            matches=fallback,
+            matches=[SkillMatch(**m) for m in fallback],
             usedFallback=True,
             error="LLM ranking unavailable, showing substring matches",
         )
