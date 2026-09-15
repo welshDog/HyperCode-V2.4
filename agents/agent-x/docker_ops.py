@@ -162,7 +162,8 @@ async def build_image(
             "--label", "hypercode.agent=true",
             "--label", f"hypercode.agent.name={name}",
             "--label", f"hypercode.agent.version={version}",
-            "--label", f"hypercode.built_at={datetime.utcnow().isoformat()}",
+            # pyrefly: ignore [missing-attribute]
+            "--label", f"hypercode.built_at={datetime.datetime.now().isoformat()}",
             context_path,
         ],
         cwd=context_path,
