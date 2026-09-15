@@ -3,7 +3,7 @@ uvicorn[standard]==0.34.3
 pydantic==2.13.3
 httpx==0.28.1
 redis==7.4.0
-python-dotenv>=1.0.0
+python-dotenv>=1.2.3
 aiohttp>=3.9.0
 tenacity>=8.2.0
 pydantic>=2.0.0
