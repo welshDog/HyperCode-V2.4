@@ -1,318 +1,379 @@
 """
-Integration example: How to use DMRClient in Agent X's main agent loop.
+Agent X + Docker Model Runner Integration Examples
 
-This shows how to replace ollama.Client with DMRClient while maintaining
-full backward compatibility with your existing agent code.
+Shows how to integrate DMRClient into Agent X:
+- AgentXLLMBridge: LLM interface adapter
+- FastAPI integration
+- Main loop example
+- Streaming example
 """
 
 import asyncio
 import logging
-from typing import Optional
-from agentx.dmr_client import DMRClient, ModelNotAvailableError, InferenceTimeoutError
+from typing import AsyncIterator, Optional
+from dataclasses import dataclass
+
+from agentx.dmr_client import DMRClient, InferenceTimeoutError, ModelNotAvailableError
 
 logger = logging.getLogger(__name__)
 
 
+# ============================================================================
+# Bridge Layer: AgentXLLMBridge
+# ============================================================================
+
+@dataclass
+class LLMConfig:
+    """Configuration for LLM."""
+    host: str = "http://127.0.0.1:12434"
+    primary_model: str = "ai/qwen2.5-coder:7b-instruct-q4_k_m"
+    fallback_model: str = "ai/smollm2:360m-q4_k_m"
+    temperature: float = 0.7
+    max_tokens: Optional[int] = None
+    use_fallback: bool = True
+
+
 class AgentXLLMBridge:
     """
-    Bridge layer to swap between Ollama and Docker Model Runner.
-
-    Maintains a single interface for the rest of Agent X logic — swap
-    the underlying implementation without touching agent code.
+    Bridge between Agent X and Docker Model Runner.
+    
+    Replaces Ollama client. Drop-in replacement for existing LLM calls.
     """
-
-    def __init__(self, use_dmr: bool = True):
-        """
-        Initialize the LLM bridge.
-
-        Args:
-            use_dmr: If True, use Docker Model Runner; if False, use Ollama.
-                     Controlled via USE_DMR env var or startup parameter.
-        """
-        self.use_dmr = use_dmr
-        self.dmr_client: Optional[DMRClient] = None
-
-        if self.use_dmr:
-            logger.info("✓ Using Docker Model Runner (DMR)")
-        else:
-            logger.info("✓ Using Ollama (legacy)")
-
-    async def initialize(self) -> None:
-        """Initialize the LLM backend and preload models."""
-        if self.use_dmr:
-            self.dmr_client = DMRClient()
-            await self.dmr_client._ensure_session()
-
-            # Preload models in background
-            logger.info("Preloading models in background...")
-            await self.dmr_client.preload_models()
-
-            # Health check
-            health = await self.dmr_client.health_check()
-            logger.info(f"DMR health: {health}")
-
+    
+    def __init__(self, config: LLMConfig):
+        self.config = config
+        self.client: Optional[DMRClient] = None
+    
+    async def startup(self) -> None:
+        """Initialize DMR client on Agent X startup."""
+        self.client = DMRClient(
+            host=self.config.host,
+            primary_model=self.config.primary_model,
+            fallback_model=self.config.fallback_model,
+        )
+        await self.client._ensure_session()
+        
+        # Preload models in background
+        success = await self.client.preload_models()
+        logger.info(f"DMR models preload: {success}")
+    
+    async def shutdown(self) -> None:
+        """Cleanup DMR client on Agent X shutdown."""
+        if self.client and self.client._session:
+            await self.client._session.close()
+    
     async def infer(
         self,
         prompt: str,
         system_message: Optional[str] = None,
-        temperature: float = 0.7,
-        use_fallback: bool = True,
+        **kwargs,
     ) -> str:
         """
-        Run inference using the active backend.
-
-        Args:
-            prompt: User prompt
-            system_message: Optional system role
-            temperature: Sampling temperature
-            use_fallback: Use fallback model on timeout (DMR only)
-
-        Returns:
-            Generated text
+        Non-streaming inference.
+        
+        Usage:
+            response = await llm_bridge.infer("Write a Dockerfile for a Python app")
         """
-        if self.use_dmr:
-            return await self.dmr_client.infer(
+        if not self.client:
+            raise RuntimeError("LLM bridge not initialized. Call startup() first.")
+        
+        try:
+            return await self.client.infer(
                 prompt=prompt,
                 system_message=system_message,
-                temperature=temperature,
-                use_fallback=use_fallback,
+                temperature=kwargs.get("temperature", self.config.temperature),
+                max_tokens=kwargs.get("max_tokens", self.config.max_tokens),
+                use_fallback=self.config.use_fallback,
             )
-        else:
-            # Legacy Ollama path (not shown here)
-            raise NotImplementedError("Ollama path deprecated, use DMR only")
-
-    async def infer_stream(self, prompt: str, system_message: Optional[str] = None):
+        except InferenceTimeoutError as e:
+            logger.error(f"Inference timeout: {e}")
+            raise
+        except ModelNotAvailableError as e:
+            logger.error(f"Model not available: {e}")
+            raise
+    
+    async def infer_stream(
+        self,
+        prompt: str,
+        system_message: Optional[str] = None,
+        **kwargs,
+    ) -> AsyncIterator[str]:
         """
-        Run streaming inference.
-
-        Yields:
-            Text chunks as they arrive
+        Streaming inference.
+        
+        Usage:
+            async for chunk in llm_bridge.infer_stream("Generate a Dockerfile"):
+                print(chunk, end="", flush=True)
         """
-        if self.use_dmr:
-            async for chunk in self.dmr_client.infer_stream(
-                prompt=prompt,
-                system_message=system_message,
-            ):
-                yield chunk
-        else:
-            raise NotImplementedError("Ollama path deprecated, use DMR only")
-
-    async def close(self) -> None:
-        """Clean up resources."""
-        if self.dmr_client:
-            await self.dmr_client.close()
-
-    def get_metrics(self, limit: int = 10):
+        if not self.client:
+            raise RuntimeError("LLM bridge not initialized. Call startup() first.")
+        
+        async for chunk in self.client.infer_stream(
+            prompt=prompt,
+            system_message=system_message,
+            temperature=kwargs.get("temperature", self.config.temperature),
+            max_tokens=kwargs.get("max_tokens", self.config.max_tokens),
+            use_fallback=self.config.use_fallback,
+        ):
+            yield chunk
+    
+    def get_metrics(self, limit: int = 10) -> list:
         """Get recent inference metrics."""
-        if self.dmr_client:
-            return self.dmr_client.get_metrics(limit=limit)
-        return []
+        if not self.client:
+            return []
+        return self.client.get_metrics(limit=limit)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Example: Agent X's main agent loop (pseudo-code)
-# ─────────────────────────────────────────────────────────────────────────────
+# ============================================================================
+# FastAPI Integration
+# ============================================================================
 
+async def setup_fastapi_routes(app, llm_bridge: AgentXLLMBridge):
+    """
+    Attach DMR-backed inference routes to FastAPI app.
+    
+    Usage:
+        from fastapi import FastAPI
+        app = FastAPI()
+        llm_bridge = AgentXLLMBridge(LLMConfig())
+        
+        @app.on_event("startup")
+        async def startup():
+            await llm_bridge.startup()
+        
+        @app.on_event("shutdown")
+        async def shutdown():
+            await llm_bridge.shutdown()
+        
+        await setup_fastapi_routes(app, llm_bridge)
+    """
+    from fastapi import Request
+    from fastapi.responses import StreamingResponse
+    import json
+    
+    @app.post("/api/v1/infer")
+    async def infer_endpoint(request: Request):
+        """Non-streaming inference endpoint."""
+        body = await request.json()
+        prompt = body.get("prompt")
+        system = body.get("system_message")
+        
+        try:
+            response = await llm_bridge.infer(
+                prompt=prompt,
+                system_message=system,
+            )
+            return {
+                "status": "success",
+                "response": response,
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e),
+            }
+    
+    @app.post("/api/v1/infer/stream")
+    async def infer_stream_endpoint(request: Request):
+        """Streaming inference endpoint."""
+        body = await request.json()
+        prompt = body.get("prompt")
+        system = body.get("system_message")
+        
+        async def stream_generator():
+            try:
+                async for chunk in llm_bridge.infer_stream(
+                    prompt=prompt,
+                    system_message=system,
+                ):
+                    yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        
+        return StreamingResponse(
+            stream_generator(),
+            media_type="text/event-stream",
+        )
+    
+    @app.get("/api/v1/metrics")
+    async def metrics_endpoint():
+        """Get recent inference metrics."""
+        metrics = llm_bridge.get_metrics(limit=20)
+        return {
+            "status": "success",
+            "metrics": metrics,
+        }
+
+
+# ============================================================================
+# Main Loop Example
+# ============================================================================
 
 class AgentXCore:
-    """Main Agent X logic (simplified)."""
-
+    """Example Agent X core with DMR integration."""
+    
     def __init__(self, use_dmr: bool = True):
-        self.llm = AgentXLLMBridge(use_dmr=use_dmr)
-
-    async def startup(self) -> None:
-        """Initialize on startup."""
-        await self.llm.initialize()
-        logger.info("✓ Agent X initialized")
-
-    async def shutdown(self) -> None:
-        """Clean up on shutdown."""
-        await self.llm.close()
-        logger.info("✓ Agent X shut down")
-
-    async def execute_task(self, task_description: str) -> None:
-        """
-        Execute a task using streaming inference (recommended for long outputs).
-
-        Example: Code generation, debugging, etc.
-        """
-        system_message = """You are Agent X, a specialized code execution and debugging agent.
-Your role is to:
-1. Understand the task
-2. Generate or debug code
-3. Explain your reasoning
-4. Provide actionable results
-
-Always think step-by-step."""
-
-        logger.info(f"Task: {task_description}")
-        logger.info("Response:")
-
+        self.use_dmr = use_dmr
+        self.llm_bridge: Optional[AgentXLLMBridge] = None
+    
+    async def startup(self):
+        """Initialize Agent X."""
+        if self.use_dmr:
+            self.llm_bridge = AgentXLLMBridge(LLMConfig())
+            await self.llm_bridge.startup()
+            logger.info("Agent X started with DMR")
+        else:
+            logger.info("Agent X started (without DMR)")
+    
+    async def shutdown(self):
+        """Cleanup Agent X."""
+        if self.llm_bridge:
+            await self.llm_bridge.shutdown()
+            logger.info("Agent X shutdown complete")
+    
+    async def process_task(self, task: str) -> str:
+        """Process a task using LLM."""
+        if not self.llm_bridge:
+            raise RuntimeError("LLM bridge not initialized")
+        
+        system_msg = (
+            "You are Agent X, a Docker expert AI assistant. "
+            "Respond concisely and accurately."
+        )
+        
         try:
-            response_text = ""
-            async for chunk in self.llm.infer_stream(
-                prompt=task_description,
-                system_message=system_message,
-            ):
-                print(chunk, end="", flush=True)
-                response_text += chunk
-
-            logger.info("\n✓ Task complete")
-            return response_text
-
-        except ModelNotAvailableError as e:
-            logger.error(f"✗ Model unavailable: {e}")
-        except InferenceTimeoutError as e:
-            logger.error(f"✗ Inference timeout: {e}")
-        except Exception as e:
-            logger.error(f"✗ Inference failed: {e}")
-
-    async def quick_inference(self, prompt: str) -> str:
-        """
-        Quick synchronous inference (for short prompts, structured outputs).
-
-        Example: Parsing, classification, decision-making.
-        """
-        try:
-            response = await self.llm.infer(
-                prompt=prompt,
-                system_message="You are a helpful assistant. Keep responses concise.",
-                temperature=0.5,  # Lower temp for more deterministic output
+            response = await self.llm_bridge.infer(
+                prompt=task,
+                system_message=system_msg,
             )
             return response
         except Exception as e:
-            logger.error(f"Quick inference failed: {e}")
+            logger.error(f"Task processing failed: {e}")
             raise
-
-    def report_metrics(self) -> None:
-        """Print recent inference metrics for monitoring."""
-        metrics = self.llm.get_metrics(limit=5)
-        if not metrics:
-            logger.info("No metrics recorded yet")
-            return
-
-        logger.info("Recent inference metrics:")
-        for m in metrics:
-            fallback_str = " (fallback)" if m.get("fallback_used") else ""
-            logger.info(
-                f"  {m['timestamp']}: {m['model']}{fallback_str} | "
-                f"{m['total_tokens']} tokens | {m['latency_ms']:.0f}ms"
-            )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Example: FastAPI integration (if Agent X is an HTTP service)
-# ─────────────────────────────────────────────────────────────────────────────
+    
+    async def process_task_streaming(self, task: str) -> AsyncIterator[str]:
+        """Process a task with streaming output."""
+        if not self.llm_bridge:
+            raise RuntimeError("LLM bridge not initialized")
+        
+        system_msg = (
+            "You are Agent X, a Docker expert AI assistant. "
+            "Respond concisely and accurately."
+        )
+        
+        async for chunk in self.llm_bridge.infer_stream(
+            prompt=task,
+            system_message=system_msg,
+        ):
+            yield chunk
 
 
-class FastAPIIntegration:
-    """Example FastAPI endpoints for Agent X with DMR."""
+# ============================================================================
+# Usage Examples
+# ============================================================================
 
-    def __init__(self, agent: AgentXCore):
-        self.agent = agent
-
-    async def task_endpoint(self, request_data: dict) -> dict:
-        """
-        POST /api/v1/task
-        Run a task and stream results.
-
-        Example:
-        {
-            "task_id": "task-123",
-            "description": "Generate a Docker health check for my service",
-            "stream": true
-        }
-        """
-        task_id = request_data.get("task_id")
-        description = request_data.get("description")
-        stream = request_data.get("stream", False)
-
-        logger.info(f"Task {task_id}: {description}")
-
-        if stream:
-            # Return SSE stream
-            async def generate():
-                try:
-                    async for chunk in self.agent.llm.infer_stream(
-                        prompt=description
-                    ):
-                        yield f"data: {chunk}\n\n"
-                    yield "data: [DONE]\n\n"
-                except Exception as e:
-                    yield f"data: ERROR: {e}\n\n"
-
-            return generate()
-        else:
-            # Return full response
-            try:
-                response = await self.agent.quick_inference(description)
-                return {
-                    "task_id": task_id,
-                    "status": "success",
-                    "response": response,
-                }
-            except Exception as e:
-                return {
-                    "task_id": task_id,
-                    "status": "error",
-                    "error": str(e),
-                }
-
-    async def metrics_endpoint(self) -> dict:
-        """
-        GET /api/v1/metrics
-        Return recent inference metrics.
-        """
-        return {
-            "metrics": self.agent.llm.get_metrics(limit=20),
-        }
-
-    async def health_endpoint(self) -> dict:
-        """
-        GET /api/v1/health
-        Return Agent X and DMR health status.
-        """
-        dmr_health = await self.agent.llm.dmr_client.health_check()
-        return {
-            "agent_x": "healthy",
-            "dmr": dmr_health,
-        }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Example: Main entry point
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-async def main():
-    """Example Agent X main loop."""
-    # Initialize Agent X with DMR
-    agent = AgentXCore(use_dmr=True)
-
+async def example_basic_usage():
+    """Example: Basic non-streaming inference."""
+    print("\n" + "="*60)
+    print("EXAMPLE 1: Basic Non-Streaming Inference")
+    print("="*60)
+    
+    bridge = AgentXLLMBridge(LLMConfig())
+    await bridge.startup()
+    
     try:
-        await agent.startup()
-
-        # Example 1: Quick inference (synchronous style)
-        logger.info("\n=== Example 1: Quick Inference ===")
-        result = await agent.quick_inference(
-            "Write a one-line Docker health check for a Python service"
+        response = await bridge.infer(
+            "Write a 3-line Dockerfile for a Python app"
         )
-        logger.info(f"Result: {result}")
+        print(f"Response:\n{response}")
+    finally:
+        await bridge.shutdown()
 
-        # Example 2: Streaming inference (for long outputs)
-        logger.info("\n=== Example 2: Streaming Inference ===")
-        await agent.execute_task(
-            "Generate a Dockerfile for a FastAPI service with health checks and multi-stage build"
+
+async def example_streaming():
+    """Example: Streaming inference."""
+    print("\n" + "="*60)
+    print("EXAMPLE 2: Streaming Inference")
+    print("="*60)
+    
+    bridge = AgentXLLMBridge(LLMConfig())
+    await bridge.startup()
+    
+    try:
+        print("Generating...")
+        async for chunk in bridge.infer_stream(
+            "List 3 Docker best practices"
+        ):
+            print(chunk, end="", flush=True)
+        print()
+    finally:
+        await bridge.shutdown()
+
+
+async def example_metrics():
+    """Example: Collecting metrics."""
+    print("\n" + "="*60)
+    print("EXAMPLE 3: Metrics Collection")
+    print("="*60)
+    
+    bridge = AgentXLLMBridge(LLMConfig())
+    await bridge.startup()
+    
+    try:
+        # Run a few inferences
+        for i in range(2):
+            await bridge.infer(f"Short prompt {i}")
+        
+        # Get metrics
+        metrics = bridge.get_metrics(limit=2)
+        print(f"Last 2 inference metrics:")
+        for m in metrics:
+            print(f"  - Model: {m['model']}, Latency: {m['latency_ms']:.0f}ms, "
+                  f"Tokens: {m['total_tokens']}, Fallback: {m['fallback_used']}")
+    finally:
+        await bridge.shutdown()
+
+
+async def example_main_loop():
+    """Example: Agent X main loop."""
+    print("\n" + "="*60)
+    print("EXAMPLE 4: Agent X Main Loop")
+    print("="*60)
+    
+    agent = AgentXCore(use_dmr=True)
+    await agent.startup()
+    
+    try:
+        # Process a task
+        result = await agent.process_task(
+            "What is the difference between CMD and ENTRYPOINT in Dockerfile?"
         )
-
-        # Example 3: Metrics
-        logger.info("\n=== Example 3: Inference Metrics ===")
-        agent.report_metrics()
-
+        print(f"Task result:\n{result}")
+        
+        # Stream a task
+        print("\nStreaming task:")
+        async for chunk in agent.process_task_streaming(
+            "Name 3 Docker networking drivers"
+        ):
+            print(chunk, end="", flush=True)
+        print()
     finally:
         await agent.shutdown()
 
 
+# ============================================================================
+# Run Examples
+# ============================================================================
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    
+    async def main():
+        # Uncomment examples to run
+        # await example_basic_usage()
+        # await example_streaming()
+        # await example_metrics()
+        # await example_main_loop()
+        print("Integration examples ready. Uncomment in __main__ to run.")
+    
     asyncio.run(main())
