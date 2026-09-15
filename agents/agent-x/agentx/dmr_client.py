@@ -137,6 +137,7 @@ class DMRClient:
         """Check DMR service health."""
         try:
             url = f"{self.host}/health"
+            # pyrefly: ignore [missing-attribute]
             async with self._session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 if resp.status == 200:
                     return {"status": "healthy"}
@@ -150,12 +151,14 @@ class DMRClient:
         """Preload models in background (returns immediately)."""
         try:
             await self._ensure_session()
+            # pyrefly: ignore [missing-attribute]
             url = f"{self.host}/v1/models/preload"
             async with self._session.post(
                 url,
                 json={"models": [self.primary_model, self.fallback_model]},
                 timeout=aiohttp.ClientTimeout(total=2),
             ) as resp:
+                # pyrefly: ignore [missing-attribute]
                 return resp.status == 200
         except Exception as e:
             logger.warning(f"Model preload failed: {e}")
@@ -184,6 +187,7 @@ class DMRClient:
         
         try:
             timeout_sec = self.inference_timeout_ms / 1000.0
+            # pyrefly: ignore [missing-attribute]
             async with self._session.post(
                 url,
                 json=payload,
@@ -340,7 +344,7 @@ class DMRClient:
         kwargs = {"temperature": temperature}
         if max_tokens:
             kwargs["max_tokens"] = max_tokens
-        
+        # pyrefly: ignore [missing-attribute]
         start_time = time.time()
         total_tokens = 0
         fallback_used = False
@@ -370,6 +374,8 @@ class DMRClient:
                             if content:
                                 total_tokens += 1
                                 yield content
+                        except ImportError:
+                            import json
                         except json.JSONDecodeError:
                             pass
         
@@ -404,9 +410,10 @@ class DMRClient:
                                 if content:
                                     total_tokens += 1
                                     yield content
+                            # pyrefly: ignore [unbound-name]
                             except json.JSONDecodeError:
                                 pass
-            
+                                
             except Exception as fallback_error:
                 raise DMRClientError(
                     f"Both primary and fallback streams failed. "

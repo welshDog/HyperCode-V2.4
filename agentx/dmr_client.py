@@ -18,10 +18,11 @@ Usage:
 """
 
 import asyncio
+import json
 import logging
 import time
 from datetime import datetime
-from typing import AsyncIterator, Dict, Optional, Any
+from typing import AsyncIterator, Dict, Optional, Any, List
 from collections import deque
 
 import aiohttp
@@ -136,6 +137,7 @@ class DMRClient:
     async def health_check(self) -> Dict[str, Any]:
         """Check DMR service health."""
         try:
+            await self._ensure_session()
             url = f"{self.host}/health"
             async with self._session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 if resp.status == 200:
@@ -363,7 +365,6 @@ class DMRClient:
                         if data_str == "[DONE]":
                             break
                         try:
-                            import json
                             data = json.loads(data_str)
                             delta = data.get("choices", [{}])[0].get("delta", {})
                             content = delta.get("content", "")
@@ -397,7 +398,6 @@ class DMRClient:
                             if data_str == "[DONE]":
                                 break
                             try:
-                                import json
                                 data = json.loads(data_str)
                                 delta = data.get("choices", [{}])[0].get("delta", {})
                                 content = delta.get("content", "")
@@ -406,7 +406,7 @@ class DMRClient:
                                     yield content
                             except json.JSONDecodeError:
                                 pass
-            
+                                
             except Exception as fallback_error:
                 raise DMRClientError(
                     f"Both primary and fallback streams failed. "
@@ -428,7 +428,7 @@ class DMRClient:
                 f"fallback={fallback_used}"
             )
     
-    def get_metrics(self, limit: Optional[int] = None) -> list[Dict[str, Any]]:
+    def get_metrics(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Get recent metrics.
         
