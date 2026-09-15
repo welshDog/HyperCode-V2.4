@@ -1,0 +1,204 @@
+version: '3.8'
+
+# ───────────────────────────────────────────────────────────────────────────
+# Docker Model Runner (DMR) Integration for Agent X
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dmr.yml up -d
+#
+# This adds DMR as a sidecar to Agent X, providing local LLM inference with
+# automatic fallback, model preloading, and resource-aware unloading.
+# ───────────────────────────────────────────────────────────────────────────
+
+services:
+  # Update Agent X with DMR integration
+  agent-x:
+    # ✨ NEW: Environment variables for DMR integration
+    environment:
+      # DMR API endpoint (localhost because sidecar shares localhost with agent-x)
+      DMR_HOST: http://127.0.0.1:12434
+      
+      # Primary model: Qwen2.5-Coder 7B (good balance of capability and speed)
+      DMR_MODEL: ai/qwen2.5-coder:7b-instruct-q4_k_m
+      
+      # Fallback model: SmolLM2 360M (tiny, loads instantly, good for timeouts)
+      DMR_FALLBACK: ai/smollm2:360m-q4_k_m
+      
+      # Disable legacy Ollama integration (all inference goes through DMR)
+      DISABLE_OLLAMA: "true"
+
+    # Network: host mode allows agent-x to reach localhost:12434 (DMR sidecar)
+    # If you don't want host mode, use links: [dmr-runner] instead and update DMR_HOST
+    network_mode: host
+
+    # Healthcheck updated to include DMR availability
+    healthcheck:
+      test: >-
+        curl -f http://localhost:8080/health &&
+        curl -f http://localhost:12434/health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    depends_on:
+      dmr-runner:
+        condition: service_started
+
+  # ✨ NEW: Docker Model Runner sidecar
+  # Provides OpenAI-compatible inference API on localhost:12434
+  dmr-runner:
+    image: docker:latest
+    container_name: agent-x-dmr
+    
+    # Privileged mode needed to run nested Docker commands
+    privileged: true
+    
+    # Host mode shares localhost between agent-x and dmr-runner
+    network_mode: host
+
+    environment:
+      # GPU support (auto-detect if available, fall back to CPU)
+      DMR_GPU: "auto"
+      
+      # Backend: llama.cpp for CPU/GPU (works everywhere)
+      # For production with NVIDIA GPU, consider vllm (needs Linux + NVIDIA GPU)
+      DMR_BACKEND: llama.cpp
+      
+      # Inference timeout: 5 min (prevents hung requests)
+      DMR_INFERENCE_TIMEOUT: "300s"
+      
+      # Model load timeout: 2 min (models auto-unload after 5 min idle)
+      DMR_MODEL_LOAD_TIMEOUT: "120s"
+
+    # Run Docker Model Runner daemon
+    entrypoint: |
+      sh -c '
+        echo "Waiting for Docker daemon..."
+        for i in $(seq 1 30); do
+          if docker info > /dev/null 2>&1; then
+            echo "✓ Docker daemon ready"
+            break
+          fi
+          sleep 1
+        done
+
+        echo "Starting Docker Model Runner..."
+        docker run -d \
+          --name dmr-daemon-agent-x \
+          --restart unless-stopped \
+          -p 12434:12434 \
+          -v /var/lib/dmr-agent-x:/var/lib/dmr \
+          -e DMR_BACKEND=llama.cpp \
+          -e DMR_GPU=auto \
+          --cpus=3 \
+          --memory=6g \
+          docker:latest \
+            docker model start-runner \
+              --backend llama.cpp \
+              --gpu auto \
+              --port 12434 \
+              --host 0.0.0.0
+
+        # Keep sidecar running
+        while true; do
+          if ! docker ps | grep -q dmr-daemon-agent-x; then
+            echo "✗ DMR daemon exited, restarting..."
+            sleep 5
+          else
+            sleep 30
+          fi
+        done
+      '
+
+    volumes:
+      # Docker socket: allows nested Docker operations
+      - /var/run/docker.sock:/var/run/docker.sock
+      
+      # Model cache: persists downloaded models across restarts
+      - dmr-models-cache:/var/lib/dmr-agent-x
+
+    # Resource limits: reserve 3 CPUs and 6GB RAM for model inference
+    # Tune these based on your hardware and model size
+    # (Qwen2.5-7B needs ~7GB, SmolLM2-360M needs ~1GB)
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+          memory: 6G
+        reservations:
+          cpus: '2'
+          memory: 4G
+
+    # Start policies
+    restart_policy:
+      condition: on-failure
+      delay: 5s
+      max_attempts: 3
+      window: 60s
+
+    # Logging
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=dmr-runner"
+
+# Volume for model cache (persists across container restarts)
+volumes:
+  dmr-models-cache:
+    driver: local
+
+# ───────────────────────────────────────────────────────────────────────────
+# Setup Instructions
+# ───────────────────────────────────────────────────────────────────────────
+#
+# 1. Update requirements.txt:
+#    cat agents/agent-x/dmr_requirements.txt >> agents/agent-x/requirements.txt
+#
+# 2. Update Agent X main.py to use DMRClient:
+#    from agentx.dmr_client import DMRClient
+#    from agentx.integration_example import AgentXLLMBridge, AgentXCore
+#
+# 3. Build updated Agent X image:
+#    docker build -t hypercode-v24-agent-x:dmr -f agents/agent-x/Dockerfile .
+#
+# 4. Start Agent X with DMR:
+#    docker compose -f docker-compose.yml \
+#                   -f docker-compose.dmr.yml \
+#                   up -d agent-x
+#
+# 5. Verify:
+#    # Agent X should be healthy:
+#    docker ps | grep agent-x-01
+#    
+#    # DMR should be running:
+#    docker ps | grep dmr-daemon
+#    
+#    # Test inference:
+#    curl -X POST http://localhost:12434/v1/chat/completions \
+#      -H "Content-Type: application/json" \
+#      -d '{"model":"ai/smollm2:360m-q4_k_m","messages":[{"role":"user","content":"Hello"}]}'
+#
+# ───────────────────────────────────────────────────────────────────────────
+# Troubleshooting
+# ───────────────────────────────────────────────────────────────────────────
+#
+# DMR container won't start:
+#   docker logs agent-x-dmr
+#   # Check Docker daemon availability in the container
+#
+# Slow model loads:
+#   # First run of a model is slowest (pull + quantize). Subsequent runs are fast.
+#   # Preload models on startup via dmr_client.preload_models()
+#
+# Out of memory errors:
+#   # Reduce DMR resource limits or use smaller model (SmolLM2 instead of Qwen2.5)
+#   # Check available host memory: free -h
+#
+# Model inference timeout:
+#   # Increase DMR_INFERENCE_TIMEOUT if working with large models
+#   # Or use fallback model (automatically triggered on timeout)
+#
+# ───────────────────────────────────────────────────────────────────────────

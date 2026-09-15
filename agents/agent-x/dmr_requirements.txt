@@ -1,0 +1,11 @@
+# Agent X DMR dependencies (add to agents/agent-x/requirements.txt)
+
+# Core
+aiohttp>=3.9.0,<4.0.0
+tenacity>=8.2.0,<9.0.0
+
+# Typing & serialization (Pydantic for structured models if needed)
+pydantic>=2.0.0,<3.0.0
+
+# Logging & telemetry (optional, for production)
+python-json-logger>=2.0.0,<3.0.0
