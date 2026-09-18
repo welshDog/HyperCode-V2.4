@@ -1,0 +1,51 @@
+# Add this section to your docker-compose.yml
+# 
+# INSTALLATION:
+# 1. Copy this entire block
+# 2. Paste into your docker-compose.yml (after version/volumes, before services or into services section)
+# 3. Run: docker compose up -d skillweaver
+
+  skillweaver:
+    build:
+      context: .
+      dockerfile: services/skillweaver/Dockerfile
+    container_name: skillweaver
+    image: hypercode/skillweaver:latest
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+      - PORT=8051
+    ports:
+      - "127.0.0.1:8051:8051"
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.25"
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    security_opt:
+      - no-new-privileges:true
+    labels:
+      - "app=hypercode"
+      - "component=skillweaver"
+      - "tier=infrastructure"
