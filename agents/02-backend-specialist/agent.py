@@ -4,12 +4,262 @@ Specializes in API development, business logic, and server-side operations
 """
 import sys
 import os
-# Allow imports from shared modules
+import asyncio
+from typing import Any, Dict, List, Optional
+
+import httpx
+
 sys.path.append('/app')
 from base_agent import BaseAgent, AgentConfig
 import uvicorn
 
+try:
+    from skills import (
+        BACKEND_SPECIALIST_SKILLS,
+        curate_skills_for_registration,
+    )
+except Exception:  # pragma: no cover - skills.py lives next to this file
+    BACKEND_SPECIALIST_SKILLS = []  # type: ignore[assignment]
+    curate_skills_for_registration = None  # type: ignore[assignment]
+
+try:
+    from shared.skillweaver_sdk import (  # type: ignore
+        SkillWeaverClient,
+        register_agent_skills,
+    )
+except Exception:  # pragma: no cover - shared mount only in containers
+    SkillWeaverClient = None  # type: ignore[assignment]
+    register_agent_skills = None  # type: ignore[assignment]
+
+
+_SKILLWEAVER_MAX_ATTEMPTS = 4
+_SKILLWEAVER_BASE_SLEEP_SECONDS = 2.0
+_SKILLWEAVER_MAX_SLEEP_SECONDS = 8.0
+_SKILLWEAVER_STARTUP_CEILING_SECONDS = 45
+
+
+def _is_retryable_exception(exc: BaseException) -> bool:
+    if isinstance(exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.ConnectTimeout)):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        try:
+            status = exc.response.status_code
+        except Exception:
+            return False
+        return status == 429 or status >= 500
+    return False
+
+
 class BackendSpecialist(BaseAgent):
+    def __init__(self, config: Optional[AgentConfig] = None) -> None:
+        super().__init__(config)
+        self._skillweaver_state: Dict[str, Any] = {
+            "registered_count": 0,
+            "attempted_count": 0,
+            "status": "unattempted",
+            "last_error": None,
+        }
+        self._install_health_override()
+
+    def _install_health_override(self) -> None:
+        agent_ref = self
+        self.app.router.routes = [
+            r for r in self.app.router.routes
+            if getattr(r, "path", None) != "/health"
+        ]
+
+        @self.app.get("/health")
+        async def _health_with_skillweaver() -> Dict[str, Any]:
+            return {
+                "status": "healthy",
+                "agent": agent_ref.config.name,
+                "skillweaver": dict(agent_ref._skillweaver_state),
+            }
+
+    async def _register_skills_with_retry(self, sw_client: Any, valid_batch: List[Dict[str, Any]]) -> List[str]:
+        last_exc: Optional[BaseException] = None
+        registered: List[str] = []
+        for attempt in range(1, _SKILLWEAVER_MAX_ATTEMPTS + 1):
+            try:
+                registered = await register_agent_skills(  # type: ignore[misc]
+                    sw_client,
+                    self.config.name,
+                    valid_batch,
+                    best_effort=False,
+                )
+                return registered
+            except Exception as exc:
+                last_exc = exc
+                if not _is_retryable_exception(exc):
+                    raise
+                if attempt >= _SKILLWEAVER_MAX_ATTEMPTS:
+                    break
+                sleep_seconds = min(
+                    _SKILLWEAVER_BASE_SLEEP_SECONDS * (2 ** (attempt - 1)),
+                    _SKILLWEAVER_MAX_SLEEP_SECONDS,
+                )
+                try:
+                    self.logger.warning(
+                        "skillweaver_registration_retry",
+                        attempt=attempt,
+                        max_attempts=_SKILLWEAVER_MAX_ATTEMPTS,
+                        sleep_seconds=sleep_seconds,
+                        last_error_type=type(exc).__name__,
+                    )
+                except Exception:
+                    pass
+                await asyncio.sleep(sleep_seconds)
+        if last_exc is not None:
+            raise last_exc
+        return registered
+
+    async def _perform_skillweaver_registration(self) -> None:
+        skip_env = os.getenv("SKILLWEAVER_SKIP_REGISTER", "").strip().lower()
+        if skip_env == "true":
+            try:
+                self.logger.info("skillweaver_registration_skipped", reason="env")
+            except Exception:
+                pass
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": 0,
+                "status": "unattempted",
+                "last_error": None,
+            }
+            return
+
+        if curate_skills_for_registration is None:
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": 0,
+                "status": "degraded",
+                "last_error": "skills_module_unavailable",
+            }
+            try:
+                self.logger.warning("skillweaver_skills_module_unavailable")
+            except Exception:
+                pass
+            return
+
+        if SkillWeaverClient is None or register_agent_skills is None:
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": 0,
+                "status": "degraded",
+                "last_error": "sdk_unavailable",
+            }
+            try:
+                self.logger.warning(
+                    "skillweaver_sdk_unavailable",
+                    note="shared.skillweaver_sdk import failed",
+                )
+            except Exception:
+                pass
+            return
+
+        valid_batch, dropped = curate_skills_for_registration(
+            list(BACKEND_SPECIALIST_SKILLS),
+            self.logger,
+        )
+        attempted = len(valid_batch)
+        sw_url = os.getenv("SKILLWEAVER_URL", "http://skillweaver:8051")
+        sw_client = SkillWeaverClient(sw_url, timeout=10.0)
+        try:
+            if not valid_batch:
+                self._skillweaver_state = {
+                    "registered_count": 0,
+                    "attempted_count": 0,
+                    "status": "degraded",
+                    "last_error": "all_skills_invalid",
+                }
+                try:
+                    self.logger.warning(
+                        "skillweaver_no_valid_skills",
+                        dropped_count=len(dropped),
+                    )
+                except Exception:
+                    pass
+                return
+
+            try:
+                self.logger.info(
+                    "skillweaver_registration_starting",
+                    valid_count=attempted,
+                    dropped_count=len(dropped),
+                )
+            except Exception:
+                pass
+            registered_ids = await self._register_skills_with_retry(sw_client, valid_batch)
+            self._skillweaver_state = {
+                "registered_count": len(registered_ids),
+                "attempted_count": attempted,
+                "status": "ok",
+                "last_error": None,
+            }
+            try:
+                self.logger.info(
+                    "skillweaver_registration_success",
+                    registered_count=len(registered_ids),
+                    attempted_count=attempted,
+                )
+            except Exception:
+                pass
+        except Exception as exc:
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": attempted,
+                "status": "degraded",
+                "last_error": type(exc).__name__,
+            }
+            try:
+                self.logger.error(
+                    "skillweaver_registration_failed",
+                    attempts=_SKILLWEAVER_MAX_ATTEMPTS,
+                    last_error_type=type(exc).__name__,
+                )
+            except Exception:
+                pass
+        finally:
+            try:
+                await sw_client.close()
+            except Exception:
+                pass
+
+    async def initialize(self) -> None:
+        try:
+            await asyncio.wait_for(
+                self._perform_skillweaver_registration(),
+                timeout=_SKILLWEAVER_STARTUP_CEILING_SECONDS,
+            )
+        except asyncio.TimeoutError as exc:
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": 0,
+                "status": "degraded",
+                "last_error": "TimeoutError",
+            }
+            try:
+                self.logger.error(
+                    "skillweaver_registration_timeout",
+                    ceiling_seconds=_SKILLWEAVER_STARTUP_CEILING_SECONDS,
+                )
+            except Exception:
+                pass
+        except Exception as exc:
+            self._skillweaver_state = {
+                "registered_count": 0,
+                "attempted_count": self._skillweaver_state.get("attempted_count", 0),
+                "status": "degraded",
+                "last_error": type(exc).__name__,
+            }
+            try:
+                self.logger.error(
+                    "skillweaver_registration_unexpected",
+                    last_error_type=type(exc).__name__,
+                )
+            except Exception:
+                pass
+
     async def process_task(self, task: str, context: dict, requires_approval: bool):
         # 1. RAG Context
         rag_context = ""

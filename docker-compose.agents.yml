@@ -1563,6 +1563,8 @@ services:
     cap_drop:
       - ALL
 
+  # Best-effort SkillWeaver registration: no depends_on so agent boots fast
+  # even if SkillWeaver is down. Registration degrades gracefully.
   backend-specialist:
     profiles: ["agents"]
     build:
@@ -1576,6 +1578,7 @@ services:
       - AGENT_PORT=8003
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SKILLWEAVER_URL=http://skillweaver:8051
     volumes:
       - ./agents/02-backend-specialist:/app
       - ./agents/shared:/app/shared:ro

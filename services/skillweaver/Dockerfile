@@ -7,16 +7,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Install Python dependencies (pinned to match backend/requirements.txt baseline)
+# NOTE: No python-multipart — SkillWeaver only speaks JSON, no multipart endpoints.
 RUN pip install --no-cache-dir \
-    redis==5.0.1 \
-    pydantic==2.5.0 \
-    fastapi==0.104.1 \
-    uvicorn==0.24.0 \
-    httpx==0.25.2 \
-    python-multipart==0.0.6
+    redis==5.3.1 \
+    "pydantic>=2.10.0,<2.12" \
+    fastapi==0.135.3 \
+    uvicorn==0.35.0 \
+    httpx==0.28.1
 
-# Copy SkillWeaver code
+# Copy SkillWeaver code + services namespace init
+COPY services/__init__.py /app/services/__init__.py
 COPY services/skillweaver/ /app/services/skillweaver/
 
 # Create necessary directories

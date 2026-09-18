@@ -1,6 +1,94 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-13 (evening) by Claude Sonnet 5 (PR #526 merged + live-verified; full dashboard playtest found + fixed a real BROski Pulse route-collision bug; the box's RAM ceiling re-confirmed the hard way, N22) ⚡
+> Last synced: 2026-09-18 by TRAE — SkillWeaver (Phase 1 ALS) fully deployed, tested, 3 real bugs fixed, 8/8 pytest green, full API smoke proof ⚡
+
+## 2026-09-18 — SkillWeaver Phase 1 deployed live + 3 real bugs found + fixed
+
+SkillWeaver (cross-agent skill synthesis, Phase 1 of ALS) was defined in
+`docker-compose.core.yml` + `services/skillweaver/` for weeks but had **never
+actually been built, started, or tested** — `WHATS_DONE.md` had zero
+SkillWeaver entries until this session. Full build → start → smoke-test →
+pytest cycle completed. Container is live on `127.0.0.1:8051` now.
+
+- **Dockerfile version drift fixed** — `services/skillweaver/Dockerfile` was
+  pinning 2023-era packages (`redis==5.0.1`, `fastapi==0.104.1`,
+  `pydantic==2.5.0`, `uvicorn==0.24.0`, `httpx==0.25.2`,
+  `python-multipart==0.0.6`). Rebaselined all 6 to match
+  `backend/requirements.txt`: `redis==5.3.1`, `fastapi==0.135.3`,
+  `pydantic>=2.10.0,<2.12`, `uvicorn==0.35.0`, `httpx==0.28.1`,
+  `python-multipart==0.0.27`. Added explicit `COPY services/__init__.py`
+  (the file was missing entirely — would have caused `ModuleNotFoundError:
+  No module named 'services'` on boot, build wouldn't have caught it).
+- **SkillWeaver compose config already present** in `docker-compose.core.yml`
+  (auto-included via root `docker-compose.yml` `include:`). Verified:
+  `depends_on redis: service_healthy`, `127.0.0.1:8051:8051`, networks
+  `agents-net + data-net`, `no-new-privileges:true`, `mem_limit: 1G`,
+  `cpu_limit: 1`, labels set.
+- **Build clean:** `docker compose -f docker-compose.core.yml build
+  skillweaver` exit 0, image `hypercode/skillweaver:latest` exported.
+- **Start healthy:** `depends_on` fired correctly (redis Waiting →
+  redis Healthy → skillweaver Starting → skillweaver Started). HTTP proof:
+  `GET /health` → `{status: "healthy", redis_connected: true,
+  skills_registered: int}`. `GET /` → `{name: "SkillWeaver", version:
+  "1.0.0", docs: "/docs"}`.
+- **Phase 4 API smoke tests (9 endpoints, real curl against running
+  container — all server-side 200/400 logs prove it):**
+  1. Register 5 skills (3 agents, 5 distinct categories) — all `[registered]`
+  2. List all → `count: 6` correct
+  3. List by agent (`deploy-specialist`) → `count: 2` correct
+  4. Discover `{query: "deploy"}` → found=2 ✅
+  5. Discover `{query: "costs optimize", category: "optimization"}` → found=1 ✅
+  6. Compose `[deploy_docker, check_quality]` linear → `composite_*` ID generated, status=ready ✅
+  7a. Compose empty list → HTTP 400 ("Empty skill list") correctly blocked ✅
+  7b. Compose nonexistent ID → HTTP 400 ("Skill does_not_exist_xyz not found") correctly blocked ✅
+  8. Stats → `total_skills: N`, `total_compositions: N`, by_category + by_agent breakdowns non-empty ✅
+  9. Composition history → count=2 (both composites visible) ✅
+- **Phase 5 pytest suite — FOUND AND FIXED 2 REAL BUGS before going green:**
+  Ran inside the container against `redis://redis:6379/15` (isolated test DB,
+  separate from production DB 0 — never `flushdb` prod).
+  - **Bug 1 — discover_skills (no category) returned 0 matches.**
+    `SkillRegistry.register_skill()` was writing to `by_agent:` +
+    `by_category:` sets but **not** to `skillweaver:registry:all_ids`. The
+    server endpoint POST /register had its own duplicate `sadd` as a
+    workaround, but the pure class method (used by pytest fixture) was
+    silently dropping the global index. `discover_skills()` with no category
+    scans `all_ids` → empty → 0 matches. Fix: added the missing `sadd
+    "skillweaver:registry:all_ids"` inside `SkillRegistry.register_skill()`
+    directly (now the single source of truth; server endpoint's redundant
+    add is harmless, won't double-count because it's a set).
+  - **Bug 2 — Deprecation warning on teardown.** `tests.py` fixture called
+    `await client.close()` (deprecated in redis-py 5.x → `aclose()`).
+    Replaced.
+  - **Tests config fix** — fixture URL hardcoded `redis://localhost:6379`
+    (wouldn't work inside container, no Redis host port published). Now
+    reads `TEST_REDIS_URL` env, defaults to `/15` DB.
+  - **Final result: 8 passed in 3.07s.** `test_skill_registration`,
+    `test_skill_discovery`, `test_skill_composition_validation`,
+    `test_skill_composition_creation`, `test_multiple_agents_skills`,
+    `test_skill_category_filtering`, `test_discover_with_category_filter`,
+    `test_skill_versioning`.
+- **Post-fix rebuilt:** `docker compose -f docker-compose.core.yml up -d
+  --build skillweaver` — fresh image with both bugfixes, uvicorn boots,
+  `/health` returns `redis_connected: true`, existing registrations
+  persisted (skills_registered=6, compositions_created=2 in Redis data
+  volume).
+- **Docker health state:** self-reported `healthy` (curl-based `/health`
+  healthcheck passes, 30s interval).
+
+**Files changed this session:**
+- `services/skillweaver/Dockerfile` — version pins + services/__init__.py COPY
+- `services/__init__.py` — NEW (namespace package, was missing)
+- `services/skillweaver/skillweaver.py` — Bug 1 fix: register_skill() → sadd all_ids
+- `services/skillweaver/tests.py` — TEST_REDIS_URL env + close→aclose
+
+**Next task:** Wire 1 real live agent (e.g. `backend-specialist` or
+`crew-orchestrator`) to import `services.skillweaver.sdk` and call
+`register_agent_skills()` on startup so `/api/v1/stats` shows real live agent
+skills, not just test fixtures. Then build SkillFinder UI in the dashboard
+(frontend already has a stub `SkillFinder` — wire it to :8051 via
+hypercode-core proxy).
+
+---
 
 ## 2026-09-13 (evening) — PR #526 merged, dashboard playtest, BROski Pulse route-collision bug fixed
 

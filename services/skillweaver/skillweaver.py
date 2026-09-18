@@ -109,13 +109,17 @@ class SkillRegistry:
         key = f"{self.registry_key}:{metadata.skill_id}"
         await self.redis.set(key, json.dumps(metadata.to_dict()))
         
-        # Also store in a set for fast discovery
+        # Also store in sets for fast discovery
         await self.redis.sadd(
             f"{self.registry_key}:by_agent:{metadata.agent_id}",
             metadata.skill_id
         )
         await self.redis.sadd(
             f"{self.registry_key}:by_category:{metadata.category.value}",
+            metadata.skill_id
+        )
+        await self.redis.sadd(
+            "skillweaver:registry:all_ids",
             metadata.skill_id
         )
         

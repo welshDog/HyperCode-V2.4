@@ -23,11 +23,12 @@ from services.skillweaver.skillweaver import (
 @pytest.fixture
 async def redis_client():
     """Create a test Redis client."""
-    client = await redis.from_url("redis://localhost:6379")
-    # Clear test data
+    import os
+    redis_url = os.getenv("TEST_REDIS_URL", "redis://localhost:6379/15")
+    client = await redis.from_url(redis_url)
     await client.flushdb()
     yield client
-    await client.close()
+    await client.aclose()
 
 
 @pytest.mark.asyncio

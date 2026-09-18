@@ -189,6 +189,32 @@ class BaseAgent:
         await self.initialize()
 
     async def shutdown(self) -> None:
+        # B2: SkillWeaver de-register on graceful shutdown.
+        # Best-effort only (10s timeout, catches everything), never blocks
+        # shutdown on a networking issue or if SKILLWEAVER_URL is unset.
+        sw_url = os.getenv("SKILLWEAVER_URL")
+        if sw_url and self.config.name:
+            try:
+                import asyncio as _asyncio
+
+                try:
+                    from shared.skillweaver_sdk import SkillWeaverClient  # type: ignore
+                except Exception:
+                    from skillweaver_sdk import SkillWeaverClient  # type: ignore
+
+                client = SkillWeaverClient(sw_url, timeout=10.0)
+
+                async def _dereg():
+                    try:
+                        return await client.deregister_agent(self.config.name)
+                    finally:
+                        await client.close()
+
+                await _asyncio.wait_for(_dereg(), timeout=10.0)
+                print(f"[base_agent] SkillWeaver deregistered agent={self.config.name!r}")
+            except Exception as _exc:
+                print(f"[base_agent] SkillWeaver deregister best-effort failed: {_exc!r}")
+
         if self.redis:
             try:
                 await self.redis.set(f"agent:{self.config.name}:status", "offline")
@@ -232,7 +258,8 @@ Return concise, actionable output. Prefer bullet points, short steps, and code b
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
-            return resp.content[0].text
+            # pyrefly: ignore [missing-attribute]
+            return "".join(block.text for block in resp.content)
         except Exception as exc:
             self.logger.error("llm_call_failed", error=str(exc))
             return f"LLM call failed: {exc}"
@@ -270,10 +297,12 @@ PROJECT CONTEXT:
 
     # ---------- FastAPI ----------
     def _setup_routes(self) -> None:
+        # pyrefly: ignore [deprecated]
         @self.app.on_event("startup")
         async def _startup() -> None:
             await self.startup()
 
+        # pyrefly: ignore [deprecated]
         @self.app.on_event("shutdown")
         async def _shutdown() -> None:
             await self.shutdown()
