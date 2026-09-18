@@ -190,22 +190,30 @@ class WorkerAgent(HyperAgent):
         """Attempt task execution with exponential backoff retry."""
 
         async def _attempt_task() -> Any:
-            # One timeout layer only: retry_with_backoff() applies task.timeout to
-            # this coroutine. Wrapping again here double-applied it for async
-            # handlers and left sync handlers with no timeout at all.
-            if asyncio.iscoroutinefunction(task.handler):
-                return await task.handler(*task.args, **task.kwargs)
-            return await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: task.handler(*task.args, **task.kwargs),
-            )
+            # Apply timeout once here to avoid double-wrapping for async handlers
+            # and missing timeout for sync handlers.
+            try:
+                if asyncio.iscoroutinefunction(task.handler):
+                    return await asyncio.wait_for(
+                        task.handler(*task.args, **task.kwargs),
+                        timeout=task.timeout,
+                    )
+                return await asyncio.wait_for(
+                    asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: task.handler(*task.args, **task.kwargs),
+                    ),
+                    timeout=task.timeout,
+                )
+            except asyncio.TimeoutError:
+                raise  # Let retry_with_backoff handle it
 
         try:
             raw_result, attempt_index = await retry_with_backoff(
                 _attempt_task,
                 max_retries=task.max_retries,
                 backoff_base=2.0,
-                timeout=task.timeout,
+                timeout=None,  # Timeout is already applied in _attempt_task
                 retry_exceptions=(asyncio.TimeoutError, Exception),
                 on_retry=lambda attempt, wait_time: self._log(
                     f"Retry {attempt}/{task.max_retries} for [{task.task_id}] "

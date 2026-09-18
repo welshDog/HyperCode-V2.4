@@ -69,9 +69,9 @@ async def spawn_agent(agent_name: str) -> bool:
         logger.info(f"[{agent_name}] Executing: {' '.join(cmd)}")
         
         try:
-            # subprocess.run blocks for up to 30s. This process also holds a
-            # pub/sub connection whose read carries a 5s socket_timeout, so a
-            # blocked loop kills spawn_listener as well as stalling everything.
+            # Run in thread pool to avoid blocking event loop.
+            # subprocess.run can block for up to 30s, and we don't want to stall
+            # the pub/sub listener (which has a 5s socket_timeout).
             result = await asyncio.to_thread(
                 subprocess.run,
                 cmd,
@@ -118,8 +118,7 @@ async def shutdown_agent(agent_name: str) -> bool:
         # Try multiple naming conventions
         for name_variant in [agent_name, container_name]:
             try:
-                # docker-py is sync; stop(timeout=10) can hold the loop for 10s
-                # while spawn_listener's pub/sub read is waiting on a 5s timeout.
+                # docker-py is sync; wrap in thread to avoid blocking event loop
                 container = await asyncio.to_thread(docker_client.containers.get, name_variant)
                 if container.status == "running":
                     await asyncio.to_thread(container.stop, timeout=10)
@@ -142,14 +141,20 @@ async def shutdown_agent(agent_name: str) -> bool:
 
 
 async def check_idle_agents():
-    """Periodically check for idle agents and shut them down."""
+    """Periodically check for idle agents and shut them down.
+    
+    Fix: Copy agent_activity dict before iterating to avoid RuntimeError
+    when dict is mutated by other tasks during iteration.
+    """
     while True:
         try:
             await asyncio.sleep(30)  # Check every 30 seconds
             now = time.time()
             idle_threshold = now - (IDLE_SHUTDOWN_MINUTES * 60)
 
-            for agent_name, last_activity in list(agent_activity.items()):
+            # Copy the dict to avoid mutation errors during concurrent updates
+            agents_to_check = list(agent_activity.items())
+            for agent_name, last_activity in agents_to_check:
                 if last_activity < idle_threshold and agent_name not in agent_spawn_lock:
                     await shutdown_agent(agent_name)
 
@@ -186,6 +191,7 @@ async def spawn_listener(r: redis.Redis):
                 logger.info(f"[{agent_name}] Processing spawn request: {data}")
 
                 # Check if already running
+                found_running = False
                 if docker_client is not None:
                     try:
                         for name_variant in [agent_name, f"{DOCKER_COMPOSE_PROJECT}_{agent_name}_1"]:
@@ -196,19 +202,15 @@ async def spawn_listener(r: redis.Redis):
                                 if container.status == "running":
                                     logger.info(f"[{agent_name}] Already running, updating activity")
                                     agent_activity[agent_name] = time.time()
+                                    found_running = True
                                     break
                             except docker.errors.NotFound:
                                 continue
-                        else:
-                            # Not found, proceed to spawn
-                            await spawn_agent(agent_name)
-                            agent_activity[agent_name] = time.time()
                     except Exception as e:
                         logger.warning(f"[{agent_name}] Failed to check status: {e}")
-                        await spawn_agent(agent_name)
-                        agent_activity[agent_name] = time.time()
-                else:
-                    # No docker client, just spawn
+                
+                # Only spawn if not already running
+                if not found_running:
                     await spawn_agent(agent_name)
                     agent_activity[agent_name] = time.time()
 

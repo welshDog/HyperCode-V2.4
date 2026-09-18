@@ -2,9 +2,12 @@
 HyperCode Brain API — Anthropic → Ollama cognitive core.
 """
 
+import logging
 import os
 import requests
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
@@ -32,42 +35,54 @@ class BrainAPI:
         """
         Send a query to the Brain (Anthropic → Ollama fallback).
         Returns a dict with a 'choices' key for backward compatibility.
+        
+        Attempts Anthropic first, gracefully falls back to Ollama if Anthropic fails.
         """
+        # Try Anthropic first
         if self.anthropic_key:
-            headers = {
-                "x-api-key": self.anthropic_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": self.model,
-                "max_tokens": 2048,
-                "system": system,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-            response = requests.post(ANTHROPIC_API_URL, json=payload, headers=headers, timeout=30)
-            response.raise_for_status()
-            data = response.json()
-            text = data["content"][0]["text"]
-            return {"choices": [{"message": {"content": text}}]}
+            try:
+                headers = {
+                    "x-api-key": self.anthropic_key,
+                    "anthropic-version": "2023-06-01",
+                    "Content-Type": "application/json",
+                }
+                payload = {
+                    "model": self.model,
+                    "max_tokens": 2048,
+                    "system": system,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+                response = requests.post(ANTHROPIC_API_URL, json=payload, headers=headers, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+                text = data["content"][0]["text"]
+                return {"choices": [{"message": {"content": text}}]}
+            except (requests.exceptions.RequestException, KeyError, ValueError) as e:
+                logger.warning(f"Anthropic query failed: {e}, falling back to Ollama")
+        else:
+            logger.info("No Anthropic API key, using Ollama")
 
         # Ollama fallback via OpenAI-compat endpoint
-        payload = {
-            "model": self.ollama_model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": temperature,
-        }
-        response = requests.post(
-            f"{self.ollama_base}/chat/completions",
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=60,
-        )
-        response.raise_for_status()
-        return response.json()
+        try:
+            payload = {
+                "model": self.ollama_model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                "temperature": temperature,
+            }
+            response = requests.post(
+                f"{self.ollama_base}/chat/completions",
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=60,
+            )
+            response.raise_for_status()
+            return response.json()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            logger.error(f"Both Anthropic and Ollama failed: {e}")
+            raise
 
     def get_answer(self, prompt: str, **kwargs) -> str:
         """Quick helper — returns just the text answer."""

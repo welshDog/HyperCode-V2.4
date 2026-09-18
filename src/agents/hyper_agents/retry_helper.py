@@ -39,11 +39,11 @@ async def retry_with_backoff(
 
     Returns:
         Tuple of (successful_result, attempt_index) where attempt_index is the
-        loop attempt number (starting at 0) of the successful attempt.
+        0-based index of the successful attempt (0=first try, 1=first retry, etc.).
 
     Raises:
-        RetryError: If all retries are exhausted, contains the last exception
-            and the attempt index of the last attempt (which will be max_retries).
+        RetryError: If all retries are exhausted. Contains the last exception and
+            attempt_index = max_retries (i.e., the last attempt that was tried).
     """
     last_exception: BaseException | None = None
 
