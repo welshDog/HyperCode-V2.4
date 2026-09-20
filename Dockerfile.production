@@ -1,67 +1,72 @@
 # Production-optimized Dockerfile for HyperCode
 # Multi-stage builds to minimize final image size and attack surface
+# syntax=docker/dockerfile:1.4
 
-# ==================== BASE STAGE ====================
-# Shared foundation for all production stages
-ARG NODE_IMAGE=node:20.18.1-bookworm-slim
-FROM ${NODE_IMAGE} as node
+# ==================== BUILDER STAGE ====================
+# Dedicated stage for dependency installation with pip cache optimization
+ARG PYTHON_VERSION=3.11
+ARG PYTHON_IMAGE=python:3.11-slim-bookworm
 
-FROM python:3.11-slim-bookworm as base
+FROM ${PYTHON_IMAGE} as builder
 
-# Install system dependencies in a single layer with cache cleanup
+# Cache pip downloads across builds (requires BuildKit: DOCKER_BUILDKIT=1)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip setuptools wheel
+
+# Create a cached layer for requirements installation
+COPY requirements*.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+# ==================== RUNTIME STAGE (Python Services) ====================
+# Minimal runtime image for production services (agents, core, orchestrator)
+FROM ${PYTHON_IMAGE} as runtime
+
+# Security: Install minimal runtime dependencies only
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     ca-certificates \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install Node.js LTS without curl|bash (copy from official node image)
-# Supply-chain note: pin NODE_IMAGE (ideally with a digest) in CI/build args for reproducibility.
-COPY --from=node /usr/local/bin/node /usr/local/bin/node
-COPY --from=node /usr/local/bin/npm /usr/local/bin/npm
-COPY --from=node /usr/local/bin/npx /usr/local/bin/npx
-COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
-
-# Install production Python packages with no cache
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir \
-    pip-tools \
-    twine
-
-WORKDIR /workspace
-
-# ==================== RUNTIME STAGE (Python Services) ====================
-# Minimal runtime image for production services (agents, core, orchestrator)
-FROM base as runtime
-
 # Security: Create non-root user for running services
 RUN groupadd -r hypercode && useradd -r -g hypercode hypercode
 
-# Install only runtime Python packages (no dev tools)
-RUN pip install --no-cache-dir \
-    httpx \
-    pydantic \
-    python-dotenv
+# Copy pre-built Python packages from builder stage (avoid re-compiling wheels)
+COPY --from=builder /usr/local/lib/python${PYTHON_VERSION}/site-packages \
+     /usr/local/lib/python${PYTHON_VERSION}/site-packages
+
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 WORKDIR /app
 
-# Copy only what's needed and set ownership
+# Copy only application code (excluded build artifacts via .dockerignore)
 COPY --chown=hypercode:hypercode . .
 
-# Security: Set read-only filesystem where possible
+# Drop privileges: run all processes as non-root user
 USER hypercode
 
-HEALTHCHECK NONE 
- # Override with service-specific healthchecks in docker-compose
+# Healthcheck template (override with service-specific checks in docker-compose)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health', timeout=3)" || exit 1
 
+# Default entrypoint; override in docker-compose for service-specific apps
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # ==================== DEVELOPMENT STAGE ====================
 # Full-featured development with testing and debugging
-FROM base as development
+FROM ${PYTHON_IMAGE} as development
 
-# Install comprehensive development tools
-RUN pip install --no-cache-dir \
+# Install dev system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    postgresql-client \
+    git \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install development Python packages with cache
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip setuptools wheel && \
+    pip install \
     pytest \
     pytest-cov \
     pytest-asyncio \
@@ -84,14 +89,8 @@ RUN pip install --no-cache-dir \
     responses \
     freezegun
 
-# Install Node.js dev tools
-RUN npm install -g \
-    eslint \
-    prettier \
-    @commitlint/cli \
-    artillery
-
 WORKDIR /workspace
+COPY . .
 
 CMD ["/bin/bash"]
 
@@ -99,10 +98,8 @@ CMD ["/bin/bash"]
 # Dedicated testing environment with test-specific dependencies
 FROM development as testing
 
-# Additional performance testing
-RUN pip install --no-cache-dir \
-    pytest-json-report \
-    pytest-benchmark
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install pytest-json-report pytest-benchmark
 
 WORKDIR /tests
 
@@ -114,20 +111,21 @@ FROM development as ci
 
 # Already includes coverage, bandit, safety from development stage
 
-# Install additional CI tools
-RUN pip install --no-cache-dir \
-    pytest-json-report
-
 WORKDIR /ci
 
 CMD ["/bin/bash"]
 
 # ==================== DOCUMENTATION STAGE ====================
 # Lightweight documentation builder
-FROM base as docs
+FROM ${PYTHON_IMAGE} as docs
 
-# Install only documentation dependencies
-RUN pip install --no-cache-dir \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
+    pip install \
     mkdocs \
     mkdocs-material \
     mkdocstrings[python] \
@@ -136,19 +134,24 @@ RUN pip install --no-cache-dir \
     mkdocs-section-index
 
 WORKDIR /docs
+COPY . .
 
 CMD ["mkdocs", "serve", "--dev-addr=0.0.0.0:8000"]
 
 # ==================== DATABASE MIGRATION STAGE ====================
 # Minimal database migration runner
-FROM base as migration
+FROM ${PYTHON_IMAGE} as migration
 
-# Install only migration tools
-RUN pip install --no-cache-dir \
-    prisma \
-    alembic \
-    sqlalchemy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip && \
+    pip install alembic sqlalchemy
 
 WORKDIR /migrations
+COPY . .
 
-CMD ["prisma", "migrate", "deploy"]
+CMD ["alembic", "upgrade", "head"]

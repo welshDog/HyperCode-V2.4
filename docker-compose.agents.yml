@@ -260,8 +260,9 @@ services:
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       # Service identity for tasks/planning/DLQ proxies (no login UI yet).
       # Empty = proxies forward the browser header only, as before.
-      - DASHBOARD_SERVICE_JWT=${DASHBOARD_SERVICE_JWT:-}
-      - NEXT_PUBLIC_CORE_WS_HOST=localhost
+      - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-dev-master-key}
+      - DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY:-dev-master-key}
+      - NEXT_PUBLIC_CORE_WS_HOST=127.0.0.1
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}

@@ -1,0 +1,1719 @@
+HyperCode Evolution Research 🚀
+Mate, HyperCode is already pointed in the right direction: a neurodivergent-friendly cognitive architecture with agent orchestration, memory, Docker services, autonomous evolution, healing, and a visual dashboard. The next leap should be controlled agent engineering, not simply adding more autonomous agents.
+
+Your project files describe Agent X as a meta-agent that creates and deploys specialised agents, alongside a Core API, Crew Orchestrator, DevOps evolution agent, Healer Agent, dashboard, Redis, PostgreSQL, and observability services.
+
+The Big Direction
+Build HyperCode as a Neurodivergent Agent Operating System:
+
+text
+Human intention
+      ↓
+HyperCode cognitive interface
+      ↓
+Planner + memory + permissions
+      ↓
+Specialist agents
+      ↓
+Tools, code, files, APIs, containers
+      ↓
+Tests, evaluation, audit, human approval
+The important shift is this:
+
+HyperCode should not only generate code. It should understand intent, explain decisions, safely change systems, test its work, learn from outcomes, and remain easy for a neurodivergent human to control.
+
+Highest-Value Technologies
+Technology	Purpose	HyperCode priority
+MCP	Connect agents to tools, files, APIs, databases, and services	Build now
+A2A	Let specialist agents discover and communicate with one another	Build next
+AG-UI	Stream agent thoughts, tool calls, progress, and approvals to the UI	Build now
+A2UI	Let agents produce safe, structured interface components	Experiment
+Agent evaluation	Test whether agents actually complete coding tasks	Build now
+Sandboxed execution	Safely run generated code and shell commands	Build now
+Policy engine	Control permissions, secrets, tools, and approval levels	Build now
+Long-term memory	Store project facts, decisions, patterns, and user preferences	Improve
+Tracing and replay	Reconstruct every agent action for debugging	Build now
+MCP is designed for agent-to-tool and agent-to-data connections, while A2A focuses on agent discovery and agent-to-agent communication. AG-UI standardises streaming events such as messages, tool calls, results, and run completion, which fits HyperCode’s real-time dashboard very well.
+
+1. Make MCP the Tool Layer
+HyperCode should expose its capabilities through a controlled MCP gateway rather than allowing every agent to connect directly to everything.
+
+Recommended MCP servers
+hypercode-files: read and write approved project files.
+
+hypercode-github: branches, issues, pull requests, Actions, releases.
+
+hypercode-docker: inspect and manage approved containers.
+
+hypercode-memory: retrieve and store project knowledge.
+
+hypercode-tests: run tests, linting, builds, and type checks.
+
+hypercode-observability: health checks, logs, traces, and metrics.
+
+hypercode-creative: image, music, video, and 3D-printing workflows.
+
+hypercode-learning: convert technical tasks into accessible lessons.
+
+Use least privilege for every tool. For example, a planning agent may read files but must not push code, while a release agent may publish only after tests and human approval.
+
+OWASP’s MCP guidance identifies token exposure, privilege escalation, tool poisoning, dependency tampering, command injection, prompt injection, weak authorisation, poor telemetry, shadow servers, and context over-sharing as major risks.
+
+2. Add A2A Agent Discovery
+Your current Crew Orchestrator can evolve into an Agent Registry and Routing Layer.
+
+Each agent should publish a machine-readable card:
+
+json
+{
+  "name": "test-agent",
+  "description": "Runs tests and diagnoses failures",
+  "version": "1.0.0",
+  "skills": [
+    {
+      "id": "test-project",
+      "name": "Test Project",
+      "description": "Runs tests, linting, builds, and type checks"
+    }
+  ],
+  "permissions": ["read_repository", "run_tests"],
+  "endpoint": "http://test-agent:8010"
+}
+The orchestrator can then:
+
+Discover available agents.
+
+Match a task to their skills.
+
+Start a job.
+
+Track progress.
+
+Pass results to another agent.
+
+Escalate to the human when confidence is low.
+
+A2A uses agent cards to describe capabilities and endpoints, allowing agents to be added without hard-coding every integration into the orchestrator.
+
+3. Build a Coding Agent Pipeline
+HyperCode’s coding flow should be a repeatable pipeline rather than one giant autonomous agent.
+
+Suggested agent crew
+Agent	Job	Can modify code?
+Intent Agent	Turns messy ideas into clear goals	No
+Project Mapper	Understands repository structure	No
+Architect Agent	Designs implementation options	No
+Builder Agent	Writes code in a temporary branch	Yes
+Test Agent	Runs tests and creates failure reports	No
+Security Agent	Checks secrets, permissions, dependencies, injection risks	No
+Reviewer Agent	Reviews the diff against the goal	No
+Documentation Agent	Updates README, changelog, and handover notes	Yes
+Release Agent	Merges, deploys, and tags releases	Only with approval
+Learning Agent	Converts the session into reusable knowledge	Yes
+The key design principle is separation of duties. The same agent that writes code should not be the only agent allowed to approve, test, and release that code.
+
+4. Add an Agent State Machine
+Every agent run should have an explicit state:
+
+text
+CREATED
+  ↓
+PLANNING
+  ↓
+WAITING_FOR_APPROVAL
+  ↓
+EXECUTING
+  ↓
+TESTING
+  ↓
+REVIEWING
+  ↓
+READY_TO_MERGE
+  ↓
+DEPLOYED
+  ↓
+LEARNED
+Failure states should be first-class:
+
+text
+BLOCKED
+FAILED
+NEEDS_HUMAN
+ROLLED_BACK
+This will make the Mission Control dashboard much easier to understand. Instead of showing a vague “agent working” message, it can show:
+
+Current stage.
+
+What the agent is trying to do.
+
+Files affected.
+
+Tools used.
+
+Tests passed or failed.
+
+What decision is needed from Lyndz.
+
+5. Create Neurodivergent-First Agent UX
+This is where HyperCode can become genuinely different from ordinary coding agents.
+
+Every task should have three views
+Quick view
+
+What is happening?
+
+Why does it matter?
+
+What do I need to click?
+
+Builder view
+
+Steps completed.
+
+Current files.
+
+Commands run.
+
+Errors and fixes.
+
+Next action.
+
+Deep view
+
+Agent messages.
+
+Tool calls.
+
+Traces.
+
+Decisions.
+
+Tokens and model usage.
+
+Security events.
+
+Use a consistent “Now / Next / Blocked” layout:
+
+text
+NOW
+The Builder Agent is updating the API route.
+
+NEXT
+The Test Agent will run the API test suite.
+
+BLOCKED
+Nothing currently blocked.
+
+YOUR INPUT
+Approve access to GitHub Actions?
+[Approve] [Deny] [Explain]
+This reduces cognitive overload while preserving advanced detail for users who want it.
+
+6. Use AG-UI for the Dashboard
+AG-UI is highly relevant to HyperCode because your frontend needs to display live agent behaviour rather than only final responses.
+
+Use typed events such as:
+
+text
+RUN_STARTED
+PLAN_CREATED
+TOOL_CALL_START
+TOOL_CALL_RESULT
+FILE_CHANGED
+TEST_STARTED
+TEST_FAILED
+APPROVAL_REQUIRED
+TEXT_MESSAGE_CONTENT
+RUN_FINISHED
+This is better than sending unstructured logs to the dashboard because the frontend can render each event consistently. AG-UI is specifically intended to standardise streaming agent events between backends and user interfaces.
+
+7. Experiment with A2UI Safely
+A2UI could let HyperCode generate interfaces such as:
+
+Task planning cards.
+
+Test result panels.
+
+Approval forms.
+
+Agent comparison views.
+
+Learning exercises.
+
+3D-print design workflows.
+
+Deployment checklists.
+
+Accessibility settings.
+
+However, do not let an agent generate arbitrary HTML or JavaScript for core dashboard screens. Use a fixed catalogue of safe UI components:
+
+text
+Card
+Text
+Badge
+Progress
+Checklist
+CodeDiff
+ApprovalButton
+FileTree
+TestResult
+AgentStatus
+Timeline
+The agent should choose from these components and fill in structured data. A2UI follows this type of safe component-composition model rather than requiring the agent to produce unrestricted frontend code.
+
+8. Build the HyperCode Memory System
+HyperCode needs multiple memory types, not one large vector database.
+
+Memory type	Stores
+User memory	Preferences, accessibility needs, communication style
+Project memory	Architecture, services, environment, conventions
+Task memory	Current goal, plan, blockers, decisions
+Code memory	Symbols, files, dependencies, tests, APIs
+Episodic memory	What happened during previous agent runs
+Semantic memory	Reusable technical knowledge
+Safety memory	Rejected actions, incidents, risky tools
+Learning memory	Explanations that helped the user understand
+Every memory item should include:
+
+json
+{
+  "content": "The API uses FastAPI and PostgreSQL.",
+  "scope": "project",
+  "source": "README.md",
+  "confidence": 0.96,
+  "created_at": "2026-09-20T00:00:00Z",
+  "expires_at": null,
+  "approved_by_user": true
+}
+Avoid allowing agents to silently treat generated guesses as permanent facts. Store source, confidence, scope, and expiry.
+
+9. Add Codebase Intelligence
+HyperCode should create a living project graph:
+
+text
+Repository
+ ├── services
+ ├── agents
+ ├── APIs
+ ├── database tables
+ ├── Docker containers
+ ├── environment variables
+ ├── tests
+ ├── GitHub workflows
+ └── documentation
+The graph should answer questions like:
+
+Which agents can modify this file?
+
+Which service owns this API route?
+
+Which tests cover this function?
+
+Which environment variables are required?
+
+What breaks if this dependency changes?
+
+Which previous task introduced this pattern?
+
+This will make the Project Mapper and Architect agents more reliable than plain semantic search alone.
+
+10. Treat Autonomous Evolution as a Gated System
+Your README already describes an Evolutionary Pipeline capable of autonomously upgrading agents. That feature should evolve through proposal, simulation, evaluation, approval, deployment, and rollback.
+
+Safe evolution loop
+text
+Agent proposes change
+      ↓
+Create isolated branch/container
+      ↓
+Run regression tests
+      ↓
+Run security checks
+      ↓
+Compare against previous version
+      ↓
+Human or policy approval
+      ↓
+Canary deployment
+      ↓
+Monitor
+      ↓
+Promote or rollback
+Never allow an agent to rewrite its own permissions, remove its own tests, disable telemetry, or deploy directly to production.
+
+The evolutionary system should be able to improve:
+
+Prompts.
+
+Tool descriptions.
+
+Routing rules.
+
+Memory retrieval.
+
+UI explanations.
+
+Test coverage.
+
+Agent collaboration patterns.
+
+Cost and latency.
+
+It should not automatically alter:
+
+Identity.
+
+Permission boundaries.
+
+Secret access.
+
+Audit retention.
+
+Human approval requirements.
+
+Safety policies.
+
+11. Introduce Agent Evaluation
+HyperCode needs its own benchmark suite: HyperBench.
+
+Start with real tasks from your repositories:
+
+text
+HB-001: Explain the project architecture.
+HB-002: Add a health-check endpoint.
+HB-003: Fix a failing Docker service.
+HB-004: Add a database migration.
+HB-005: Improve an accessibility issue.
+HB-006: Write tests for an existing feature.
+HB-007: Detect a prompt injection attempt.
+HB-008: Refuse an unsafe shell command.
+HB-009: Recover after a tool failure.
+HB-010: Produce a beginner-friendly handover note.
+Score every run on:
+
+Correctness.
+
+Tests passed.
+
+Security.
+
+Minimal unnecessary changes.
+
+Explanation quality.
+
+Neurodivergent accessibility.
+
+Recovery from failure.
+
+Cost.
+
+Time.
+
+Human approval burden.
+
+SWE-bench and related coding-agent benchmarks measure whether agents can solve real repository issues end-to-end, while newer benchmark suites also include terminal interaction and more difficult software-engineering tasks.
+
+12. Add a Secure Execution Plane
+Generated code must run in a disposable environment.
+
+Minimum controls
+Rootless containers.
+
+Read-only base filesystem.
+
+CPU and memory limits.
+
+Network disabled by default.
+
+No host Docker socket.
+
+Temporary workspace only.
+
+Secret injection only when explicitly approved.
+
+Command allowlists for sensitive operations.
+
+Automatic cleanup after every run.
+
+Full stdout, stderr, and exit-code capture.
+
+A generated command such as rm -rf, a dependency install script, or a Docker socket request should trigger a policy check before execution.
+
+13. Use Policy-Based Permissions
+Define permissions as capabilities:
+
+json
+{
+  "agent": "builder-agent",
+  "capabilities": [
+    "read_repository",
+    "write_workspace",
+    "run_tests"
+  ],
+  "denied": [
+    "read_secrets",
+    "push_main",
+    "deploy_production",
+    "modify_policies"
+  ],
+  "approval_required": [
+    "install_dependency",
+    "network_request",
+    "create_pull_request"
+  ]
+}
+A policy engine should evaluate:
+
+text
+Who is acting?
+Which agent?
+On behalf of which user?
+What tool is being called?
+What data is being accessed?
+What files are affected?
+What environment is targeted?
+Does this require approval?
+This directly addresses the privilege escalation, authentication, authorisation, command execution, and audit problems highlighted by OWASP.
+
+14. Add Full Traceability
+Every agent action should generate a trace:
+
+json
+{
+  "run_id": "run_123",
+  "agent": "builder-agent",
+  "user": "welshdog",
+  "parent_run_id": "run_100",
+  "action": "tool_call",
+  "tool": "write_file",
+  "target": "src/api/health.ts",
+  "input_hash": "sha256:...",
+  "result": "success",
+  "approval_id": null,
+  "timestamp": "2026-09-20T01:30:00Z"
+}
+The trace should support:
+
+Replay.
+
+Diff inspection.
+
+Incident investigation.
+
+Cost reporting.
+
+Agent comparison.
+
+“Why did you do that?” explanations.
+
+Rollback.
+
+OpenTelemetry-compatible traces would make it easier to connect HyperCode’s agents, FastAPI services, Redis, PostgreSQL, Docker, and Grafana.
+
+15. Add Model Routing
+Do not use one expensive model for every task.
+
+text
+Simple classification       → small local model
+File search and summarising  → fast low-cost model
+Architecture planning       → stronger reasoning model
+Complex debugging           → premium coding model
+Privacy-sensitive work      → local model
+Creative generation         → specialist multimodal model
+The router should consider:
+
+Task complexity.
+
+Privacy.
+
+Required context length.
+
+Cost limit.
+
+Latency target.
+
+Tool-use requirements.
+
+Previous model success rate.
+
+Track model performance by task type rather than assuming that the most powerful model is always best.
+
+16. Add Human Approval as a Feature
+Human-in-the-loop should not feel like a failure. It should be a core HyperCode capability.
+
+Approval cards should say:
+
+text
+The agent wants to install package `x`.
+
+WHY
+The requested feature needs image processing.
+
+RISK
+This downloads code from the public registry.
+
+ALTERNATIVES
+Use an existing installed package, or approve installation.
+
+[Approve once] [Approve for this project] [Deny] [Ask agent to explain]
+This is especially important for a neurodivergent-first system because clear approval explanations reduce uncertainty and make automation feel safer.
+
+17. HyperCode Product Architecture
+A future architecture could look like this:
+
+text
+hypercode/
+├── apps/
+│   ├── mission-control/
+│   ├── broski-terminal/
+│   └── learning-studio/
+├── services/
+│   ├── core-api/
+│   ├── agent-orchestrator/
+│   ├── agent-registry/
+│   ├── memory-service/
+│   ├── policy-service/
+│   ├── evaluation-service/
+│   ├── trace-service/
+│   └── sandbox-runner/
+├── agents/
+│   ├── intent/
+│   ├── mapper/
+│   ├── architect/
+│   ├── builder/
+│   ├── tester/
+│   ├── reviewer/
+│   ├── security/
+│   ├── healer/
+│   └── evolution/
+├── protocols/
+│   ├── mcp/
+│   ├── a2a/
+│   ├── ag-ui/
+│   └── a2ui/
+├── policies/
+├── evaluations/
+├── prompts/
+├── schemas/
+└── docs/
+Recommended Roadmap
+Phase 1: Control and visibility
+Create a shared agent event schema.
+
+Add run IDs and parent run IDs.
+
+Add a policy service.
+
+Add sandboxed command execution.
+
+Add immutable tool-call traces.
+
+Upgrade the dashboard with Now / Next / Blocked.
+
+Phase 2: Coding intelligence
+Build Intent Agent.
+
+Build Project Mapper.
+
+Build Builder, Test, Reviewer, and Security agents.
+
+Add temporary branches and automatic diffs.
+
+Create the first 20 HyperBench tasks.
+
+Store successful fixes as reusable patterns.
+
+Phase 3: Protocol interoperability
+Expose approved tools through MCP.
+
+Add Agent Registry with A2A cards.
+
+Add AG-UI streaming.
+
+Add structured approval events.
+
+Add A2UI experiments for dashboards and learning cards.
+
+Phase 4: Safe evolution
+Evolution proposals.
+
+Automated regression evaluation.
+
+Prompt and routing experiments.
+
+Canary deployments.
+
+Rollback.
+
+Agent leaderboard based on HyperBench results.
+
+Phase 5: Creator ecosystem
+Learning Studio for neurodivergent coding education.
+
+Agent marketplace with signed manifests.
+
+BROski$ rewards for completed tasks.
+
+Community-shared agent skills.
+
+3D-printing, game-development, music, and creative agents.
+
+Portable HyperCode workspaces for local or hosted deployment.
+
+First Build Sprint
+For the quickest win, build this vertical slice:
+
+text
+User: “Add a health endpoint.”
+
+1. Intent Agent clarifies the goal.
+2. Project Mapper finds the API service.
+3. Architect Agent writes a short plan.
+4. Human approves the plan.
+5. Builder Agent edits a temporary branch.
+6. Test Agent runs tests.
+7. Security Agent checks the diff.
+8. Reviewer Agent explains the change.
+9. Dashboard shows the patch and approval button.
+10. Documentation Agent creates a handover note.
+That single workflow would prove the most important HyperCode ideas: neurodivergent-friendly guidance, specialist agents, safe autonomy, visible progress, testing, review, memory, and human control. Nice one, BROski♾ — this is the foundation for turning HyperCode from an agent collection into a proper AI development operating system.
+
+Integrating AGUI for real-time agent streams
+
+Bro — use AG-UI as HyperCode’s streaming contract between FastAPI agents and the HyperCode dashboard. It turns invisible agent work into live, structured events: planning, tool calls, code changes, test outcomes, approvals, and errors.
+
+Why It Matters
+Your platform has many containers and specialist agents, so plain logs will become noisy fast. AG-UI gives every run a consistent lifecycle, including RUN_STARTED, step events, streamed text, tool-call events, state snapshots, and a clear finished or error outcome.
+
+For HyperCode, this means Mission Control can show:
+
+Now: what the agent is doing.
+
+Next: the upcoming planned step.
+
+Evidence: tool results, changed files, tests, and logs.
+
+Decision: an approval card when a risky action needs Bro.
+
+Recovery: error, retry, rollback, or escalation status.
+
+Recommended Shape
+Keep AG-UI at the edge of the orchestration layer. Your internal agents can keep their existing implementation style; an adapter translates their lifecycle and tool telemetry into AG-UI events.
+
+text
+Dashboard / Agents IDE
+        │
+        │ POST /api/agui/runs
+        ▼
+HyperCode AG-UI Gateway (FastAPI)
+        │
+        ├── validates request + identity
+        ├── creates run_id + trace_id
+        ├── streams AG-UI SSE events
+        ▼
+Crew Orchestrator
+        │
+        ├── Planner Agent
+        ├── Builder Agent
+        ├── Test Agent
+        ├── Security Agent
+        └── Healer Agent
+                │
+                ▼
+Tools / MCP / Docker / GitHub / Tests
+AG-UI servers accept a run request and emit lifecycle, message, and tool-call events; the usual transport is Server-Sent Events (SSE).
+
+Event Contract
+Start small. These events will cover most HyperCode runs:
+
+HyperCode moment	AG-UI event
+User starts a task	RUN_STARTED
+Planner creates a plan	STEP_STARTED, custom hypercode.plan.created
+Agent writes explanation	TEXT_MESSAGE_START, TEXT_MESSAGE_CONTENT, TEXT_MESSAGE_END
+Agent begins a tool action	TOOL_CALL_START
+Tool arguments stream	TOOL_CALL_ARGS
+Tool invocation is ready	TOOL_CALL_END
+Docker/test/GitHub action returns	TOOL_CALL_RESULT
+Agent changes branch/files	custom hypercode.diff.ready
+Tests begin and finish	custom hypercode.test.started / hypercode.test.finished
+Human decision is needed	custom hypercode.approval.required
+Successful job completion	RUN_FINISHED
+Failure or policy block	RUN_ERROR
+Tool calls conventionally stream as a start event, one or more arguments events, and an end event; a run should end with either RUN_FINISHED or RUN_ERROR.
+
+HyperCode Custom Events
+Use AG-UI’s standard events for interoperability. Add a small hypercode.* namespace for product-specific signals.
+
+ts
+type HyperCodeEvent =
+  | {
+      type: "CUSTOM";
+      name: "hypercode.plan.created";
+      value: {
+        runId: string;
+        summary: string;
+        steps: string[];
+        risk: "low" | "medium" | "high";
+      };
+    }
+  | {
+      type: "CUSTOM";
+      name: "hypercode.diff.ready";
+      value: {
+        repository: string;
+        branch: string;
+        filesChanged: string[];
+        additions: number;
+        deletions: number;
+      };
+    }
+  | {
+      type: "CUSTOM";
+      name: "hypercode.approval.required";
+      value: {
+        approvalId: string;
+        title: string;
+        why: string;
+        risk: string;
+        action: string;
+        expiresAt: string;
+      };
+    }
+  | {
+      type: "CUSTOM";
+      name: "hypercode.test.finished";
+      value: {
+        suite: string;
+        passed: number;
+        failed: number;
+        durationMs: number;
+        reportUrl?: string;
+      };
+    };
+Rule: never stream secrets, raw .env values, authentication headers, full tokens, or sensitive tool arguments into the browser.
+
+FastAPI Starter
+This fits HyperCode-V2.4’s FastAPI direction. Keep imports as from app.X import Y, not from backend.app.X.
+
+python
+# app/api/agui.py
+from __future__ import annotations
+
+import asyncio
+import json
+import uuid
+from collections.abc import AsyncGenerator
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+router = APIRouter(prefix="/api/agui", tags=["ag-ui"])
+
+
+class RunRequest(BaseModel):
+    thread_id: str = Field(alias="threadId")
+    run_id: str | None = Field(default=None, alias="runId")
+    input: str
+    repository: str | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+def sse(event: dict) -> str:
+    return f"data: {json.dumps(event)}\n\n"
+
+
+async def hypercode_event_stream(
+    request: RunRequest,
+) -> AsyncGenerator[str, None]:
+    run_id = request.run_id or str(uuid.uuid4())
+
+    yield sse({
+        "type": "RUN_STARTED",
+        "threadId": request.thread_id,
+        "runId": run_id,
+    })
+
+    yield sse({
+        "type": "STEP_STARTED",
+        "stepName": "planning",
+    })
+
+    yield sse({
+        "type": "CUSTOM",
+        "name": "hypercode.plan.created",
+        "value": {
+            "runId": run_id,
+            "summary": "Mapping the repository before proposing changes.",
+            "steps": [
+                "Inspect architecture",
+                "Create implementation plan",
+                "Request approval before write actions",
+            ],
+            "risk": "low",
+        },
+    })
+
+    yield sse({
+        "type": "STEP_FINISHED",
+        "stepName": "planning",
+    })
+
+    yield sse({
+        "type": "TEXT_MESSAGE_START",
+        "messageId": f"{run_id}:status",
+        "role": "assistant",
+    })
+
+    for token in [
+        "I’m mapping the project first. ",
+        "No files will be changed without approval.",
+    ]:
+        yield sse({
+            "type": "TEXT_MESSAGE_CONTENT",
+            "messageId": f"{run_id}:status",
+            "delta": token,
+        })
+        await asyncio.sleep(0.03)
+
+    yield sse({
+        "type": "TEXT_MESSAGE_END",
+        "messageId": f"{run_id}:status",
+    })
+
+    yield sse({
+        "type": "RUN_FINISHED",
+        "threadId": request.thread_id,
+        "runId": run_id,
+    })
+
+
+@router.post("/runs")
+async def run_agent(request: RunRequest) -> StreamingResponse:
+    return StreamingResponse(
+        hypercode_event_stream(request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+AG-UI’s Python ecosystem supports implementing endpoints that stream protocol events directly from FastAPI or Starlette applications.
+
+Tool Call Example
+This is the key live-visibility flow for Docker, GitHub, test runner, and MCP tools.
+
+python
+tool_call_id = str(uuid.uuid4())
+
+yield sse({
+    "type": "TOOL_CALL_START",
+    "toolCallId": tool_call_id,
+    "toolCallName": "run_tests",
+})
+
+yield sse({
+    "type": "TOOL_CALL_ARGS",
+    "toolCallId": tool_call_id,
+    "delta": "{\"command\":\"pytest -q\"}",
+})
+
+yield sse({
+    "type": "TOOL_CALL_END",
+    "toolCallId": tool_call_id,
+})
+
+result = await test_runner.run("pytest -q")
+
+yield sse({
+    "type": "TOOL_CALL_RESULT",
+    "toolCallId": tool_call_id,
+    "content": json.dumps({
+        "exit_code": result.exit_code,
+        "passed": result.passed,
+        "failed": result.failed,
+        "summary": result.summary,
+    }),
+})
+The frontend can render that as:
+
+text
+🧪 Test Agent
+Running: pytest -q
+████████░░ 80%
+
+✅ 42 passed
+❌ 0 failed
+⏱ 18.4 seconds
+Frontend Flow
+Your React/Vite dashboard should have one run store keyed by runId.
+
+ts
+type AgentRunState = {
+  runId: string;
+  status: "idle" | "running" | "waiting_approval" | "failed" | "finished";
+  now: string;
+  next?: string;
+  messages: string[];
+  steps: Record<string, "running" | "finished" | "failed">;
+  toolCalls: ToolCall[];
+  approvals: ApprovalRequest[];
+  testResults: TestResult[];
+};
+Map incoming event types to focused widgets:
+
+TEXT_MESSAGE_CONTENT → live agent explanation.
+
+STEP_* → progress timeline.
+
+TOOL_CALL_* → collapsible tool activity card.
+
+hypercode.plan.created → short plan card.
+
+hypercode.diff.ready → Git diff viewer.
+
+hypercode.approval.required → fixed high-visibility approval panel.
+
+hypercode.test.finished → green/red test result panel.
+
+RUN_ERROR → recovery card, not a scary raw stack trace.
+
+Approval Pattern
+Do not expose an approval action as a fake UI-only button. It needs a second authenticated API call to the policy layer.
+
+text
+AG-UI stream
+  └── hypercode.approval.required
+          │
+          ▼
+Dashboard displays approval card
+          │
+          ▼
+POST /api/approvals/{approval_id}
+          │
+          ├── approve_once
+          ├── deny
+          └── ask_for_explanation
+                  │
+                  ▼
+Policy service records immutable decision
+                  │
+                  ▼
+Orchestrator resumes or terminates the run
+The run should enter a clear waiting_approval status and include a timeout. A denied approval should emit an understandable policy event and finish safely, not leave a zombie agent run.
+
+Production Rules
+One public AG-UI gateway, not a separate browser connection to every container.
+
+Authenticate before opening the stream; bind runId, user identity, workspace, and permissions.
+
+Authorise every tool server-side; frontend events are display data, never authority.
+
+Persist before emitting important events; the dashboard should recover after a refresh.
+
+Use runId, threadId, traceId, and parentRunId for every event.
+
+Redact data before streaming, especially secret-containing tool arguments and logs.
+
+Set a heartbeat roughly every 15–30 seconds to prevent reverse proxies from silently dropping long streams.
+
+Make the client reconnectable; replay missed events from GET /api/runs/{run_id}/events?after=sequence.
+
+Cap event and log sizes; store giant logs in object storage and stream only summaries plus an authorised link.
+
+Never let AG-UI bypass policy checks for Docker, GitHub pushes, deployment, secrets, or shell commands.
+
+OWASP identifies risks around token exposure, privilege escalation, tool poisoning, command injection, weak authorisation, inadequate telemetry, and excessive context sharing in MCP-enabled systems; the same controls matter at your AG-UI-to-tool boundary.
+
+Build Order
+Sprint 1 — Live stream MVP
+Add /api/agui/runs to HyperCode Core.
+
+Stream RUN_STARTED, text, tool calls, RUN_FINISHED, and RUN_ERROR.
+
+Build a basic live activity panel in the Agents IDE.
+
+Add run persistence in PostgreSQL.
+
+Add runId and trace correlation to logs.
+
+Sprint 2 — Real agent visibility
+Wire Planner, Builder, Test, and Healer events.
+
+Add plan, tool, test, and error widgets.
+
+Add structured hypercode.* custom event schemas.
+
+Add reconnect and replay after refresh.
+
+Sprint 3 — Safe human control
+Add approval requests and policy-service decisions.
+
+Add diff review before branch writes or PR creation.
+
+Add role-based access.
+
+Redact logs and tool payloads.
+
+Add Grafana metrics: runs, event lag, failures, reconnects, approval waits.
+
+Sprint 4 — Multi-agent streams
+Allow a parent run to expose child agent runs.
+
+Add an agent timeline and handoff graph.
+
+Show when the Planner hands a task to Builder, Tester, Security, or Healer.
+
+Add one-click “Explain this step simply” for HyperCode’s neurodivergent-first UX.
+
+Best First Task
+Implement this first:
+
+text
+AG-UI Gateway → Planner Agent → streamed plan → approval card → run completion
+No code-writing agent yet. Just prove the event flow, UI, persistence, reconnect, and human approval loop first.
+
+Nice one BROski♾️ — this gives HyperCode a proper visible nervous system, where agents do not disappear into black-box logs.
+
+How to implement the AGUI adapter for FastAPI agents
+
+Bro — build the adapter as a thin translation layer. It should convert your existing FastAPI agent/orchestrator events into AG-UI SSE events, without forcing a rewrite of every HyperCode agent.
+
+AG-UI is specifically designed for an agent server to emit lifecycle, text, tool-call, state, and error events to a frontend over a streaming response.
+
+Why This Shape
+HyperCode already has multiple services and agents. A separate adapter means:
+
+Existing agents keep working.
+
+The dashboard gets one standard real-time stream.
+
+You can add agents gradually.
+
+Security, redaction, tracing, and approval checks live in one place.
+
+Do not expose every container directly to the browser. Put one authenticated FastAPI gateway in front of the orchestrator.
+
+text
+React / Agents IDE
+      │
+      │ POST /api/agui/runs
+      ▼
+AG-UI Router + Adapter
+      │
+      ├── auth + permissions
+      ├── run/trace IDs
+      ├── SSE encoding
+      ├── secret redaction
+      ▼
+Existing Crew Orchestrator
+      │
+      ├── planner
+      ├── builder
+      ├── tester
+      └── healer
+File Layout
+Inside HyperCode-V2.4, keep it small and testable:
+
+text
+app/
+├── api/
+│   └── agui.py
+├── agui/
+│   ├── adapter.py
+│   ├── schemas.py
+│   ├── serializer.py
+│   ├── redaction.py
+│   └── event_mapper.py
+├── services/
+│   └── agent_orchestrator.py
+└── main.py
+Use the HyperCode import convention:
+
+python
+from app.agui.adapter import AGUIAdapter
+Not:
+
+python
+from backend.app.agui.adapter import AGUIAdapter
+That matches HyperCode-V2.4’s documented Python import rule.
+
+Internal Event Contract
+First, standardise what internal agents emit. Do not allow agents to invent random JSON payloads.
+
+python
+# app/agui/schemas.py
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Literal
+
+
+AgentEventType = Literal[
+    "run_started",
+    "step_started",
+    "step_finished",
+    "text_delta",
+    "tool_started",
+    "tool_args_delta",
+    "tool_finished",
+    "tool_result",
+    "plan_created",
+    "diff_ready",
+    "approval_required",
+    "test_finished",
+    "run_finished",
+    "run_error",
+]
+
+
+@dataclass(slots=True)
+class AgentEvent:
+    type: AgentEventType
+    run_id: str
+    thread_id: str
+    agent_name: str
+    data: dict[str, Any] = field(default_factory=dict)
+Your Planner, Builder, Tester, and Healer should yield AgentEvent instances:
+
+python
+yield AgentEvent(
+    type="text_delta",
+    run_id=run_id,
+    thread_id=thread_id,
+    agent_name="planner",
+    data={"delta": "I’m mapping the repository first. "},
+)
+Map Internal Events to AG-UI
+The adapter becomes the only place that knows both your internal events and AG-UI’s public event format.
+
+python
+# app/agui/event_mapper.py
+from __future__ import annotations
+
+from typing import Any
+
+from app.agui.schemas import AgentEvent
+
+
+class AGUIEventMapper:
+    def to_agui(self, event: AgentEvent) -> dict[str, Any]:
+        match event.type:
+            case "run_started":
+                return {
+                    "type": "RUN_STARTED",
+                    "threadId": event.thread_id,
+                    "runId": event.run_id,
+                }
+
+            case "step_started":
+                return {
+                    "type": "STEP_STARTED",
+                    "stepName": event.data["name"],
+                }
+
+            case "step_finished":
+                return {
+                    "type": "STEP_FINISHED",
+                    "stepName": event.data["name"],
+                }
+
+            case "text_delta":
+                return {
+                    "type": "TEXT_MESSAGE_CONTENT",
+                    "messageId": event.data["message_id"],
+                    "delta": event.data["delta"],
+                }
+
+            case "tool_started":
+                return {
+                    "type": "TOOL_CALL_START",
+                    "toolCallId": event.data["tool_call_id"],
+                    "toolCallName": event.data["tool_name"],
+                }
+
+            case "tool_args_delta":
+                return {
+                    "type": "TOOL_CALL_ARGS",
+                    "toolCallId": event.data["tool_call_id"],
+                    "delta": event.data["delta"],
+                }
+
+            case "tool_finished":
+                return {
+                    "type": "TOOL_CALL_END",
+                    "toolCallId": event.data["tool_call_id"],
+                }
+
+            case "tool_result":
+                return {
+                    "type": "TOOL_CALL_RESULT",
+                    "toolCallId": event.data["tool_call_id"],
+                    "content": event.data["content"],
+                }
+
+            case "plan_created":
+                return {
+                    "type": "CUSTOM",
+                    "name": "hypercode.plan.created",
+                    "value": event.data,
+                }
+
+            case "diff_ready":
+                return {
+                    "type": "CUSTOM",
+                    "name": "hypercode.diff.ready",
+                    "value": event.data,
+                }
+
+            case "approval_required":
+                return {
+                    "type": "CUSTOM",
+                    "name": "hypercode.approval.required",
+                    "value": event.data,
+                }
+
+            case "test_finished":
+                return {
+                    "type": "CUSTOM",
+                    "name": "hypercode.test.finished",
+                    "value": event.data,
+                }
+
+            case "run_finished":
+                return {
+                    "type": "RUN_FINISHED",
+                    "threadId": event.thread_id,
+                    "runId": event.run_id,
+                }
+
+            case "run_error":
+                return {
+                    "type": "RUN_ERROR",
+                    "message": event.data["message"],
+                    "code": event.data.get("code", "AGENT_RUN_FAILED"),
+                }
+
+            case _:
+                raise ValueError(f"Unsupported agent event: {event.type}")
+AG-UI formally defines lifecycle events including RUN_STARTED, RUN_FINISHED, and RUN_ERROR, as well as structured text and tool-call events.
+
+SSE Serializer
+Keep streaming and serialisation separate from orchestration logic.
+
+python
+# app/agui/serializer.py
+from __future__ import annotations
+
+import json
+from typing import Any
+
+
+def encode_sse(event: dict[str, Any]) -> str:
+    payload = json.dumps(
+        event,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return f"data: {payload}\n\n"
+
+
+def encode_heartbeat() -> str:
+    return ": keepalive\n\n"
+The : keepalive line is a valid SSE comment. It helps prevent reverse proxies from closing long-running streams.
+
+Adapter Implementation
+This is the core component.
+
+python
+# app/agui/adapter.py
+from __future__ import annotations
+
+import asyncio
+import logging
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from app.agui.event_mapper import AGUIEventMapper
+from app.agui.redaction import redact_event
+from app.agui.schemas import AgentEvent
+from app.agui.serializer import encode_heartbeat, encode_sse
+
+logger = logging.getLogger(__name__)
+
+
+class AGUIAdapter:
+    def __init__(
+        self,
+        orchestrator: Any,
+        heartbeat_seconds: float = 15.0,
+    ) -> None:
+        self.orchestrator = orchestrator
+        self.mapper = AGUIEventMapper()
+        self.heartbeat_seconds = heartbeat_seconds
+
+    async def stream(
+        self,
+        *,
+        request: Any,
+        run_id: str,
+        thread_id: str,
+        user_id: str,
+        workspace_id: str,
+    ) -> AsyncGenerator[str, None]:
+        agent_events = self.orchestrator.run(
+            request=request,
+            run_id=run_id,
+            thread_id=thread_id,
+            user_id=user_id,
+            workspace_id=workspace_id,
+        )
+
+        iterator = agent_events.__aiter__()
+
+        while True:
+            try:
+                event: AgentEvent = await asyncio.wait_for(
+                    iterator.__anext__(),
+                    timeout=self.heartbeat_seconds,
+                )
+            except TimeoutError:
+                yield encode_heartbeat()
+                continue
+            except StopAsyncIteration:
+                break
+            except asyncio.CancelledError:
+                logger.info("AG-UI client disconnected", extra={"run_id": run_id})
+                raise
+            except Exception:
+                logger.exception("AG-UI stream failed", extra={"run_id": run_id})
+
+                error_event = AgentEvent(
+                    type="run_error",
+                    run_id=run_id,
+                    thread_id=thread_id,
+                    agent_name="agui-adapter",
+                    data={
+                        "message": "The agent stream stopped unexpectedly.",
+                        "code": "STREAM_FAILURE",
+                    },
+                )
+                yield encode_sse(self.mapper.to_agui(error_event))
+                break
+
+            safe_event = redact_event(event)
+            agui_event = self.mapper.to_agui(safe_event)
+
+            await self._persist_event(
+                run_id=run_id,
+                agent_name=safe_event.agent_name,
+                event=agui_event,
+            )
+
+            yield encode_sse(agui_event)
+
+    async def _persist_event(
+        self,
+        *,
+        run_id: str,
+        agent_name: str,
+        event: dict[str, Any],
+    ) -> None:
+        # Replace with PostgreSQL event persistence.
+        # Persist first, then stream, so reconnect/replay is possible.
+        logger.debug(
+            "AG-UI event",
+            extra={
+                "run_id": run_id,
+                "agent_name": agent_name,
+                "event_type": event["type"],
+            },
+        )
+Important: persist important events before sending them. If the browser refreshes, the user can reconnect and request missed events.
+
+Minimal Redaction Layer
+Never trust an agent, tool, or log to remove secrets for you.
+
+python
+# app/agui/redaction.py
+from __future__ import annotations
+
+import re
+from copy import deepcopy
+
+from app.agui.schemas import AgentEvent
+
+SENSITIVE_KEYS = {
+    "api_key",
+    "authorization",
+    "cookie",
+    "password",
+    "secret",
+    "token",
+    "private_key",
+    "webhook_secret",
+}
+
+SECRET_PATTERNS = [
+    re.compile(r"sk-[A-Za-z0-9_-]{16,}"),
+    re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
+    re.compile(r"AKIA[A-Z0-9]{16}"),
+]
+
+
+def redact_event(event: AgentEvent) -> AgentEvent:
+    copied = deepcopy(event)
+    copied.data = _redact_value(copied.data)
+    return copied
+
+
+def _redact_value(value: object, key: str = "") -> object:
+    if key.lower() in SENSITIVE_KEYS:
+        return "[REDACTED]"
+
+    if isinstance(value, dict):
+        return {
+            item_key: _redact_value(item_value, item_key)
+            for item_key, item_value in value.items()
+        }
+
+    if isinstance(value, list):
+        return [_redact_value(item) for item in value]
+
+    if isinstance(value, str):
+        redacted = value
+        for pattern in SECRET_PATTERNS:
+            redacted = pattern.sub("[REDACTED]", redacted)
+        return redacted
+
+    return value
+FastAPI Router
+Use an endpoint that authenticates first, creates a controlled run context, then returns the stream.
+
+python
+# app/api/agui.py
+from __future__ import annotations
+
+import uuid
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+from app.agui.adapter import AGUIAdapter
+from app.services.agent_orchestrator import AgentOrchestrator
+from app.auth.dependencies import get_current_user
+
+router = APIRouter(prefix="/api/agui", tags=["ag-ui"])
+
+
+class StartAgentRunRequest(BaseModel):
+    thread_id: str = Field(alias="threadId")
+    input: str
+    workspace_id: str = Field(alias="workspaceId")
+    repository: str | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+def get_adapter() -> AGUIAdapter:
+    orchestrator = AgentOrchestrator()
+    return AGUIAdapter(orchestrator=orchestrator)
+
+
+@router.post("/runs")
+async def start_agent_run(
+    body: StartAgentRunRequest,
+    request: Request,
+    user=Depends(get_current_user),
+    adapter: AGUIAdapter = Depends(get_adapter),
+) -> StreamingResponse:
+    run_id = str(uuid.uuid4())
+
+    return StreamingResponse(
+        adapter.stream(
+            request=body,
+            run_id=run_id,
+            thread_id=body.thread_id,
+            user_id=str(user.id),
+            workspace_id=body.workspace_id,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+Then wire the router in the FastAPI application:
+
+python
+# app/main.py
+from fastapi import FastAPI
+
+from app.api.agui import router as agui_router
+
+app = FastAPI()
+app.include_router(agui_router)
+FastAPI and other Starlette-based apps can return protocol streaming responses directly, and AG-UI integrations commonly stream the translated agent events as SSE.
+
+Orchestrator Example
+Your agent orchestrator only needs to yield internal events.
+
+python
+# app/services/agent_orchestrator.py
+from __future__ import annotations
+
+import uuid
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from app.agui.schemas import AgentEvent
+
+
+class AgentOrchestrator:
+    async def run(
+        self,
+        *,
+        request: Any,
+        run_id: str,
+        thread_id: str,
+        user_id: str,
+        workspace_id: str,
+    ) -> AsyncGenerator[AgentEvent, None]:
+        message_id = str(uuid.uuid4())
+
+        yield AgentEvent(
+            type="run_started",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="orchestrator",
+        )
+
+        yield AgentEvent(
+            type="step_started",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="planner",
+            data={"name": "project_mapping"},
+        )
+
+        yield AgentEvent(
+            type="text_delta",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="planner",
+            data={
+                "message_id": message_id,
+                "delta": "I’m mapping the project before making any changes. ",
+            },
+        )
+
+        yield AgentEvent(
+            type="plan_created",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="planner",
+            data={
+                "summary": "Inspect architecture, identify the safest implementation path.",
+                "risk": "low",
+                "steps": [
+                    "Read repository conventions",
+                    "Locate affected service",
+                    "Prepare a minimal change plan",
+                ],
+            },
+        )
+
+        yield AgentEvent(
+            type="step_finished",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="planner",
+            data={"name": "project_mapping"},
+        )
+
+        yield AgentEvent(
+            type="run_finished",
+            run_id=run_id,
+            thread_id=thread_id,
+            agent_name="orchestrator",
+        )
+Add Replay Early
+Live SSE is not enough. Browsers refresh, Wi-Fi drops, and long agent jobs happen.
+
+Persist events with an increasing sequence number:
+
+sql
+CREATE TABLE agent_run_events (
+    id UUID PRIMARY KEY,
+    run_id UUID NOT NULL,
+    sequence BIGINT NOT NULL,
+    event_type TEXT NOT NULL,
+    payload JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (run_id, sequence)
+);
+Then provide:
+
+text
+GET /api/agui/runs/{run_id}/events?after=42
+The frontend reconnects with its most recent sequence number, replays missed messages, and then opens a live stream again.
+
+Add Approval Without Breaking Streams
+When an agent needs permission, stream an event, persist the paused state, and stop tool execution.
+
+python
+yield AgentEvent(
+    type="approval_required",
+    run_id=run_id,
+    thread_id=thread_id,
+    agent_name="builder",
+    data={
+        "approval_id": str(uuid.uuid4()),
+        "title": "Create a pull request?",
+        "why": "The implementation and tests have passed.",
+        "risk": "This publishes a branch to GitHub.",
+        "action": "github.create_pull_request",
+        "expires_at": "2026-09-21T00:00:00Z",
+    },
+)
+The UI then calls:
+
+text
+POST /api/agent-approvals/{approval_id}
+Use the persisted approval decision to resume the run. Do not rely on a frontend event as proof of approval.
+
+Test the Adapter
+Start with these tests before connecting real agents:
+
+text
+1. `run_started` maps to a valid `RUN_STARTED`.
+2. Text chunks arrive in order.
+3. Tool start → args → end → result preserves one toolCallId.
+4. Secrets are redacted before output and persistence.
+5. Exceptions produce `RUN_ERROR`.
+6. A slow agent emits heartbeat comments.
+7. Client disconnect cancels cleanly.
+8. Persisted event sequence can replay after reconnect.
+9. An approval event pauses writes until server-side approval.
+10. A forbidden tool call never reaches Docker, GitHub, or shell execution.
+Don’t Start With
+Multi-agent nested streams.
+
+Agent-generated UI components.
+
+Production deployments.
+
+Docker socket control.
+
+GitHub push permissions.
+
+Automatic retries with side effects.
+
+First prove: planner stream -> visible dashboard -> reconnect -> persisted history -> approval card.
+
+Nice one BROski♾️ — that gets AG-UI into HyperCode as a stable, secure foundation rather than another fragile streaming feature.
