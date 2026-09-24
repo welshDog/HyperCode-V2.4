@@ -1,0 +1,3 @@
+[submodule "upstream"]
+	path = upstream
+	url = https://github.com/FareedKhan-dev/kimi-k3-in-c.git
