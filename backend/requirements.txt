@@ -193,7 +193,7 @@ plotly==6.2.0
 pluggy==1.6.0
 posthog==5.4.0
 prisma==0.15.0
-prometheus-fastapi-instrumentator==7.1.0
+prometheus-fastapi-instrumentator==8.1.0
 prometheus_client==0.22.1
 prompt_toolkit==3.0.52
 propcache==0.3.2
