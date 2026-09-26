@@ -1,0 +1,15 @@
+# BROski operator: read-only stack health inspection.
+# Run it: POST /api/v1/operator/tasks {"tool": "hypercode.inspect", "arguments": {}}
+
+name: operator-inspect
+version: 1
+entry: inspect
+intent: "BROski operator read-only stack health inspection report of containers redis postgres queues disk and models"
+
+nodes:
+  - id: inspect
+    type: tool
+    tool: local.inspect
+    idempotent: true
+
+edges: []

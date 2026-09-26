@@ -32,6 +32,7 @@ import httpx
 import redis.asyncio as aioredis
 
 from app.agents.hyperflow.schema import FlowDefinition, FlowNode, NodeType
+from app.broski_operator.tools import LOCAL_TOOLS
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -190,6 +191,8 @@ class HyperFlowRunner:
                 emit_result: dict[str, Any] = {"success": success}
                 if result.get("mocked"):
                     emit_result["mocked"] = True
+                if "data" in result:
+                    emit_result["data"] = result["data"]
                 await self._emit(node, "completed", emit_result, HyperFlowRunStatus.RUNNING)
                 node_id = self._next_node(node, success, loop_counts)
 
@@ -230,7 +233,15 @@ class HyperFlowRunner:
             return await self._await_approval(node)
         # P0-2: consult Safety Shepherd before any agent/tool dispatch.
         await self._safety_gate(node)
+        if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS:
+            return await self._run_local_tool(node)
         return await self._dispatch(node)
+
+    async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
+        """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
+        data = await LOCAL_TOOLS[node.tool](node.params)
+        ok = bool(data.get("ok"))
+        return {"ok": ok, "green": ok, "data": data}
 
     # ── Safety Shepherd gate ─────────────────────────────────────────────────
 
