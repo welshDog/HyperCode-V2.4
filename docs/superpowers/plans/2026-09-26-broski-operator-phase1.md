@@ -356,7 +356,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Produces: `HyperFlowRunner._take_persisted_decision() -> Optional[bool]` (sync; reads then clears `state.context.pending_decision`, returns its `approved` bool or `None`).
 - Produces: `async HyperFlowRunner.start_at(node_id: str) -> HyperFlowRunner` (re-attach to a persisted run and continue from `node_id`).
 - Produces: `HyperFlowRunner._run(start_at: Optional[str] = None)`.
-- Contract for later tasks: the operator API stores the decision as `state["context"]["pending_decision"] = {"approved": bool, "by": str, "ts": iso}`.
+- Contract for later tasks: the operator API stores the decision as `state["context"]["pending_decision"] = {"approved": bool, "by": str, "ts": iso, "node": <gate node id>}`. (Fix round 1 ruling: decisions are scoped to the gate they answer; `_take_persisted_decision(node_id)` discards a decision whose `node` differs.)
 
 - [ ] **Step 1: Patch the shared helper so existing gate tests never touch a real DB**
 
@@ -582,7 +582,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - Produces (`runs.py`, every function takes an explicit `Session`):
   - `OPEN_STATUSES: tuple[str, ...]`
   - `load_open_runs(db) -> list[tuple[str, str, str, list[dict]]]` — `(run_id, flow_name, status, history)`
-  - `store_decision(db, run, *, approved: bool, by: str) -> bool` — `False` if a decision is already pending
+  - `store_decision(db, run, *, approved: bool, by: str, node: Optional[str] = None) -> bool` — `False` if a decision is already pending; stores `{"approved","by","ts","node"}`
   - `finish_run_row(db, run, status: HyperFlowRunStatus, error: Optional[str]) -> None`
 - Produces (`recovery.py`):
   - `@dataclass(frozen=True) RecoveryPlan(action: str, node_id: Optional[str] = None, reason: str = "")` with `action ∈ {"resume","complete","fail","skip"}`
@@ -723,9 +723,10 @@ def test_store_decision_once_then_refuses(hf_db):
     _add(hf_db, "sd", "hyperflow-smoke", "awaiting_approval", [])
     s = hf_db()
     run = s.get(HyperFlowRun, "sd")
-    assert runs.store_decision(s, run, approved=True, by="bro") is True
+    assert runs.store_decision(s, run, approved=True, by="bro", node="gate") is True
     assert run.state["context"]["pending_decision"]["approved"] is True
-    assert runs.store_decision(s, run, approved=False, by="bro") is False
+    assert run.state["context"]["pending_decision"]["node"] == "gate"
+    assert runs.store_decision(s, run, approved=False, by="bro", node="gate") is False
     s.close()
 
 
@@ -782,13 +783,23 @@ def load_open_runs(db: Session) -> list[tuple[str, str, str, list[dict[str, Any]
     ]
 
 
-def store_decision(db: Session, run: HyperFlowRun, *, approved: bool, by: str) -> bool:
-    """Persist an approval decision for the runner to pick up. False if one is already pending."""
+def store_decision(
+    db: Session,
+    run: HyperFlowRun,
+    *,
+    approved: bool,
+    by: str,
+    node: Optional[str] = None,
+) -> bool:
+    """Persist an approval decision for the runner to pick up. False if one is already pending.
+
+    ``node`` scopes the decision to the gate it answers so it can never approve a later gate.
+    """
     state = dict(run.state or {})
     ctx = dict(state.get("context") or {})
     if "pending_decision" in ctx:
         return False
-    ctx["pending_decision"] = {"approved": approved, "by": by, "ts": _now()}
+    ctx["pending_decision"] = {"approved": approved, "by": by, "ts": _now(), "node": node}
     state["context"] = ctx
     run.state = state
     db.commit()
@@ -1555,7 +1566,8 @@ def test_input_validation_and_state_checks(client, db):
 
 def test_input_stores_decision_signals_runner_and_refuses_duplicate(client, db, monkeypatch):
     _as()
-    _seed(db, "ok1", "awaiting_approval")
+    hist = [{"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval", "result": {}}]
+    _seed(db, "ok1", "awaiting_approval", hist)
     fake = _FakeRunner()
     monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: fake)
     r = client.post(f"{BASE}/tasks/ok1/input", json={"decision": "approve"})
@@ -1564,6 +1576,7 @@ def test_input_stores_decision_signals_runner_and_refuses_duplicate(client, db, 
     db.expire_all()
     run = db.get(HyperFlowRun, "ok1")
     assert run.state["context"]["pending_decision"]["approved"] is True
+    assert run.state["context"]["pending_decision"]["node"] == "ready"  # scoped to its gate
     dup = client.post(f"{BASE}/tasks/ok1/input", json={"decision": "reject"})
     assert dup.status_code == 409 and dup.json()["detail"]["error"] == "decision_already_pending"
 
@@ -1771,6 +1784,14 @@ def _approval_request(history: list[dict[str, Any]]) -> dict[str, Any]:
     return {"approval": {"question": "Approve?", "options": ["approve", "reject"]}}
 
 
+def _awaiting_node(history: list[dict[str, Any]]) -> Optional[str]:
+    """Node id of the approval gate the run is currently parked at."""
+    for entry in reversed(history):
+        if entry.get("status") == "awaiting_approval":
+            return entry.get("node")
+    return None
+
+
 def _serialize(run: HyperFlowRun) -> dict[str, Any]:
     state = run.state or {}
     history = state.get("history", [])
@@ -1866,7 +1887,8 @@ async def submit_input(
             detail={"error": "not_awaiting_input", "status": to_task_status(run.status)},
         )
     approved = decision == "approve"
-    if not store_decision(db, run, approved=approved, by=principal["name"]):
+    gate = _awaiting_node((run.state or {}).get("history", []))
+    if not store_decision(db, run, approved=approved, by=principal["name"], node=gate):
         raise HTTPException(status_code=409, detail={"error": "decision_already_pending"})
     runner = get_runner(task_id)
     if runner is not None:
