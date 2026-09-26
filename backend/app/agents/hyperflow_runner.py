@@ -55,6 +55,20 @@ APPROVAL_POLL_SECONDS = float(os.getenv("HYPERFLOW_APPROVAL_POLL_SECONDS", "2"))
 # MVP runs hypercode-core single-worker; multi-worker resume is future work.
 _ACTIVE: dict[str, "HyperFlowRunner"] = {}
 
+_TERMINAL = (
+    HyperFlowRunStatus.COMPLETED.value,
+    HyperFlowRunStatus.FAILED.value,
+    HyperFlowRunStatus.CANCELLED.value,
+)
+
+
+def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
+    """Copy of a history entry without ``result.data`` (tool output stays out of Redis)."""
+    result = entry.get("result")
+    if isinstance(result, dict) and "data" in result:
+        return {**entry, "result": {k: v for k, v in result.items() if k != "data"}}
+    return entry
+
 
 class _FlowFailed(Exception):
     """Raised internally to mark a run as failed with a reason."""
@@ -402,11 +416,11 @@ class HyperFlowRunner:
 
         If ``node_id`` is given, the decision must be scoped to that node (stale decisions
         for other nodes are discarded). Decision shape: {"approved": bool, "by": str, "ts": iso, "node": <id>}.
-        The "node" field may be absent for backward compatibility.
+        With ``node_id`` given, a decision whose "node" is missing or different is stale.
         """
         db = SessionLocal()
         try:
-            run = db.get(HyperFlowRun, self.run_id)
+            run = db.get(HyperFlowRun, self.run_id, with_for_update=True)
             if run is None:
                 return None
             state = dict(run.state or {})
@@ -420,9 +434,9 @@ class HyperFlowRunner:
                 run.state = state
                 db.commit()
                 return None
-            # Scope to node: if node_id given and decision has a node that differs, it's stale
+            # Scope to node: if node_id given, a decision naming a different (or no) node is stale
             decision_node = decision.get("node")
-            if node_id is not None and decision_node is not None and decision_node != node_id:
+            if node_id is not None and decision_node != node_id:
                 # Stale decision for a different gate, discard it
                 state["context"] = ctx
                 run.state = state
@@ -531,12 +545,12 @@ class HyperFlowRunner:
         await self._publish(entry, run_status)
 
     async def _finish(self, status: HyperFlowRunStatus, error: Optional[str] = None) -> None:
+        entry = {"node": None, "type": "terminal", "status": status.value,
+                 "result": {"error": error} if error else {},
+                 "ts": datetime.now(timezone.utc).isoformat()}
+        self._history.append(entry)
         await self._persist(status, None, completed=True, error=error)
-        await self._publish(
-            {"node": None, "type": "terminal", "status": status.value,
-             "result": {"error": error} if error else {}, "ts": datetime.now(timezone.utc).isoformat()},
-            status,
-        )
+        await self._publish(entry, status)
 
     async def _persist(
         self,
@@ -557,7 +571,10 @@ class HyperFlowRunner:
     ) -> None:
         db = SessionLocal()
         try:
-            run = db.get(HyperFlowRun, self.run_id)
+            run = db.get(HyperFlowRun, self.run_id, with_for_update=True)
+            if run is not None and run.status in _TERMINAL and status.value not in _TERMINAL:
+                db.rollback()  # never un-terminate a row (late write after cancel/finish)
+                return
             if run is None:
                 state: dict[str, Any] = {"history": self._history}
                 if error:
@@ -591,13 +608,13 @@ class HyperFlowRunner:
             db.close()
 
     async def _publish(self, entry: dict[str, Any], run_status: HyperFlowRunStatus) -> None:
-        message = json.dumps({"run_id": self.run_id, "flow": self.flow.name, **entry})
+        message = json.dumps({"run_id": self.run_id, "flow": self.flow.name, **_strip_data(entry)})
         snapshot = json.dumps({
             "run_id": self.run_id,
             "flow": self.flow.name,
             "status": run_status.value,
             "current_node": entry.get("node"),
-            "history": self._history,
+            "history": [_strip_data(e) for e in self._history],
         })
         try:
             r = await aioredis.from_url(self._cache_url, decode_responses=True)

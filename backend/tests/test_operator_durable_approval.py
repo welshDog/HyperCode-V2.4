@@ -20,7 +20,7 @@ def _seed(factory, run_id, decision=None, extra_context=None):
     state = {"history": []}
     ctx = dict(extra_context or {})
     if decision is not None:
-        ctx["pending_decision"] = {"approved": decision, "by": "test", "ts": "t"}
+        ctx["pending_decision"] = {"approved": decision, "by": "test", "ts": "t", "node": "gate"}
     if ctx:
         state["context"] = ctx
     s = factory()
@@ -153,6 +153,9 @@ def test_stale_decision_does_not_approve_wrong_gate(hf_db, monkeypatch):
     async def scenario():
         runner._task = asyncio.create_task(runner._run("b"))
         await asyncio.sleep(0.05)  # Let poll happen, stale decision discarded
+        # M11: the stale decision must not have approved gate "b"
+        assert runner.parked_gate == "b"
+        assert "status" not in final
         runner.resume(True)  # Resume to complete
         await runner._task
 
@@ -315,3 +318,39 @@ def test_malformed_decision_cleared_and_returns_none(hf_db):
     ctx = s.get(HyperFlowRun, "d8").state["context"]
     s.close()
     assert "pending_decision" not in ctx
+
+
+@pytest.mark.parametrize("decision", [
+    {"approved": True, "by": "t", "ts": "t"},                    # node missing
+    {"approved": True, "by": "t", "ts": "t", "node": None},      # node None
+])
+def test_nodeless_decision_is_stale_when_gate_specified(hf_db, decision):
+    """M1: with a node_id, a decision that names no node cannot approve it."""
+    s = hf_db()
+    s.add(HyperFlowRun(id="m1", flow_name="g", flow_version=1, status="awaiting_approval",
+                       current_node="gate",
+                       state={"history": [], "context": {"pending_decision": decision}}))
+    s.commit()
+    s.close()
+    assert HyperFlowRunner(gate_flow(), "m1")._take_persisted_decision("gate") is None
+    s = hf_db()
+    ctx = s.get(HyperFlowRun, "m1").state.get("context") or {}
+    s.close()
+    assert "pending_decision" not in ctx
+
+
+def test_nodeless_decision_still_accepted_without_node_id(hf_db):
+    s = hf_db()
+    s.add(HyperFlowRun(id="m1b", flow_name="g", flow_version=1, status="awaiting_approval",
+                       current_node="gate",
+                       state={"history": [], "context": {"pending_decision": {"approved": True}}}))
+    s.commit()
+    s.close()
+    assert HyperFlowRunner(gate_flow(), "m1b")._take_persisted_decision() is True
+
+
+def test_store_decision_requires_node_keyword():
+    from app.broski_operator.runs import store_decision
+
+    with pytest.raises(TypeError):
+        store_decision(None, None, approved=True, by="x")  # type: ignore[call-arg]
