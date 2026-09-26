@@ -24,7 +24,7 @@ Tools exposed:
 from __future__ import annotations
 
 import os
-import re
+import uuid
 from typing import Any, Optional
 
 import httpx
@@ -42,7 +42,17 @@ TIMEOUT     = 10.0
 # Agent key presented to hypercode-core's operator API (X-Agent-Key). Optional: without it
 # operator calls return 401. Never logged; only ever sent to CORE_URL.
 AGENT_KEY   = os.getenv("HYPERCODE_AGENT_KEY", "")
-_TASK_ID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
+
+
+def _valid_task_id(task_id: Any) -> Optional[str]:
+    """Canonical lowercase UUID string, or None. Rejects anything but a real UUID."""
+    try:
+        u = uuid.UUID(task_id)
+    except (ValueError, AttributeError, TypeError):
+        return None
+    canonical = str(u)
+    return canonical if canonical == task_id.lower() else None
+
 
 # The mcp SDK (>=1.9) turns DNS-rebinding protection ON by default and only
 # accepts Host headers matching 127.0.0.1:* / localhost:* / [::1]:* — so every
@@ -284,18 +294,20 @@ async def hypercode_task_get(task_id: str) -> dict:
     input_required means a human must approve — approvals are not possible via this
     server by design.
     """
-    if not _TASK_ID_RE.match(task_id or ""):
+    tid = _valid_task_id(task_id)
+    if tid is None:
         return {"error": "invalid task_id"}
-    return await _get(f"{API_PREFIX}/operator/tasks/{task_id}")
+    return await _get(f"{API_PREFIX}/operator/tasks/{tid}")
 
 
 @mcp.tool()
 async def hypercode_task_cancel(task_id: str, reason: str = "") -> dict:
     """Cancel a background task. Safe to call; already-finished tasks return a 409 error."""
-    if not _TASK_ID_RE.match(task_id or ""):
+    tid = _valid_task_id(task_id)
+    if tid is None:
         return {"error": "invalid task_id"}
     return await _post(
-        f"{API_PREFIX}/operator/tasks/{task_id}/cancel", {"reason": reason[:200]}
+        f"{API_PREFIX}/operator/tasks/{tid}/cancel", {"reason": (reason or "")[:200]}
     )
 
 

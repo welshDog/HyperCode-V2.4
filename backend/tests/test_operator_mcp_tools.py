@@ -64,3 +64,36 @@ def test_bad_task_ids_rejected_before_any_http_call(monkeypatch, bad):
     assert "error" in asyncio.run(mod.hypercode_task_cancel(bad, ""))
     mod._get.assert_not_awaited()
     mod._post.assert_not_awaited()
+
+
+@pytest.mark.parametrize("bad", [GOOD_ID + "\n", "-" * 36, None, 42, GOOD_ID.replace("-", "")])
+def test_task_id_must_be_a_real_uuid(monkeypatch, bad):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._get = AsyncMock()
+    mod._post = AsyncMock()
+    assert asyncio.run(mod.hypercode_task_get(bad)) == {"error": "invalid task_id"}
+    assert asyncio.run(mod.hypercode_task_cancel(bad, "")) == {"error": "invalid task_id"}
+    mod._get.assert_not_awaited()
+    mod._post.assert_not_awaited()
+
+
+def test_uppercase_uuid_accepted_and_normalised(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._get = AsyncMock(return_value={"status": "working"})
+    assert asyncio.run(mod.hypercode_task_get(GOOD_ID.upper())) == {"status": "working"}
+    mod._get.assert_awaited_once_with(f"/api/v1/operator/tasks/{GOOD_ID}")
+
+
+def test_cancel_reason_none_is_tolerated_and_truncated(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={})
+    asyncio.run(mod.hypercode_task_cancel(GOOD_ID, None))
+    mod._post.assert_awaited_with(f"/api/v1/operator/tasks/{GOOD_ID}/cancel", {"reason": ""})
+    asyncio.run(mod.hypercode_task_cancel(GOOD_ID, "x" * 500))
+    assert len(mod._post.await_args.args[1]["reason"]) == 200

@@ -94,7 +94,7 @@ def phase2(task_id: str) -> None:
             end = time.time() + 120
             while time.time() < end:
                 _, b = call("GET", f"/tasks/{task_id}")
-                if b["status"] == "input_required" and b["inputRequests"]["approval"]["node"] == "finish":
+                if b["status"] == "input_required" and (b.get("inputRequests") or {}).get("approval", {}).get("node") == "finish":
                     break
                 time.sleep(2)
             else:
