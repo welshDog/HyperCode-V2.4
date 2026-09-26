@@ -46,6 +46,10 @@ logger = logging.getLogger(__name__)
 # Shared channel the broski-bot / dashboard already watch for approval prompts.
 APPROVAL_CHANNEL = "approval_requests"
 
+# How often a parked approval gate re-checks Postgres for a decision that was written
+# while this process was down (or by another process). Seconds.
+APPROVAL_POLL_SECONDS = float(os.getenv("HYPERFLOW_APPROVAL_POLL_SECONDS", "2"))
+
 # In-process registry of live runners so the /resume endpoint can signal a gate.
 # MVP runs hypercode-core single-worker; multi-worker resume is future work.
 _ACTIVE: dict[str, "HyperFlowRunner"] = {}
@@ -134,6 +138,12 @@ class HyperFlowRunner:
         self._task = asyncio.create_task(self._run())
         return self
 
+    async def start_at(self, node_id: str) -> "HyperFlowRunner":
+        """Re-attach to a persisted run (see recovery.recover_runs) and continue from ``node_id``."""
+        _ACTIVE[self.run_id] = self
+        self._task = asyncio.create_task(self._run(node_id))
+        return self
+
     def resume(self, approved: bool) -> None:
         """Satisfy a pending human_approval_gate (called from the resume endpoint)."""
         self._approval_result = approved
@@ -151,9 +161,9 @@ class HyperFlowRunner:
 
     # ── graph walk ───────────────────────────────────────────────────────────
 
-    async def _run(self) -> None:
+    async def _run(self, start_at: Optional[str] = None) -> None:
         loop_counts: dict[tuple[str, str], int] = {}
-        node_id: Optional[str] = self.flow.entry
+        node_id: Optional[str] = start_at or self.flow.entry
         try:
             while node_id is not None:
                 node = self.flow.node(node_id)
@@ -375,6 +385,29 @@ class HyperFlowRunner:
             )
             return {"ok": True, "green": True, "mocked": True}
 
+    def _take_persisted_decision(self) -> Optional[bool]:
+        """Read and clear ``state.context.pending_decision`` written by the operator API."""
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id)
+            if run is None:
+                return None
+            state = dict(run.state or {})
+            ctx = dict(state.get("context") or {})
+            decision = ctx.pop("pending_decision", None)
+            if decision is None:
+                return None
+            state["context"] = ctx
+            run.state = state
+            db.commit()
+            return bool(decision.get("approved"))
+        except Exception:  # pragma: no cover — a DB blip must not kill the run
+            db.rollback()
+            logger.exception("hyperflow %s decision read failed", self.run_id)
+            return None
+        finally:
+            db.close()
+
     async def _await_approval(self, node: FlowNode) -> dict[str, Any]:
         self._approval_event.clear()
         self._approval_result = None
@@ -382,7 +415,19 @@ class HyperFlowRunner:
         await self._emit(node, "awaiting_approval", {"prompt": prompt},
                          HyperFlowRunStatus.AWAITING_APPROVAL)
         await self._publish_approval_request(node, prompt)
-        await self._approval_event.wait()
+        while True:
+            # A decision may already be waiting (written while this process was down).
+            persisted = await asyncio.to_thread(self._take_persisted_decision)
+            if persisted is not None:
+                self._approval_result = persisted
+                break
+            try:
+                await asyncio.wait_for(self._approval_event.wait(), timeout=APPROVAL_POLL_SECONDS)
+            except asyncio.TimeoutError:
+                continue
+            # Woken by the in-memory resume(): drop any duplicate persisted decision.
+            await asyncio.to_thread(self._take_persisted_decision)
+            break
         if not self._approval_result:
             raise _ApprovalRejected(node.id)
         return {"ok": True, "approved": True}
