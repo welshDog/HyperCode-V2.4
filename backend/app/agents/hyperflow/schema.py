@@ -66,6 +66,8 @@ class FlowNode(BaseModel):
     success_key: str = "ok"
     # Optional Safety Shepherd policy hint (see SafetyHint).
     safety: Optional[SafetyHint] = None
+    # Recovery: True = safe to re-run this node after a core restart interrupted it.
+    idempotent: bool = False
 
     @model_validator(mode="after")
     def _check_ref(self) -> "FlowNode":

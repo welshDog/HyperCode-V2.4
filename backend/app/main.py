@@ -208,6 +208,13 @@ async def _lifespan(app: FastAPI):
         except Exception:
             logger.exception("Telemetry init failed (non-fatal)")
 
+        try:
+            from app.broski_operator.recovery import recover_runs as _recover_runs
+
+            logger.info("HyperFlow recovery: %s", await _recover_runs())
+        except Exception:
+            logger.exception("HyperFlow recovery failed (non-fatal)")
+
     yield
 
     logger.info("Shutdown initiated...")

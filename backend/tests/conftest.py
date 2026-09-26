@@ -91,5 +91,6 @@ def hf_db(monkeypatch):
     HyperFlowRun.__table__.create(bind=eng)
     factory = sessionmaker(bind=eng, autoflush=False, autocommit=False)
     monkeypatch.setattr("app.agents.hyperflow_runner.SessionLocal", factory)
+    monkeypatch.setattr("app.broski_operator.recovery.SessionLocal", factory)
     yield factory
     eng.dispose()
