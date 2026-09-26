@@ -92,9 +92,9 @@ def test_run_can_start_at_a_given_node(monkeypatch):
     assert final["status"] is HyperFlowRunStatus.COMPLETED
 
 
-def test_persisted_decision_stale_if_scoped_to_different_node(hf_db, monkeypatch):
-    """A decision for node 'a' should not approve gate 'b'; gate keeps waiting."""
-    # Manually create row with stale decision (scoped to different node)
+def test_take_persisted_decision_stale_returns_none_and_clears(hf_db):
+    """Real _take_persisted_decision with mismatched node: returns None and clears decision."""
+    # Seed decision for node "a"
     state = {"history": []}
     ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "a"}}
     state["context"] = ctx
@@ -108,21 +108,58 @@ def test_persisted_decision_stale_if_scoped_to_different_node(hf_db, monkeypatch
     s.commit()
     s.close()
 
+    # Call with mismatched node_id "b" (decision is for "a")
+    runner = HyperFlowRunner(two_gate_flow(), "d5")
+    result = runner._take_persisted_decision("b")
+
+    # Should return None (stale)
+    assert result is None
+
+    # Should be cleared from DB
+    s = hf_db()
+    ctx = s.get(HyperFlowRun, "d5").state.get("context") or {}
+    s.close()
+    assert "pending_decision" not in ctx
+
+
+def test_stale_decision_does_not_approve_wrong_gate(hf_db, monkeypatch):
+    """Gate-level: a decision for gate 'a' should not approve gate 'b'."""
+    # Seed decision for gate "a"
+    state = {"history": []}
+    ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "a"}}
+    state["context"] = ctx
+    s = hf_db()
+    s.add(
+        HyperFlowRun(
+            id="d5b", flow_name="g", flow_version=1,
+            status="awaiting_approval", current_node="b", state=state,
+        )
+    )
+    s.commit()
+    s.close()
+
     flow = two_gate_flow()
-    runner, final = _runner_with_io(flow, "d5", monkeypatch)
-    # Return stale decision on first call (will be discarded), matching on second
-    calls = {"n": 0}
-    def _take(node_id):
-        calls["n"] += 1
-        if calls["n"] == 1:
-            # First poll: decision scoped to 'a', we're at 'b' → return None
-            return None
-        else:
-            # After timeout, second poll: matching decision for gate 'b'
-            return True
-    monkeypatch.setattr(runner, "_take_persisted_decision", _take)
-    asyncio.run(runner._run("b"))
-    # Gate keeps waiting → times out, re-polls → gets matching decision → completes
+    runner, final = _runner_with_io(flow, "d5b", monkeypatch)
+
+    # Use real _take_persisted_decision (don't mock it)
+    # It will discard the stale decision, so gate keeps waiting
+    call_count = {"n": 0}
+    original_take = runner._take_persisted_decision
+    def counting_take(node_id):
+        call_count["n"] += 1
+        return original_take(node_id)
+    monkeypatch.setattr(runner, "_take_persisted_decision", counting_take)
+
+    async def scenario():
+        runner._task = asyncio.create_task(runner._run("b"))
+        await asyncio.sleep(0.05)  # Let poll happen, stale decision discarded
+        runner.resume(True)  # Resume to complete
+        await runner._task
+
+    asyncio.run(scenario())
+    # Gate should have called _take_persisted_decision at least once (the poll)
+    assert call_count["n"] >= 1
+    # Run should complete (via resume)
     assert final["status"] is HyperFlowRunStatus.COMPLETED
 
 
@@ -154,15 +191,12 @@ def test_persisted_decision_accepted_if_node_matches(hf_db):
 
 def test_drain_path_resume_wins_drops_persisted_decision(hf_db, monkeypatch):
     """resume(True) signal wins race; persisted decision is discarded on drain call."""
-    # Seed DB with a decision
-    state = {"history": []}
-    ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "gate"}}
-    state["context"] = ctx
+    # Do NOT seed decision initially; gate will wait on first poll
     s = hf_db()
     s.add(
         HyperFlowRun(
             id="d7", flow_name="g", flow_version=1,
-            status="awaiting_approval", current_node="gate", state=state,
+            status="awaiting_approval", current_node="gate", state={"history": []},
         )
     )
     s.commit()
@@ -192,16 +226,44 @@ def test_drain_path_resume_wins_drops_persisted_decision(hf_db, monkeypatch):
 
     async def scenario():
         runner._task = asyncio.create_task(runner._run())
-        await asyncio.sleep(0.02)  # Let it reach the gate
-        runner.resume(True)  # In-memory signal wins
+        # Wait for gate to park (first poll sees no decision)
+        await asyncio.sleep(0.05)
+        # Verify history shows awaiting_approval
+        assert any(e["status"] == "awaiting_approval" for e in runner._history)
+
+        # NOW write decision to DB (simulating async write from operator)
+        s = hf_db()
+        run = s.get(HyperFlowRun, "d7")
+        state = dict(run.state or {})
+        ctx = dict(state.get("context") or {})
+        ctx["pending_decision"] = {"approved": True, "by": "test", "ts": "t", "node": "gate"}
+        state["context"] = ctx
+        run.state = state
+        s.commit()
+        s.close()
+
+        # Trigger resume while persisted decision exists
+        runner.resume(True)  # In-memory signal wins → drain call happens
         await runner._task
 
+    # Spy on _take_persisted_decision calls
+    call_count = {"n": 0}
+    original_take = runner._take_persisted_decision
+    def counting_take(node_id):
+        call_count["n"] += 1
+        return original_take(node_id)
+    monkeypatch.setattr(runner, "_take_persisted_decision", counting_take)
+
     asyncio.run(scenario())
-    # The drain call should have cleared the persisted decision
+
+    # Verify _take_persisted_decision was called at least twice (poll + drain)
+    assert call_count["n"] >= 2, f"Expected 2+ calls, got {call_count['n']}"
+
+    # The drain call should have cleared the persisted decision from DB
     s = hf_db()
     run = s.get(HyperFlowRun, "d7")
     s.close()
-    assert "pending_decision" not in (run.state.get("context") or {})
+    assert "pending_decision" not in (run.state.get("context") or {}), "Decision not cleared by drain"
     assert final["status"] is HyperFlowRunStatus.COMPLETED
 
 
