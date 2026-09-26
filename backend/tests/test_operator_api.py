@@ -1,6 +1,5 @@
 """BROski operator — status mapping + /api/v1/operator routes."""
 
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -49,30 +48,38 @@ def test_build_result_uses_last_data_and_success():
 
 # ── API ──────────────────────────────────────────────────────────────────────
 
-def _as(kind="user", name="bro", user_id=1):
+def _as(kind="user", name="bro", user_id=1, is_superuser=True):
     app.dependency_overrides[operator_tasks.operator_principal] = lambda: {
         "kind": kind, "name": name, "user_id": user_id if kind == "user" else None,
+        "is_superuser": is_superuser if kind == "user" else False,
     }
 
 
-def _seed(db, run_id, run_status, history=None, flow="hyperflow-smoke", state_extra=None):
+def _seed(db, run_id, run_status, history=None, flow="hyperflow-smoke", state_extra=None,
+          current_node=None):
     state = {"history": history or []}
     state.update(state_extra or {})
     db.add(HyperFlowRun(id=run_id, flow_name=flow, flow_version=1, status=run_status,
-                        current_node=None, state=state))
+                        current_node=current_node, state=state))
     db.commit()
 
 
+_GATE = {"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval",
+         "result": {"prompt": "go?"}}
+
+
 class _FakeRunner:
-    def __init__(self):
+    def __init__(self, parked_gate="ready", cancel_result=True):
         self.resumed, self.cancelled = [], []
+        self.parked_gate = parked_gate
+        self._cancel_result = cancel_result
 
     def resume(self, approved):
         self.resumed.append(approved)
 
     async def cancel(self, reason):
         self.cancelled.append(reason)
-        return True
+        return self._cancel_result
 
 
 def test_requires_authentication(client):
@@ -148,8 +155,9 @@ def test_get_completed_has_result(client, db):
 
 def test_get_input_required_has_question(client, db):
     _as()
-    hist = [{"node": "ready", "status": "awaiting_approval", "result": {"prompt": "Deploy it?"}}]
-    _seed(db, "i1", "awaiting_approval", hist)
+    hist = [{"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval",
+             "result": {"prompt": "Deploy it?"}}]
+    _seed(db, "i1", "awaiting_approval", hist, current_node="ready")
     body = client.get(f"{BASE}/tasks/i1").json()
     assert body["status"] == "input_required"
     assert body["inputRequests"]["approval"]["question"] == "Deploy it?"
@@ -183,7 +191,7 @@ def test_input_validation_and_state_checks(client, db):
 def test_input_stores_decision_signals_runner_and_refuses_duplicate(client, db, monkeypatch):
     _as()
     hist = [{"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval", "result": {}}]
-    _seed(db, "ok1", "awaiting_approval", hist)
+    _seed(db, "ok1", "awaiting_approval", hist, current_node="ready")
     fake = _FakeRunner()
     monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: fake)
     r = client.post(f"{BASE}/tasks/ok1/input", json={"decision": "approve"})
@@ -199,7 +207,7 @@ def test_input_stores_decision_signals_runner_and_refuses_duplicate(client, db, 
 
 def test_input_without_live_runner_still_persists(client, db, monkeypatch):
     _as()
-    _seed(db, "ok2", "awaiting_approval")
+    _seed(db, "ok2", "awaiting_approval", [_GATE], current_node="ready")
     monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: None)
     assert client.post(f"{BASE}/tasks/ok2/input", json={"decision": "reject"}).status_code == 200
     db.expire_all()
@@ -240,3 +248,127 @@ def test_cancel_reason_must_be_short_string(client, db):
     _seed(db, "k3", "running")
     assert client.post(f"{BASE}/tasks/k3/cancel", json={"reason": 5}).status_code == 422
     assert client.post(f"{BASE}/tasks/k3/cancel", json={"reason": "x" * 201}).status_code == 422
+
+
+# -- fix round 1: gate scoping, superuser, cancel race -------------------------
+
+_OLD_GATE_THEN_WORK = [
+    dict(_GATE),
+    {"node": "ready", "type": "human_approval_gate", "status": "completed", "result": {"success": True}},
+    {"node": "work", "type": "tool", "status": "completed", "result": {"success": True}},
+]
+
+
+def _no_pending(db, run_id):
+    db.expire_all()
+    return "pending_decision" not in (db.get(HyperFlowRun, run_id).state.get("context") or {})
+
+
+def test_shepherd_escalation_wait_is_not_approvable(client, db):
+    _as()
+    _seed(db, "e1", "awaiting_approval", _OLD_GATE_THEN_WORK, current_node="work")
+    r = client.post(f"{BASE}/tasks/e1/input", json={"decision": "approve"})
+    assert r.status_code == 409 and r.json()["detail"]["error"] == "not_awaiting_input"
+    assert _no_pending(db, "e1")
+    body = client.get(f"{BASE}/tasks/e1").json()
+    assert body["status"] == "input_required"
+    assert body["inputRequests"]["kind"] == "safety_escalation"
+    assert body["inputRequests"]["options"] == []
+
+
+def test_gate_entry_but_current_node_differs_is_409(client, db):
+    _as()
+    _seed(db, "m1", "awaiting_approval", [_GATE], current_node="elsewhere")
+    assert client.post(f"{BASE}/tasks/m1/input", json={"decision": "approve"}).status_code == 409
+    assert _no_pending(db, "m1")
+
+
+def test_stored_decision_always_has_node(client, db, monkeypatch):
+    _as()
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: None)
+    _seed(db, "n1", "awaiting_approval", [_GATE], current_node="ready")
+    assert client.post(f"{BASE}/tasks/n1/input", json={"decision": "approve"}).status_code == 200
+    db.expire_all()
+    assert db.get(HyperFlowRun, "n1").state["context"]["pending_decision"]["node"] == "ready"
+
+
+def test_get_input_required_at_gate_has_kind_and_node(client, db):
+    _as()
+    _seed(db, "g1", "awaiting_approval", [_GATE], current_node="ready")
+    ir = client.get(f"{BASE}/tasks/g1").json()["inputRequests"]
+    assert ir["kind"] == "approval" and ir["approval"]["node"] == "ready"
+
+
+def test_input_forbidden_for_non_superuser(client, db):
+    _as(is_superuser=False)
+    _seed(db, "s1", "awaiting_approval", [_GATE], current_node="ready")
+    assert client.post(f"{BASE}/tasks/s1/input", json={"decision": "approve"}).status_code == 403
+    assert _no_pending(db, "s1")
+
+
+def test_resume_only_when_runner_parked_at_same_gate(client, db, monkeypatch):
+    _as()
+    stale = _FakeRunner(parked_gate="other")
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: stale)
+    _seed(db, "r1", "awaiting_approval", [_GATE], current_node="ready")
+    assert client.post(f"{BASE}/tasks/r1/input", json={"decision": "approve"}).status_code == 200
+    assert stale.resumed == []
+    db.expire_all()
+    assert db.get(HyperFlowRun, "r1").state["context"]["pending_decision"]["node"] == "ready"
+
+    live = _FakeRunner(parked_gate="ready")
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: live)
+    _seed(db, "r2", "awaiting_approval", [_GATE], current_node="ready")
+    assert client.post(f"{BASE}/tasks/r2/input", json={"decision": "approve"}).status_code == 200
+    assert live.resumed == [True]
+
+
+def test_input_body_node_checks(client, db, monkeypatch):
+    _as()
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: None)
+    _seed(db, "b1", "awaiting_approval", [_GATE], current_node="ready")
+    r = client.post(f"{BASE}/tasks/b1/input", json={"decision": "approve", "node": "finish"})
+    assert r.status_code == 409
+    assert r.json()["detail"] == {"error": "gate_mismatch", "expected": "ready"}
+    assert client.post(f"{BASE}/tasks/b1/input", json={"decision": "approve", "node": 5}).status_code == 422
+    assert client.post(f"{BASE}/tasks/b1/input", json={"decision": "approve", "node": "ready"}).status_code == 200
+
+
+def test_cancel_race_does_not_overwrite_finished_run(client, db, monkeypatch):
+    _as()
+    hist = [{"node": "x", "status": "completed", "result": {"success": True}}]
+    _seed(db, "z1", "running", hist)
+    fake = _FakeRunner()
+
+    async def _finish_then_false(reason):
+        # the runner finishes the row just before cancel() reports it had nothing to cancel
+        run = db.get(HyperFlowRun, "z1")
+        run.status = "completed"
+        db.commit()
+        return False
+
+    fake.cancel = _finish_then_false
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: fake)
+    r = client.post(f"{BASE}/tasks/z1/cancel", json={})
+    assert r.status_code == 409 and r.json()["detail"]["error"] == "already_terminal"
+    db.expire_all()
+    run = db.get(HyperFlowRun, "z1")
+    assert run.status == "completed" and run.state["history"] == hist
+
+
+def test_agent_wins_when_both_credentials_present(client, db):
+    from types import SimpleNamespace
+
+    from app.api import deps
+    from app.middleware.agent_auth import get_agent_from_key
+
+    async def _agent():
+        return {"agent_name": "hypercode-mcp-server", "rate_limit_rpm": 60}
+
+    app.dependency_overrides[get_agent_from_key] = _agent
+    app.dependency_overrides[deps.get_optional_current_user] = lambda: SimpleNamespace(
+        id=1, email="root@x", is_active=True, is_superuser=True
+    )
+    _seed(db, "h1", "awaiting_approval", [_GATE], current_node="ready")
+    assert client.post(f"{BASE}/tasks/h1/input", json={"decision": "approve"}).status_code == 403
+    assert _no_pending(db, "h1")

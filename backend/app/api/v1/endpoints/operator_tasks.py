@@ -45,36 +45,63 @@ async def operator_principal(
 ) -> dict[str, Any]:
     """Agent key or human JWT. Neither → 401."""
     if agent is not None:
-        return {"kind": "agent", "name": agent["agent_name"], "user_id": None}
+        return {"kind": "agent", "name": agent["agent_name"], "user_id": None, "is_superuser": False}
     if user is not None:
         if not getattr(user, "is_active", True):
             raise HTTPException(status_code=403, detail="Inactive user")
-        return {"kind": "user", "name": getattr(user, "email", "user"), "user_id": user.id}
+        return {
+            "kind": "user",
+            "name": getattr(user, "email", "user"),
+            "user_id": user.id,
+            "is_superuser": bool(getattr(user, "is_superuser", False)),
+        }
     raise HTTPException(
         status_code=401, detail="Authentication required (Bearer token or X-Agent-Key)"
     )
 
 
-def _approval_request(history: list[dict[str, Any]]) -> dict[str, Any]:
-    for entry in reversed(history):
-        if entry.get("status") == "awaiting_approval":
-            prompt = (entry.get("result") or {}).get("prompt", "Approve?")
-            return {
-                "approval": {
-                    "node": entry.get("node"),
-                    "question": prompt,
-                    "options": ["approve", "reject"],
-                }
-            }
-    return {"approval": {"question": "Approve?", "options": ["approve", "reject"]}}
+def _parked_gate(run: HyperFlowRun) -> Optional[str]:
+    """Node id of the human gate the run is parked at RIGHT NOW, else None.
 
-
-def _awaiting_node(history: list[dict[str, Any]]) -> Optional[str]:
-    """Node id of the approval gate the run is currently parked at."""
-    for entry in reversed(history):
-        if entry.get("status") == "awaiting_approval":
-            return entry.get("node")
+    None also covers a Safety Shepherd escalation wait (status awaiting_approval but
+    no gate history entry), which must never be approvable through this API.
+    """
+    history = (run.state or {}).get("history", [])
+    if not history:
+        return None
+    last = history[-1]
+    if (
+        last.get("status") == "awaiting_approval"
+        and last.get("type") == "human_approval_gate"
+        and last.get("node")
+        and last.get("node") == run.current_node
+    ):
+        return last["node"]
     return None
+
+
+def _approval_request(run: HyperFlowRun) -> dict[str, Any]:
+    gate = _parked_gate(run)
+    if gate is None:
+        return {
+            "kind": "safety_escalation",
+            "question": "Waiting on a Safety Shepherd escalation decision; not approvable via the operator API",
+            "options": [],
+        }
+    history = (run.state or {}).get("history", [])
+    prompt = "Approve?"
+    for entry in reversed(history):
+        if entry.get("status") == "awaiting_approval":
+            prompt = (entry.get("result") or {}).get("prompt", prompt)
+            break
+    return {
+        "kind": "approval",
+        "approval": {
+            "node": gate,
+            "question": prompt,
+            "options": ["approve", "reject"],
+        },
+    }
 
 
 def _serialize(run: HyperFlowRun) -> dict[str, Any]:
@@ -99,7 +126,7 @@ def _serialize(run: HyperFlowRun) -> dict[str, Any]:
     elif task_status in ("failed", "cancelled"):
         body["error"] = state.get("error")
     elif task_status == "input_required":
-        body["inputRequests"] = _approval_request(history)
+        body["inputRequests"] = _approval_request(run)
     return body
 
 
@@ -150,6 +177,18 @@ def get_task(
     return _serialize(_get_run(db, task_id))
 
 
+def _locked_run(db: Session, task_id: str) -> HyperFlowRun:
+    run = (
+        db.query(HyperFlowRun)
+        .filter(HyperFlowRun.id == task_id)
+        .with_for_update()
+        .one_or_none()
+    )
+    if run is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return run
+
+
 @router.post("/tasks/{task_id}/input")
 async def submit_input(
     task_id: str,
@@ -162,21 +201,31 @@ async def submit_input(
             status_code=403,
             detail="Approvals require an authenticated human user, not an agent key",
         )
+    if not principal.get("is_superuser"):
+        raise HTTPException(status_code=403, detail="Approvals require a superuser")
     decision = payload.get("decision")
     if decision not in ("approve", "reject"):
         raise HTTPException(status_code=422, detail="'decision' must be 'approve' or 'reject'")
-    run = _get_run(db, task_id)
-    if run.status != HyperFlowRunStatus.AWAITING_APPROVAL.value:
+    wanted_node = payload.get("node")
+    if wanted_node is not None and not isinstance(wanted_node, str):
+        raise HTTPException(status_code=422, detail="'node' must be a string")
+    run = _locked_run(db, task_id)
+    gate = _parked_gate(run) if run.status == HyperFlowRunStatus.AWAITING_APPROVAL.value else None
+    if gate is None:
+        status = to_task_status(run.status)
+        db.rollback()
         raise HTTPException(
-            status_code=409,
-            detail={"error": "not_awaiting_input", "status": to_task_status(run.status)},
+            status_code=409, detail={"error": "not_awaiting_input", "status": status}
         )
+    if wanted_node is not None and wanted_node != gate:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"error": "gate_mismatch", "expected": gate})
     approved = decision == "approve"
-    gate = _awaiting_node((run.state or {}).get("history", []))
     if not store_decision(db, run, approved=approved, by=principal["name"], node=gate):
+        db.rollback()
         raise HTTPException(status_code=409, detail={"error": "decision_already_pending"})
     runner = get_runner(task_id)
-    if runner is not None:
+    if runner is not None and getattr(runner, "parked_gate", None) == gate:
         runner.resume(approved)
     return {"taskId": task_id, "accepted": True, "decision": decision}
 
@@ -199,7 +248,18 @@ async def cancel_task(
         )
     label = f"{reason} (by {principal['name']})"
     runner = get_runner(task_id)
-    if runner is None or not await runner.cancel(label):
+    if runner is not None and await runner.cancel(label):
+        db.refresh(run)
+    else:
+        # The runner may have finished meanwhile: re-read under lock before overwriting.
+        run = _locked_run(db, task_id)
+        db.refresh(run)
+        if run.status in TERMINAL_RUN_STATUSES:
+            status = to_task_status(run.status)
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail={"error": "already_terminal", "status": status}
+            )
         finish_run_row(db, run, HyperFlowRunStatus.CANCELLED, label)
-    db.refresh(run)
+        db.refresh(run)
     return {"taskId": task_id, "status": to_task_status(run.status), "reason": label}

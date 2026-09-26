@@ -129,6 +129,7 @@ class HyperFlowRunner:
         self._approval_result: Optional[bool] = None
         self._task: Optional[asyncio.Task] = None
         self._cancel_reason: Optional[str] = None
+        self.parked_gate: Optional[str] = None  # node id while parked at a human gate
         self._cache_url = cache_redis_url()
 
     # ── lifecycle ────────────────────────────────────────────────────────────
@@ -445,19 +446,23 @@ class HyperFlowRunner:
         await self._emit(node, "awaiting_approval", {"prompt": prompt},
                          HyperFlowRunStatus.AWAITING_APPROVAL)
         await self._publish_approval_request(node, prompt)
-        while True:
-            # A decision may already be waiting (written while this process was down).
-            persisted = await asyncio.to_thread(self._take_persisted_decision, node.id)
-            if persisted is not None:
-                self._approval_result = persisted
+        self.parked_gate = node.id
+        try:
+            while True:
+                # A decision may already be waiting (written while this process was down).
+                persisted = await asyncio.to_thread(self._take_persisted_decision, node.id)
+                if persisted is not None:
+                    self._approval_result = persisted
+                    break
+                try:
+                    await asyncio.wait_for(self._approval_event.wait(), timeout=APPROVAL_POLL_SECONDS)
+                except asyncio.TimeoutError:
+                    continue
+                # Woken by the in-memory resume(): drop any duplicate persisted decision.
+                await asyncio.to_thread(self._take_persisted_decision, node.id)
                 break
-            try:
-                await asyncio.wait_for(self._approval_event.wait(), timeout=APPROVAL_POLL_SECONDS)
-            except asyncio.TimeoutError:
-                continue
-            # Woken by the in-memory resume(): drop any duplicate persisted decision.
-            await asyncio.to_thread(self._take_persisted_decision, node.id)
-            break
+        finally:
+            self.parked_gate = None
         if not self._approval_result:
             raise _ApprovalRejected(node.id)
         return {"ok": True, "approved": True}
