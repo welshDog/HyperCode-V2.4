@@ -8,6 +8,7 @@ Each section is independent, time-limited and fail-soft.
 from __future__ import annotations
 
 import asyncio
+import re
 import shutil
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
@@ -63,7 +64,11 @@ def _pg_ping() -> None:
 
 
 async def _postgres_section() -> dict[str, Any]:
-    await asyncio.to_thread(_pg_ping)
+    try:
+        await asyncio.to_thread(_pg_ping)
+    except Exception as exc:
+        # Driver messages carry host/user/SQL: expose only the exception type.
+        raise RuntimeError(f"postgres check failed ({type(exc).__name__})") from None
     return {"ok": True}
 
 
@@ -91,11 +96,22 @@ async def _models_section() -> dict[str, Any]:
     return {"ok": True, "models": [m.get("name") for m in resp.json().get("models", [])][:10]}
 
 
+def _safe_error(exc: BaseException) -> str:
+    """Render an exception for persisted/API output without leaking URLs or credentials."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return f"HTTP {exc.response.status_code}"
+    if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+        return f"timed out after {SECTION_TIMEOUT_SECONDS:g}s"
+    msg = re.sub(r"://[^/\s@]*@", "://***@", str(exc))
+    msg = re.sub(r"(?i)\b(password|passwd)=\S+", r"\1=***", msg)
+    return f"{type(exc).__name__}: {msg[:120]}" if msg else type(exc).__name__
+
+
 async def _section(fn: Callable[[], Awaitable[dict[str, Any]]]) -> dict[str, Any]:
     try:
         return await asyncio.wait_for(fn(), timeout=SECTION_TIMEOUT_SECONDS)
     except Exception as exc:  # fail-soft by design: a broken dependency is a finding, not a crash
-        return {"ok": False, "error": f"{type(exc).__name__}: {str(exc)[:120]}"}
+        return {"ok": False, "error": _safe_error(exc)}
 
 
 async def inspect_stack(params: dict[str, Any]) -> dict[str, Any]:

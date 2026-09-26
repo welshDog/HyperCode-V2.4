@@ -191,7 +191,7 @@ class HyperFlowRunner:
                 emit_result: dict[str, Any] = {"success": success}
                 if result.get("mocked"):
                     emit_result["mocked"] = True
-                if "data" in result:
+                if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS and "data" in result:
                     emit_result["data"] = result["data"]
                 await self._emit(node, "completed", emit_result, HyperFlowRunStatus.RUNNING)
                 node_id = self._next_node(node, success, loop_counts)

@@ -148,3 +148,99 @@ def test_operator_inspect_flow_is_registered():
     assert fd is not None and fd.intent
     node = fd.node("inspect")
     assert node.tool == "local.inspect" and node.idempotent is True
+
+
+# ── fix round 1 ─────────────────────────────────────────────────────────────
+
+
+def _remote_flow():
+    return FlowDefinition.model_validate(
+        {"name": "rt", "entry": "t", "nodes": [{"id": "t", "type": "tool", "tool": "remote.thing"}]}
+    )
+
+
+def test_non_local_tool_data_not_persisted(monkeypatch):
+    runner, final = _runner_with_io(_remote_flow(), "rt1", monkeypatch)
+
+    async def _disp(node):
+        return {"ok": True, "data": {"big": "payload"}}
+
+    monkeypatch.setattr(runner, "_dispatch", _disp)
+    asyncio.run(runner._run())
+    done = [e for e in runner._history if e["status"] == "completed"][0]
+    assert "data" not in done["result"]
+
+
+def test_safety_gate_runs_before_local_tool_and_nonlocal_uses_dispatch(monkeypatch):
+    order = []
+    runner, _ = _runner_with_io(_local_flow(), "ord1", monkeypatch)
+
+    async def _gate(node):
+        order.append("gate")
+
+    async def _fake(params):
+        order.append("tool")
+        return {"ok": True}
+
+    monkeypatch.setattr(runner, "_safety_gate", _gate)
+    monkeypatch.setitem(tools.LOCAL_TOOLS, "local.fake", _fake)
+    asyncio.run(runner._run())
+    assert order == ["gate", "tool"]
+
+    order2 = []
+    runner2, _ = _runner_with_io(_remote_flow(), "ord2", monkeypatch)
+
+    async def _gate2(node):
+        order2.append("gate")
+
+    async def _disp(node):
+        order2.append("dispatch")
+        return {"ok": True}
+
+    monkeypatch.setattr(runner2, "_safety_gate", _gate2)
+    monkeypatch.setattr(runner2, "_dispatch", _disp)
+    asyncio.run(runner2._run())
+    assert order2 == ["gate", "dispatch"]
+
+
+def test_safe_error_http_status_hides_url():
+    req = httpx.Request("GET", "http://user:secret@host/x")
+    exc = httpx.HTTPStatusError("boom", request=req, response=httpx.Response(500, request=req))
+    out = tools._safe_error(exc)
+    assert out == "HTTP 500" and "secret" not in out and "user" not in out
+
+
+def test_safe_error_scrubs_redis_url_and_password_kv():
+    out = tools._safe_error(RuntimeError("Error connecting to redis://:hunter2@cache:6379/0"))
+    assert "hunter2" not in out
+    out2 = tools._safe_error(RuntimeError("bad password=abc123 here"))
+    assert "abc123" not in out2
+
+
+def test_safe_error_timeout_message():
+    assert tools._safe_error(asyncio.TimeoutError()) == "timed out after 8s"
+    assert tools._safe_error(TimeoutError()) == "timed out after 8s"
+
+
+def test_inspect_postgres_error_is_fully_scrubbed(monkeypatch):
+    def _bad():
+        raise RuntimeError("could not connect to server: host=10.0.0.5 user=admin password=abc123")
+
+    real_pg = tools._postgres_section
+    _patch_sections(monkeypatch, postgres=real_pg)
+    monkeypatch.setattr(tools, "_pg_ping", _bad)
+    report = asyncio.run(tools.inspect_stack({}))
+    blob = report["postgres"]["error"] + " ".join(report["attention"])
+    for secret in ("10.0.0.5", "admin", "abc123"):
+        assert secret not in blob
+    assert report["postgres"]["ok"] is False
+
+
+def test_timed_out_section_error_text(monkeypatch):
+    async def _hang():
+        await asyncio.sleep(5)
+
+    monkeypatch.setattr(tools, "SECTION_TIMEOUT_SECONDS", 0.05)
+    _patch_sections(monkeypatch, containers=_hang)
+    report = asyncio.run(tools.inspect_stack({}))
+    assert report["containers"]["error"] == "timed out after 0.05s"
