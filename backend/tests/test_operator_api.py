@@ -372,3 +372,25 @@ def test_agent_wins_when_both_credentials_present(client, db):
     _seed(db, "h1", "awaiting_approval", [_GATE], current_node="ready")
     assert client.post(f"{BASE}/tasks/h1/input", json={"decision": "approve"}).status_code == 403
     assert _no_pending(db, "h1")
+
+
+@pytest.mark.parametrize("flow", ["implement-new-agent", "safety-demo"])
+def test_operator_routes_404_for_non_catalog_flow_runs(client, db, monkeypatch, flow):
+    """I3: only operator-catalog flows are reachable through the operator API."""
+    _seed(db, "nc1", "awaiting_approval", [_GATE], flow=flow, current_node="ready")
+    fake = _FakeRunner()
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda _id: fake)
+
+    _as()
+    assert client.get(f"{BASE}/tasks/nc1").status_code == 404
+    r = client.post(f"{BASE}/tasks/nc1/input", json={"decision": "approve"})
+    assert r.status_code == 404 and r.json()["detail"] == "Task not found"
+    _as(kind="agent")
+    r = client.post(f"{BASE}/tasks/nc1/cancel", json={})
+    assert r.status_code == 404 and r.json()["detail"] == "Task not found"
+
+    db.expire_all()
+    row = db.get(HyperFlowRun, "nc1")
+    assert row.status == "awaiting_approval"
+    assert "context" not in row.state
+    assert fake.resumed == [] and fake.cancelled == []

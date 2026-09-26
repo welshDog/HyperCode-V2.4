@@ -132,7 +132,7 @@ def _serialize(run: HyperFlowRun) -> dict[str, Any]:
 
 def _get_run(db: Session, task_id: str) -> HyperFlowRun:
     run = db.get(HyperFlowRun, task_id)
-    if run is None:
+    if run is None or tool_for_flow(run.flow_name) is None:
         raise HTTPException(status_code=404, detail="Task not found")
     return run
 
@@ -184,7 +184,8 @@ def _locked_run(db: Session, task_id: str) -> HyperFlowRun:
         .with_for_update()
         .one_or_none()
     )
-    if run is None:
+    if run is None or tool_for_flow(run.flow_name) is None:
+        db.rollback()
         raise HTTPException(status_code=404, detail="Task not found")
     return run
 
