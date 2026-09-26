@@ -114,14 +114,16 @@ class HyperFlowRunner:
         run_id: str,
         *,
         user_id: Optional[int] = None,
+        history: Optional[list[dict[str, Any]]] = None,
     ) -> None:
         self.flow = flow
         self.run_id = run_id
         self.user_id = user_id
-        self._history: list[dict[str, Any]] = []
+        self._history: list[dict[str, Any]] = list(history or [])
         self._approval_event = asyncio.Event()
         self._approval_result: Optional[bool] = None
         self._task: Optional[asyncio.Task] = None
+        self._cancel_reason: Optional[str] = None
         self._cache_url = cache_redis_url()
 
     # ── lifecycle ────────────────────────────────────────────────────────────
@@ -136,6 +138,16 @@ class HyperFlowRunner:
         """Satisfy a pending human_approval_gate (called from the resume endpoint)."""
         self._approval_result = approved
         self._approval_event.set()
+
+    async def cancel(self, reason: str = "cancelled") -> bool:
+        """Cancel a live run. Returns False when it is not running in this process."""
+        task = self._task
+        if task is None or task.done():
+            return False
+        self._cancel_reason = reason
+        task.cancel()
+        await asyncio.wait({task}, timeout=5.0)
+        return True
 
     # ── graph walk ───────────────────────────────────────────────────────────
 
@@ -174,6 +186,12 @@ class HyperFlowRunner:
             await self._finish(HyperFlowRunStatus.COMPLETED)
         except _FlowFailed as exc:
             await self._finish(HyperFlowRunStatus.FAILED, error=str(exc))
+        except asyncio.CancelledError:
+            if self._cancel_reason is None:
+                # Event-loop shutdown, not an operator cancel: leave the run 'running'
+                # so recover_runs() can resume it after the restart.
+                raise
+            await self._finish(HyperFlowRunStatus.CANCELLED, error=self._cancel_reason)
         except Exception as exc:  # pragma: no cover — defensive
             logger.exception("hyperflow run %s crashed", self.run_id)
             await self._finish(HyperFlowRunStatus.FAILED, error=str(exc))
@@ -457,13 +475,13 @@ class HyperFlowRunner:
         completed: bool,
         error: Optional[str],
     ) -> None:
-        state: dict[str, Any] = {"history": self._history}
-        if error:
-            state["error"] = error
         db = SessionLocal()
         try:
             run = db.get(HyperFlowRun, self.run_id)
             if run is None:
+                state: dict[str, Any] = {"history": self._history}
+                if error:
+                    state["error"] = error
                 run = HyperFlowRun(
                     id=self.run_id,
                     flow_name=self.flow.name,
@@ -474,6 +492,12 @@ class HyperFlowRunner:
                 )
                 db.add(run)
             else:
+                # Merge: keep everything else in state (e.g. ``context`` written by the
+                # operator API) and only refresh history / error.
+                state = dict(run.state or {})
+                state["history"] = self._history
+                if error:
+                    state["error"] = error
                 run.status = status.value
                 run.current_node = current_node
                 run.state = state
