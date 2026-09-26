@@ -209,6 +209,7 @@ services:
     environment:
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       - HYPERCODE_ORCH_URL=http://crew-orchestrator:8080
+      - HYPERCODE_AGENT_KEY=${HYPERCODE_AGENT_KEY:-}
     networks:
       - agents-net
       - frontend-net

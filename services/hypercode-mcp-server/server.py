@@ -16,11 +16,15 @@ Tools exposed:
   hypercode_get_logs        — recent system log entries
   hypercode_broski_wallet   — BROski$ token balance + level
   hypercode_execute_agent   — send a command to the crew orchestrator
+  hypercode_inspect         — start a read-only stack inspection (background task)
+  hypercode_task_get        — poll a background task
+  hypercode_task_cancel     — cancel a background task
 """
 
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, Optional
 
 import httpx
@@ -34,6 +38,11 @@ CORE_URL    = os.getenv("HYPERCODE_CORE_URL", "http://hypercode-core:8000")
 ORCH_URL    = os.getenv("HYPERCODE_ORCH_URL", "http://crew-orchestrator:8080")
 API_PREFIX  = "/api/v1"
 TIMEOUT     = 10.0
+
+# Agent key presented to hypercode-core's operator API (X-Agent-Key). Optional: without it
+# operator calls return 401. Never logged; only ever sent to CORE_URL.
+AGENT_KEY   = os.getenv("HYPERCODE_AGENT_KEY", "")
+_TASK_ID_RE = re.compile(r"^[0-9a-fA-F-]{36}$")
 
 # The mcp SDK (>=1.9) turns DNS-rebinding protection ON by default and only
 # accepts Host headers matching 127.0.0.1:* / localhost:* / [::1]:* — so every
@@ -73,18 +82,21 @@ async def health_check(_request: Request) -> JSONResponse:
     left this container `unhealthy`)."""
     return JSONResponse({"status": "ok", "service": "hypercode-mcp-server", "transport": "sse"})
 
-# ── HTTP helper ───────────────────────────────────────────────────────────────
+def _core_headers(base: str) -> dict:
+    """X-Agent-Key for calls to hypercode-core only — never sent to any other host."""
+    return {"X-Agent-Key": AGENT_KEY} if AGENT_KEY and base == CORE_URL else {}
+
 
 async def _get(path: str, base: str = CORE_URL, **params: Any) -> Any:
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        r = await client.get(f"{base}{path}", params=params or None)
+        r = await client.get(f"{base}{path}", params=params or None, headers=_core_headers(base))
         r.raise_for_status()
         return r.json()
 
 
 async def _post(path: str, body: dict, base: str = CORE_URL) -> Any:
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        r = await client.post(f"{base}{path}", json=body)
+        r = await client.post(f"{base}{path}", json=body, headers=_core_headers(base))
         r.raise_for_status()
         return r.json()
 
@@ -248,6 +260,43 @@ async def hypercode_execute_agent(
     if context:
         body["context"] = context
     return await _post(f"{API_PREFIX}/orchestrator/execute", body)
+
+
+# ── BROski operator tasks (async, durable) ────────────────────────────────────
+
+@mcp.tool()
+async def hypercode_inspect() -> dict:
+    """
+    Start a read-only stack health inspection as a background task.
+    Returns a task handle immediately ({taskId, status:"working", pollInterval});
+    poll it with hypercode_task_get. Never changes anything.
+    """
+    return await _post(
+        f"{API_PREFIX}/operator/tasks", {"tool": "hypercode.inspect", "arguments": {}}
+    )
+
+
+@mcp.tool()
+async def hypercode_task_get(task_id: str) -> dict:
+    """
+    Get a background task's status. status is one of working, input_required,
+    completed, failed, cancelled. The result appears only when completed.
+    input_required means a human must approve — approvals are not possible via this
+    server by design.
+    """
+    if not _TASK_ID_RE.match(task_id or ""):
+        return {"error": "invalid task_id"}
+    return await _get(f"{API_PREFIX}/operator/tasks/{task_id}")
+
+
+@mcp.tool()
+async def hypercode_task_cancel(task_id: str, reason: str = "") -> dict:
+    """Cancel a background task. Safe to call; already-finished tasks return a 409 error."""
+    if not _TASK_ID_RE.match(task_id or ""):
+        return {"error": "invalid task_id"}
+    return await _post(
+        f"{API_PREFIX}/operator/tasks/{task_id}/cancel", {"reason": reason[:200]}
+    )
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
