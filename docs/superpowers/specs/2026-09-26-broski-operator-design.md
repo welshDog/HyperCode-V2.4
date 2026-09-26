@@ -105,3 +105,30 @@ Each phase gets its own plan-checked increment; Phase 1 alone must be shippable.
 
 - Exact MCP Tasks support in `mcp 1.27.1` (probe, §5.4).
 - Whether `docker-socket-proxy` already allows the GET endpoints `inspect` needs (verify; otherwise add the minimal read endpoints, never the raw socket).
+
+## 9. Amendments made during planning and execution (2026-09-26)
+
+Decided while the plan was written and reviewed; the binding record is the SDD ledger, summarised here so the spec matches what shipped.
+
+**Behavior that differs from §5 above**
+- **Approvals are superuser-only and human-only.** `POST /tasks/{id}/input` requires a Bearer JWT for a *superuser*; an `X-Agent-Key` gets 403 and so does a non-superuser human. The MCP server holds only an agent key, so it exposes **no approval tool** (§5.4's `task_update` is dropped). Approvals happen in the dashboard / authenticated API.
+- **`/input` only works when the run is parked at a real human gate**: newest history entry is `awaiting_approval` of type `human_approval_gate` for `current_node`. Safety-Shepherd escalation waits are not approvable through the operator API (GET shows `inputRequests.kind = "safety_escalation"`). An optional body `node` that differs from the parked gate gets 409 `gate_mismatch`.
+- **Persisted decisions are gate-scoped**: `{"approved","by","ts","node"}`; a decision whose `node` is missing or differs from the gate consuming it is stale and discarded. A runner only receives the in-memory wake-up if `runner.parked_gate` equals the gate.
+- **`arguments` must be `{}`** in Phase 1; anything else is a 422. Unknown tools are a 404.
+- **Operator routes only see catalog flows** (`hypercode.inspect` -> `operator-inspect`, `hypercode.smoke` -> `hyperflow-smoke`); any other HyperFlow run id is a 404 through `/operator`, and the legacy `/flows/runs/{id}/resume` returns 409 `use_operator_api` for catalog runs and only resumes a runner that is parked at a gate.
+- **Recovery rules**: a run parked at a gate resumes at the gate; a step in flight at crash time is re-run only if `idempotent: true` or it is a human gate, otherwise the run fails with `interrupted by restart`. Trailing `safety_allow`/`safety_skipped` history entries count as "the node is in flight"; `safety_escalate`/`safety_block`/`safety_resolved` fail conservatively. Runs idle longer than `RECOVERY_MAX_AGE_HOURS` (default 24) are failed as `stale at recovery` instead of resumed. Loop counters and the originating `user_id` are not restored. Startup recovery is bounded by a 15 s timeout and is skipped when `HYPERFLOW_RECOVERY=0` (used by the test suite).
+- **Persistence**: runner writes lock the row (`FOR UPDATE`) and never un-terminate a completed/failed/cancelled run. A live cancel/complete/fail appends the same terminal history entry as the DB-only path.
+- **Legacy exposure**: `result.data` (the inspect report) is stripped from the unauthenticated legacy `/flows` GET endpoints and from the Redis snapshot/pub-sub payloads; the operator API reads Postgres and still returns it. Local-tool `data` is persisted only for local-tool nodes.
+- **Inspect errors are scrubbed** (`_safe_error`): HTTP status only for `HTTPStatusError`, exception type only for Postgres, URL userinfo / `password=` fragments removed elsewhere.
+- **Run status vs health**: a run is `completed` when the graph finishes; whether the stack is healthy is `result.report.ok` / `result.success`.
+- **MCP SDK probe**: `mcp 1.27.1` exposes native Tasks types (e.g. `ServerTasksCapability`), so swapping the ordinary `hypercode_task_*` tools for the native Tasks extension is feasible later; the payloads already use the Tasks vocabulary.
+
+**Known limitations / deferred (not fixed in Phase 1)**
+- Two superusers racing `/input` on one gate: last decision wins in memory and a leftover gate-stamped decision remains (only consumable if a loop edge returns to the same gate id; no shipped flow does).
+- `/input` and DB-only cancel do not publish to the run's Redis channel, so SSE watchers do not see those transitions until the runner's next emit.
+- Every recovery re-park re-publishes to the `approval_requests` channel (duplicate prompts after each restart); an approval consumed just before a crash, before the gate's `completed` emit, is lost and the run re-parks (safe direction).
+- A parked runner polls Postgres every 2 s with no expiry, and logs an exception every poll during a database blip.
+- Read/cancel through `/operator` are open to any authenticated principal for catalog runs (no per-user ownership); the inspect report (container names, queue depths) is visible to them. Ownership checks are a Phase 2 item.
+- `HYPERCODE_AGENT_KEY` is a plain env var (no `*_FILE` Docker-secret support); existing MCP tools now also send it to core, which skips the IP rate limiter for those calls.
+- The `_safe_error` scrubber is a blacklist with known exotic bypasses (raw `@` in a password, `*_password=` keys, spaced/colon forms, `token=`/`Bearer`); the sections that run do not emit credentials. An allow-list is the Phase 2 hardening. `RECOVERY_MAX_AGE_HOURS=0`, negative or non-finite values are not rejected.
+- `operator-inspect`'s intent joins free-text goal matching for `/flows/runs`; the cancel proof uses a gate-parked run rather than a slow flow.
