@@ -385,8 +385,13 @@ class HyperFlowRunner:
             )
             return {"ok": True, "green": True, "mocked": True}
 
-    def _take_persisted_decision(self) -> Optional[bool]:
-        """Read and clear ``state.context.pending_decision`` written by the operator API."""
+    def _take_persisted_decision(self, node_id: Optional[str] = None) -> Optional[bool]:
+        """Read and clear ``state.context.pending_decision`` written by the operator API.
+
+        If ``node_id`` is given, the decision must be scoped to that node (stale decisions
+        for other nodes are discarded). Decision shape: {"approved": bool, "by": str, "ts": iso, "node": <id>}.
+        The "node" field may be absent for backward compatibility.
+        """
         db = SessionLocal()
         try:
             run = db.get(HyperFlowRun, self.run_id)
@@ -396,6 +401,20 @@ class HyperFlowRunner:
             ctx = dict(state.get("context") or {})
             decision = ctx.pop("pending_decision", None)
             if decision is None:
+                return None
+            # Guard: decision must be a dict, not malformed data
+            if not isinstance(decision, dict):
+                state["context"] = ctx
+                run.state = state
+                db.commit()
+                return None
+            # Scope to node: if node_id given and decision has a node that differs, it's stale
+            decision_node = decision.get("node")
+            if node_id is not None and decision_node is not None and decision_node != node_id:
+                # Stale decision for a different gate, discard it
+                state["context"] = ctx
+                run.state = state
+                db.commit()
                 return None
             state["context"] = ctx
             run.state = state
@@ -417,7 +436,7 @@ class HyperFlowRunner:
         await self._publish_approval_request(node, prompt)
         while True:
             # A decision may already be waiting (written while this process was down).
-            persisted = await asyncio.to_thread(self._take_persisted_decision)
+            persisted = await asyncio.to_thread(self._take_persisted_decision, node.id)
             if persisted is not None:
                 self._approval_result = persisted
                 break
@@ -426,7 +445,7 @@ class HyperFlowRunner:
             except asyncio.TimeoutError:
                 continue
             # Woken by the in-memory resume(): drop any duplicate persisted decision.
-            await asyncio.to_thread(self._take_persisted_decision)
+            await asyncio.to_thread(self._take_persisted_decision, node.id)
             break
         if not self._approval_result:
             raise _ApprovalRejected(node.id)

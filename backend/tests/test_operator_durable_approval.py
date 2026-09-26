@@ -38,7 +38,7 @@ def test_gate_honours_persisted_approval(monkeypatch):
     runner, final = _runner_with_io(gate_flow(), "d1", monkeypatch)
     calls = {"n": 0}
 
-    def _take():
+    def _take(*_):
         calls["n"] += 1
         return True if calls["n"] >= 2 else None
 
@@ -49,7 +49,7 @@ def test_gate_honours_persisted_approval(monkeypatch):
 
 def test_gate_honours_persisted_rejection(monkeypatch):
     runner, final = _runner_with_io(gate_flow(), "d2", monkeypatch)
-    monkeypatch.setattr(runner, "_take_persisted_decision", lambda: False)
+    monkeypatch.setattr(runner, "_take_persisted_decision", lambda *_: False)
     asyncio.run(runner._run())
     assert final["status"] is HyperFlowRunStatus.FAILED
     assert "approval rejected" in final["error"]
@@ -86,7 +86,170 @@ def test_take_persisted_decision_no_row_returns_none(hf_db):
 
 def test_run_can_start_at_a_given_node(monkeypatch):
     runner, final = _runner_with_io(two_gate_flow(), "s1", monkeypatch)
-    monkeypatch.setattr(runner, "_take_persisted_decision", lambda: True)
+    monkeypatch.setattr(runner, "_take_persisted_decision", lambda *_: True)
     asyncio.run(runner._run("b"))
     assert [e["node"] for e in runner._history] == ["b", "b"]  # awaiting_approval + completed
     assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_persisted_decision_stale_if_scoped_to_different_node(hf_db, monkeypatch):
+    """A decision for node 'a' should not approve gate 'b'; gate keeps waiting."""
+    # Manually create row with stale decision (scoped to different node)
+    state = {"history": []}
+    ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "a"}}
+    state["context"] = ctx
+    s = hf_db()
+    s.add(
+        HyperFlowRun(
+            id="d5", flow_name="g", flow_version=1,
+            status="awaiting_approval", current_node="b", state=state,
+        )
+    )
+    s.commit()
+    s.close()
+
+    flow = two_gate_flow()
+    runner, final = _runner_with_io(flow, "d5", monkeypatch)
+    # Return stale decision on first call (will be discarded), matching on second
+    calls = {"n": 0}
+    def _take(node_id):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # First poll: decision scoped to 'a', we're at 'b' → return None
+            return None
+        else:
+            # After timeout, second poll: matching decision for gate 'b'
+            return True
+    monkeypatch.setattr(runner, "_take_persisted_decision", _take)
+    asyncio.run(runner._run("b"))
+    # Gate keeps waiting → times out, re-polls → gets matching decision → completes
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_persisted_decision_accepted_if_node_matches(hf_db):
+    """A decision scoped to the gate node should be accepted immediately."""
+    # Manually create row with decision scoped to matching node
+    state = {"history": []}
+    ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "gate"}}
+    state["context"] = ctx
+    s = hf_db()
+    s.add(
+        HyperFlowRun(
+            id="d6", flow_name="g", flow_version=1,
+            status="awaiting_approval", current_node="gate", state=state,
+        )
+    )
+    s.commit()
+    s.close()
+
+    runner = HyperFlowRunner(gate_flow(), "d6")
+    assert runner._take_persisted_decision("gate") is True
+    # Verify it was cleared
+    assert runner._take_persisted_decision("gate") is None
+    s = hf_db()
+    ctx = s.get(HyperFlowRun, "d6").state["context"]
+    s.close()
+    assert "pending_decision" not in ctx
+
+
+def test_drain_path_resume_wins_drops_persisted_decision(hf_db, monkeypatch):
+    """resume(True) signal wins race; persisted decision is discarded on drain call."""
+    # Seed DB with a decision
+    state = {"history": []}
+    ctx = {"pending_decision": {"approved": True, "by": "test", "ts": "t", "node": "gate"}}
+    state["context"] = ctx
+    s = hf_db()
+    s.add(
+        HyperFlowRun(
+            id="d7", flow_name="g", flow_version=1,
+            status="awaiting_approval", current_node="gate", state=state,
+        )
+    )
+    s.commit()
+    s.close()
+
+    # Create runner with selective mocking: I/O but NOT _take_persisted_decision
+    runner = HyperFlowRunner(gate_flow(), "d7")
+
+    async def _noop(*a, **k):
+        return None
+
+    monkeypatch.setattr(runner, "_persist", _noop)
+    monkeypatch.setattr(runner, "_publish", _noop)
+    monkeypatch.setattr(runner, "_publish_approval_request", _noop)
+
+    final = {}
+    async def _finish(status, error=None):
+        final["status"] = status
+        final["error"] = error
+
+    async def _green(node):
+        return {"ok": True, "green": True}
+
+    monkeypatch.setattr(runner, "_finish", _finish)
+    monkeypatch.setattr(runner, "_dispatch", _green)
+    # Note: NOT mocking _take_persisted_decision, so it uses the real implementation
+
+    async def scenario():
+        runner._task = asyncio.create_task(runner._run())
+        await asyncio.sleep(0.02)  # Let it reach the gate
+        runner.resume(True)  # In-memory signal wins
+        await runner._task
+
+    asyncio.run(scenario())
+    # The drain call should have cleared the persisted decision
+    s = hf_db()
+    run = s.get(HyperFlowRun, "d7")
+    s.close()
+    assert "pending_decision" not in (run.state.get("context") or {})
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_start_at_registers_and_cleans_up(monkeypatch):
+    """start_at() should register in _ACTIVE, run from node, and clean up after."""
+    from app.agents.hyperflow_runner import _ACTIVE, get_runner
+    runner, final = _runner_with_io(two_gate_flow(), "s2", monkeypatch)
+    monkeypatch.setattr(runner, "_take_persisted_decision", lambda *_: True)
+
+    async def scenario():
+        # Before start_at: not in _ACTIVE
+        assert "s2" not in _ACTIVE
+        # Call start_at
+        await runner.start_at("b")
+        # Should now be registered
+        assert get_runner("s2") is runner
+        # Wait for completion
+        await runner._task
+        # After completion: should be cleaned up
+        assert "s2" not in _ACTIVE
+
+    asyncio.run(scenario())
+    # Verify it ran from "b", not from entry
+    assert [e["node"] for e in runner._history] == ["b", "b"]
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+
+
+def test_malformed_decision_cleared_and_returns_none(hf_db):
+    """A non-dict pending_decision (malformed) should be cleared and return None."""
+    state = {"history": []}
+    ctx = {"pending_decision": "not-a-dict"}  # Malformed: string, not dict
+    state["context"] = ctx
+    s = hf_db()
+    s.add(
+        HyperFlowRun(
+            id="d8", flow_name="g", flow_version=1,
+            status="awaiting_approval", current_node="gate", state=state,
+        )
+    )
+    s.commit()
+    s.close()
+
+    runner = HyperFlowRunner(gate_flow(), "d8")
+    # Should return None for malformed data
+    assert runner._take_persisted_decision("gate") is None
+    # Should be cleared (not stuck in an infinite loop)
+    assert runner._take_persisted_decision("gate") is None
+    s = hf_db()
+    ctx = s.get(HyperFlowRun, "d8").state["context"]
+    s.close()
+    assert "pending_decision" not in ctx
