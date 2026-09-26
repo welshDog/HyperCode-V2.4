@@ -1,6 +1,7 @@
 """BROski operator — restart recovery + DB helpers."""
 
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -69,10 +70,16 @@ def test_failed_last_entry_fails_run():
     assert plan_recovery(FLOW, "running", hist).action == "fail"
 
 
-def _add(factory, run_id, flow_name, status, history):
+def _add(factory, run_id, flow_name, status, history, *, age_hours=None, naive=False):
     s = factory()
+    extra = {}
+    if age_hours is not None:
+        when = datetime.now(timezone.utc) - timedelta(hours=age_hours)
+        if naive:
+            when = when.replace(tzinfo=None)
+        extra = {"created_at": when, "updated_at": when}
     s.add(HyperFlowRun(id=run_id, flow_name=flow_name, flow_version=1, status=status,
-                       current_node=None, state={"history": history}))
+                       current_node=None, state={"history": history}, **extra))
     s.commit()
     s.close()
 
@@ -194,3 +201,98 @@ def test_recover_runs_survives_failing_failure_handler(hf_db, monkeypatch):
     counts = asyncio.run(recover_runs())
 
     assert counts == {"resume": 1, "complete": 0, "fail": 0, "skip": 0}
+
+
+def _fake_start(monkeypatch):
+    started = []
+
+    async def _fake_start_at(self, node_id):
+        started.append((self.run_id, node_id))
+        return self
+
+    monkeypatch.setattr(HyperFlowRunner, "start_at", _fake_start_at)
+    return started
+
+
+def test_recover_runs_fails_stale_run_but_resumes_fresh_gate_run(hf_db, monkeypatch):
+    monkeypatch.delenv("RECOVERY_MAX_AGE_HOURS", raising=False)
+    started = _fake_start(monkeypatch)
+    _add(hf_db, "r-old", "hyperflow-smoke", "awaiting_approval", _gate_hist(), age_hours=72)
+    _add(hf_db, "r-fresh", "hyperflow-smoke", "awaiting_approval", _gate_hist(), age_hours=1)
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts == {"resume": 1, "complete": 0, "fail": 1, "skip": 0}
+    assert started == [("r-fresh", "ready")]
+    s = hf_db()
+    old = s.get(HyperFlowRun, "r-old")
+    assert old.status == "failed"
+    assert old.state["error"] == "stale at recovery (older than 24h)"
+    assert s.get(HyperFlowRun, "r-fresh").status == "awaiting_approval"
+    s.close()
+
+
+def test_recover_runs_stale_cutoff_handles_naive_datetimes(hf_db, monkeypatch):
+    monkeypatch.delenv("RECOVERY_MAX_AGE_HOURS", raising=False)
+    started = _fake_start(monkeypatch)
+    _add(hf_db, "r-old", "hyperflow-smoke", "running", [], age_hours=30, naive=True)
+    _add(hf_db, "r-new", "hyperflow-smoke", "awaiting_approval", _gate_hist(),
+         age_hours=2, naive=True)
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts["fail"] == 1 and counts["resume"] == 1
+    assert started == [("r-new", "ready")]
+
+
+def test_recover_runs_age_boundary(hf_db, monkeypatch):
+    monkeypatch.delenv("RECOVERY_MAX_AGE_HOURS", raising=False)
+    started = _fake_start(monkeypatch)
+    _add(hf_db, "r-just-in", "hyperflow-smoke", "awaiting_approval", _gate_hist(),
+         age_hours=23.9)
+    _add(hf_db, "r-just-out", "hyperflow-smoke", "awaiting_approval", _gate_hist(),
+         age_hours=24.1)
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts == {"resume": 1, "complete": 0, "fail": 1, "skip": 0}
+    assert started == [("r-just-in", "ready")]
+
+
+def test_recover_runs_max_age_env_override(hf_db, monkeypatch):
+    started = _fake_start(monkeypatch)
+    _add(hf_db, "r-3h", "hyperflow-smoke", "awaiting_approval", _gate_hist(), age_hours=3)
+
+    monkeypatch.setenv("RECOVERY_MAX_AGE_HOURS", "2")
+    counts = asyncio.run(recover_runs())
+    assert counts["fail"] == 1 and started == []
+    s = hf_db()
+    assert s.get(HyperFlowRun, "r-3h").state["error"] == "stale at recovery (older than 2h)"
+    s.close()
+
+    _add(hf_db, "r-3h-b", "hyperflow-smoke", "awaiting_approval", _gate_hist(), age_hours=3)
+    monkeypatch.setenv("RECOVERY_MAX_AGE_HOURS", "48")
+    counts = asyncio.run(recover_runs())
+    assert counts["resume"] == 1 and started == [("r-3h-b", "ready")]
+
+
+def _safety(status, node):
+    return {"node": node, "type": "tool", "status": status, "result": {}}
+
+
+@pytest.mark.parametrize("status", ["safety_allow", "safety_skipped"])
+def test_trailing_safety_pass_entry_on_idempotent_node_resumes_there(status):
+    plan = plan_recovery(FLOW, "running", [_safety(status, "a")])
+    assert plan.action == "resume" and plan.node_id == "a"
+
+
+@pytest.mark.parametrize("status", ["safety_allow", "safety_skipped"])
+def test_trailing_safety_pass_entry_on_non_idempotent_node_fails(status):
+    plan = plan_recovery(FLOW, "running", [_done("a"), _safety(status, "b")])
+    assert plan.action == "fail" and plan.node_id == "b" and "not idempotent" in plan.reason
+
+
+@pytest.mark.parametrize("status", ["safety_escalate", "safety_block", "safety_resolved"])
+def test_trailing_safety_escalate_or_block_fails_conservatively(status):
+    plan = plan_recovery(FLOW, "running", [_safety(status, "a")])
+    assert plan.action == "fail" and plan.reason == "interrupted by restart"

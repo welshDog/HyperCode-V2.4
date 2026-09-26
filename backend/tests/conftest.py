@@ -3,6 +3,7 @@
 import os
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 os.environ["ENVIRONMENT"] = "test"
+os.environ["HYPERFLOW_RECOVERY"] = "0"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

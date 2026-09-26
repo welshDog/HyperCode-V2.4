@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 from typing import Any, Optional
 
 from app.agents.hyperflow.registry import get_flow
 from app.agents.hyperflow.schema import FlowDefinition, NodeType
 from app.agents.hyperflow_runner import HyperFlowRunner, get_runner
-from app.broski_operator.runs import OPEN_STATUSES, finish_run_row, load_open_runs
+from app.broski_operator.runs import OPEN_STATUSES, OpenRun, finish_run_row, load_open_runs
 from app.db.session import SessionLocal
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
 
@@ -45,7 +47,11 @@ def plan_recovery(flow: FlowDefinition, status: str, history: list[dict[str, Any
         next_id = HyperFlowRunner(flow, "plan")._next_node(node, success, {})
         if next_id is None:
             return RecoveryPlan("complete", reason="last node was terminal")
-    else:  # a failed entry: retry/fallback was in flight — do not guess
+    elif last.get("status") in ("safety_allow", "safety_skipped"):
+        # The Safety Shepherd gate let this node through, then we stopped before it
+        # recorded a result: that node was in flight.
+        next_id = last["node"]
+    else:  # a failed entry / safety_escalate / safety_block: do not guess
         return RecoveryPlan("fail", reason="interrupted by restart")
 
     node = flow.node(next_id)
@@ -71,7 +77,22 @@ def _finish_row(run_id: str, plan: RecoveryPlan) -> None:
         db.close()
 
 
-def _load() -> list[tuple[str, str, str, list[dict[str, Any]]]]:
+def _max_age_hours() -> float:
+    try:
+        return float(os.getenv("RECOVERY_MAX_AGE_HOURS", "24"))
+    except ValueError:
+        return 24.0
+
+
+def _is_stale(last_activity: Optional[datetime], max_age_hours: float) -> bool:
+    if last_activity is None:
+        return False
+    if last_activity.tzinfo is None:  # SQLite returns naive datetimes; they are UTC
+        last_activity = last_activity.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - last_activity > timedelta(hours=max_age_hours)
+
+
+def _load() -> list[OpenRun]:
     db = SessionLocal()
     try:
         return load_open_runs(db)
@@ -82,12 +103,15 @@ def _load() -> list[tuple[str, str, str, list[dict[str, Any]]]]:
 async def recover_runs() -> dict[str, int]:
     """Re-attach runs that were live when core last stopped. Returns counts per action."""
     counts = {"resume": 0, "complete": 0, "fail": 0, "skip": 0}
-    for run_id, flow_name, status, history in await asyncio.to_thread(_load):
+    max_age = _max_age_hours()
+    for run_id, flow_name, status, history, last_activity in await asyncio.to_thread(_load):
         if get_runner(run_id) is not None:
             continue
         flow = get_flow(flow_name)
         try:
-            if flow is None:
+            if _is_stale(last_activity, max_age):
+                plan = RecoveryPlan("fail", reason=f"stale at recovery (older than {max_age:g}h)")
+            elif flow is None:
                 plan = RecoveryPlan("fail", reason=f"flow '{flow_name}' no longer exists")
             else:
                 plan = plan_recovery(flow, status, history)

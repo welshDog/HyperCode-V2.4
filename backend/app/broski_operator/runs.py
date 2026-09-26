@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, NamedTuple, Optional
 
 from sqlalchemy.orm import Session
 
@@ -19,11 +19,25 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def load_open_runs(db: Session) -> list[tuple[str, str, str, list[dict[str, Any]]]]:
-    """(run_id, flow_name, status, history) for every run that was live when we stopped."""
+class OpenRun(NamedTuple):
+    run_id: str
+    flow_name: str
+    status: str
+    history: list[dict[str, Any]]
+    last_activity: Optional[datetime]  # updated_at, else created_at; may be tz-naive (SQLite)
+
+
+def load_open_runs(db: Session) -> list[OpenRun]:
+    """Every run that was live when we stopped, with its last-activity time."""
     rows = db.query(HyperFlowRun).filter(HyperFlowRun.status.in_(OPEN_STATUSES)).all()
     return [
-        (r.id, r.flow_name, r.status, list((r.state or {}).get("history", [])))
+        OpenRun(
+            r.id,
+            r.flow_name,
+            r.status,
+            list((r.state or {}).get("history", [])),
+            r.updated_at or r.created_at,
+        )
         for r in rows
     ]
 
@@ -34,7 +48,7 @@ def store_decision(
     *,
     approved: bool,
     by: str,
-    node: Optional[str] = None,
+    node: Optional[str],
 ) -> bool:
     """Persist an approval decision for the runner to pick up. False if one is already pending.
 
