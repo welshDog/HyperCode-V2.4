@@ -61,6 +61,7 @@ def _finish_row(run_id: str, plan: RecoveryPlan) -> None:
     try:
         run = db.get(HyperFlowRun, run_id)
         if run is None:
+            logger.warning("hyperflow recovery run=%s vanished before it could be finished", run_id)
             return
         if plan.action == "complete":
             finish_run_row(db, run, HyperFlowRunStatus.COMPLETED, None)
@@ -85,16 +86,30 @@ async def recover_runs() -> dict[str, int]:
         if get_runner(run_id) is not None:
             continue
         flow = get_flow(flow_name)
-        if flow is None:
-            plan = RecoveryPlan("fail", reason=f"flow '{flow_name}' no longer exists")
-        else:
-            plan = plan_recovery(flow, status, history)
-        counts[plan.action] += 1
-        if plan.action == "resume":
-            assert flow is not None and plan.node_id is not None
-            runner = HyperFlowRunner(flow, run_id, history=history)
-            await runner.start_at(plan.node_id)
-        elif plan.action in ("complete", "fail"):
-            await asyncio.to_thread(_finish_row, run_id, plan)
-        logger.info("hyperflow recovery run=%s action=%s reason=%s", run_id, plan.action, plan.reason)
+        try:
+            if flow is None:
+                plan = RecoveryPlan("fail", reason=f"flow '{flow_name}' no longer exists")
+            else:
+                plan = plan_recovery(flow, status, history)
+            if plan.action == "resume":
+                if flow is None or plan.node_id is None:
+                    raise RuntimeError("resume plan without flow/node")
+                runner = HyperFlowRunner(flow, run_id, history=history)
+                await runner.start_at(plan.node_id)
+            elif plan.action in ("complete", "fail"):
+                await asyncio.to_thread(_finish_row, run_id, plan)
+            counts[plan.action] += 1
+            logger.info(
+                "hyperflow recovery run=%s action=%s reason=%s", run_id, plan.action, plan.reason
+            )
+        except Exception as exc:  # one poisoned run must never block the others
+            logger.exception("hyperflow recovery run=%s errored", run_id)
+            plan = RecoveryPlan(
+                "fail", reason=f"recovery error: {type(exc).__name__}: {str(exc)[:150]}"
+            )
+            try:
+                await asyncio.to_thread(_finish_row, run_id, plan)
+                counts["fail"] += 1
+            except Exception:
+                logger.exception("hyperflow recovery run=%s could not be marked failed", run_id)
     return counts

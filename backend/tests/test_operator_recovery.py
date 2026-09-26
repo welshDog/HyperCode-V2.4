@@ -128,3 +128,69 @@ def test_finish_run_row_records_terminal_entry(hf_db):
     assert run.state["history"][-1]["type"] == "terminal"
     assert run.state["history"][-1]["status"] == "cancelled"
     s.close()
+
+
+def _gate_hist():
+    return [{"node": "ready", "type": "human_approval_gate",
+             "status": "awaiting_approval", "result": {}}]
+
+
+def test_recover_runs_isolates_run_with_missing_node(hf_db, monkeypatch):
+    started = []
+
+    async def _fake_start_at(self, node_id):
+        started.append(self.run_id)
+        return self
+
+    monkeypatch.setattr(HyperFlowRunner, "start_at", _fake_start_at)
+    stale = [{"node": "removed-node", "type": "tool", "status": "completed",
+              "result": {"success": True}}]
+    _add(hf_db, "r-stale", "hyperflow-smoke", "running", stale)
+    _add(hf_db, "r-ok", "hyperflow-smoke", "awaiting_approval", _gate_hist())
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts == {"resume": 1, "complete": 0, "fail": 1, "skip": 0}
+    assert started == ["r-ok"]
+    s = hf_db()
+    stale_row = s.get(HyperFlowRun, "r-stale")
+    assert stale_row.status == "failed" and "recovery error" in stale_row.state["error"]
+    s.close()
+
+
+def test_recover_runs_isolates_start_at_failure(hf_db, monkeypatch):
+    started = []
+
+    async def _fake_start_at(self, node_id):
+        if self.run_id == "r-boom":
+            raise RuntimeError("boom")
+        started.append(self.run_id)
+        return self
+
+    monkeypatch.setattr(HyperFlowRunner, "start_at", _fake_start_at)
+    for rid in ("r-a", "r-boom", "r-b"):
+        _add(hf_db, rid, "hyperflow-smoke", "awaiting_approval", _gate_hist())
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts == {"resume": 2, "complete": 0, "fail": 1, "skip": 0}
+    assert sorted(started) == ["r-a", "r-b"]
+    s = hf_db()
+    boom = s.get(HyperFlowRun, "r-boom")
+    assert boom.status == "failed" and "recovery error: RuntimeError: boom" in boom.state["error"]
+    assert s.get(HyperFlowRun, "r-a").status == "awaiting_approval"
+    s.close()
+
+
+def test_recover_runs_survives_failing_failure_handler(hf_db, monkeypatch):
+    async def _fake_start_at(self, node_id):
+        return self
+
+    monkeypatch.setattr(HyperFlowRunner, "start_at", _fake_start_at)
+    monkeypatch.setattr(recovery, "_finish_row", lambda *a, **k: (_ for _ in ()).throw(OSError("db")))
+    _add(hf_db, "r-ghost", "vanished-flow", "running", [])
+    _add(hf_db, "r-ok", "hyperflow-smoke", "awaiting_approval", _gate_hist())
+
+    counts = asyncio.run(recover_runs())
+
+    assert counts == {"resume": 1, "complete": 0, "fail": 0, "skip": 0}
