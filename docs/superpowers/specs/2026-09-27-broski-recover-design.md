@@ -19,6 +19,8 @@ Staged delivery (decided with Bro, 2026-09-27): **2a = this build** (zero mutati
 | Lean Operations Mode (Bro, 2026-09-26): observability is stopped; no autonomous mutation beyond proven Phase 1 scope until monitoring is back. | 2a is read-only by construction; 2b LIVE stays behind an explicit flag and Bro's go. |
 | Phase 1's approval gate shows a **static** prompt; the approver's identity is consumed and lost (`_take_persisted_decision` returns only a bool). | 2a extends the gate: dynamic context + `plan_hash` binding + recorded approver (§5). These are small, generic runner/API changes. |
 
+**Correction (final review):** the "2a does not call Shepherd" consequence above is inaccurate. 2a's tool nodes DO pass through the pre-existing generic Safety Shepherd gate like every HyperFlow node — the runner's `_safety_gate` POSTs to Safety Shepherd's `/evaluate` before every `inspect`/`propose`/`seal` dispatch (inherited Phase-1 behavior, unchanged by this branch). The accurate no-mutation claim is "zero Docker WRITE calls — the proxy is only ever GET-ed", not "Shepherd is never called". No code behavior changed for this correction — documentation only.
+
 ## 3. Scope
 
 **In (2a):** flow `operator-recover`; catalog tool `hypercode.recover`; MCP tool `hypercode_recover`; deterministic candidate selection; restart allow-list / never-list policy module; read-only Docker evidence gathering; `plan` + `plan_hash`; gate context + `plan_hash` check + approver recording; sealed result; Governance Ledger entry; tests; live proof with a throwaway container.
