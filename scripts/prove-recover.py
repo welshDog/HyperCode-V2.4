@@ -128,9 +128,13 @@ def phaseA():
         check(code == 200, "approve with the shown plan_hash accepted")
         done = wait_for(tid, {"completed", "failed"})
         check(done["status"] == "completed", "run completed after approval")
-        rep = done["result"]["report"]
-        check(rep["sealed"] is True and rep["performed"] is False, "sealed with performed=false")
-        check(rep["plan_hash"] == good and rep["approved_by"], "sealed plan_hash matches; approver recorded")
+        check("seal" in done["result"]["nodes"], "seal ran")
+        check("authorize" in done["result"]["nodes"], "authorize ran as part of the flow")
+        authz = done["result"]["report"]
+        check(authz["minted"] is False, "Governor refused to mint (no grant exists) -- the correct outcome")
+        check(authz["mode"] == "DRY_RUN", "requested mode was DRY_RUN")
+        check(authz["verdict"]["decision"] == "ESCALATE", "Shepherd verdict was ESCALATE")
+        check(authz["verdict"].get("risk_class") == "INFRASTRUCTURE_MUTATION", "risk class is INFRASTRUCTURE_MUTATION")
         db = SessionLocal()
         try:
             n = db.execute(
@@ -139,6 +143,14 @@ def phaseA():
         finally:
             db.close()
         check(n == 1, "exactly one Governance Ledger row for this run")
+        db = SessionLocal()
+        try:
+            n2 = db.execute(
+                text("SELECT count(*) FROM governance_ledger WHERE action='recover_authorization_attempted' "
+                     "AND payload->>'run_id' = :r"), {"r": tid}).scalar()
+        finally:
+            db.close()
+        check(n2 == 1, "exactly one authorize-attempt Governance Ledger row for this run")
         after = docker_state(TARGET)
         check(after == before, f"{TARGET} was NOT restarted (StartedAt/RestartCount unchanged)")
         r = httpx.get(f"{ROOT}/api/v1/flows/runs/{tid}", timeout=30)
