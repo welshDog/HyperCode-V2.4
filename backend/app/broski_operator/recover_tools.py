@@ -117,27 +117,33 @@ async def recover_propose(params: dict[str, Any], ctx: dict[str, Any]) -> dict[s
 
 
 def _write_ledger(entry: dict[str, Any]) -> bool:
-    db = SessionLocal()
     try:
-        db.add(
-            GovernanceLedger(
-                user_id="broski-operator",
-                action="recover_plan_approved",
-                tool_used="hypercode.recover",
-                payload=entry["payload"],
-                decision="approved",
-                agent_name="broski-operator",
-                approved_by=entry["approved_by"],
+        db = SessionLocal()
+        try:
+            db.add(
+                GovernanceLedger(
+                    user_id="broski-operator",
+                    action="recover_plan_approved",
+                    tool_used="hypercode.recover",
+                    payload=entry["payload"],
+                    decision="approved",
+                    agent_name="broski-operator",
+                    approved_by=entry["approved_by"],
+                )
             )
-        )
-        db.commit()
-        return True
+            db.commit()
+            return True
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            raise
+        finally:
+            db.close()
     except Exception:
-        db.rollback()
         logger.warning("recover seal: governance ledger insert failed", exc_info=True)
         return False
-    finally:
-        db.close()
 
 
 async def recover_seal(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, Any]:

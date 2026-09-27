@@ -186,6 +186,42 @@ def test_ledger_failure_does_not_block_the_seal(monkeypatch):
     assert out["sealed"] is True and out["ledger"] is False
 
 
+def test_write_ledger_survives_sessionlocal_raising(monkeypatch):
+    """Minor fix #3: SessionLocal() itself is called outside the old try — a raise there
+
+    must still fail closed on the ledger row without failing the whole seal.
+    """
+    def boom_sessionlocal():
+        raise RuntimeError("db unreachable")
+
+    monkeypatch.setattr(recover_tools, "SessionLocal", boom_sessionlocal)
+    out = asyncio.run(recover_seal({}, {"run_id": "r1", "history": _hist()}))
+    assert out["sealed"] is True and out["performed"] is False and out["ledger"] is False
+
+
+def test_write_ledger_survives_commit_and_rollback_both_raising(monkeypatch):
+    """Minor fix #3: db.rollback() in the except branch was unguarded — a rollback that
+
+    itself raises must not escape and fail the seal.
+    """
+    class BoomSession:
+        def add(self, obj):
+            pass
+
+        def commit(self):
+            raise RuntimeError("commit failed")
+
+        def rollback(self):
+            raise RuntimeError("rollback also failed")
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(recover_tools, "SessionLocal", lambda: BoomSession())
+    out = asyncio.run(recover_seal({}, {"run_id": "r1", "history": _hist()}))
+    assert out["sealed"] is True and out["performed"] is False and out["ledger"] is False
+
+
 # ── registry + flow ──────────────────────────────────────────────────────────
 
 def test_tools_and_catalog_registered():
