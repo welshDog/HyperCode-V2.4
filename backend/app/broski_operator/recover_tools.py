@@ -27,6 +27,7 @@ _DOCKER_TIMEOUT = 8.0
 _HEX_ID = re.compile(r"[0-9a-f]{12,64}")
 _COOLDOWN_LIMIT = 3
 _COOLDOWN_WINDOW = 300
+_COOLDOWN_TIMEOUT_S = 2.0
 _PROPOSE_NODE = "propose"
 _GATE_NODE = "approve"
 
@@ -106,7 +107,10 @@ async def recover_propose(params: dict[str, Any], ctx: dict[str, Any]) -> dict[s
             "checked_at": datetime.now(timezone.utc).isoformat(),
         }
     for cand in candidates[:5]:
-        cand["cooldown"] = await _cooldown(cand["container"])
+        try:
+            cand["cooldown"] = await asyncio.wait_for(_cooldown(cand["container"]), timeout=_COOLDOWN_TIMEOUT_S)
+        except (asyncio.TimeoutError, Exception):
+            cand["cooldown"] = {"count": None, "limit": _COOLDOWN_LIMIT, "window_s": _COOLDOWN_WINDOW}
     report = recover.build_report(candidates, run_id, notes)
     report["checked_at"] = datetime.now(timezone.utc).isoformat()
     return report

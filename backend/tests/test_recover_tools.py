@@ -92,6 +92,32 @@ def test_get_detail_rejects_non_hex_ids_before_any_http(monkeypatch):
     assert called == []
 
 
+def test_cooldown_timeout_falls_back_instead_of_hanging(monkeypatch):
+    """Minor fix #2: a black-holed Redis must not hang `propose` — `_cooldown` is bounded."""
+
+    async def fetch():
+        return [S("skillweaver", "running", "Up (unhealthy)", cid="c2c2c2c2c2c2")]
+
+    async def detail(cid):
+        return None
+
+    async def hangs(name):
+        await asyncio.sleep(0.3)
+        return {"count": 999, "limit": recover_tools._COOLDOWN_LIMIT, "window_s": recover_tools._COOLDOWN_WINDOW}
+
+    monkeypatch.setattr(recover_tools, "_fetch_summaries", fetch)
+    monkeypatch.setattr(recover_tools, "_get_detail", detail)
+    monkeypatch.setattr(recover_tools, "_cooldown", hangs)
+    monkeypatch.setattr(recover_tools, "_COOLDOWN_TIMEOUT_S", 0.02, raising=False)
+
+    out = asyncio.run(recover_propose({}, {"run_id": "r1", "history": []}))
+    assert out["ok"] is True and out["has_proposal"] is True
+    cand = next(c for c in out["candidates"] if c["container"] == "skillweaver")
+    assert cand["cooldown"] == {
+        "count": None, "limit": recover_tools._COOLDOWN_LIMIT, "window_s": recover_tools._COOLDOWN_WINDOW
+    }
+
+
 # ── seal ────────────────────────────────────────────────────────────────────
 
 PLAN = {"version": 1, "action": "restart", "target": "skillweaver", "reason": "unhealthy",
