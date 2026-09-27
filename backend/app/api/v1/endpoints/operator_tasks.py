@@ -80,6 +80,12 @@ def _parked_gate(run: HyperFlowRun) -> Optional[str]:
     return None
 
 
+def _gate_entry(run: HyperFlowRun) -> dict[str, Any]:
+    """The awaiting_approval history entry for the gate the run is parked at (or {})."""
+    history = (run.state or {}).get("history", [])
+    return history[-1] if history and _parked_gate(run) is not None else {}
+
+
 def _approval_request(run: HyperFlowRun) -> dict[str, Any]:
     gate = _parked_gate(run)
     if gate is None:
@@ -94,14 +100,17 @@ def _approval_request(run: HyperFlowRun) -> dict[str, Any]:
         if entry.get("status") == "awaiting_approval":
             prompt = (entry.get("result") or {}).get("prompt", prompt)
             break
-    return {
-        "kind": "approval",
-        "approval": {
-            "node": gate,
-            "question": prompt,
-            "options": ["approve", "reject"],
-        },
+    entry_result = _gate_entry(run).get("result") or {}
+    approval: dict[str, Any] = {
+        "node": gate,
+        "question": prompt,
+        "options": ["approve", "reject"],
     }
+    if entry_result.get("context") is not None:
+        approval["context"] = entry_result["context"]
+    if entry_result.get("plan_hash"):
+        approval["plan_hash"] = entry_result["plan_hash"]
+    return {"kind": "approval", "approval": approval}
 
 
 def _serialize(run: HyperFlowRun) -> dict[str, Any]:
@@ -210,6 +219,9 @@ async def submit_input(
     wanted_node = payload.get("node")
     if wanted_node is not None and not isinstance(wanted_node, str):
         raise HTTPException(status_code=422, detail="'node' must be a string")
+    sent_hash = payload.get("plan_hash")
+    if sent_hash is not None and not isinstance(sent_hash, str):
+        raise HTTPException(status_code=422, detail="'plan_hash' must be a string")
     run = _locked_run(db, task_id)
     gate = _parked_gate(run) if run.status == HyperFlowRunStatus.AWAITING_APPROVAL.value else None
     if gate is None:
@@ -222,7 +234,18 @@ async def submit_input(
         db.rollback()
         raise HTTPException(status_code=409, detail={"error": "gate_mismatch", "expected": gate})
     approved = decision == "approve"
-    if not store_decision(db, run, approved=approved, by=principal["name"], node=gate):
+    gate_hash = (_gate_entry(run).get("result") or {}).get("plan_hash")
+    if approved and gate_hash:
+        if sent_hash is None:
+            db.rollback()
+            raise HTTPException(status_code=422, detail={"error": "plan_hash_required"})
+        if sent_hash != gate_hash:
+            db.rollback()
+            raise HTTPException(status_code=409, detail={"error": "plan_hash_mismatch"})
+    verified_hash = sent_hash if (approved and gate_hash) else None
+    if not store_decision(
+        db, run, approved=approved, by=principal["name"], node=gate, plan_hash=verified_hash
+    ):
         db.rollback()
         raise HTTPException(status_code=409, detail={"error": "decision_already_pending"})
     runner = get_runner(task_id)

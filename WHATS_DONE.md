@@ -1,6 +1,79 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 (durable async tasks on HyperFlow) live-proven on the running stack incl. MCP; draft PR #537 awaiting final review
+> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` built + live-proven incl. real MCP wire protocol, branch `feature/broski-recover-2a`, not yet merged
+
+## 2026-09-27 — BROski Phase 2a: hypercode.recover (zero-mutation restart proposal, live-proven incl. MCP)
+
+`hypercode.recover` — deterministic, LLM-free restart diagnosis on top of the operator API.
+Reads live Docker state through the read-only socket proxy, applies default-deny eligibility
+(a never-list beats an allow-list and an opt-in label), proposes **at most one** allow-listed
+container restart, shows a superuser the exact plan bound to a `plan_hash`, requires that exact
+hash back to approve, and **seals** the approved plan (recomputes the hash, verifies the
+approver, writes one Governance Ledger row) — **without ever restarting anything**. Branch
+`feature/broski-recover-2a` (not yet merged). Spec:
+`docs/superpowers/specs/2026-09-27-broski-recover-design.md` (§9 amendments = decisions +
+corrections made during execution). Plan:
+`docs/superpowers/plans/2026-09-27-broski-recover-2a.md`. Built with subagent-driven
+development: 7 tasks each spec+quality reviewed (2 fix rounds — Task 4's approval-hash
+pollution, the final review's approver-identity leak), then one final whole-branch review
+(no Critical; 1 Important + 4 Minor found and fixed, re-reviewed clean).
+
+- Flow `operator-recover`: `inspect → propose → approve(gate, shows the plan + plan_hash) → seal`.
+  New MCP tool `hypercode_recover` (no approval tool — approvals stay superuser-human-only).
+- Candidate rules are pure code, no LLM: unhealthy-running, restarting, or crashed-with-a-real-
+  signature (OOM, or a non-clean exit code) are candidates; a clean stop (exit 0/143) never is.
+  Eligibility is default-deny: an explicit allow-list, or the opt-in label
+  `hypercode.recover=restartable`, with a never-list (core infra, safety/governance, this API's
+  own entry points) that always wins over both.
+- The approval gate is now generic, not recover-specific: any gate can declare `show_from` to
+  surface a prior node's data, and `/input` requires a matching `plan_hash` when the gate
+  declared one (approve only; reject never needs one). The API only ever persists a *verified*
+  hash — never an unverified client value, even for a plain Phase-1 gate.
+- The completed gate's approver identity is now recorded in history for audit — and, after a
+  final-review finding, explicitly stripped back out of the unauthenticated legacy `/flows` GETs
+  and the Redis fanout (only `by` is stripped; `plan_hash` is not, since it isn't identifying and
+  is already shown on the awaiting entry).
+- **Tests:** 55 new/changed across `test_recover_policy` (34), `test_recover_core` (13),
+  `test_recover_tools` (22 pass on the seal, propose, ledger fail-soft, malformed-response and
+  scrub_text hardening), plus the generic runner/API extensions in `test_operator_gate_context`
+  and `test_operator_plan_hash`. Full 14-file regression (backbone + Phase 1 + this branch):
+  0 failures.
+- **Deploy (live, this box, 4GB):** built only `hypercode-core`, then only `hypercode-mcp-server`;
+  each recreated with `up -d --no-deps` (never force-recreate); both healthy in under a minute,
+  restarts=0, no OOM throughout.
+  - **Mid-session note:** the host briefly ran low on memory (Windows-level, not just the WSL
+    VM — 0.80GB/7.79GB free at one point), which killed an idle background test shell and, more
+    seriously, took down two live agents (`memstream` exit 137 — a likely host-OOM Docker's own
+    `OOMKilled` flag didn't attribute correctly — and `skillweaver` clean exit 0). Both restarted
+    cleanly (0 restarts since) once the memory pressure passed; nothing else was affected. Worth
+    a note for this box's ongoing RAM ceiling story.
+- **Live proof, real containers, no mocks** (`scripts/prove-recover.py`, run inside core):
+  - `phaseA` — 23/23 PASS: a throwaway unhealthy container gets proposed by name; an unlabelled
+    unhealthy sibling is refused (`not_allowlisted`); no protected container is ever eligible;
+    approve without a hash → 422; approve with the wrong hash → 409 `plan_hash_mismatch`; approve
+    with the shown hash → sealed, `performed:false`, approver recorded, **exactly one** ledger
+    row; the target container's `StartedAt`/`RestartCount` are **unchanged** — nothing was
+    restarted; the legacy unauthenticated run endpoint has no `data`/`context` leak; a separate
+    run's `reject` needs no hash and seals nothing.
+  - **Restart recovery** — `docker restart hypercode-core` (single container, ~30-48s to
+    healthy each time this session): boot log
+    `hyperflow recovery run=<id> action=resume reason=parked at approval gate`; `phaseB2` PASS —
+    the parked task reappeared, was approved with its shown hash *after* the restart, sealed, and
+    the target stayed untouched.
+  - **MCP, real wire protocol** — rebuilt+recreated `hypercode-mcp-server` (its
+    `HYPERCODE_AGENT_KEY` was already provisioned in Phase 1, unchanged). This session's own live
+    MCP connection dropped when the container was recreated (expected: reconnecting to a
+    recreated MCP server mid-session isn't possible from inside this harness), so the proof ran
+    as a genuine MCP client (`mcp.client.sse`) connecting to the server's own `/sse` endpoint from
+    inside the container: `hypercode_recover` is a registered tool, no approval-shaped tool
+    exists, a real tool call returns a handle, `hypercode_task_get` returns `completed` with
+    `has_proposal:false` (correct — no unhealthy candidates were left once the throwaways were
+    cleaned up from phaseA).
+  - Throwaway containers removed after use. RAM stayed >=2000MB available throughout every live
+    step; core/mcp both ended healthy, restarts=0, no OOM.
+- **Not done:** Phase 2b (the LLM-free executor behind a Governor capability that actually
+  restarts) is architecture-only (spec §9), not built. Not pushed, no PR, no merge — awaiting
+  Bro's review of the branch.
 
 ## 2026-09-26 — BROski operator Phase 1: durable async tasks on HyperFlow (live-proven, MCP pending)
 

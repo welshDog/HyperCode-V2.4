@@ -96,12 +96,12 @@ async def create_run(
 
 
 def _public_history(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """History copy without ``result.data`` (tool output is operator-API only)."""
+    """History copy without ``result.data``/``result.context``/``result.by`` (operator API only)."""
     out: list[dict[str, Any]] = []
     for entry in history:
         result = entry.get("result") if isinstance(entry, dict) else None
-        if isinstance(result, dict) and "data" in result:
-            entry = {**entry, "result": {k: v for k, v in result.items() if k != "data"}}
+        if isinstance(result, dict) and ("data" in result or "context" in result or "by" in result):
+            entry = {**entry, "result": {k: v for k, v in result.items() if k not in ("data", "context", "by")}}
         out.append(entry)
     return out
 

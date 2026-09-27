@@ -8,7 +8,6 @@ Each section is independent, time-limited and fail-soft.
 from __future__ import annotations
 
 import asyncio
-import re
 import shutil
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
@@ -17,6 +16,7 @@ import httpx
 import redis.asyncio as aioredis
 from sqlalchemy import text
 
+from app.broski_operator.recover import scrub_text
 from app.core.config import settings
 from app.db.session import SessionLocal
 
@@ -102,8 +102,7 @@ def _safe_error(exc: BaseException) -> str:
         return f"HTTP {exc.response.status_code}"
     if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
         return f"timed out after {SECTION_TIMEOUT_SECONDS:g}s"
-    msg = re.sub(r"://[^/\s@]*@", "://***@", str(exc))
-    msg = re.sub(r"(?i)\b(password|passwd)=\S+", r"\1=***", msg)
+    msg = scrub_text(str(exc))
     return f"{type(exc).__name__}: {msg[:120]}" if msg else type(exc).__name__
 
 
@@ -114,7 +113,7 @@ async def _section(fn: Callable[[], Awaitable[dict[str, Any]]]) -> dict[str, Any
         return {"ok": False, "error": _safe_error(exc)}
 
 
-async def inspect_stack(params: dict[str, Any]) -> dict[str, Any]:
+async def inspect_stack(params: dict[str, Any], ctx: dict[str, Any] | None = None) -> dict[str, Any]:
     """Read-only stack health report. Never raises."""
     fns = {
         "containers": _docker_section,
@@ -146,6 +145,11 @@ async def inspect_stack(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-LOCAL_TOOLS: dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]] = {
+LOCAL_TOOLS: dict[str, Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, Any]]]] = {
     "local.inspect": inspect_stack,
 }
+
+from app.broski_operator.recover_tools import recover_propose, recover_seal  # noqa: E402
+
+LOCAL_TOOLS["local.recover_propose"] = recover_propose
+LOCAL_TOOLS["local.recover_seal"] = recover_seal

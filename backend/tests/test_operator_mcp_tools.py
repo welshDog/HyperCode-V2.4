@@ -97,3 +97,16 @@ def test_cancel_reason_none_is_tolerated_and_truncated(monkeypatch):
     mod._post.assert_awaited_with(f"/api/v1/operator/tasks/{GOOD_ID}/cancel", {"reason": ""})
     asyncio.run(mod.hypercode_task_cancel(GOOD_ID, "x" * 500))
     assert len(mod._post.await_args.args[1]["reason"]) == 200
+
+
+def test_recover_posts_the_allow_listed_tool_and_no_approval_tool_exists(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={"taskId": GOOD_ID})
+    assert asyncio.run(mod.hypercode_recover()) == {"taskId": GOOD_ID}
+    mod._post.assert_awaited_once_with(
+        "/api/v1/operator/tasks", {"tool": "hypercode.recover", "arguments": {}}
+    )
+    tool_names = [n for n in dir(mod) if n.startswith("hypercode_")]
+    assert not any("approve" in n or "input" in n for n in tool_names)

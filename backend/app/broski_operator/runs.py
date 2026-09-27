@@ -49,6 +49,7 @@ def store_decision(
     approved: bool,
     by: str,
     node: Optional[str],
+    plan_hash: Optional[str] = None,
 ) -> bool:
     """Persist an approval decision for the runner to pick up. False if one is already pending.
 
@@ -58,7 +59,10 @@ def store_decision(
     ctx = dict(state.get("context") or {})
     if "pending_decision" in ctx:
         return False
-    ctx["pending_decision"] = {"approved": approved, "by": by, "ts": _now(), "node": node}
+    decision = {"approved": approved, "by": by, "ts": _now(), "node": node}
+    if plan_hash is not None:
+        decision["plan_hash"] = plan_hash
+    ctx["pending_decision"] = decision
     state["context"] = ctx
     run.state = state
     db.commit()
