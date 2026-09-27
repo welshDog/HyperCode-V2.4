@@ -207,6 +207,8 @@ _GATE_CONTEXT_HISTORY = [
     {"node": "approve", "type": "human_approval_gate", "status": "awaiting_approval", "ts": "t",
      "result": {"prompt": "ok?", "context": {"plan": {"target": "skillweaver"}},
                 "plan_hash": "sha256:abc"}},
+    {"node": "approve", "type": "human_approval_gate", "status": "completed", "ts": "t1b",
+     "result": {"ok": True, "approved": True, "by": "bro@example.com", "plan_hash": "sha256:completed999"}},
     {"node": None, "type": "terminal", "status": "completed", "result": {}, "ts": "t2"},
 ]
 
@@ -220,3 +222,44 @@ def test_legacy_get_run_strips_result_context(client, db):
     assert body["history"][0]["result"] == {"prompt": "ok?", "plan_hash": "sha256:abc"}
     assert "context" not in body["history"][0]["result"]
     assert "skillweaver" not in str(body)
+    # I1 final-review fix: the completed gate entry's approver identity ("by") must not
+    # leak through this unauthenticated endpoint either. plan_hash is not identity data
+    # (just a hash of the plan) and is intentionally still shown here.
+    completed_gate_result = body["history"][1]["result"]
+    assert "by" not in completed_gate_result
+    assert completed_gate_result["plan_hash"] == "sha256:completed999"
+    assert "bro@example.com" not in str(body)
+    # The raw DB row is untouched by the stripping copy — recover_seal reads the real
+    # approver straight from state, never through _public_history.
+    db.expire_all()
+    raw_history = db.get(HyperFlowRun, "i6c").state["history"]
+    assert raw_history[1]["result"]["by"] == "bro@example.com"
+
+
+_MIXED_TOOL_AND_GATE_HISTORY = [
+    {"node": "propose", "type": "tool", "status": "completed", "ts": "t0",
+     "result": {"success": True, "data": {"containers": ["hypercode-core"]}}},
+    {"node": "approve", "type": "human_approval_gate", "status": "completed", "ts": "t1",
+     "result": {"ok": True, "approved": True, "by": "bro@example.com", "plan_hash": "sha256:mixed"}},
+    {"node": None, "type": "terminal", "status": "completed", "result": {}, "ts": "t2"},
+]
+
+
+def test_operator_api_still_returns_full_result_with_by_present(client, db):
+    """I1: only the legacy/unauthenticated read surface (and the Redis fanout) strip `by`.
+
+    The authenticated operator API's report/data must still come through fully.
+    """
+    import copy
+
+    _seed_run(db, "i6g", "operator-inspect", status="completed",
+              history=copy.deepcopy(_MIXED_TOOL_AND_GATE_HISTORY))
+    from app.api.v1.endpoints import operator_tasks
+
+    app.dependency_overrides[operator_tasks.operator_principal] = lambda: {
+        "kind": "user", "name": "bro", "user_id": 1, "is_superuser": True}
+    try:
+        op = client.get("/api/v1/operator/tasks/i6g").json()
+    finally:
+        app.dependency_overrides.pop(operator_tasks.operator_principal, None)
+    assert op["result"]["report"] == {"containers": ["hypercode-core"]}

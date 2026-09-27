@@ -126,6 +126,20 @@ def test_strip_data_drops_data_and_context():
     assert "data" in entry["result"] and "context" in entry["result"]  # original not mutated
 
 
+def test_strip_data_drops_by_from_completed_gate_entries():
+    """I1 final-review fix: a completed human_approval_gate entry has neither `data` nor
+
+    `context` — only `by`/`plan_hash` — so it needs its own guard clause to keep the
+    approver's identity out of the published/returned copy. plan_hash is not identity
+    data and is intentionally kept.
+    """
+    entry = {"node": "approve", "result": {"ok": True, "approved": True, "by": "bro@example.com", "plan_hash": "h"}}
+    out = _strip_data(entry)
+    assert "by" not in out["result"]
+    assert out["result"]["plan_hash"] == "h"
+    assert entry["result"]["by"] == "bro@example.com"  # original not mutated
+
+
 def test_take_persisted_decision_records_meta(hf_db):
     from app.models.hyperflow import HyperFlowRun
 

@@ -63,10 +63,10 @@ _TERMINAL = (
 
 
 def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
-    """Copy of a history entry without ``result.data``/``result.context`` (operator-API only)."""
+    """Copy of a history entry without ``result.data``/``result.context``/``result.by`` (operator-API only)."""
     result = entry.get("result")
-    if isinstance(result, dict) and ("data" in result or "context" in result):
-        return {**entry, "result": {k: v for k, v in result.items() if k not in ("data", "context")}}
+    if isinstance(result, dict) and ("data" in result or "context" in result or "by" in result):
+        return {**entry, "result": {k: v for k, v in result.items() if k not in ("data", "context", "by")}}
     return entry
 
 
