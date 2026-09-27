@@ -242,8 +242,9 @@ async def submit_input(
         if sent_hash != gate_hash:
             db.rollback()
             raise HTTPException(status_code=409, detail={"error": "plan_hash_mismatch"})
+    verified_hash = sent_hash if (approved and gate_hash) else None
     if not store_decision(
-        db, run, approved=approved, by=principal["name"], node=gate, plan_hash=sent_hash
+        db, run, approved=approved, by=principal["name"], node=gate, plan_hash=verified_hash
     ):
         db.rollback()
         raise HTTPException(status_code=409, detail={"error": "decision_already_pending"})

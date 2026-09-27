@@ -100,8 +100,63 @@ def test_gate_without_plan_hash_unchanged(client, db, monkeypatch):
     hist = [{"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval",
              "result": {"prompt": "Approve?"}}]
     _seed(db, "p7", "awaiting_approval", hist, current_node="ready")
+    approval = client.get(f"{BASE}/tasks/p7").json()["inputRequests"]["approval"]
+    assert "context" not in approval and "plan_hash" not in approval
     r = client.post(f"{BASE}/tasks/p7/input", json={"decision": "approve"})
     assert r.status_code == 200
+    db.expire_all()
+    pending = db.get(HyperFlowRun, "p7").state["context"]["pending_decision"]
+    assert "plan_hash" not in pending
+
+
+def test_not_awaiting_input_takes_priority_over_hash_check(client, db):
+    _as()
+    _seed(db, "p10", "running")
+    r = client.post(f"{BASE}/tasks/p10/input", json={"decision": "approve"})
+    assert r.status_code == 409
+    assert r.json()["detail"]["error"] == "not_awaiting_input"
+
+
+def test_gate_mismatch_takes_priority_over_hash_check(client, db):
+    _as()
+    _seed(db, "p11", "awaiting_approval", HIST, current_node="ready")
+    r = client.post(
+        f"{BASE}/tasks/p11/input",
+        json={"decision": "approve", "node": "somewhere-else", "plan_hash": GATE_HASH},
+    )
+    assert r.status_code == 409
+    assert r.json()["detail"] == {"error": "gate_mismatch", "expected": "ready"}
+    assert _no_pending(db, "p11")
+
+
+def test_plain_gate_ignores_client_sent_plan_hash_on_approve(client, db, monkeypatch):
+    """Fix round 1: an unverified plan_hash must never be persisted for a plain gate."""
+    _as()
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: None)
+    hist = [{"node": "ready", "type": "human_approval_gate", "status": "awaiting_approval",
+             "result": {"prompt": "Approve?"}}]
+    _seed(db, "p12", "awaiting_approval", hist, current_node="ready")
+    r = client.post(
+        f"{BASE}/tasks/p12/input",
+        json={"decision": "approve", "plan_hash": "sha256:" + "c" * 64},
+    )
+    assert r.status_code == 200
+    db.expire_all()
+    pending = db.get(HyperFlowRun, "p12").state["context"]["pending_decision"]
+    assert "plan_hash" not in pending
+
+
+def test_reject_never_stores_a_sent_plan_hash(client, db, monkeypatch):
+    """Fix round 1: rejects never persist a client-sent plan_hash, even for a hashed gate."""
+    _as()
+    monkeypatch.setattr(operator_tasks, "get_runner", lambda run_id: None)
+    _seed(db, "p13", "awaiting_approval", HIST, current_node="ready")
+    r = client.post(f"{BASE}/tasks/p13/input", json={"decision": "reject", "plan_hash": GATE_HASH})
+    assert r.status_code == 200
+    db.expire_all()
+    pending = db.get(HyperFlowRun, "p13").state["context"]["pending_decision"]
+    assert pending["approved"] is False
+    assert "plan_hash" not in pending
 
 
 def test_agent_key_still_403(client, db):
