@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-26 by Claude — BROski operator Phase 1 (durable async tasks on HyperFlow) live-proven on the running stack; MCP live check pending key provisioning
+> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 (durable async tasks on HyperFlow) live-proven on the running stack incl. MCP; draft PR #537 awaiting final review
 
 ## 2026-09-26 — BROski operator Phase 1: durable async tasks on HyperFlow (live-proven, MCP pending)
 
@@ -44,17 +44,32 @@ fixed, re-reviewed clean).
   at the exact instant of `StartedAt` (stale status carry-over). The real probes during the ~2 min
   boot were connection-refused then one 10s timeout (2 of 5 allowed retries), then healthy; failing streak 0.
   A restarted core takes ~2 min to become healthy on this box.
-- **Still pending / not done:** MCP live check + the agent-key 403 (needs `HYPERCODE_AGENT_KEY`
-  provisioned by Bro via the superuser `/agent-keys` endpoint; `hypercode-mcp-server` was NOT rebuilt, so
-  the new MCP tools are not live yet); the 13 stopped observability containers are still stopped
-  (restore list: `docker start` in two batches, core-health check between); not pushed, no PR.
+- **MCP live proof (2026-09-27) — PASS.** Agent key generated **inside the core container** with the same
+  `generate_agent_key()`/`hash_agent_key()`/upsert the `/agent-keys` endpoint uses, verified against the DB
+  (`agent_api_keys` row for `hypercode-mcp-server`, active), and piped straight into `HyperCode-V2.4/.env`
+  without ever being displayed (only its length, 46, was checked). Rebuilt/recreated **only**
+  `hypercode-mcp-server` (`up -d --no-deps`); core untouched. Results:
+  - credential matrix (run inside the MCP container with its own key): no credential -> **401**;
+    invalid agent key -> **403** (GET and POST); valid key can start/read/cancel a task; **agent key cannot
+    approve a gate -> 403** and the task stays parked.
+  - real MCP client path: `hypercode_inspect` returned an async handle immediately; `hypercode_task_get`
+    later returned `completed`, `success: true` and the full report (Postgres, Redis, queues, disk, models,
+    47 containers seen / 30 running / none unhealthy; the 13 stopped obs containers correctly listed as
+    exited); a traversal-style `task_id` was rejected before any HTTP call; cancelling the finished task -> 409.
+  - post-build rule: core healthy, RestartCount 0, MCP server healthy, RestartCount 0, available RAM 2084-2136 MB
+    during the MCP work (never below 1.2 GB), 30 containers up, none unhealthy.
+  - housekeeping: the parent `HperCore/.env` still holds an older 11-character placeholder `HYPERCODE_AGENT_KEY`
+    line; compose reads only `HyperCode-V2.4/.env`, so it is unused and can be deleted.
+  Still pending: the 13 stopped observability containers stay stopped (restore = `docker start` in two batches,
+  core-health check between); PR #537 stays draft until final human review, then merge.
 - **Operating rules learned on this 4 GB box (BROski operator deploy, 2026-09-26):**
   - Measure RAM as `available` from `wsl -e free -m`, never the `free` column (it read 106 MB while `available` was 972 MB because of page cache). Keep **>= 1.2 GB available at all times; target >= 1.5 GB before any build/recreate.**
   - Budget **~2 minutes** for a restarted `hypercode-core` to become healthy before judging a health failure.
   - **Stop rule:** stop if core is still `unhealthy` after the Docker healthcheck retry window (5 retries x 30 s), restarts unexpectedly, fails `GET /health` after the startup allowance, or available RAM drops below 1.2 GB. A single `unhealthy` poll at the exact `StartedAt` instant is stale carry-over from the old container — a yellow boot signal, not a failure.
   - **Record for every restart/recreate proof:** `StartedAt`, first successful `/health`, final Docker health state, restart count, minimum available RAM. (This run: recreate healthy ~3 min, restarts 0, OOMKilled false; min available 1830 MB during the build and 2235 MB during recreate/restart/proofs; restart proof `StartedAt` 22:11:04Z, first passing health probe 22:13:05Z, final state `healthy`, failing streak 0.)
 - **Lean Operations Mode (temporary):** the 13-container observability stack (Grafana/Loki/Tempo/Prometheus etc.) and idle agents stay stopped because restoring them takes available RAM to ~970 MB, below the floor. With less incident visibility, **do not enable autonomous mutation/deploy actions beyond the proven Phase 1 scope** (read-only inspect, cancel, human-approved gates) until monitoring is back.
-- **MCP proof still required before PR #537 leaves draft** (and before merge): create `HYPERCODE_AGENT_KEY` via the superuser `/agent-keys` endpoint and put it only in the local `HyperCode-V2.4/.env` (never chat/commits/PR/logs); rebuild `hypercode-mcp-server`; then prove **missing key -> 401**, **invalid key -> 403**, valid key succeeds, `hypercode_inspect` returns a task handle, `hypercode_task_get` returns the final evidence, and task state survives polling across services. Add the redacted result to the PR checklist.
+- **Post-build/recreate rule:** after any build/recreate, core must be healthy with RestartCount 0 and available RAM
+  must recover to >= 1.2 GB within 5 minutes; if not, start no optional services. (Met on 2026-09-26 and 2026-09-27.)
 - Phase 2 (`hypercode.recover`, Shepherd-gated restart) and Phase 3 (`run_tests`, RAM-gated) not started.
 
 ## 2026-09-18 — SkillWeaver Phase 1 deployed live + 3 real bugs found + fixed
