@@ -176,7 +176,7 @@ def test_authorize_connection_failure_raises_not_a_fake_refusal(monkeypatch, led
         authorize_tools.httpx, "AsyncClient",
         _client_returning(200, raise_exc=httpx.ConnectError("refused")),
     )
-    with pytest.raises(AuthorizeError, match="could not reach Governor"):
+    with pytest.raises(AuthorizeError, match="could not reach Governor: ConnectError"):
         asyncio.run(authorize({}, {"run_id": "run-3", "history": _sealed()}))
     assert ledger_db().query(GovernanceLedger).count() == 0  # nothing recorded for a comms failure
 
