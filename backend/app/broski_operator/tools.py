@@ -8,7 +8,6 @@ Each section is independent, time-limited and fail-soft.
 from __future__ import annotations
 
 import asyncio
-import re
 import shutil
 from datetime import datetime, timezone
 from typing import Any, Awaitable, Callable
@@ -17,6 +16,7 @@ import httpx
 import redis.asyncio as aioredis
 from sqlalchemy import text
 
+from app.broski_operator.recover import scrub_text
 from app.core.config import settings
 from app.db.session import SessionLocal
 
@@ -102,8 +102,7 @@ def _safe_error(exc: BaseException) -> str:
         return f"HTTP {exc.response.status_code}"
     if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
         return f"timed out after {SECTION_TIMEOUT_SECONDS:g}s"
-    msg = re.sub(r"://[^/\s@]*@", "://***@", str(exc))
-    msg = re.sub(r"(?i)\b(password|passwd)=\S+", r"\1=***", msg)
+    msg = scrub_text(str(exc))
     return f"{type(exc).__name__}: {msg[:120]}" if msg else type(exc).__name__
 
 
