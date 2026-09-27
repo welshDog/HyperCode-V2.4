@@ -130,6 +130,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # coder's Dockerfile does `FROM agent-base:latest` -- a shared base image that
+      # agents/Dockerfile.base's own header comment says is "NOT built by compose" and
+      # must be rebuilt manually (`docker build -t agent-base:latest -f
+      # agents/Dockerfile.base agents/`). That never happened in CI, so `coder` always
+      # got "pull access denied" here -- it only ever worked on boxes where someone had
+      # built agent-base locally at some point. `load: true` puts it in this job's own
+      # buildx builder (set up above) so the very next step's `FROM agent-base:latest`
+      # resolves without a registry pull. Never pushed -- it's a local build dependency,
+      # not a published image.
+      - name: Build agent-base (local dependency for coder)
+        if: matrix.agent == 'coder'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agents
+          file: ./agents/Dockerfile.base
+          push: false
+          load: true
+          tags: agent-base:latest
+          cache-from: type=gha,scope=agent-base
+          cache-to: type=gha,mode=max,scope=agent-base
+
       - name: Build and push ${{ matrix.agent }}
         uses: docker/build-push-action@v5
         with:
