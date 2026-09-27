@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` built + live-proven incl. real MCP wire protocol, branch `feature/broski-recover-2a`, not yet merged; Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, not yet merged
+> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` built + live-proven incl. real MCP wire protocol, branch `feature/broski-recover-2a`, draft PR #538, not yet merged; Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, draft PR #539 (based on 2a), not yet merged
 
 ## 2026-09-27 — BROski recover Phase 2b: authorize (fail-closed DRY_RUN, live-proven)
 
@@ -9,8 +9,8 @@ system: a new flow node, `authorize`, asks Governor to mint a `DRY_RUN` capabili
 sealed restart — and, with today's policy configuration, is correctly refused by both layers
 (Governor's own `capabilities.json` grant doesn't cover this tool — see the correction below).
 **This proves the real wiring end-to-end on the real, already-live Governor/Shepherd services —
-nothing mints, nothing executes.** Branch `feature/broski-recover-2b` off `feature/broski-recover-2a`
-(2a itself not yet merged, draft PR #538). Spec:
+nothing mints, nothing executes.** Branch `feature/broski-recover-2b` off `feature/broski-recover-2a`,
+draft PR #539 (based on 2a, not `main` — 2a itself not yet merged, draft PR #538). Spec:
 `docs/superpowers/specs/2026-09-27-broski-recover-2b-design.md` (§9.1/§9.2 amendments =
 corrections + resolutions made during and after execution). Plan:
 `docs/superpowers/plans/2026-09-27-broski-recover-2b-authorize.md`. Built with subagent-driven
@@ -85,8 +85,8 @@ would have to go on `governor`'s own tools list, which is broader/riskier than o
   `container.restart` to `governor`'s own `capabilities.json` grant (the real lever, per the
   correction above — not a per-operator identity, which Shepherd never evaluates), and how the
   two-person-approval rule gets satisfied on a single-operator setup, remain open decisions for a
-  later, separate spec. Not pushed, no PR, no merge — awaiting
-  Bro's review of the branch.
+  later, separate spec. Pushed, draft PR #539 open (base `feature/broski-recover-2a`) — no merge
+  yet, awaiting Bro's review.
 
 ## 2026-09-27 — BROski Phase 2a: hypercode.recover (zero-mutation restart proposal, live-proven incl. MCP)
 
