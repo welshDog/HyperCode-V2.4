@@ -189,7 +189,9 @@ def phaseB2(tid):
     code, _ = call("POST", f"/tasks/{tid}/input", json={"decision": "approve", "plan_hash": good})
     check(code == 200, "approval with the shown plan_hash accepted after the restart")
     done = wait_for(tid, {"completed", "failed"})
-    check(done["status"] == "completed" and done["result"]["report"]["sealed"] is True,
+    # Same fix as phaseA: `report` is overwritten by the LAST completed node's data, which is
+    # now `authorize` (no "sealed" key), not `seal` -- prove seal ran via `nodes` instead.
+    check(done["status"] == "completed" and "seal" in done["result"]["nodes"],
           "sealed after an approval that survived a core restart")
     check(docker_state(TARGET) is not None, f"{TARGET} untouched")
     print("PASS: phaseB2 complete")
