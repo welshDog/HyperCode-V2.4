@@ -25,9 +25,10 @@ _EXITED = re.compile(r"Exited \((\d+)\)")
 
 
 def scrub_text(msg: str) -> str:
-    """Remove URL userinfo and password= fragments from free text."""
+    """Remove URL userinfo, credential-style key=value fragments, and Authorization headers."""
     msg = re.sub(r"://[^/\s@]*@", "://***@", msg or "")
-    return re.sub(r"(?i)\b(password|passwd)=\S+", r"\1=***", msg)
+    msg = re.sub(r"(?i)\b(password|passwd|token|secret|api[_-]?key)=\S+", r"\1=***", msg)
+    return re.sub(r"(?i)authorization:\s*\S+\s+\S+", "authorization: ***", msg)
 
 
 def _name(summary: dict[str, Any]) -> str:

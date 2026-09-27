@@ -104,6 +104,13 @@ def test_evidence_without_detail_uses_summary_only():
 def test_scrub_text():
     assert "hunter2" not in recover.scrub_text("redis://:hunter2@cache:6379/0")
     assert "abc" not in recover.scrub_text("PASSWORD=abc")
+    # Minor fix #5: extend beyond URL credentials and password=/passwd= to
+    # token=/secret=/api_key= and Authorization: header-style values.
+    assert "abc123" not in recover.scrub_text("token=abc123")
+    assert "xyz" not in recover.scrub_text("api_key=xyz")
+    assert "foo" not in recover.scrub_text("secret=foo")
+    assert "eyJhbGci" not in recover.scrub_text("Authorization: Bearer eyJhbGciOiJIUzI1NiJ9")
+    assert recover.scrub_text("ordinary text is untouched") == "ordinary text is untouched"
 
 
 def test_plan_hash_is_canonical_stable_and_run_bound():
