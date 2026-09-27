@@ -6,6 +6,7 @@ from typing import Optional
 
 TOOL_FLOWS: dict[str, str] = {
     "hypercode.inspect": "operator-inspect",
+    "hypercode.recover": "operator-recover",
     # Deterministic two-gate demo flow; used to prove approvals survive a restart.
     "hypercode.smoke": "hyperflow-smoke",
 }

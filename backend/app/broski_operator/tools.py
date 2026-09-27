@@ -148,3 +148,8 @@ async def inspect_stack(params: dict[str, Any], ctx: dict[str, Any] | None = Non
 LOCAL_TOOLS: dict[str, Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, Any]]]] = {
     "local.inspect": inspect_stack,
 }
+
+from app.broski_operator.recover_tools import recover_propose, recover_seal  # noqa: E402
+
+LOCAL_TOOLS["local.recover_propose"] = recover_propose
+LOCAL_TOOLS["local.recover_seal"] = recover_seal

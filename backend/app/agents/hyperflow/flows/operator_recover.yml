@@ -1,0 +1,39 @@
+# BROski operator: read-only recovery diagnosis. Proposes ONE allow-listed container restart for
+# human approval and seals the approved plan. Phase 2a executes nothing.
+# Run it: POST /api/v1/operator/tasks {"tool": "hypercode.recover", "arguments": {}}
+
+name: operator-recover
+version: 1
+entry: inspect
+intent: "BROski operator recovery diagnosis proposing one allow-listed container restart for human approval without executing it"
+
+nodes:
+  - id: inspect
+    type: tool
+    tool: local.inspect
+    idempotent: true
+
+  - id: propose
+    type: tool
+    tool: local.recover_propose
+    idempotent: true
+    success_key: has_proposal
+
+  - id: approve
+    type: human_approval_gate
+    params:
+      prompt: "Approve this restart plan? Phase 2a only records the approved plan; nothing is restarted."
+      show_from: propose
+
+  - id: seal
+    type: tool
+    tool: local.recover_seal
+
+edges:
+  - from: inspect
+    to: propose
+  - from: propose
+    to: approve
+    condition: true
+  - from: approve
+    to: seal
