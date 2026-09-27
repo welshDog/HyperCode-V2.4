@@ -113,7 +113,7 @@ async def _section(fn: Callable[[], Awaitable[dict[str, Any]]]) -> dict[str, Any
         return {"ok": False, "error": _safe_error(exc)}
 
 
-async def inspect_stack(params: dict[str, Any]) -> dict[str, Any]:
+async def inspect_stack(params: dict[str, Any], ctx: dict[str, Any] | None = None) -> dict[str, Any]:
     """Read-only stack health report. Never raises."""
     fns = {
         "containers": _docker_section,
@@ -145,6 +145,6 @@ async def inspect_stack(params: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-LOCAL_TOOLS: dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]] = {
+LOCAL_TOOLS: dict[str, Callable[[dict[str, Any], dict[str, Any]], Awaitable[dict[str, Any]]]] = {
     "local.inspect": inspect_stack,
 }

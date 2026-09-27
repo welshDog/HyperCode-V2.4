@@ -201,3 +201,22 @@ def test_legacy_get_run_and_active_strip_result_data(client, db):
         "kind": "user", "name": "bro", "user_id": 1, "is_superuser": True}
     op = client.get("/api/v1/operator/tasks/i6b").json()
     assert op["result"]["report"] == {"containers": ["hypercode-core"]}
+
+
+_GATE_CONTEXT_HISTORY = [
+    {"node": "approve", "type": "human_approval_gate", "status": "awaiting_approval", "ts": "t",
+     "result": {"prompt": "ok?", "context": {"plan": {"target": "skillweaver"}},
+                "plan_hash": "sha256:abc"}},
+    {"node": None, "type": "terminal", "status": "completed", "result": {}, "ts": "t2"},
+]
+
+
+def test_legacy_get_run_strips_result_context(client, db):
+    import copy
+
+    _seed_run(db, "i6c", "operator-inspect", status="awaiting_approval",
+              history=copy.deepcopy(_GATE_CONTEXT_HISTORY))
+    body = client.get("/api/v1/flows/runs/i6c").json()
+    assert body["history"][0]["result"] == {"prompt": "ok?", "plan_hash": "sha256:abc"}
+    assert "context" not in body["history"][0]["result"]
+    assert "skillweaver" not in str(body)

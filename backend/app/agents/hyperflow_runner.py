@@ -63,10 +63,10 @@ _TERMINAL = (
 
 
 def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
-    """Copy of a history entry without ``result.data`` (tool output stays out of Redis)."""
+    """Copy of a history entry without ``result.data``/``result.context`` (operator-API only)."""
     result = entry.get("result")
-    if isinstance(result, dict) and "data" in result:
-        return {**entry, "result": {k: v for k, v in result.items() if k != "data"}}
+    if isinstance(result, dict) and ("data" in result or "context" in result):
+        return {**entry, "result": {k: v for k, v in result.items() if k not in ("data", "context")}}
     return entry
 
 
@@ -144,6 +144,7 @@ class HyperFlowRunner:
         self._task: Optional[asyncio.Task] = None
         self._cancel_reason: Optional[str] = None
         self.parked_gate: Optional[str] = None  # node id while parked at a human gate
+        self._last_decision_meta: dict[str, Any] = {}  # {"by", "plan_hash"} of the last consumed decision
         self._cache_url = cache_redis_url()
 
     # ── lifecycle ────────────────────────────────────────────────────────────
@@ -208,6 +209,10 @@ class HyperFlowRunner:
                     emit_result["mocked"] = True
                 if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS and "data" in result:
                     emit_result["data"] = result["data"]
+                if node.type is NodeType.HUMAN_APPROVAL_GATE:
+                    for key in ("approved", "by", "plan_hash"):
+                        if result.get(key) is not None:
+                            emit_result[key] = result[key]
                 await self._emit(node, "completed", emit_result, HyperFlowRunStatus.RUNNING)
                 node_id = self._next_node(node, success, loop_counts)
 
@@ -254,9 +259,14 @@ class HyperFlowRunner:
 
     async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
         """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
-        data = await LOCAL_TOOLS[node.tool](node.params)
+        ctx = {"run_id": self.run_id, "history": list(self._history)}
+        data = await LOCAL_TOOLS[node.tool](node.params, ctx)
         ok = bool(data.get("ok"))
-        return {"ok": ok, "green": ok, "data": data}
+        result: dict[str, Any] = {"ok": ok, "green": ok, "data": data}
+        if node.success_key in data:
+            # Lets a node's `success_key` (e.g. has_proposal) drive conditional edges.
+            result[node.success_key] = data[node.success_key]
+        return result
 
     # ── Safety Shepherd gate ─────────────────────────────────────────────────
 
@@ -411,6 +421,14 @@ class HyperFlowRunner:
             )
             return {"ok": True, "green": True, "mocked": True}
 
+    def _last_tool_data(self, node_id: str) -> Optional[dict[str, Any]]:
+        """`result.data` of the most recent completed entry of ``node_id`` (or None)."""
+        for entry in reversed(self._history):
+            if entry.get("node") == node_id and entry.get("status") == "completed":
+                data = (entry.get("result") or {}).get("data")
+                return data if isinstance(data, dict) else None
+        return None
+
     def _take_persisted_decision(self, node_id: Optional[str] = None) -> Optional[bool]:
         """Read and clear ``state.context.pending_decision`` written by the operator API.
 
@@ -445,6 +463,10 @@ class HyperFlowRunner:
             state["context"] = ctx
             run.state = state
             db.commit()
+            self._last_decision_meta = {
+                "by": decision.get("by"),
+                "plan_hash": decision.get("plan_hash"),
+            }
             return bool(decision.get("approved"))
         except Exception:  # pragma: no cover — a DB blip must not kill the run
             db.rollback()
@@ -456,8 +478,18 @@ class HyperFlowRunner:
     async def _await_approval(self, node: FlowNode) -> dict[str, Any]:
         self._approval_event.clear()
         self._approval_result = None
+        self._last_decision_meta = {}
         prompt = node.params.get("prompt", f"Approve step '{node.id}'?")
-        await self._emit(node, "awaiting_approval", {"prompt": prompt},
+        entry_result: dict[str, Any] = {"prompt": prompt}
+        show_from = node.params.get("show_from")
+        if show_from:
+            shown = self._last_tool_data(str(show_from))
+            if shown is not None:
+                entry_result["context"] = shown
+                plan_hash = (shown.get("proposal") or {}).get("plan_hash")
+                if plan_hash:
+                    entry_result["plan_hash"] = plan_hash
+        await self._emit(node, "awaiting_approval", entry_result,
                          HyperFlowRunStatus.AWAITING_APPROVAL)
         await self._publish_approval_request(node, prompt)
         self.parked_gate = node.id
@@ -479,7 +511,11 @@ class HyperFlowRunner:
             self.parked_gate = None
         if not self._approval_result:
             raise _ApprovalRejected(node.id)
-        return {"ok": True, "approved": True}
+        out: dict[str, Any] = {"ok": True, "approved": True}
+        for key in ("by", "plan_hash"):
+            if self._last_decision_meta.get(key):
+                out[key] = self._last_decision_meta[key]
+        return out
 
     # ── routing ──────────────────────────────────────────────────────────────
 

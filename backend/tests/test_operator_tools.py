@@ -28,7 +28,7 @@ def _patch_sections(monkeypatch, **overrides):
 
 def test_inspect_all_ok(monkeypatch):
     _patch_sections(monkeypatch)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     assert report["ok"] is True
     assert report["attention"] == []
     assert set(report) >= {"containers", "redis", "postgres", "queues", "disk", "models", "checked_at"}
@@ -39,7 +39,7 @@ def test_inspect_fail_soft_when_postgres_down(monkeypatch):
         raise RuntimeError("connection refused")
 
     _patch_sections(monkeypatch, postgres=_boom)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     assert report["ok"] is False
     assert report["postgres"]["ok"] is False
     assert "RuntimeError" in report["postgres"]["error"]
@@ -53,7 +53,7 @@ def test_inspect_hung_section_times_out(monkeypatch):
 
     monkeypatch.setattr(tools, "SECTION_TIMEOUT_SECONDS", 0.05)
     _patch_sections(monkeypatch, containers=_hang)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     assert report["containers"]["ok"] is False
     assert report["ok"] is False
 
@@ -66,7 +66,7 @@ def test_inspect_flags_unhealthy_containers_and_dlq(monkeypatch):
         return {"ok": True, "depths": {"hypercode-dlq": 4}}
 
     _patch_sections(monkeypatch, containers=_docker, queues=_queues)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     assert report["ok"] is True  # informational, not a core failure
     assert any("unhealthy" in a and "bad-one" in a for a in report["attention"])
     assert any("dead-letter" in a for a in report["attention"])
@@ -106,7 +106,7 @@ def test_local_tool_node_bypasses_orchestrator_and_records_data(monkeypatch):
     async def _boom(node):
         raise AssertionError("orchestrator must not be called for a local tool")
 
-    async def _fake(params):
+    async def _fake(params, ctx=None):
         return {"ok": True, "n": 1}
 
     monkeypatch.setattr(runner, "_dispatch", _boom)
@@ -121,7 +121,7 @@ def test_local_tool_node_bypasses_orchestrator_and_records_data(monkeypatch):
 def test_local_tool_not_ok_is_recorded_as_unsuccessful(monkeypatch):
     runner, final = _runner_with_io(_local_flow(), "lt2", monkeypatch)
 
-    async def _red(params):
+    async def _red(params, ctx=None):
         return {"ok": False, "why": "red"}
 
     monkeypatch.setitem(tools.LOCAL_TOOLS, "local.fake", _red)
@@ -134,7 +134,7 @@ def test_local_tool_not_ok_is_recorded_as_unsuccessful(monkeypatch):
 def test_local_tool_exception_fails_the_run(monkeypatch):
     runner, final = _runner_with_io(_local_flow(), "lt3", monkeypatch)
 
-    async def _raises(params):
+    async def _raises(params, ctx=None):
         raise RuntimeError("boom")
 
     monkeypatch.setitem(tools.LOCAL_TOOLS, "local.fake", _raises)
@@ -178,7 +178,7 @@ def test_safety_gate_runs_before_local_tool_and_nonlocal_uses_dispatch(monkeypat
     async def _gate(node):
         order.append("gate")
 
-    async def _fake(params):
+    async def _fake(params, ctx=None):
         order.append("tool")
         return {"ok": True}
 
@@ -229,7 +229,7 @@ def test_inspect_postgres_error_is_fully_scrubbed(monkeypatch):
     real_pg = tools._postgres_section
     _patch_sections(monkeypatch, postgres=real_pg)
     monkeypatch.setattr(tools, "_pg_ping", _bad)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     blob = report["postgres"]["error"] + " ".join(report["attention"])
     for secret in ("10.0.0.5", "admin", "abc123"):
         assert secret not in blob
@@ -242,5 +242,5 @@ def test_timed_out_section_error_text(monkeypatch):
 
     monkeypatch.setattr(tools, "SECTION_TIMEOUT_SECONDS", 0.05)
     _patch_sections(monkeypatch, containers=_hang)
-    report = asyncio.run(tools.inspect_stack({}))
+    report = asyncio.run(tools.inspect_stack({}, {}))
     assert report["containers"]["error"] == "timed out after 0.05s"
