@@ -48,6 +48,13 @@ fixed, re-reviewed clean).
   provisioned by Bro via the superuser `/agent-keys` endpoint; `hypercode-mcp-server` was NOT rebuilt, so
   the new MCP tools are not live yet); the 13 stopped observability containers are still stopped
   (restore list: `docker start` in two batches, core-health check between); not pushed, no PR.
+- **Operating rules learned on this 4 GB box (BROski operator deploy, 2026-09-26):**
+  - Measure RAM as `available` from `wsl -e free -m`, never the `free` column (it read 106 MB while `available` was 972 MB because of page cache). Keep **>= 1.2 GB available at all times; target >= 1.5 GB before any build/recreate.**
+  - Budget **~2 minutes** for a restarted `hypercode-core` to become healthy before judging a health failure.
+  - **Stop rule:** stop if core is still `unhealthy` after the Docker healthcheck retry window (5 retries x 30 s), restarts unexpectedly, fails `GET /health` after the startup allowance, or available RAM drops below 1.2 GB. A single `unhealthy` poll at the exact `StartedAt` instant is stale carry-over from the old container — a yellow boot signal, not a failure.
+  - **Record for every restart/recreate proof:** `StartedAt`, first successful `/health`, final Docker health state, restart count, minimum available RAM. (This run: recreate healthy ~3 min, restarts 0, OOMKilled false; min available 1830 MB during the build and 2235 MB during recreate/restart/proofs; restart proof `StartedAt` 22:11:04Z, first passing health probe 22:13:05Z, final state `healthy`, failing streak 0.)
+- **Lean Operations Mode (temporary):** the 13-container observability stack (Grafana/Loki/Tempo/Prometheus etc.) and idle agents stay stopped because restoring them takes available RAM to ~970 MB, below the floor. With less incident visibility, **do not enable autonomous mutation/deploy actions beyond the proven Phase 1 scope** (read-only inspect, cancel, human-approved gates) until monitoring is back.
+- **MCP proof still required before PR #537 leaves draft** (and before merge): create `HYPERCODE_AGENT_KEY` via the superuser `/agent-keys` endpoint and put it only in the local `HyperCode-V2.4/.env` (never chat/commits/PR/logs); rebuild `hypercode-mcp-server`; then prove **missing key -> 401**, **invalid key -> 403**, valid key succeeds, `hypercode_inspect` returns a task handle, `hypercode_task_get` returns the final evidence, and task state survives polling across services. Add the redacted result to the PR checklist.
 - Phase 2 (`hypercode.recover`, Shepherd-gated restart) and Phase 3 (`run_tests`, RAM-gated) not started.
 
 ## 2026-09-18 — SkillWeaver Phase 1 deployed live + 3 real bugs found + fixed
