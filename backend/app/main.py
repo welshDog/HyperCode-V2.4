@@ -208,6 +208,20 @@ async def _lifespan(app: FastAPI):
         except Exception:
             logger.exception("Telemetry init failed (non-fatal)")
 
+        if os.getenv("HYPERFLOW_RECOVERY", "1") == "0":
+            logger.info("HyperFlow recovery skipped (HYPERFLOW_RECOVERY=0)")
+        else:
+            try:
+                from app.broski_operator.recovery import recover_runs as _recover_runs
+
+                logger.info(
+                    "HyperFlow recovery: %s", await asyncio.wait_for(_recover_runs(), timeout=15)
+                )
+            except asyncio.TimeoutError:
+                logger.warning("HyperFlow recovery timed out after 15s (non-fatal)")
+            except Exception:
+                logger.exception("HyperFlow recovery failed (non-fatal)")
+
     yield
 
     logger.info("Shutdown initiated...")

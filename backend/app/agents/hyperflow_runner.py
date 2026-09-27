@@ -32,6 +32,7 @@ import httpx
 import redis.asyncio as aioredis
 
 from app.agents.hyperflow.schema import FlowDefinition, FlowNode, NodeType
+from app.broski_operator.tools import LOCAL_TOOLS
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -46,9 +47,27 @@ logger = logging.getLogger(__name__)
 # Shared channel the broski-bot / dashboard already watch for approval prompts.
 APPROVAL_CHANNEL = "approval_requests"
 
+# How often a parked approval gate re-checks Postgres for a decision that was written
+# while this process was down (or by another process). Seconds.
+APPROVAL_POLL_SECONDS = float(os.getenv("HYPERFLOW_APPROVAL_POLL_SECONDS", "2"))
+
 # In-process registry of live runners so the /resume endpoint can signal a gate.
 # MVP runs hypercode-core single-worker; multi-worker resume is future work.
 _ACTIVE: dict[str, "HyperFlowRunner"] = {}
+
+_TERMINAL = (
+    HyperFlowRunStatus.COMPLETED.value,
+    HyperFlowRunStatus.FAILED.value,
+    HyperFlowRunStatus.CANCELLED.value,
+)
+
+
+def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
+    """Copy of a history entry without ``result.data`` (tool output stays out of Redis)."""
+    result = entry.get("result")
+    if isinstance(result, dict) and "data" in result:
+        return {**entry, "result": {k: v for k, v in result.items() if k != "data"}}
+    return entry
 
 
 class _FlowFailed(Exception):
@@ -114,14 +133,17 @@ class HyperFlowRunner:
         run_id: str,
         *,
         user_id: Optional[int] = None,
+        history: Optional[list[dict[str, Any]]] = None,
     ) -> None:
         self.flow = flow
         self.run_id = run_id
         self.user_id = user_id
-        self._history: list[dict[str, Any]] = []
+        self._history: list[dict[str, Any]] = list(history or [])
         self._approval_event = asyncio.Event()
         self._approval_result: Optional[bool] = None
         self._task: Optional[asyncio.Task] = None
+        self._cancel_reason: Optional[str] = None
+        self.parked_gate: Optional[str] = None  # node id while parked at a human gate
         self._cache_url = cache_redis_url()
 
     # ── lifecycle ────────────────────────────────────────────────────────────
@@ -132,16 +154,32 @@ class HyperFlowRunner:
         self._task = asyncio.create_task(self._run())
         return self
 
+    async def start_at(self, node_id: str) -> "HyperFlowRunner":
+        """Re-attach to a persisted run (see recovery.recover_runs) and continue from ``node_id``."""
+        _ACTIVE[self.run_id] = self
+        self._task = asyncio.create_task(self._run(node_id))
+        return self
+
     def resume(self, approved: bool) -> None:
         """Satisfy a pending human_approval_gate (called from the resume endpoint)."""
         self._approval_result = approved
         self._approval_event.set()
 
+    async def cancel(self, reason: str = "cancelled") -> bool:
+        """Cancel a live run. Returns False when it is not running in this process."""
+        task = self._task
+        if task is None or task.done():
+            return False
+        self._cancel_reason = reason
+        task.cancel()
+        await asyncio.wait({task}, timeout=5.0)
+        return True
+
     # ── graph walk ───────────────────────────────────────────────────────────
 
-    async def _run(self) -> None:
+    async def _run(self, start_at: Optional[str] = None) -> None:
         loop_counts: dict[tuple[str, str], int] = {}
-        node_id: Optional[str] = self.flow.entry
+        node_id: Optional[str] = start_at or self.flow.entry
         try:
             while node_id is not None:
                 node = self.flow.node(node_id)
@@ -168,12 +206,20 @@ class HyperFlowRunner:
                 emit_result: dict[str, Any] = {"success": success}
                 if result.get("mocked"):
                     emit_result["mocked"] = True
+                if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS and "data" in result:
+                    emit_result["data"] = result["data"]
                 await self._emit(node, "completed", emit_result, HyperFlowRunStatus.RUNNING)
                 node_id = self._next_node(node, success, loop_counts)
 
             await self._finish(HyperFlowRunStatus.COMPLETED)
         except _FlowFailed as exc:
             await self._finish(HyperFlowRunStatus.FAILED, error=str(exc))
+        except asyncio.CancelledError:
+            if self._cancel_reason is None:
+                # Event-loop shutdown, not an operator cancel: leave the run 'running'
+                # so recover_runs() can resume it after the restart.
+                raise
+            await self._finish(HyperFlowRunStatus.CANCELLED, error=self._cancel_reason)
         except Exception as exc:  # pragma: no cover — defensive
             logger.exception("hyperflow run %s crashed", self.run_id)
             await self._finish(HyperFlowRunStatus.FAILED, error=str(exc))
@@ -202,7 +248,15 @@ class HyperFlowRunner:
             return await self._await_approval(node)
         # P0-2: consult Safety Shepherd before any agent/tool dispatch.
         await self._safety_gate(node)
+        if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS:
+            return await self._run_local_tool(node)
         return await self._dispatch(node)
+
+    async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
+        """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
+        data = await LOCAL_TOOLS[node.tool](node.params)
+        ok = bool(data.get("ok"))
+        return {"ok": ok, "green": ok, "data": data}
 
     # ── Safety Shepherd gate ─────────────────────────────────────────────────
 
@@ -357,6 +411,48 @@ class HyperFlowRunner:
             )
             return {"ok": True, "green": True, "mocked": True}
 
+    def _take_persisted_decision(self, node_id: Optional[str] = None) -> Optional[bool]:
+        """Read and clear ``state.context.pending_decision`` written by the operator API.
+
+        If ``node_id`` is given, the decision must be scoped to that node (stale decisions
+        for other nodes are discarded). Decision shape: {"approved": bool, "by": str, "ts": iso, "node": <id>}.
+        With ``node_id`` given, a decision whose "node" is missing or different is stale.
+        """
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id, with_for_update=True)
+            if run is None:
+                return None
+            state = dict(run.state or {})
+            ctx = dict(state.get("context") or {})
+            decision = ctx.pop("pending_decision", None)
+            if decision is None:
+                return None
+            # Guard: decision must be a dict, not malformed data
+            if not isinstance(decision, dict):
+                state["context"] = ctx
+                run.state = state
+                db.commit()
+                return None
+            # Scope to node: if node_id given, a decision naming a different (or no) node is stale
+            decision_node = decision.get("node")
+            if node_id is not None and decision_node != node_id:
+                # Stale decision for a different gate, discard it
+                state["context"] = ctx
+                run.state = state
+                db.commit()
+                return None
+            state["context"] = ctx
+            run.state = state
+            db.commit()
+            return bool(decision.get("approved"))
+        except Exception:  # pragma: no cover — a DB blip must not kill the run
+            db.rollback()
+            logger.exception("hyperflow %s decision read failed", self.run_id)
+            return None
+        finally:
+            db.close()
+
     async def _await_approval(self, node: FlowNode) -> dict[str, Any]:
         self._approval_event.clear()
         self._approval_result = None
@@ -364,7 +460,23 @@ class HyperFlowRunner:
         await self._emit(node, "awaiting_approval", {"prompt": prompt},
                          HyperFlowRunStatus.AWAITING_APPROVAL)
         await self._publish_approval_request(node, prompt)
-        await self._approval_event.wait()
+        self.parked_gate = node.id
+        try:
+            while True:
+                # A decision may already be waiting (written while this process was down).
+                persisted = await asyncio.to_thread(self._take_persisted_decision, node.id)
+                if persisted is not None:
+                    self._approval_result = persisted
+                    break
+                try:
+                    await asyncio.wait_for(self._approval_event.wait(), timeout=APPROVAL_POLL_SECONDS)
+                except asyncio.TimeoutError:
+                    continue
+                # Woken by the in-memory resume(): drop any duplicate persisted decision.
+                await asyncio.to_thread(self._take_persisted_decision, node.id)
+                break
+        finally:
+            self.parked_gate = None
         if not self._approval_result:
             raise _ApprovalRejected(node.id)
         return {"ok": True, "approved": True}
@@ -433,12 +545,12 @@ class HyperFlowRunner:
         await self._publish(entry, run_status)
 
     async def _finish(self, status: HyperFlowRunStatus, error: Optional[str] = None) -> None:
+        entry = {"node": None, "type": "terminal", "status": status.value,
+                 "result": {"error": error} if error else {},
+                 "ts": datetime.now(timezone.utc).isoformat()}
+        self._history.append(entry)
         await self._persist(status, None, completed=True, error=error)
-        await self._publish(
-            {"node": None, "type": "terminal", "status": status.value,
-             "result": {"error": error} if error else {}, "ts": datetime.now(timezone.utc).isoformat()},
-            status,
-        )
+        await self._publish(entry, status)
 
     async def _persist(
         self,
@@ -457,13 +569,16 @@ class HyperFlowRunner:
         completed: bool,
         error: Optional[str],
     ) -> None:
-        state: dict[str, Any] = {"history": self._history}
-        if error:
-            state["error"] = error
         db = SessionLocal()
         try:
-            run = db.get(HyperFlowRun, self.run_id)
+            run = db.get(HyperFlowRun, self.run_id, with_for_update=True)
+            if run is not None and run.status in _TERMINAL and status.value not in _TERMINAL:
+                db.rollback()  # never un-terminate a row (late write after cancel/finish)
+                return
             if run is None:
+                state: dict[str, Any] = {"history": self._history}
+                if error:
+                    state["error"] = error
                 run = HyperFlowRun(
                     id=self.run_id,
                     flow_name=self.flow.name,
@@ -474,6 +589,12 @@ class HyperFlowRunner:
                 )
                 db.add(run)
             else:
+                # Merge: keep everything else in state (e.g. ``context`` written by the
+                # operator API) and only refresh history / error.
+                state = dict(run.state or {})
+                state["history"] = self._history
+                if error:
+                    state["error"] = error
                 run.status = status.value
                 run.current_node = current_node
                 run.state = state
@@ -487,13 +608,13 @@ class HyperFlowRunner:
             db.close()
 
     async def _publish(self, entry: dict[str, Any], run_status: HyperFlowRunStatus) -> None:
-        message = json.dumps({"run_id": self.run_id, "flow": self.flow.name, **entry})
+        message = json.dumps({"run_id": self.run_id, "flow": self.flow.name, **_strip_data(entry)})
         snapshot = json.dumps({
             "run_id": self.run_id,
             "flow": self.flow.name,
             "status": run_status.value,
             "current_node": entry.get("node"),
-            "history": self._history,
+            "history": [_strip_data(e) for e in self._history],
         })
         try:
             r = await aioredis.from_url(self._cache_url, decode_responses=True)

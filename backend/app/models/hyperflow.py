@@ -25,6 +25,7 @@ class HyperFlowRunStatus(str, enum.Enum):
     AWAITING_APPROVAL  = "awaiting_approval"
     COMPLETED          = "completed"
     FAILED             = "failed"
+    CANCELLED          = "cancelled"
 
 
 class HyperFlowRun(Base):

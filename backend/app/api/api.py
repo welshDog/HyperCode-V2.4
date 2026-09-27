@@ -99,6 +99,12 @@ if _HAS_MISSIONS:
     api_router.include_router(missions.router, prefix="/missions", tags=["missions"])  # P1-3: Mission Director
 if _HAS_MISSION_EVALUATIONS:
     api_router.include_router(mission_evaluations.router, prefix="/mission-evaluations", tags=["mission-evaluator"])  # Mission Evaluator v1
+try:
+    from app.api.v1.endpoints import operator_tasks
+    api_router.include_router(operator_tasks.router, prefix="/operator", tags=["operator"])  # BROski operator tasks
+except Exception as _e:
+    import logging as _log
+    _log.getLogger(__name__).warning("Operator endpoints unavailable: %s", _e)
 api_router.include_router(health.router,   prefix="",           tags=["health"])      # Phase 5: Observability
 api_router.include_router(skills.router,   prefix="/skills",    tags=["skills"])      # Skill discoverability search (SKILL.md catalog)
 api_router.include_router(skillweaver_proxy_router.router, prefix="/skills-synth", tags=["skills-synthesis"])  # SkillWeaver agent synthesis engine

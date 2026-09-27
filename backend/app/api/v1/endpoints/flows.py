@@ -29,6 +29,7 @@ from app.agents.hyperflow_runner import (
     start_flow_run,
 )
 from app.api import deps
+from app.broski_operator.catalog import tool_for_flow
 from app.db.session import get_db
 from app.models.hyperflow import HyperFlowRun
 
@@ -94,6 +95,17 @@ async def create_run(
     return response
 
 
+def _public_history(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """History copy without ``result.data`` (tool output is operator-API only)."""
+    out: list[dict[str, Any]] = []
+    for entry in history:
+        result = entry.get("result") if isinstance(entry, dict) else None
+        if isinstance(result, dict) and "data" in result:
+            entry = {**entry, "result": {k: v for k, v in result.items() if k != "data"}}
+        out.append(entry)
+    return out
+
+
 def _serialize_run(run: HyperFlowRun) -> dict[str, Any]:
     return {
         "run_id": run.id,
@@ -101,7 +113,7 @@ def _serialize_run(run: HyperFlowRun) -> dict[str, Any]:
         "version": run.flow_version,
         "status": run.status,
         "current_node": run.current_node,
-        "history": (run.state or {}).get("history", []),
+        "history": _public_history((run.state or {}).get("history", [])),
         "error": (run.state or {}).get("error"),
         "created_at": run.created_at.isoformat() if run.created_at else None,
         "updated_at": run.updated_at.isoformat() if run.updated_at else None,
@@ -139,9 +151,16 @@ async def resume_run(
     run_id: str,
     payload: dict,
     current_user: Any = Depends(deps.get_current_active_user),
+    db: Session = Depends(get_db),
 ) -> Any:
+    run = db.get(HyperFlowRun, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+    if tool_for_flow(run.flow_name) is not None:
+        # Operator runs are approved via /api/v1/operator/tasks/{id}/input (superuser-only).
+        raise HTTPException(status_code=409, detail={"error": "use_operator_api"})
     runner = get_runner(run_id)
-    if runner is None:
+    if runner is None or runner.parked_gate is None:
         raise HTTPException(
             status_code=409,
             detail="Run is not awaiting approval in this worker (or already finished)",

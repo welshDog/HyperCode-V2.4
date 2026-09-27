@@ -39,6 +39,7 @@ def _runner_with_io(flow, run_id, monkeypatch):
     monkeypatch.setattr(runner, "_persist", _noop)
     monkeypatch.setattr(runner, "_publish", _noop)
     monkeypatch.setattr(runner, "_publish_approval_request", _noop)
+    monkeypatch.setattr(runner, "_take_persisted_decision", lambda *_: None)
 
     final = {}
 
@@ -117,6 +118,7 @@ def _patch_io(runner, monkeypatch):
     monkeypatch.setattr(runner, "_persist", _noop)
     monkeypatch.setattr(runner, "_publish", _noop)
     monkeypatch.setattr(runner, "_publish_approval_request", _noop)
+    monkeypatch.setattr(runner, "_take_persisted_decision", lambda *_: None)
 
 
 def test_full_walk_reaches_completed(monkeypatch):

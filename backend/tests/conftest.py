@@ -3,6 +3,7 @@
 import os
 os.environ.setdefault("OTEL_SDK_DISABLED", "true")
 os.environ["ENVIRONMENT"] = "test"
+os.environ["HYPERFLOW_RECOVERY"] = "0"
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -76,3 +77,21 @@ async def redis_client():
 def mock_openai_api_key(monkeypatch):
     """Mock OpenAI API key for tests."""
     monkeypatch.setenv("OPENAI_API_KEY", "sk-proj-test-key-12345")
+
+
+@pytest.fixture
+def hf_db(monkeypatch):
+    """In-memory SQLite holding only ``hyperflow_runs``, patched into the HyperFlow runner."""
+    from sqlalchemy.pool import StaticPool
+
+    from app.models.hyperflow import HyperFlowRun
+
+    eng = create_engine(
+        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
+    HyperFlowRun.__table__.create(bind=eng)
+    factory = sessionmaker(bind=eng, autoflush=False, autocommit=False)
+    monkeypatch.setattr("app.agents.hyperflow_runner.SessionLocal", factory)
+    monkeypatch.setattr("app.broski_operator.recovery.SessionLocal", factory)
+    yield factory
+    eng.dispose()
