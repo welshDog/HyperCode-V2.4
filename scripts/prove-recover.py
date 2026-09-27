@@ -131,6 +131,13 @@ def phaseA():
         check("seal" in done["result"]["nodes"], "seal ran")
         check("authorize" in done["result"]["nodes"], "authorize ran as part of the flow")
         authz = done["result"]["report"]
+        # Fix-round (final review, Important 2): restored -- `authz` (authorize's own result)
+        # echoes 2a's plan_hash verbatim, so this is the live proof's own binding check that
+        # what got sealed is exactly what the human approved (`good`), not just that `seal` ran.
+        # Dropped when this block was first adapted for authorize's output; report only proved
+        # authorize's own claims, never re-connected them back to 2a's approval.
+        check(authz["plan_hash"] == good, "authorize's plan_hash matches the hash the human approved")
+        check(authz["plan_hash"] != authz["governor_plan_hash"], "2a's hash and Governor's hash are never the same value")
         check(authz["minted"] is False, "Governor refused to mint (no grant exists) -- the correct outcome")
         check(authz["mode"] == "DRY_RUN", "requested mode was DRY_RUN")
         check(authz["verdict"]["decision"] == "ESCALATE", "Shepherd verdict was ESCALATE")

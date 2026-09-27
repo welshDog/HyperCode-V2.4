@@ -182,9 +182,20 @@ async def authorize(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, An
         "governor_plan_hash": governor_plan_hash,
         "ledger": ledger_ok,
         "note": (
-            "Governor/Shepherd correctly refused — no capability minted, no second approver "
-            "on record; this increment proves the pipeline, not a minted capability"
-            if not minted
-            else "capability minted (unexpected for this increment's default policy configuration)"
+            "capability minted (unexpected for this increment's default policy configuration)"
+            if minted
+            else (
+                # Fix-round (final review, minor): don't describe every refusal as a considered
+                # policy verdict -- verdict["decision"] could be BLOCK because Shepherd itself was
+                # unreachable and Governor failed closed, not because a policy rule fired. The
+                # `verdict` dict itself is always recorded faithfully either way; only this
+                # human-readable note needs to stop implying "policy decided" when it might be
+                # "couldn't even ask".
+                "Governor/Shepherd refused (fail-closed: Shepherd unavailable) -- no capability "
+                "minted, no second approver on record"
+                if verdict.get("shepherd_available") is False
+                else "Governor/Shepherd correctly refused -- no capability minted, no second "
+                "approver on record; this increment proves the pipeline, not a minted capability"
+            )
         ),
     }

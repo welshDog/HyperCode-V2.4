@@ -65,7 +65,7 @@
       "max_actions": 500
     },
     "governor": {
-      "_comment": "Phase 2 capability-token minter. Every plan-verify call arrives with category='docker' (shepherd_client.py hardcodes it) and tool=the requested action's literal kind string -- pydantic's Literal on RequestedAction.kind closes that set to exactly these two. Grant the literal strings, not the coarse 'docker' capability other agents get: rule 7 (tool not in allowlist) checks the tool string first, so 'docker' alone would still ESCALATE at rule 9 on every real request. No file_paths/domains: governor never touches files or makes outbound calls other than this /evaluate round trip.",
+      "_comment": "Phase 2 capability-token minter. Every plan-verify call arrives with category='docker' (shepherd_client.py hardcodes it) and tool=the requested action's literal kind string -- pydantic's Literal on RequestedAction.kind closes that set to exactly the strings on that Literal (3 as of Phase 2b: compose_profile.preview, crew.workflow.preview, container.restart -- 'tools' below is deliberately NOT updated to include the third; see BROski recover Phase 2b, docs/superpowers/specs/2026-09-27-broski-recover-2b-design.md §9.2, for why no grant was added). Grant the literal strings, not the coarse 'docker' capability other agents get: rule 7 (tool not in allowlist) checks the tool string first, so 'docker' alone would still ESCALATE at rule 9 on every real request. No file_paths/domains: governor never touches files or makes outbound calls other than this /evaluate round trip.",
       "tools": ["compose_profile.preview", "crew.workflow.preview"],
       "file_paths": [],
       "domains": [],

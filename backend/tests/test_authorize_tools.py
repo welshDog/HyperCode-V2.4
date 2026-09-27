@@ -121,7 +121,15 @@ def test_canonical_hash_stable_and_content_sensitive():
 
 REFUSAL_BODY = {
     "capability": None, "jti": None,
-    "verdict": {"decision": "ESCALATE", "reason": "no capabilities for agent 'broski-operator'",
+    # Fix-round (final review): the real refusal Shepherd gives is "tool not granted to
+    # 'governor'" -- Shepherd's /evaluate is always called with the hardcoded identity
+    # "governor" (agents/governor/shepherd_client.py), never this module's own `proposer_id`.
+    # `governor` already has a capabilities.json grant for two other tools; `container.restart`
+    # just isn't on that list. The old string here ("no capabilities for agent 'broski-operator'")
+    # baked in the wrong mechanism -- see spec §9.2. `authorize` itself is agnostic to Shepherd's
+    # exact wording either way (it only type-checks `verdict.decision`), so this fix is
+    # documentation-accuracy only, not a behavior change.
+    "verdict": {"decision": "ESCALATE", "reason": "tool 'container.restart' not granted to 'governor'",
                 "risk_class": "INFRASTRUCTURE_MUTATION", "policy_version": "safety-2026-09-04.1"},
     "minted": False, "reason": "policy verdict ESCALATE; human approval required",
 }
