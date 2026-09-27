@@ -58,7 +58,9 @@ async def _fetch_summaries() -> list[dict[str, Any]]:
         )
     resp.raise_for_status()
     data = resp.json()
-    return data if isinstance(data, list) else []
+    if not isinstance(data, list):
+        raise ValueError("unexpected docker response shape")
+    return data
 
 
 async def _get_detail(cid: str) -> Optional[dict[str, Any]]:

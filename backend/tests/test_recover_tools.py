@@ -71,6 +71,50 @@ def test_propose_docker_unreachable_is_structured_not_an_exception(monkeypatch):
     assert "hunter2" not in " ".join(out["notes"])   # Review focus 5
 
 
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._payload
+
+
+class _FakeAsyncClient:
+    def __init__(self, payload, **kw):
+        self._payload = payload
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc):
+        return False
+
+    async def get(self, *a, **kw):
+        return _FakeResp(self._payload)
+
+
+def test_fetch_summaries_rejects_non_list_response(monkeypatch):
+    """Minor fix #4: a 200 with a non-list body must not silently read as `[]`."""
+    monkeypatch.setattr(recover_tools.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient({"not": "a list"}))
+    with pytest.raises(ValueError):
+        asyncio.run(recover_tools._fetch_summaries())
+
+
+def test_propose_malformed_docker_response_is_not_a_false_all_clear(monkeypatch):
+    """A non-list Docker response must route into the existing fail-soft `ok: False`
+
+    branch, not report `ok: True, has_proposal: False` (a false all-clear).
+    """
+    monkeypatch.setattr(recover_tools.httpx, "AsyncClient", lambda **kw: _FakeAsyncClient({"not": "a list"}))
+    out = asyncio.run(recover_propose({}, {"run_id": "r1", "history": []}))
+    assert out["ok"] is False
+    assert out["has_proposal"] is False
+    assert out["proposal"] is None
+
+
 def test_propose_includes_inspect_attention_notes(monkeypatch):
     _docker(monkeypatch, [])
     hist = [{"node": "inspect", "status": "completed",
