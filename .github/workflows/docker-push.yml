@@ -90,8 +90,11 @@ jobs:
             context: ./agents/brain
           - agent: coder
             context: ./agents/coder
-          - agent: agent-x
-            context: ./agents/agent-x
+          # agent-x moved to push-ghost-agents below 2026-09-27: its Dockerfile
+          # COPYs `agents/agent-x/...` (repo-root-relative), same bug class as
+          # hyper-observer/hyper-worker -- this job's build step hardcodes
+          # `file: ${context}/Dockerfile`, which can't express a context/dockerfile
+          # split, so a repo-root-context agent can't live in this matrix at all.
           # --- Specialist squad ---
           - agent: frontend-specialist
             context: ./agents/01-frontend-specialist
@@ -164,6 +167,15 @@ jobs:
           - agent: hyper-worker
             context: .
             dockerfile: agents/hyper-agents/worker/Dockerfile
+          # Same bug class as hyper-observer/hyper-worker above, found 2026-09-27:
+          # agents/agent-x/Dockerfile COPYs `agents/agent-x/requirements.txt` and
+          # `agents/agent-x/` (repo-root-relative paths), so it needs context: .
+          # too -- matches this agent's own local compose definitions
+          # (docker-compose.agents.yml / docker-compose.hyper-agents.yml), which
+          # already build it this way and never hit this bug locally.
+          - agent: agent-x
+            context: .
+            dockerfile: agents/agent-x/Dockerfile
           - agent: hyper-split-agent
             context: ./agents/hyper-split-agent
             dockerfile: Dockerfile
@@ -176,9 +188,14 @@ jobs:
           - agent: super-hyper-broski-agent
             context: ./agents/super-hyper-broski-agent
             dockerfile: Dockerfile
+          # context MUST be ./agents, not ./agents/test-agent: the Dockerfile
+          # COPYs a sibling `agents/shared/` (agent_utils.py etc.), unreachable
+          # from the narrower context -- same fix already applied to
+          # docker-compose.agents-full.yml on 2026-08-20, never ported here.
+          # Found 2026-09-27 alongside the agent-x context bug above.
           - agent: test-agent
-            context: ./agents/test-agent
-            dockerfile: Dockerfile
+            context: ./agents
+            dockerfile: test-agent/Dockerfile
           - agent: goal-keeper
             context: ./agents/goal_keeper
             dockerfile: Dockerfile
