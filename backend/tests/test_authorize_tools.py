@@ -4,6 +4,7 @@ Every mint in these tests is refused (ESCALATE, no grant) by design — this inc
 pipeline fails closed, it never mints. See docs/superpowers/specs/2026-09-27-broski-recover-2b-design.md.
 """
 
+import ast
 import asyncio
 import importlib.util
 import pathlib
@@ -159,14 +160,25 @@ def test_authorize_records_a_well_formed_refusal_as_success(monkeypatch, ledger_
 
 
 def test_authorize_never_conflates_the_two_hashes(monkeypatch, ledger_db):
+    """Fix-round-1: strengthened per reviewer finding 3 — the original version only checked
+    the two hashes differ and were self-consistent between output and ledger, which would
+    NOT catch the two values being swapped (assigned to each other's field) as long as they
+    stayed consistent with each other. Now asserts each against its own independently
+    computed exact expected value.
+    """
+    sealed_plan_hash = "sha256:" + "a" * 64  # _sealed()'s own default sentinel — 2a's own hash
+    expected_governor_hash = canonical_hash(build_plan("run-2", "chroma"))  # _sealed()'s default target
+    assert sealed_plan_hash != expected_governor_hash  # sanity: the two sentinels really are distinct
+
     monkeypatch.setattr(authorize_tools.httpx, "AsyncClient", _client_returning(200, REFUSAL_BODY))
     out = asyncio.run(authorize({}, {"run_id": "run-2", "history": _sealed()}))
-    assert "plan_hash" in out and "governor_plan_hash" in out
-    assert out["plan_hash"] != out["governor_plan_hash"]  # Review focus 3: distinct fields, distinct values
+    assert out["plan_hash"] == sealed_plan_hash  # 2a's own hash, verbatim from the sealed history
+    assert out["governor_plan_hash"] == expected_governor_hash  # freshly computed here, not copied
+
     s = ledger_db()
     row = s.query(GovernanceLedger).first()
-    assert row.payload["plan_hash"] != row.payload["governor_plan_hash"]
-    assert row.payload["plan_hash"] == out["plan_hash"]
+    assert row.payload["plan_hash"] == sealed_plan_hash
+    assert row.payload["governor_plan_hash"] == expected_governor_hash
     s.close()
 
 
@@ -193,6 +205,49 @@ def test_authorize_malformed_body_raises(monkeypatch, ledger_db):
         asyncio.run(authorize({}, {"run_id": "run-5", "history": _sealed()}))
 
 
+def test_authorize_null_minted_and_verdict_raises(monkeypatch, ledger_db):
+    """Fix-round-1, reviewer finding 2: a well-formed-looking 200 whose `minted`/`verdict`
+    are `null` must not be coerced (`bool(None)` -> False, `verdict or {}` -> {}) into a
+    fabricated policy refusal. It must raise, never be silently written to the ledger as
+    if Governor genuinely refused.
+    """
+    monkeypatch.setattr(
+        authorize_tools.httpx, "AsyncClient",
+        _client_returning(200, {"minted": None, "verdict": None}),
+    )
+    with pytest.raises(AuthorizeError, match="missing required fields"):
+        asyncio.run(authorize({}, {"run_id": "run-10", "history": _sealed()}))
+    assert ledger_db().query(GovernanceLedger).count() == 0
+
+
+def test_authorize_wrong_typed_minted_raises(monkeypatch, ledger_db):
+    """Fix-round-1, reviewer finding 2: `minted` as a truthy non-bool string must not be
+    accepted — `bool("false")` is `True` in Python, which would be a real, dangerous
+    misinterpretation of a refusal as a mint.
+    """
+    monkeypatch.setattr(
+        authorize_tools.httpx, "AsyncClient",
+        _client_returning(200, {"minted": "false", "verdict": {"decision": "ESCALATE"}}),
+    )
+    with pytest.raises(AuthorizeError, match="missing required fields"):
+        asyncio.run(authorize({}, {"run_id": "run-11", "history": _sealed()}))
+    assert ledger_db().query(GovernanceLedger).count() == 0
+
+
+def test_authorize_verdict_without_decision_raises(monkeypatch, ledger_db):
+    """Fix-round-1, reviewer finding 2: a `verdict` present but missing its `decision`
+    field is not a well-formed policy verdict and must raise, not be recorded with
+    `decision=None` as if Governor had genuinely decided something.
+    """
+    monkeypatch.setattr(
+        authorize_tools.httpx, "AsyncClient",
+        _client_returning(200, {"minted": False, "verdict": {}}),
+    )
+    with pytest.raises(AuthorizeError, match="missing required fields"):
+        asyncio.run(authorize({}, {"run_id": "run-12", "history": _sealed()}))
+    assert ledger_db().query(GovernanceLedger).count() == 0
+
+
 def test_authorize_reads_target_from_the_sealed_plan(monkeypatch, ledger_db):
     """authorize takes its target from ctx['history']'s seal result, not a hardcoded value."""
     captured = {}
@@ -213,6 +268,9 @@ def test_authorize_reads_target_from_the_sealed_plan(monkeypatch, ledger_db):
     asyncio.run(authorize({}, {"run_id": "run-6", "history": [seal_result]}))
     assert captured["body"]["target"] == "memstream"
     assert captured["body"]["plan"]["requested_actions"][0]["profile"] == "memstream"
+    # Fix-round-1 (Minor, reviewer): the plan_hash sent on the wire must actually match the
+    # plan sent alongside it, not just look plausible.
+    assert captured["body"]["plan_hash"] == canonical_hash(captured["body"]["plan"])
 
 
 def test_authorize_no_sealed_plan_raises(monkeypatch, ledger_db):
@@ -243,7 +301,28 @@ def test_ledger_session_creation_failure_is_fail_soft(monkeypatch):
 
 
 def test_no_docker_import_anywhere_in_this_module():
-    """Review focus 1: this module must never be able to touch Docker."""
+    """Review focus 1: this module must never be able to touch Docker.
+
+    Fix-round-1: the original `assert "docker" not in src.lower() or "DOCKER" not in src`
+    was vacuous — the module's own docstring legitimately says "Docker" in prose, so the
+    first clause is always False and the assertion reduces to only `"DOCKER" not in src`,
+    which would not catch `import docker`, `docker.from_env()`, or a raw socket-proxy URL
+    string. Parse the AST instead: no `Import`/`ImportFrom` node may name anything
+    containing "docker" (case-insensitive) — a real code-level check, not a prose scan —
+    and independently guard against the specific known danger strings from `recover_tools.py`
+    (`docker.`, `import docker`, `docker-socket`, `DOCKER_`) anywhere outside the docstring,
+    since the docstring is the one place the word "Docker" is legitimate.
+    """
     src = pathlib.Path(authorize_tools.__file__).read_text(encoding="utf-8")
-    assert "docker" not in src.lower() or "DOCKER" not in src  # no docker-proxy/settings reference at all
-    assert "DOCKER_SOCKET_PROXY_URL" not in src
+    tree = ast.parse(src)
+    module_docstring = ast.get_docstring(tree) or ""
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                assert "docker" not in alias.name.lower(), f"forbidden import: {alias.name}"
+        elif isinstance(node, ast.ImportFrom):
+            assert not (node.module and "docker" in node.module.lower()), f"forbidden import: {node.module}"
+
+    src_without_docstring = src.replace(module_docstring, "", 1) if module_docstring else src
+    for forbidden in ("docker.", "import docker", "docker-socket", "DOCKER_"):
+        assert forbidden not in src_without_docstring, f"forbidden reference: {forbidden!r}"

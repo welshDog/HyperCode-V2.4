@@ -146,11 +146,20 @@ async def authorize(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, An
     except Exception as exc:
         raise AuthorizeError("Governor response was not valid JSON") from exc
 
-    if not isinstance(data, dict) or "minted" not in data or "verdict" not in data:
+    if not isinstance(data, dict):
+        raise AuthorizeError("Governor response missing required fields")
+    minted_raw = data.get("minted")
+    verdict_raw = data.get("verdict")
+    if (
+        not isinstance(minted_raw, bool)
+        or not isinstance(verdict_raw, dict)
+        or not isinstance(verdict_raw.get("decision"), str)
+        or not verdict_raw.get("decision")
+    ):
         raise AuthorizeError("Governor response missing required fields")
 
-    verdict = data.get("verdict") or {}
-    minted = bool(data.get("minted"))
+    verdict = verdict_raw
+    minted = minted_raw
     ledger_ok = _write_ledger(
         {
             "payload": {
