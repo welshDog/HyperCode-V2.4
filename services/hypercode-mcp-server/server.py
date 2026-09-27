@@ -17,6 +17,7 @@ Tools exposed:
   hypercode_broski_wallet   — BROski$ token balance + level
   hypercode_execute_agent   — send a command to the crew orchestrator
   hypercode_inspect         — start a read-only stack inspection (background task)
+  hypercode_recover         — start a recovery diagnosis (background task, proposes only)
   hypercode_task_get        — poll a background task
   hypercode_task_cancel     — cancel a background task
 """
@@ -283,6 +284,19 @@ async def hypercode_inspect() -> dict:
     """
     return await _post(
         f"{API_PREFIX}/operator/tasks", {"tool": "hypercode.inspect", "arguments": {}}
+    )
+
+
+@mcp.tool()
+async def hypercode_recover() -> dict:
+    """
+    Start a read-only recovery diagnosis as a background task. It looks for broken containers,
+    proposes at most ONE allow-listed restart, and waits for a human (superuser) to approve the
+    exact plan in the dashboard/API. Phase 2a NEVER restarts anything — approval only seals the
+    plan for the future governed executor. Returns a task handle; poll with hypercode_task_get.
+    """
+    return await _post(
+        f"{API_PREFIX}/operator/tasks", {"tool": "hypercode.recover", "arguments": {}}
     )
 
 
