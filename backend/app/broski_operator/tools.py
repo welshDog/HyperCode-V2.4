@@ -153,3 +153,7 @@ from app.broski_operator.recover_tools import recover_propose, recover_seal  # n
 
 LOCAL_TOOLS["local.recover_propose"] = recover_propose
 LOCAL_TOOLS["local.recover_seal"] = recover_seal
+
+from app.broski_operator.authorize_tools import authorize  # noqa: E402
+
+LOCAL_TOOLS["local.authorize"] = authorize

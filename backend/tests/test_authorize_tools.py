@@ -326,3 +326,70 @@ def test_no_docker_import_anywhere_in_this_module():
     src_without_docstring = src.replace(module_docstring, "", 1) if module_docstring else src
     for forbidden in ("docker.", "import docker", "docker-socket", "DOCKER_"):
         assert forbidden not in src_without_docstring, f"forbidden reference: {forbidden!r}"
+
+
+# ── Flow integration ────────────────────────────────────────────────────────
+
+def test_authorize_registered_in_local_tools():
+    from app.broski_operator import tools
+
+    assert "local.authorize" in tools.LOCAL_TOOLS
+    assert tools.LOCAL_TOOLS["local.authorize"] is authorize
+
+
+def test_flow_has_the_authorize_node():
+    from app.agents.hyperflow.registry import get_flow
+
+    fd = get_flow("operator-recover")
+    node = fd.node("authorize")
+    assert node.tool == "local.authorize"
+    edges = [e for e in fd.edges if e.src == "seal"]
+    assert len(edges) == 1 and edges[0].dst == "authorize" and edges[0].condition is None
+
+
+def test_operator_recover_flow_runs_authorize_after_seal(monkeypatch, ledger_db):
+    """Real runner, real flow, real authorize — only the Governor HTTP call and Docker fetch are faked."""
+    import asyncio as _asyncio
+
+    from app.agents.hyperflow.registry import get_flow
+    from app.broski_operator import recover_tools, tools as tools_mod
+    from app.models.hyperflow import HyperFlowRunStatus
+    from tests.test_hyperflow import _runner_with_io
+
+    async def fake_summaries():
+        return [{"Id": "f1f1f1f1f1f1", "Names": ["/skillweaver"], "State": "running",
+                 "Status": "Up (unhealthy)", "Labels": {}}]
+
+    async def fake_inspect(params, ctx=None):
+        return {"ok": True, "attention": []}
+
+    monkeypatch.setattr(recover_tools, "_fetch_summaries", fake_summaries)
+    monkeypatch.setitem(tools_mod.LOCAL_TOOLS, "local.inspect", fake_inspect)
+    monkeypatch.setattr(authorize_tools.httpx, "AsyncClient", _client_returning(200, REFUSAL_BODY))
+
+    runner, final = _runner_with_io(get_flow("operator-recover"), "e2e-authz", monkeypatch)
+
+    async def scenario():
+        runner._task = _asyncio.create_task(runner._run())
+        for _ in range(150):
+            if runner.parked_gate == "approve":
+                break
+            await _asyncio.sleep(0.02)
+        assert runner.parked_gate == "approve"
+        awaiting = [e for e in runner._history if e["status"] == "awaiting_approval"][0]
+        shown_hash = awaiting["result"]["plan_hash"]
+
+        def take(node_id=None):
+            runner._last_decision_meta = {"by": "bro@example.com", "plan_hash": shown_hash}
+            return True
+
+        monkeypatch.setattr(runner, "_take_persisted_decision", take)
+        runner.resume(True)
+        await runner._task
+
+    _asyncio.run(scenario())
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+    authz = [e for e in runner._history if e["node"] == "authorize" and e["status"] == "completed"][0]
+    assert authz["result"]["data"]["minted"] is False
+    assert authz["result"]["data"]["mode"] == "DRY_RUN"
+    assert ledger_db().query(GovernanceLedger).filter_by(action="recover_authorization_attempted").count() == 1
