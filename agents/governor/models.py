@@ -18,7 +18,7 @@ class RequestedAction(BaseModel):
     """One preview-only action a plan asks the fleet to evaluate."""
 
     action_id: str
-    kind: Literal["compose_profile.preview", "crew.workflow.preview"]
+    kind: Literal["compose_profile.preview", "crew.workflow.preview", "container.restart"]
     profile: Optional[str] = None
 
 
