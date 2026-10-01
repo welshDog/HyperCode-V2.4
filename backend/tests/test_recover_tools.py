@@ -290,7 +290,15 @@ def test_operator_recover_flow_end_to_end(monkeypatch, ledger_db):
     async def fake_inspect(params, ctx=None):
         return {"ok": True, "attention": []}
 
+    async def fake_authorize(params, ctx=None):
+        # Phase 2b (`authorize`) is unrelated to this test's own concern (2a's seal). Stub the
+        # local tool itself rather than mock Governor's HTTP call, so this test never depends on
+        # Phase 2b's wire shape and the ledger-row-count assertion below stays scoped to `seal`'s
+        # own row — see test_authorize_tools.py for authorize's own real-runner e2e coverage.
+        return {"ok": True, "minted": False, "mode": "DRY_RUN", "verdict": {"decision": "ESCALATE"}}
+
     monkeypatch.setitem(tools.LOCAL_TOOLS, "local.inspect", fake_inspect)
+    monkeypatch.setitem(tools.LOCAL_TOOLS, "local.authorize", fake_authorize)
     runner, final = _runner_with_io(get_flow("operator-recover"), "e2e-run", monkeypatch)
 
     async def scenario():

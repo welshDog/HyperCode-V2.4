@@ -1,5 +1,6 @@
 # BROski operator: read-only recovery diagnosis. Proposes ONE allow-listed container restart for
-# human approval and seals the approved plan. Phase 2a executes nothing.
+# human approval, seals the approved plan, and requests a DRY_RUN capability from Governor (Phase
+# 2b) -- refused today by design (no grant exists yet). Phase 2a+2b execute nothing.
 # Run it: POST /api/v1/operator/tasks {"tool": "hypercode.recover", "arguments": {}}
 
 name: operator-recover
@@ -29,6 +30,10 @@ nodes:
     type: tool
     tool: local.recover_seal
 
+  - id: authorize
+    type: tool
+    tool: local.authorize
+
 edges:
   - from: inspect
     to: propose
@@ -37,3 +42,5 @@ edges:
     condition: true
   - from: approve
     to: seal
+  - from: seal
+    to: authorize

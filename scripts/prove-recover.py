@@ -128,9 +128,20 @@ def phaseA():
         check(code == 200, "approve with the shown plan_hash accepted")
         done = wait_for(tid, {"completed", "failed"})
         check(done["status"] == "completed", "run completed after approval")
-        rep = done["result"]["report"]
-        check(rep["sealed"] is True and rep["performed"] is False, "sealed with performed=false")
-        check(rep["plan_hash"] == good and rep["approved_by"], "sealed plan_hash matches; approver recorded")
+        check("seal" in done["result"]["nodes"], "seal ran")
+        check("authorize" in done["result"]["nodes"], "authorize ran as part of the flow")
+        authz = done["result"]["report"]
+        # Fix-round (final review, Important 2): restored -- `authz` (authorize's own result)
+        # echoes 2a's plan_hash verbatim, so this is the live proof's own binding check that
+        # what got sealed is exactly what the human approved (`good`), not just that `seal` ran.
+        # Dropped when this block was first adapted for authorize's output; report only proved
+        # authorize's own claims, never re-connected them back to 2a's approval.
+        check(authz["plan_hash"] == good, "authorize's plan_hash matches the hash the human approved")
+        check(authz["plan_hash"] != authz["governor_plan_hash"], "2a's hash and Governor's hash are never the same value")
+        check(authz["minted"] is False, "Governor refused to mint (no grant exists) -- the correct outcome")
+        check(authz["mode"] == "DRY_RUN", "requested mode was DRY_RUN")
+        check(authz["verdict"]["decision"] == "ESCALATE", "Shepherd verdict was ESCALATE")
+        check(authz["verdict"].get("risk_class") == "INFRASTRUCTURE_MUTATION", "risk class is INFRASTRUCTURE_MUTATION")
         db = SessionLocal()
         try:
             n = db.execute(
@@ -139,6 +150,14 @@ def phaseA():
         finally:
             db.close()
         check(n == 1, "exactly one Governance Ledger row for this run")
+        db = SessionLocal()
+        try:
+            n2 = db.execute(
+                text("SELECT count(*) FROM governance_ledger WHERE action='recover_authorization_attempted' "
+                     "AND payload->>'run_id' = :r"), {"r": tid}).scalar()
+        finally:
+            db.close()
+        check(n2 == 1, "exactly one authorize-attempt Governance Ledger row for this run")
         after = docker_state(TARGET)
         check(after == before, f"{TARGET} was NOT restarted (StartedAt/RestartCount unchanged)")
         r = httpx.get(f"{ROOT}/api/v1/flows/runs/{tid}", timeout=30)
@@ -177,7 +196,9 @@ def phaseB2(tid):
     code, _ = call("POST", f"/tasks/{tid}/input", json={"decision": "approve", "plan_hash": good})
     check(code == 200, "approval with the shown plan_hash accepted after the restart")
     done = wait_for(tid, {"completed", "failed"})
-    check(done["status"] == "completed" and done["result"]["report"]["sealed"] is True,
+    # Same fix as phaseA: `report` is overwritten by the LAST completed node's data, which is
+    # now `authorize` (no "sealed" key), not `seal` -- prove seal ran via `nodes` instead.
+    check(done["status"] == "completed" and "seal" in done["result"]["nodes"],
           "sealed after an approval that survived a core restart")
     check(docker_state(TARGET) is not None, f"{TARGET} untouched")
     print("PASS: phaseB2 complete")

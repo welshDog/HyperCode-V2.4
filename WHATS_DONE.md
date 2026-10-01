@@ -1,6 +1,92 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` built + live-proven incl. real MCP wire protocol, branch `feature/broski-recover-2a`, not yet merged
+> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
+
+## 2026-09-27 — BROski recover Phase 2b: authorize (fail-closed DRY_RUN, live-proven)
+
+Wires Phase 2a's sealed restart plan into the pre-existing Governor/Safety-Shepherd capability
+system: a new flow node, `authorize`, asks Governor to mint a `DRY_RUN` capability for the exact
+sealed restart — and, with today's policy configuration, is correctly refused by both layers
+(Governor's own `capabilities.json` grant doesn't cover this tool — see the correction below).
+**This proves the real wiring end-to-end on the real, already-live Governor/Shepherd services —
+nothing mints, nothing executes.** Branch `feature/broski-recover-2b` off `feature/broski-recover-2a`,
+PR #539 (based on `feature/broski-recover-2a`, not `main` — 2a merged to `main` as PR #538, `845a6d96`, after this branch was cut). Spec:
+`docs/superpowers/specs/2026-09-27-broski-recover-2b-design.md` (§9.1/§9.2 amendments =
+corrections + resolutions made during and after execution). Plan:
+`docs/superpowers/plans/2026-09-27-broski-recover-2b-authorize.md`. Built with subagent-driven
+development: 4 tasks, each spec+quality reviewed (1 fix round on Task 2 — 3 Important findings,
+all fixed; Task 3 hit a real pre-existing-test regression, ruled a plan gap and fixed by the
+controller, not the implementer; Task 4 Steps 1-2 code-only via subagent, Steps 3-8 controller-run
+live ops per the 2026-08-24 runaway-subagent-incident rule — never delegate unattended live ops).
+Final whole-branch review (opus) came back CHANGES_REQUESTED once: no code defect in the runtime
+security properties, but a real factual correction to the spec/this entry (below) plus one dropped
+live-proof assertion, both fixed and re-verified live before this entry was written.
+
+**Correction (found in final review, matters for any future grant decision):** Safety Shepherd's
+`/evaluate` is always called with the hardcoded identity `"governor"` (`agents/governor/shepherd_client.py`)
+— it never sees `"broski-operator"` at all; that field only feeds Governor's own two-person-approval
+check, never Shepherd's policy. `governor` already has a `capabilities.json` grant (two other
+tools) — the refusal is Shepherd's "tool not granted" rule, not "unknown agent." A future grant
+would have to go on `governor`'s own tools list, which is broader/riskier than originally described
+(any caller reaching Governor's mint endpoint, not just this operator). Full detail: spec §9.2.
+
+- `operator-recover`'s flow is now `inspect → propose → approve(gate) → seal → authorize`, an
+  unconditional 5th node. `authorize` builds a Governor-shaped plan for the sealed target
+  (`kind: "container.restart"`, a new literal added to Governor's own copy of `models.py`
+  only — fleet-controller's copy is untouched, confirmed by a real read-only parity test against
+  the actual file), computes Governor's own hash convention over it, and calls Governor's real
+  `POST /v1/capabilities/mint` with `mode: "DRY_RUN"`. It never talks to Docker, fleet-controller,
+  or Safety Shepherd directly — only Governor, which calls Shepherd internally as part of minting.
+- Two hashes stay clearly separate in the result and the ledger payload, never conflated: 2a's own
+  `plan_hash` (proves a human approved this specific restart) and `governor_plan_hash` (proves the
+  Governor-shaped request wasn't tampered with in transit) — pinned by a dedicated test that
+  checks each against its own independently computed expected value, not just that they differ.
+- A well-formed policy refusal (`minted: false`, verdict `ESCALATE`) completes the flow
+  successfully — `authorize`'s job is to ask and faithfully report, not force an outcome. A
+  **genuine** communication failure to Governor (unreachable, non-200, malformed/null-typed
+  response body) still fails the node, fail-closed, matching `agents/fleet-controller/safety_client.py`'s
+  stance — deliberately tested (`test_authorize_connection_failure_raises_not_a_fake_refusal`) so
+  a network blip can never be silently reported as if Governor had genuinely decided something.
+- New Governance Ledger action `recover_authorization_attempted` (distinct from 2a's
+  `recover_plan_approved`), fail-soft exactly like 2a's `_write_ledger` (a ledger failure never
+  blocks `authorize`'s own result).
+- **Tests:** 19 new in `test_authorize_tools.py` (including its own flow-integration tests added
+  alongside Task 3), all real assertions (hash-parity against the actual `agents/governor/models.py`
+  file, a full real-runner e2e through approval to `COMPLETED`, an AST-parsed check that the module
+  imports nothing Docker-shaped — doesn't cover aliased/dynamic imports, a known deferred gap, not
+  an absolute guarantee). Full 43-file backend regression (Phase 1 + 2a + 2b): 0 failures, run in
+  RAM-safe chunks on this 4GB-ceiling box. Governor's own 101-test suite also reran clean.
+- **Deploy (live, this box, 4GB):** `governor` built fresh (never built on this box before) and
+  started alone via `--no-deps` — resolving this plan's own open empirical question: the bare
+  2-file compose set fails at `depends_on: safety-shepherd` resolution (only *defined* in
+  `docker-compose.agents.yml`, profile-gated), so the full 3-file set + `--profile agents --profile
+  fleet` was needed for compose to resolve the reference, but `--no-deps` on `up` still correctly
+  started only `governor` — confirmed `fleet-controller` did **not** also start. Healthy in 27s.
+  `hypercode-core` rebuilt (only its image changed) + recreated (`up -d --no-deps`, never
+  `--force-recreate`), healthy in ~12s. Both restarts=0, oom=false throughout.
+- **Live proof, real containers and real Governor/Shepherd, no mocks**
+  (`scripts/prove-recover.py phaseA`, extended in this increment, run inside `hypercode-core`,
+  rerun after the final review's fix round below): **all 29 lines PASS**, including the pipeline's
+  core claim — a real round-trip through Governor to Shepherd and back returned `minted: false`,
+  `mode: "DRY_RUN"`, `verdict.decision: "ESCALATE"`, `verdict.risk_class: "INFRASTRUCTURE_MUTATION"`,
+  and exactly one `recover_authorization_attempted` Governance Ledger row for the run — alongside
+  every one of 2a's original assertions (proposal correctness, hash-mismatch/missing-hash
+  rejection, no protected container ever eligible, the legacy endpoint leaking nothing, reject
+  sealing nothing) **plus two restored assertions the final review caught missing on the first
+  live run**: `authorize`'s own `plan_hash` matches the hash the human actually approved, and 2a's
+  hash is never equal to Governor's hash — the live run's own proof of the hash-separation claim
+  above, not just a unit-test claim. The target container's `StartedAt`/`RestartCount` were
+  unchanged throughout — **nothing was restarted, nothing was minted, nothing was executed.** RAM
+  stayed at 2.0-2.1GB available the whole session (host ceiling 3.9GB total). A bug in
+  `scripts/prove-recover.py`'s `phaseB2()` (Phase 2a's own restart-recovery proof), broken by the
+  same node reshuffle, was found and fixed as part of this work — see the spec's §9.1 amendments.
+- **Not done:** no capability was ever minted, by design — the pipeline's fail-closed behavior is
+  what this increment proves, not a working restart authorization. Whether to add
+  `container.restart` to `governor`'s own `capabilities.json` grant (the real lever, per the
+  correction above — not a per-operator identity, which Shepherd never evaluates), and how the
+  two-person-approval rule gets satisfied on a single-operator setup, remain open decisions for a
+  later, separate spec. Pushed, PR #539 open for review (base `feature/broski-recover-2a`,
+  itself now merged to `main` as #538) — no merge yet, awaiting Bro's review.
 
 ## 2026-09-27 — BROski Phase 2a: hypercode.recover (zero-mutation restart proposal, live-proven incl. MCP)
 
@@ -10,7 +96,7 @@ Reads live Docker state through the read-only socket proxy, applies default-deny
 container restart, shows a superuser the exact plan bound to a `plan_hash`, requires that exact
 hash back to approve, and **seals** the approved plan (recomputes the hash, verifies the
 approver, writes one Governance Ledger row) — **without ever restarting anything**. Branch
-`feature/broski-recover-2a` (not yet merged). Spec:
+`feature/broski-recover-2a`, MERGED to `main` 2026-09-27 as PR #538 (`845a6d96`). Spec:
 `docs/superpowers/specs/2026-09-27-broski-recover-design.md` (§9 amendments = decisions +
 corrections made during execution). Plan:
 `docs/superpowers/plans/2026-09-27-broski-recover-2a.md`. Built with subagent-driven
