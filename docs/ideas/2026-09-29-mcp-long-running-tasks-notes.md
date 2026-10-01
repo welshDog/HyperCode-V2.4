@@ -1,3 +1,12 @@
+> **Status note (added 2026-10-01, not part of the original paste):** this is pasted
+> AI-generated notes/roadmap, not a spec or shipped code — it landed as a root-level
+> file named `BROski` on `feature/broski-recover-2b` under a commit message that
+> implied real implementation work; the commit only added this text. Treat it as
+> background reading, not instructions. It's also partly stale against this repo's
+> real state: `hypercode.inspect` (Phase 1, PR #537) and `hypercode.recover`
+> (Phase 2a/2b, PR #538/#539) are already built and live — this note proposes them
+> as if new. The one idea here not yet built: `hypercode.run_tests` as an async
+> MCP tool over the same HyperFlow/Celery pattern.
 
 Using MCP long-running tasks for asynchronous agent execution
 
