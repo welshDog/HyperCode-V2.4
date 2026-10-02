@@ -4,16 +4,11 @@ import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.agents.hyperflow.registry import get_flow
 from app.api.v1.endpoints import operator_tasks
 from app.crew import dispatch as crew_dispatch
-from app.crew import tools as crew_tools
 from app.crew.evidence import sha256_hex
-from app.crew.slots import SlotGate, set_slot_gate
 from app.main import app
 from app.models.governance import GovernanceLedger
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -225,25 +220,6 @@ def test_a_non_superuser_cannot_approve(client, db):
 
 
 # ── the real runner, real flow, real tools ─────────────────────────────────────
-@pytest.fixture
-def ledger_db(monkeypatch):
-    eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    GovernanceLedger.__table__.create(bind=eng)
-    factory = sessionmaker(bind=eng, autoflush=False, autocommit=False)
-    monkeypatch.setattr(crew_tools, "SessionLocal", factory)
-    yield factory
-    eng.dispose()
-
-
-@pytest.fixture
-def slot_gate():
-    """A fresh, RAM-check-free gate so tests don't depend on the host's memory."""
-    gate = SlotGate(cap=3, min_available_mb=0, poll_s=0.005)
-    set_slot_gate(gate)
-    yield gate
-    set_slot_gate(None)
-
-
 GOOD_BUILD = "```diff\n+def health():\n+    return {'ok': True}\n```"
 
 

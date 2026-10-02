@@ -95,3 +95,31 @@ def hf_db(monkeypatch):
     monkeypatch.setattr("app.broski_operator.recovery.SessionLocal", factory)
     yield factory
     eng.dispose()
+
+
+# ── HyperCrew test fixtures (shared by test_crew_*.py) ──────────────────────────
+@pytest.fixture
+def ledger_db(monkeypatch):
+    """An in-memory Governance Ledger the crew tools write to."""
+    from sqlalchemy.pool import StaticPool
+
+    from app.crew import tools as crew_tools
+    from app.models.governance import GovernanceLedger
+
+    eng = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    GovernanceLedger.__table__.create(bind=eng)
+    factory = sessionmaker(bind=eng, autoflush=False, autocommit=False)
+    monkeypatch.setattr(crew_tools, "SessionLocal", factory)
+    yield factory
+    eng.dispose()
+
+
+@pytest.fixture
+def slot_gate():
+    """A fresh, RAM-check-free slot gate so tests don't depend on the host's memory."""
+    from app.crew.slots import SlotGate, set_slot_gate
+
+    gate = SlotGate(cap=3, min_available_mb=0, poll_s=0.005)
+    set_slot_gate(gate)
+    yield gate
+    set_slot_gate(None)

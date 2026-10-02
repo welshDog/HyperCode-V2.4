@@ -19,7 +19,7 @@ import re
 import uuid
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,8 @@ from app.agents.hyperflow_runner import get_runner, start_flow_run
 from app.api import deps
 from app.broski_operator.catalog import TOOL_FLOWS, ArgumentError, tool_for_flow, validate_arguments
 from app.broski_operator.runs import finish_run_row, store_decision
+from app.crew import agui as crew_agui
+from app.crew.cards import calm_card_for_run
 from app.broski_operator.status import (
     TERMINAL_RUN_STATUSES,
     build_result,
@@ -260,6 +262,36 @@ def get_task(
     _principal: dict = Depends(operator_principal),
 ) -> Any:
     return _serialize(_get_run(db, task_id))
+
+
+@router.get("/tasks/{task_id}/events")
+def get_task_events(
+    task_id: str,
+    after: int = Query(-1, ge=-1, description="Last sequence number the client already has"),
+    db: Session = Depends(get_db),
+    _principal: dict = Depends(operator_principal),
+) -> Any:
+    """AG-UI-shaped events for a task, plus a Calm Card. Replay = ask again with the last seq."""
+    run = _get_run(db, task_id)
+    state = run.state or {}
+    history = state.get("history", [])
+    task_status = to_task_status(run.status)
+    every = crew_agui.history_to_events(run.id, history)
+    fresh = crew_agui.events_after(every, after)
+    card = calm_card_for_run(
+        run_id=run.id, run_status=run.status, history=history, current_node=run.current_node,
+        error=state.get("error"), at_gate=_parked_gate(run) is not None,
+    )
+    return {
+        "taskId": run.id,
+        "events": fresh,
+        "nextAfter": fresh[-1]["seq"] if fresh else after,
+        "done": run.status in TERMINAL_RUN_STATUSES,
+        "status": task_status,
+        "now": crew_agui.node_label(run.current_node) if task_status == "working" else None,
+        "calmCard": card.model_dump(),
+        "pollInterval": poll_interval_ms(task_status),
+    }
 
 
 def _locked_run(db: Session, task_id: str) -> HyperFlowRun:
