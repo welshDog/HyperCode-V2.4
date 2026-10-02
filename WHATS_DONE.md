@@ -2,6 +2,63 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 (late) → 2026-10-03 — HyperCrew FIRST DOCKER RUN: deployed, proven, 2 real bugs found + fixed (happy path NOT yet run)
+
+Branch `claude/focused-darwin-ljrs8k` (draft PR #547). Run live, in front of Lyndz, one step at a time. **Shell was Git Bash**
+(runbook commands worked as written; only path-mangling needed `MSYS_NO_PATHCONV=1`).
+
+- **Step 0 — pre-flight:** STOP RULE HIT. `free -m` in WSL showed **853 MB available** (< 1.2 GB), 12 observability containers up,
+  core/dashboard had been recreated minutes earlier. Stopped the 12 obs containers by name (`docker stop`, **not** `compose down`);
+  9 threw "zombie, can not be killed" errors yet RAM rose to **1575 → ~2050 MB**. Core was slow-booting (alembic first), not stuck.
+- **Step 1 — rebuild + swap:** `docker compose build hypercode-core` (238 s) then `dashboard`, `up -d --no-deps hypercode-core dashboard`.
+  Both **healthy, RestartCount 0, OOMKilled false**; new image `971e97bb…` running; `app/crew/` present in core; `/sensory` 404 → 200.
+- **Step 2 — migration:** `alembic current` = **`023 (head)`**, single head, `quest_settlements` = **True**. Applied on boot
+  (`backend/Dockerfile` runs `alembic upgrade head && uvicorn`).
+- **Step 3 — Safety Shepherd:** healthy. Replayed what core sends for `build` (coder-agent), `verify` (qa-engineer), `publish`:
+  all three **ALLOW**, rule `default_allow`. (Thin default — Shepherd is not checking anything crew-specific. Note: core's env also has a
+  harmless misspelt duplicate `SAFTY_SHEPHERD_MODE=monitor`.)
+- **Step 4 — `scripts/prove-crew.py`:** `PHASE0 PASS` (29/29) · phase1 3/3 PASS, parked `8423ec95-…` · real `docker restart hypercode-core`
+  (healthy < 60 s, RestartCount 0) · **`PHASE2 PASS`** (9/9): recovered at the plan gate, same events, no duplicate approval, same task on
+  retried start, plan sealed, then **FAILED CLOSED** (`orchestrator returned HTTP 500`) — the FAILED-CLOSED branch, not COMPLETED.
+- **Step 5 — dashboard `/ide` (browser): 5/5 pass** after the auth fix below. Where was I? = "Done", green, one Next; Pause everything
+  = "Nothing was running. You are all clear." (the "Saved… / Paused (n)" text needs a running run — **not proven live**); Start focus =
+  "Focus: 24:58 left" + End focus, More tools folds away; `/sensory` presets Calm/Focus/Energise, Calm default; Crew run Calm Card =
+  "Blocked… Stopped: orchestrator returned HTTP 500" (the pre-fix run, rendered plainly).
+
+**Real bugs found on this first Docker run (both fixed + pushed):**
+1. **`crew-orchestrator` `/execute` returned HTTP 500 on EVERY dispatch** — `main.py:546-547` used `from . import dispatch_capability` /
+   `safety_client`, but the container runs `uvicorn main:app` (no parent package) → `ImportError`. Pre-dates HyperCrew (commit
+   `e814c41f`, 2026-09-01, also on `main`). Fix `b44c2505`: same try/except fallback the rest of the file uses + regression test that
+   fails with the exact production error without the fix. 26 related tests pass. Source is bind-mounted so one `docker restart
+   crew-orchestrator` sufficed (no rebuild).
+2. **Dashboard had no credential core accepts.** Compose set `DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY}` (an opaque key). Core's
+   `operator_principal` takes only a human JWT (Bearer) or a registered agent key (X-Agent-Key); the master key is neither (401/403),
+   so Morning Card, Pause everything and the crew Calm Card all 502'd. Sandbox tests mocked auth. Fix `9f8b06b7`: a **30-day JWT** for the
+   owner superuser (user 9), minted inside core into gitignored `secrets/dashboard_service_jwt.txt`, mounted as a Docker secret,
+   `DASHBOARD_SERVICE_JWT_FILE=/run/secrets/dashboard_service_jwt`, env var removed (code reads env before file). Verified live:
+   morning/panic 502 → 200, `ops/dlq` + `dlq/stats` 403 → 200, tasks/agents/metrics/ws-token unchanged. **Expires ~2026-11-01 — rotate.**
+
+**Differences from the runbook:** `free -m` must be `wsl -e free -m` on this host · obs stack was running by default and had to be
+stopped first · service names `hypercode-core`/`dashboard` are correct, no profile needed (`docker-compose.yml` `include:`s the others;
+obs services are `profiles: ["observability"]`) · core boots fast (< 30 s) when RAM is free · Pause text differs when nothing runs ·
+the dashboard needs the JWT secret (new runbook §8).
+
+**RAM:** 853 MB (start, obs up) → ~2050 MB after stopping obs → 1917 MB at wrap-up. **RestartCount 0 and OOMKilled false** for
+hypercode-core, hypercode-dashboard, crew-orchestrator, safety-shepherd.
+
+**⚠️ Security incident (disclosed live):** a `docker compose config | grep` printed the `.env` `DASHBOARD_SERVICE_JWT` value into this
+session's transcript. It is a **10-year (exp 2036) admin JWT for user 9** (superuser). Compose also injects it into `hypercode-core` and
+**`postgres`** (looks accidental). A JWT cannot be revoked singly; the fix is rotating `JWT_SECRET` (invalidates every token incl. the new
+30-day one). **Not done — needs Lyndz's decision.** Always use `docker compose config -q` or name-only filters.
+
+**Not done / not proven:**
+- **The happy path** (`build` → `verify` → guard ALLOW → settle/XP → Scribe) has **never run**: no `coder-agent`/`qa-engineer` containers;
+  orchestrator reports 11 agents down. Not started (not asked).
+- Second Shepherd path `safety_client.check_dispatch` (strict, for mutation agents like `coder-agent`) never run live.
+- Real GitHub, kill-switch compose wiring, dashboard-side approval, D1–D12 decisions: unchanged, still open.
+- `tests/test_safety_contract.py` in crew-orchestrator can't be collected (`No module named 'safety_contract'`) — not investigated.
+- Obs stack (12 containers) left **stopped** — restart is Lyndz's call (RAM).
+
 ## 2026-10-02 — HyperCrew Day 10: chaos + hardening, runbook, handover (sandbox + local-process PASS; Docker NOT run)
 
 - **Contradiction surfaced and fixed — Safety Shepherd down:** the design says fail-closed, but the HyperFlow runner

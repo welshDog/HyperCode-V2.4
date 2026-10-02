@@ -4,7 +4,19 @@
 
 ---
 
-## 🏗️ LATEST — HyperStudio: the agent write path (2026-07-10)
+## ⚠️ STALENESS NOTICE (2026-10-03)
+> The "Last synced May 5, 2026" header above and the sections below it are **old**. Known stale: "Alembic up to 009" (now **`023`**), "48 containers",
+> the `H:\HyperStation zone\...` path (now `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`), "Phase 10U" as next, and the `-f docker-compose.secrets.yml`
+> start command (the running stack uses plain `docker-compose.yml`, which `include:`s the rest). **`WHATS_DONE.md` and the newest `docs/NEXT_SESSION_HANDOVER_*.md` win.**
+
+## 🏗️ LATEST — HyperCrew deployed on Docker (2026-10-03)
+- Multi-agent crew + Calm Mode/Panic/Focus/Quest Settler/Scribe/Morning Card, branch `claude/focused-darwin-ljrs8k` (draft PR #547). Migration **`023`** applied; `prove-crew.py` phases 0/1/2 PASS; dashboard `/ide` 5/5.
+- **Found + fixed on the first Docker run:** (1) `crew-orchestrator` `/execute` 500 on every call (relative import, `b44c2505`); (2) dashboard had no credential core accepts (`9f8b06b7`, now a 30-day JWT secret, **expires ~2026-11-01**).
+- **Not proven:** the happy path (agents not running). **Open:** rotate `JWT_SECRET` (a 10-year admin JWT was exposed in a transcript). Next task + gotchas: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+
+---
+
+## 🏗️ HyperStudio: the agent write path (2026-07-10)
 > The newest thing built. Full detail in `WHATS_DONE.md` + memory `[[hyperstudio-worktree-sandbox]]`.
 
 - **What it is:** a place in the dashboard (`/ide`) where you hand an AI agent a coding task, it works in a **throwaway git worktree**, every action is gated by **Safety Shepherd** (fail-CLOSED), you review a **diff**, and **nothing lands until you click merge**. Closes the gap that agents could *talk about* code but never *write* it.

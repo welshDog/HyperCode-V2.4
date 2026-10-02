@@ -1,7 +1,7 @@
 # 🧠 CLAUDE.md — HyperCode-V2.4 Constitution
 > **For ANY AI, agent, or human working on HyperCode-V2.4.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **Updated 2026-08-19**
+> Built by @welshDog — **Updated 2026-10-03** (HyperCrew section added; the 27-agent tables below are still the Aug 2026 snapshot)
 
 ---
 
@@ -24,6 +24,23 @@
 5. This file (`CLAUDE.md`) → **HyperCode-specific gotchas**
 
 > ⚠️ **Conflict rule:** Live status beats this file. `WHATS_DONE.md` beats everything. **Newest always wins.**
+
+---
+
+## 🧠 HyperCrew — DEPLOYED 2026-10-03 (read `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` first)
+
+- Flow `hypercode.crew` (plan → approve → seal → build → verify → guard → settle → scribe → approve → publish) + Calm Mode,
+  Panic/Focus, Quest Settler, Scribe, Morning Card. Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Runbook: `docs/HYPERCREW_DOCKER_RUNBOOK.md`.
+- **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
+  **Not proven:** the happy path — `coder-agent`/`qa-engineer` aren't running, so a live run FAILS CLOSED. Crew steps also fail closed if Shepherd is down.
+- **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
+  not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.
+- **Dashboard → core auth:** `/operator/*` needs a human JWT (Bearer) or agent key (X-Agent-Key), **never** the master API key. The dashboard
+  reads a 30-day JWT from `secrets/dashboard_service_jwt.txt` (`DASHBOARD_SERVICE_JWT_FILE`; env var must stay unset). **Expires ~2026-11-01.**
+- **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
+  (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
+  `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.
+- **Open security item:** a 10-year admin JWT (`.env` line 214, user 9) was exposed in a session transcript 2026-10-03; rotate `JWT_SECRET` (needs a decision).
 
 ---
 
