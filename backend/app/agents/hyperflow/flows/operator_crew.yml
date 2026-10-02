@@ -1,11 +1,13 @@
-# HyperCrew Day 2: the plan gate. The goal is bound to the fixed crew stages + constraints, shown to
-# a human with a plan_hash, and sealed on approval. Nothing is built or mutated yet (Day 3+).
+# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3).
+# The goal is bound to the fixed crew stages + constraints, shown to a human with a plan_hash and
+# sealed on approval. Then the builder PROPOSES a diff, the verifier reviews it, and the guard decides
+# ALLOW/BLOCK from deterministic checks. Nothing is written, built or deployed: agents only return text.
 # Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
 
 name: hypercode-crew
-version: 1
+version: 2
 entry: plan
-intent: "HyperCrew plan gate binding a build goal to the fixed crew stages and constraints for human approval without building anything"
+intent: "HyperCrew plan gate then propose-only build verify and guard stages for a build goal without writing or deploying anything"
 
 nodes:
   - id: plan
@@ -19,12 +21,36 @@ nodes:
   - id: approve
     type: human_approval_gate
     params:
-      prompt: "Approve this crew plan? Day 2 only records the approval; nothing is built."
+      prompt: "Approve this crew plan? Agents will only PROPOSE a change as text; nothing is written or deployed."
       show_from: plan
 
   - id: seal
     type: tool
     tool: local.crew_seal
+
+  # Proposal only: re-running after a restart costs tokens but changes nothing, so it is safe.
+  - id: build
+    type: agent_dispatch
+    agent: coder-agent
+    idempotent: true
+    params:
+      stage: build
+      role: builder
+
+  - id: verify
+    type: agent_dispatch
+    agent: qa-engineer
+    idempotent: true
+    params:
+      stage: verify
+      role: verifier
+      input_from: build
+
+  - id: guard
+    type: tool
+    tool: local.crew_guard
+    idempotent: true
+    success_key: allowed
 
 edges:
   - from: plan
@@ -32,3 +58,9 @@ edges:
     condition: true
   - from: approve
     to: seal
+  - from: seal
+    to: build
+  - from: build
+    to: verify
+  - from: verify
+    to: guard

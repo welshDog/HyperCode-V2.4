@@ -11,7 +11,7 @@ not code work, so it is the wrong planner for a build goal.
 from __future__ import annotations
 
 import re
-from typing import Any, Literal, get_args
+from typing import Any, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

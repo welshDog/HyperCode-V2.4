@@ -3,7 +3,8 @@
 The runner executes a :class:`~app.agents.hyperflow.schema.FlowDefinition` as an
 in-core asyncio task inside hypercode-core. Per node it:
 
-  * dispatches ``agent_role`` / ``tool`` nodes to the crew-orchestrator
+  * dispatches ``agent_role`` / ``tool`` nodes to the crew-orchestrator (``agent_dispatch``
+    is the strict, slot-gated variant used by HyperCrew),
     (``settings.ORCHESTRATOR_URL/execute``), mirroring the dispatch pattern in
     ``app.api.v1.endpoints.orchestrator``;
   * suspends at ``human_approval_gate`` nodes until a human resumes the run;
@@ -33,6 +34,8 @@ import redis.asyncio as aioredis
 
 from app.agents.hyperflow.schema import FlowDefinition, FlowNode, NodeType
 from app.broski_operator.tools import LOCAL_TOOLS
+from app.crew import dispatch as crew_dispatch
+from app.crew.slots import SlotUnavailable, get_slot_gate, slot_timeout_s
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -207,7 +210,10 @@ class HyperFlowRunner:
                 emit_result: dict[str, Any] = {"success": success}
                 if result.get("mocked"):
                     emit_result["mocked"] = True
-                if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS and "data" in result:
+                if "data" in result and (
+                    node.type is NodeType.AGENT_DISPATCH
+                    or (node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS)
+                ):
                     emit_result["data"] = result["data"]
                 if node.type is NodeType.HUMAN_APPROVAL_GATE:
                     for key in ("approved", "by", "plan_hash"):
@@ -253,9 +259,44 @@ class HyperFlowRunner:
             return await self._await_approval(node)
         # P0-2: consult Safety Shepherd before any agent/tool dispatch.
         await self._safety_gate(node)
+        if node.type is NodeType.AGENT_DISPATCH:
+            return await self._run_agent_dispatch(node)
         if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS:
             return await self._run_local_tool(node)
         return await self._dispatch(node)
+
+    async def _run_agent_dispatch(self, node: FlowNode) -> dict[str, Any]:
+        """One crew stage → one allow-listed agent, inside a RAM-gated slot. Never mocked."""
+        sealed = self._last_tool_data("seal") or {}
+        plan = sealed.get("plan")
+        if not isinstance(plan, dict):
+            raise RuntimeError("crew dispatch needs a sealed plan")
+        stage = str(node.params.get("stage", ""))
+        role = str(node.params.get("role", ""))
+        prior_summary: Optional[str] = None
+        source = node.params.get("input_from")
+        if source:
+            prior_summary = (self._last_tool_data(str(source)) or {}).get("summary")
+            if not isinstance(prior_summary, str) or not prior_summary:
+                raise RuntimeError(f"crew dispatch is missing the output of '{source}'")
+        try:
+            task = crew_dispatch.build_task(stage, plan, prior_summary)
+            async with get_slot_gate().slot(slot_timeout_s()) as ticket:
+                data = await crew_dispatch.dispatch_to_agent(
+                    orchestrator_url=settings.ORCHESTRATOR_URL,
+                    headers=_orchestrator_headers(),
+                    agent=str(node.agent),
+                    role=role,
+                    stage=stage,
+                    run_id=self.run_id,
+                    node=node.id,
+                    task=task,
+                )
+        except (crew_dispatch.DispatchError, SlotUnavailable) as exc:
+            raise RuntimeError(str(exc)) from None
+        data["slot_wait_ms"] = ticket.wait_ms
+        data["ram_available_mb"] = ticket.available_mb
+        return {"ok": True, "green": True, "data": data}
 
     async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
         """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""

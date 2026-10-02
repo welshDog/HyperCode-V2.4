@@ -7,6 +7,8 @@ human-approval gates.
 
 Node types
     agent_role          — dispatch to a named agent via the orchestrator
+    agent_dispatch      — strict, slot-gated, propose-only dispatch of one crew stage
+                          (no mocked results; see app.crew.dispatch)
     tool                — dispatch a named tool action via the orchestrator
     human_approval_gate — suspend the run until a human resumes it
 
@@ -29,6 +31,7 @@ from pydantic import BaseModel, Field, model_validator
 
 class NodeType(str, enum.Enum):
     AGENT_ROLE = "agent_role"
+    AGENT_DISPATCH = "agent_dispatch"
     TOOL = "tool"
     HUMAN_APPROVAL_GATE = "human_approval_gate"
 
@@ -73,6 +76,8 @@ class FlowNode(BaseModel):
     def _check_ref(self) -> "FlowNode":
         if self.type is NodeType.AGENT_ROLE and not self.agent:
             raise ValueError(f"node '{self.id}': agent_role requires 'agent'")
+        if self.type is NodeType.AGENT_DISPATCH and not self.agent:
+            raise ValueError(f"node '{self.id}': agent_dispatch requires 'agent'")
         if self.type is NodeType.TOOL and not self.tool:
             raise ValueError(f"node '{self.id}': tool requires 'tool'")
         return self

@@ -2,6 +2,38 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 3: `agent_dispatch`, build/verify/guard, evidence bundle, RAM slot gate
+
+`hypercode-crew` is now v2: `plan → approve → seal → build → verify → guard`. Agents only **propose text** — nothing is
+written, run, built or deployed. Files: `backend/app/crew/{dispatch,slots,evidence,redaction}.py`, `crew_guard` in
+`crew/tools.py`, new HyperFlow node type `agent_dispatch` (schema + runner), `flows/operator_crew.yml`.
+
+- **`agent_dispatch` is strict on purpose.** The generic `_dispatch` mocks a green result when the orchestrator is
+  unreachable and treats `blocked`/`rejected`/`timeout` as success (it only raises on `error`). A crew stage that "passes"
+  because nothing ran would let verify/guard approve nothing, so the new path raises on anything but a real
+  `status: completed` result for the requested agent (mocked, empty, wrong shape, HTTP error, unreachable = run fails).
+  Agents come from a static registry (`builder → coder-agent`, `verifier → qa-engineer`); the model never picks one.
+- **Slot gate (`slots.py`)**: max 3 awake (hard ceiling), plus a free-RAM floor (`MemAvailable` ≥ 1200 MB, matching the
+  documented rule). A 4th agent waits, then fails closed (`CREW_SLOT_TIMEOUT_S`, default 120). Unreadable RAM falls back to
+  the cap alone. Env: `CREW_MAX_AWAKE`, `CREW_MIN_AVAILABLE_MB` (0 disables the RAM check), `CREW_SLOT_TIMEOUT_S`. Slots are
+  released on error and on cancel. In-process only (core runs flows in one asyncio loop).
+- **Guard (`crew_guard`)**: deterministic ALLOW/BLOCK from six checks (plan sealed, plan non-mutating, build present, no
+  forbidden command in the proposal, verify present, verifier `VERDICT: PASS`). A missing/unreadable verdict is a BLOCK, never
+  assumed PASS. BLOCK is reported (`allowed: false`), not raised. The forbidden-command list is a tripwire over text, not a
+  sandbox. Output includes an evidence bundle (sha256 pointers to the build/verify outputs + the plan hash, with its own hash).
+- **Redaction (`redaction.py`)** applied to every agent result before it enters history/evidence (key shapes from the AG-UI
+  adapter research + the repo's `scrub_text`). Stored summaries are capped at 4000 chars; legacy unauthenticated flow GETs
+  still strip `result.data`.
+- **Found while testing:** the `--force` tripwire matched `--force-color`; tightened.
+- **Not done / honest limits:** nothing live-proven (needs a `hypercode-core` rebuild); the Safety Shepherd's behaviour on
+  `agent_dispatch` nodes in `enforce` mode is unverified (they use the generic category); the 1200 MB default floor may
+  block dispatch on this box if free RAM sits below it — tune `CREW_MIN_AVAILABLE_MB`; the verifier's PASS/FAIL is the model's
+  word until the Day 8 Reviewer gate; no human *review* gate yet (Day 5+).
+- **Doc drift spotted:** `NEXT_TASKS.md` N13 ("wire dispatch-seam card (c)") says next-up, but `crew-orchestrator/main.py`
+  already calls `needs_strict_path()` + `check_dispatch()` (record-only). Not touched; worth reconciling.
+- **Tests:** 135 new (`test_crew_{redaction,slots,dispatch,guard}.py` + extended flow/API/e2e). Full `backend/tests`: 873
+  passed, 4 failed — the same 4 pre-existing failures as `main`. `mypy app/crew` clean.
+
 ## 2026-10-02 — HyperCrew Day 2: `hypercode.crew` plan gate + operator `idempotency_key`
 
 New operator tool `hypercode.crew` (flow `hypercode-crew`: `plan → approve(gate) → seal`). Takes `{"goal": "..."}`,

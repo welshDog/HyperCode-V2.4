@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.broski_operator.recover_tools import _last_data, _last_result
+from app.crew.dispatch import parse_verdict, scan_forbidden
+from app.crew.evidence import build_bundle, evidence_for
 from app.crew.plan import CrewStartArgs, build_crew_plan, crew_plan_hash
 from app.db.session import SessionLocal
 from app.models.governance import GovernanceLedger
@@ -122,4 +124,69 @@ async def crew_seal(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, An
         "approved_by": str(approver),
         "ledger": bool(ledger_ok),
         "note": "plan approved and recorded; no build stage exists yet",
+    }
+
+
+_SEAL_NODE = "seal"
+_BUILD_NODE = "build"
+_VERIFY_NODE = "verify"
+
+
+def _str_of(data: dict[str, Any], key: str) -> str:
+    value = data.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _dict_of(data: dict[str, Any], key: str) -> dict[str, Any]:
+    value = data.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _check(name: str, passed: bool, detail: str) -> dict[str, Any]:
+    return {"name": name, "passed": bool(passed), "detail": detail}
+
+
+async def crew_guard(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, Any]:
+    """Guardian: decide ALLOW/BLOCK on what the crew produced. Deterministic, executes nothing.
+
+    Fails closed — a missing stage, an unreadable verdict or any tripwire hit is a BLOCK, and a
+    BLOCK is reported (``allowed: false``), not raised, so the human sees exactly why.
+    """
+    history = (ctx or {}).get("history", [])
+    run_id = str((ctx or {}).get("run_id", ""))
+    sealed = _last_data(history, _SEAL_NODE) or {}
+    build = _last_data(history, _BUILD_NODE) or {}
+    verify = _last_data(history, _VERIFY_NODE) or {}
+    plan = _dict_of(sealed, "plan")
+    plan_hash = _str_of(sealed, "plan_hash")
+    build_text = _str_of(build, "summary")
+    verify_text = _str_of(verify, "summary")
+
+    hits = scan_forbidden(build_text)
+    verdict = parse_verdict(verify_text)
+    checks = [
+        _check("plan_sealed", sealed.get("sealed") is True and bool(plan_hash), "approved plan is sealed"),
+        _check("plan_non_mutating", plan.get("risk_hint") != "mutation", "plan risk hint is not 'mutation'"),
+        _check("build_present", bool(build_text.strip()), "builder returned a proposal"),
+        _check("build_clean", not hits, "no forbidden command in the proposal" if not hits
+               else "proposal contains: " + ", ".join(hits)),
+        _check("verify_present", bool(verify_text.strip()), "verifier returned a review"),
+        _check("verifier_verdict", verdict == "PASS", f"verifier verdict: {verdict}"),
+    ]
+    failed = [c["name"] for c in checks if not c["passed"]]
+    allowed = not failed
+
+    items = []
+    if build_text:
+        items.append(evidence_for("diff", run_id, _BUILD_NODE, build_text))
+    if verify_text:
+        items.append(evidence_for("log", run_id, _VERIFY_NODE, verify_text))
+    return {
+        "ok": True,
+        "allowed": allowed,
+        "verdict": "ALLOW" if allowed else "BLOCK",
+        "failed_checks": failed,
+        "checks": checks,
+        "evidence_bundle": build_bundle(run_id, plan_hash, items),
+        "performed": False,
     }

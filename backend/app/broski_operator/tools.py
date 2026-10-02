@@ -158,7 +158,8 @@ from app.broski_operator.authorize_tools import authorize  # noqa: E402
 
 LOCAL_TOOLS["local.authorize"] = authorize
 
-from app.crew.tools import crew_plan, crew_seal  # noqa: E402
+from app.crew.tools import crew_guard, crew_plan, crew_seal  # noqa: E402
 
 LOCAL_TOOLS["local.crew_plan"] = crew_plan
 LOCAL_TOOLS["local.crew_seal"] = crew_seal
+LOCAL_TOOLS["local.crew_guard"] = crew_guard

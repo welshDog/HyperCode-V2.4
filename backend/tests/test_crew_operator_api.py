@@ -10,7 +10,10 @@ from sqlalchemy.pool import StaticPool
 
 from app.agents.hyperflow.registry import get_flow
 from app.api.v1.endpoints import operator_tasks
+from app.crew import dispatch as crew_dispatch
 from app.crew import tools as crew_tools
+from app.crew.evidence import sha256_hex
+from app.crew.slots import SlotGate, set_slot_gate
 from app.main import app
 from app.models.governance import GovernanceLedger
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -232,9 +235,34 @@ def ledger_db(monkeypatch):
     eng.dispose()
 
 
-def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None):
+@pytest.fixture
+def slot_gate():
+    """A fresh, RAM-check-free gate so tests don't depend on the host's memory."""
+    gate = SlotGate(cap=3, min_available_mb=0, poll_s=0.005)
+    set_slot_gate(gate)
+    yield gate
+    set_slot_gate(None)
+
+
+GOOD_BUILD = "```diff\n+def health():\n+    return {'ok': True}\n```"
+
+
+def _fake_dispatch(build=GOOD_BUILD, verify="Fine.\nVERDICT: PASS", error=None, calls=None):
+    async def fake(**kw):
+        if calls is not None:
+            calls.append(kw)
+        if error is not None:
+            raise error
+        text = build if kw["stage"] == "build" else verify
+        return {"ok": True, "agent": kw["agent"], "role": kw["role"], "stage": kw["stage"],
+                "status": "completed", "summary": text, "summary_hash": sha256_hex(text), "truncated": False}
+    return fake
+
+
+def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatch=None):
     from tests.test_hyperflow import _runner_with_io
 
+    monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", dispatch or _fake_dispatch())
     runner, final = _runner_with_io(get_flow("hypercode-crew"), "e2e-crew", monkeypatch)
     monkeypatch.setattr(runner, "_load_arguments_sync", lambda: arguments)
 
@@ -260,32 +288,108 @@ def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None):
     return runner, final
 
 
-def test_e2e_approved_plan_is_sealed_and_recorded(monkeypatch, ledger_db):
-    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True)
+def _data(runner, node):
+    return [e for e in runner._history if e["node"] == node and e["status"] == "completed"][0]["result"]["data"]
+
+
+def test_e2e_approved_plan_runs_build_verify_and_guard_allows(monkeypatch, ledger_db, slot_gate):
+    calls = []
+    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True, dispatch=_fake_dispatch(calls=calls))
     assert final["status"] is HyperFlowRunStatus.COMPLETED
-    sealed = [e for e in runner._history if e["node"] == "seal" and e["status"] == "completed"][0]
-    data = sealed["result"]["data"]
-    assert data["sealed"] and data["performed"] is False and data["approved_by"] == "bro@example.com"
+    sealed = _data(runner, "seal")
+    assert sealed["sealed"] and sealed["performed"] is False and sealed["approved_by"] == "bro@example.com"
     assert ledger_db().query(GovernanceLedger).filter_by(action="crew_plan_approved").count() == 1
+    assert [c["stage"] for c in calls] == ["build", "verify"]
+    assert [c["agent"] for c in calls] == ["coder-agent", "qa-engineer"]
+    assert "PROPOSING only" in calls[0]["task"] and GOOD_BUILD in calls[1]["task"]
+    guard = _data(runner, "guard")
+    assert guard["allowed"] is True and guard["verdict"] == "ALLOW" and guard["performed"] is False
+    assert [e["kind"] for e in guard["evidence_bundle"]["evidence"]] == ["diff", "log"]
+    assert slot_gate.active == 0  # every slot handed back
 
 
-def test_e2e_rejected_plan_fails_and_seals_nothing(monkeypatch, ledger_db):
-    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=False)
-    assert final["status"] is HyperFlowRunStatus.FAILED and "approval rejected" in final["error"]
-    assert not [e for e in runner._history if e["node"] == "seal"]
-    assert ledger_db().query(GovernanceLedger).count() == 0
+def test_e2e_dispatch_nodes_report_slot_wait_and_ram(monkeypatch, ledger_db, slot_gate):
+    runner, _ = _drive(monkeypatch, {"goal": GOAL}, approve=True)
+    # the fake bypasses the slot wrapper's own fields; the runner adds them
+    assert "slot_wait_ms" in _data(runner, "build") and "ram_available_mb" in _data(runner, "verify")
 
 
-def test_e2e_a_hash_for_a_different_plan_cannot_seal(monkeypatch, ledger_db):
+def test_e2e_a_failing_verdict_completes_with_a_block_not_a_crash(monkeypatch, ledger_db, slot_gate):
     runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True,
-                           shown_hash_override="sha256:" + "f" * 64)
-    assert final["status"] is HyperFlowRunStatus.FAILED
+                           dispatch=_fake_dispatch(verify="Broken.\nVERDICT: FAIL"))
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+    guard = _data(runner, "guard")
+    assert guard["verdict"] == "BLOCK" and guard["failed_checks"] == ["verifier_verdict"]
+
+
+def test_e2e_a_dangerous_proposal_is_blocked_by_the_guard(monkeypatch, ledger_db, slot_gate):
+    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True,
+                           dispatch=_fake_dispatch(build="```sh\ngit push --force origin main\n```"))
+    assert final["status"] is HyperFlowRunStatus.COMPLETED
+    assert _data(runner, "guard")["verdict"] == "BLOCK"
+
+
+def test_e2e_an_unreachable_orchestrator_fails_the_run_and_never_mocks_green(monkeypatch, ledger_db, slot_gate):
+    err = crew_dispatch.DispatchError("orchestrator unreachable (ConnectError)")
+    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True, dispatch=_fake_dispatch(error=err))
+    assert final["status"] is HyperFlowRunStatus.FAILED and "unreachable" in final["error"]
+    assert not [e for e in runner._history if e["node"] in ("verify", "guard") and e["status"] == "completed"]
+    assert slot_gate.active == 0
+
+
+def test_e2e_a_blocked_dispatch_fails_the_run(monkeypatch, ledger_db, slot_gate):
+    err = crew_dispatch.DispatchError("orchestrator status 'blocked', not completed")
+    _, final = _drive(monkeypatch, {"goal": GOAL}, approve=True, dispatch=_fake_dispatch(error=err))
+    assert final["status"] is HyperFlowRunStatus.FAILED and "blocked" in final["error"]
+
+
+def test_e2e_no_free_slot_fails_the_run_instead_of_starting_a_fourth_agent(monkeypatch, ledger_db, slot_gate):
+    import app.agents.hyperflow_runner as runner_mod
+
+    slot_gate._active = slot_gate.cap  # three agents already awake
+    monkeypatch.setattr(runner_mod, "slot_timeout_s", lambda: 0.05)
+    calls = []
+    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True, dispatch=_fake_dispatch(calls=calls))
+    assert final["status"] is HyperFlowRunStatus.FAILED and "no crew slot" in final["error"]
+    assert calls == []  # nothing was dispatched
+    assert slot_gate.active == slot_gate.cap  # we did not steal or leak a slot
+
+
+def test_e2e_rejected_plan_fails_and_dispatches_nothing(monkeypatch, ledger_db, slot_gate):
+    calls = []
+    runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=False, dispatch=_fake_dispatch(calls=calls))
+    assert final["status"] is HyperFlowRunStatus.FAILED and "approval rejected" in final["error"]
+    assert not [e for e in runner._history if e["node"] == "seal"] and calls == []
     assert ledger_db().query(GovernanceLedger).count() == 0
 
 
-def test_e2e_no_goal_never_reaches_the_gate(monkeypatch, ledger_db):
-    runner, final = _drive(monkeypatch, {}, approve=True)
-    assert runner.parked_gate is None
+def test_e2e_a_hash_for_a_different_plan_cannot_seal_or_dispatch(monkeypatch, ledger_db, slot_gate):
+    calls = []
+    _, final = _drive(monkeypatch, {"goal": GOAL}, approve=True,
+                      shown_hash_override="sha256:" + "f" * 64, dispatch=_fake_dispatch(calls=calls))
+    assert final["status"] is HyperFlowRunStatus.FAILED and calls == []
+    assert ledger_db().query(GovernanceLedger).count() == 0
+
+
+def test_e2e_no_goal_never_reaches_the_gate_or_any_agent(monkeypatch, ledger_db, slot_gate):
+    calls = []
+    runner, final = _drive(monkeypatch, {}, approve=True, dispatch=_fake_dispatch(calls=calls))
+    assert runner.parked_gate is None and calls == []
     assert not [e for e in runner._history if e["status"] == "awaiting_approval"]
     assert not [e for e in runner._history if e["node"] == "seal"]
     assert ledger_db().query(GovernanceLedger).count() == 0
+
+
+def test_dispatch_node_without_a_sealed_plan_fails_closed(monkeypatch, slot_gate):
+    from app.agents.hyperflow.schema import FlowDefinition
+    from tests.test_hyperflow import _runner_with_io
+
+    flow = FlowDefinition.model_validate({
+        "name": "t", "entry": "build",
+        "nodes": [{"id": "build", "type": "agent_dispatch", "agent": "coder-agent",
+                   "params": {"stage": "build", "role": "builder"}}]})
+    calls = []
+    monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", _fake_dispatch(calls=calls))
+    runner, final = _runner_with_io(flow, "no-seal", monkeypatch)
+    asyncio.run(runner._run())
+    assert final["status"] is HyperFlowRunStatus.FAILED and "sealed plan" in final["error"] and calls == []

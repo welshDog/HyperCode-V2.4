@@ -216,12 +216,36 @@ def test_seal_survives_a_ledger_failure(monkeypatch):
 def test_flow_loads_and_is_shaped_like_the_design():
     flow = get_flow("hypercode-crew")
     assert flow is not None and flow.entry == "plan" and flow.intent
-    assert [n.id for n in flow.nodes] == ["plan", "approve", "seal"]
+    assert [n.id for n in flow.nodes] == ["plan", "approve", "seal", "build", "verify", "guard"]
     plan, gate, seal = (flow.node(i) for i in ("plan", "approve", "seal"))
     assert plan.tool == "local.crew_plan" and plan.idempotent and plan.params["with_arguments"] is True
     assert plan.success_key == "has_proposal"
     assert gate.type.value == "human_approval_gate" and gate.params["show_from"] == "plan"
     assert seal.tool == "local.crew_seal" and not seal.idempotent  # never re-run blindly after a restart
+
+
+def test_flow_dispatch_nodes_are_strict_propose_only_and_use_the_static_registry():
+    from app.crew.dispatch import CREW_AGENTS
+
+    flow = get_flow("hypercode-crew")
+    assert flow.version == 2
+    for node_id, role in (("build", "builder"), ("verify", "verifier")):
+        node = flow.node(node_id)
+        assert node.type.value == "agent_dispatch" and node.agent == CREW_AGENTS[role]
+        assert node.params["role"] == role and node.params["stage"] == node_id
+        assert node.idempotent  # propose-only: safe to re-run after a restart
+    assert flow.node("verify").params["input_from"] == "build"
+    guard = flow.node("guard")
+    assert guard.tool == "local.crew_guard" and guard.success_key == "allowed"
+
+
+def test_flow_order_is_plan_approve_seal_build_verify_guard():
+    flow = get_flow("hypercode-crew")
+    order, cur = [flow.entry], flow.entry
+    while flow.edges_from(cur):
+        cur = flow.edges_from(cur)[0].dst
+        order.append(cur)
+    assert order == ["plan", "approve", "seal", "build", "verify", "guard"]
 
 
 def test_flow_only_continues_to_the_gate_when_a_plan_exists():
@@ -231,7 +255,7 @@ def test_flow_only_continues_to_the_gate_when_a_plan_exists():
 
 
 def test_flow_tools_are_registered_local_tools():
-    for name in ("local.crew_plan", "local.crew_seal"):
+    for name in ("local.crew_plan", "local.crew_seal", "local.crew_guard"):
         assert name in LOCAL_TOOLS
     flow = get_flow("hypercode-crew")
     for node in flow.nodes:
