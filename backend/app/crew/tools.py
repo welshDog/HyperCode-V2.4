@@ -79,7 +79,8 @@ def _write_ledger(entry: dict[str, Any]) -> bool:
             try:
                 db.rollback()
             except Exception:
-                pass
+                # A failed rollback must not hide the original insert error, which is re-raised below.
+                logger.debug("crew seal: ledger rollback failed", exc_info=True)
             raise
         finally:
             db.close()
