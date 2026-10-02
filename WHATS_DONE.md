@@ -2,6 +2,27 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 — HyperCrew: agents started, phase 2 re-run → PASS but STILL FAILED CLOSED; coder-agent mock hazard found
+
+- Built + started **only** `coder-agent` and `qa-engineer` (`docker compose --profile agents up -d --no-deps`): both **healthy, RestartCount 0**,
+  RAM 1921 → ~1855 MB. Orchestrator "agents down" 11 → 8 (neither of ours listed). `docker restart crew-orchestrator` not needed again.
+- Re-ran phase1 (parked `3dce2552-…`), real `docker restart hypercode-core` (healthy on the 3rd check), phase2: **`PHASE2 PASS` (9/9)** —
+  but the run ended **FAILED CLOSED**, reason now **"agent returned an empty result"** (was "orchestrator returned HTTP 500", fixed `b44c2505`).
+  Chain proven live: core → orchestrator → Shepherd (ALLOW ×2) → `coder-agent /execute` 200 "completed successfully". **Happy path still NOT reached.**
+- **Root cause (confirmed from code + logs):** the proof goal is "add a **health** endpoint to the API". `agents/coder/main.py` `execute()` routes by keyword —
+  `"metrics"/"health"` → `analyze_system_health()`, `"deploy"/"docker"` → `analyze_and_deploy()`, `"todo list"` → `implement_todo_app()` — all **hard-coded mocks**
+  (e.g. fake cpu 45%, "System is running within normal parameters"). Their keys (`status/metrics/analysis/files_created`) are not in core's `_TEXT_KEYS`, so core read
+  them as empty and refused. The crew behaved correctly (fail closed on canned data) — but only by accident of key names. Core's existing `mocked` guard checks the
+  orchestrator **body**, not the agent's own result.
+- **Hazard:** any crew goal containing health/metrics/deploy/docker/"todo list" gets canned output from `coder-agent`; a mock that happened to include a `message`/`result` key would pass as real work.
+- **Fix prepared, awaiting Lyndz's go (NOT yet committed/deployed):** `coder-agent` marks the 3 mock branches `"mocked": True`; core `dispatch.py` raises
+  `DispatchError("agent result was mocked, not real")`. New test fails without the core fix (63 pass / 1 fail) and passes with it (64/64); the 3 mock branches verified
+  flagged directly. Needs a `hypercode-core` rebuild (code is in the image) and a `coder-agent` rebuild (only `base_agent.py` etc. are bind-mounted).
+- **Real LLM path still blocked by RAM:** without a keyword hit `coder-agent` calls Ollama (`qwen2.5:3b` ≈ 2 GB; fallback `tinyllama`) — too big for the 4 GB WSL cap with ~1.9 GB free
+  (stop rule 1.2 GB). Needs a decision: tiny model, hosted model, or more headroom.
+- Side findings (not investigated): `qa-engineer` logs "Shared modules not found, running in limited mode"; `agents/coder/test_coder.py` can't run in the image (starlette TestClient vs newer
+  httpx: `Client.__init__() got an unexpected keyword argument 'app'`); orchestrator `rag_query_failed: No module named 'rag_memory'` (limited mode).
+
 ## 2026-10-02 (late) → 2026-10-03 — HyperCrew FIRST DOCKER RUN: deployed, proven, 2 real bugs found + fixed (happy path NOT yet run)
 
 Branch `claude/focused-darwin-ljrs8k` (draft PR #547). Run live, in front of Lyndz, one step at a time. **Shell was Git Bash**

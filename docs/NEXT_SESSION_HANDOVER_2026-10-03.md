@@ -15,7 +15,7 @@
 | `crew-orchestrator` | healthy, RestartCount 0, fixed import (restarted 22:26 UTC) |
 | `safety-shepherd` | healthy; ALLOW for crew build/verify/publish |
 | Migration `023` | applied (`alembic current` = 023 head; `quest_settlements` exists) |
-| `coder-agent`, `qa-engineer` | **NOT running** (no containers). Orchestrator says 11 agents down |
+| `coder-agent`, `qa-engineer` | **RUNNING since 2026-10-03 00:17 UTC** (healthy, RestartCount 0) — started on request after the first handover |
 | Observability stack (12 containers) | **STOPPED** by me to free RAM (was 853 MB free → ~1.9 GB). Restart = your call |
 | RAM | ~1917 MB available (WSL cap 4 GB — never raise it) |
 
@@ -43,9 +43,17 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 - Obs stack: restart it, or leave it off? (Needs ~1+ GB; the 4 GB ceiling is tight.)
 - D1–D12 decisions, kill-switch compose wiring, real GitHub token for the Scribe: all still open, untouched.
 
+## 🔁 UPDATE (00:30 UTC) — agents started, phase 2 re-run
+
+`PHASE2 PASS` (9/9) again, still **FAILED CLOSED**, now "agent returned an empty result". Cause: the proof goal contains the word **"health"**, which
+`coder-agent`'s keyword router turns into a **hard-coded mock** (`analyze_system_health()`); core refused it only because the mock's keys aren't text keys.
+Fix prepared (agent flags `mocked: true`, core refuses it; tests pass) — **awaiting your go to commit + rebuild `hypercode-core` and `coder-agent`**.
+To reach COMPLETED you also need a real LLM answer: pick a goal without trigger words (health/metrics/deploy/docker/todo list) and give `coder-agent` a model that
+fits RAM (`tinyllama` ≈ 640 MB vs `qwen2.5:3b` ≈ 2 GB; the 4 GB WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHATS_DONE.md` 2026-10-03.
+
 ## ❌ NOT PROVEN
 
-- **Happy path**: `build → verify → guard ALLOW → settle/XP → Scribe`. Needs `coder-agent` + `qa-engineer` up.
+- **Happy path**: `build → verify → guard ALLOW → settle/XP → Scribe`. Agents are up now, but the proof goal is hijacked by a mock and no LLM fits RAM yet.
 - Second Shepherd path `safety_client.check_dispatch` (strict, mutation agents like `coder-agent` are unregistered → deny-first MUTATION) — never run live; could fail.
 - Pause everything with a *running* run ("Saved… / Paused (n) · Resume") — only the "nothing running" text seen.
 - Real GitHub PR publisher (never touched). `tests/test_safety_contract.py` (crew-orchestrator) won't collect — not investigated.
@@ -62,7 +70,7 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 
 ## ▶️ NEXT TASK (one sentence)
 
-Check RAM (≥ 1.5 GB), start `coder-agent` and `qa-engineer` only, re-run `prove-crew.py` phase0→phase2 and see whether the crew COMPLETES (guard verdict, XP, handover draft) — the happy path that has never run.
+Commit + deploy the `mocked` fix, then re-run `prove-crew.py` phase0→phase2 with a goal that avoids the mock trigger words and a RAM-safe model for `coder-agent`, to see whether the crew COMPLETES (guard verdict, XP, handover draft) — the happy path that has never run.
 
 ---
 

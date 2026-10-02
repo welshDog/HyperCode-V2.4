@@ -32,7 +32,8 @@
 - Flow `hypercode.crew` (plan → approve → seal → build → verify → guard → settle → scribe → approve → publish) + Calm Mode,
   Panic/Focus, Quest Settler, Scribe, Morning Card. Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Runbook: `docs/HYPERCREW_DOCKER_RUNBOOK.md`.
 - **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
-  **Not proven:** the happy path — `coder-agent`/`qa-engineer` aren't running, so a live run FAILS CLOSED. Crew steps also fail closed if Shepherd is down.
+  **Not proven:** the happy path — `coder-agent`/`qa-engineer` are running (since 2026-10-03) but a live run still FAILS CLOSED: the proof goal ("health") is hijacked by
+  `coder-agent`'s hard-coded keyword mocks (health/metrics/deploy/docker/"todo list"), and no LLM fits RAM yet. Crew steps also fail closed if Shepherd is down.
 - **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
   not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.
 - **Dashboard → core auth:** `/operator/*` needs a human JWT (Bearer) or agent key (X-Agent-Key), **never** the master API key. The dashboard
