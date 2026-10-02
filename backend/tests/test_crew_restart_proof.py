@@ -16,8 +16,6 @@ from sqlalchemy.orm import sessionmaker
 
 import app.agents.hyperflow_runner as runner_mod
 import app.broski_operator.recovery as recovery_mod
-from app.agents.hyperflow_runner import HyperFlowRunner, get_runner
-from app.broski_operator.recovery import recover_runs
 from app.crew import dispatch as crew_dispatch
 from app.crew import tools as crew_tools
 from app.models.governance import GovernanceLedger
@@ -36,8 +34,8 @@ def real_runner(db, monkeypatch, slot_gate):
     async def noop(*_a, **_k):
         return None
 
-    monkeypatch.setattr(HyperFlowRunner, "_publish", noop)
-    monkeypatch.setattr(HyperFlowRunner, "_publish_approval_request", noop)
+    monkeypatch.setattr(runner_mod.HyperFlowRunner, "_publish", noop)
+    monkeypatch.setattr(runner_mod.HyperFlowRunner, "_publish_approval_request", noop)
     monkeypatch.setattr(runner_mod, "APPROVAL_POLL_SECONDS", 0.05)
     monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "off")
     monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", _fake_dispatch())
@@ -72,7 +70,7 @@ def start(client, key=KEY, goal=GOAL):
 
 def restart_core(client, task_id):
     """Stop the runner the way an event-loop shutdown does (no cancel reason → the run stays open)."""
-    runner = get_runner(task_id)
+    runner = runner_mod.get_runner(task_id)
     assert runner is not None and runner._task is not None
 
     async def stop():
@@ -80,7 +78,7 @@ def restart_core(client, task_id):
         await asyncio.gather(runner._task, return_exceptions=True)
 
     client.portal.call(stop)
-    assert get_runner(task_id) is None  # the old process is gone
+    assert runner_mod.get_runner(task_id) is None  # the old process is gone
 
 
 def test_a_crew_run_survives_a_core_restart_replays_exactly_and_finishes(client, db, real_runner, slot_gate):
@@ -93,7 +91,7 @@ def test_a_crew_run_survives_a_core_restart_replays_exactly_and_finishes(client,
     assert before["calmCard"]["status"] == "waiting_on_you"
 
     restart_core(client, task_id)
-    counts = client.portal.call(recover_runs)
+    counts = client.portal.call(recovery_mod.recover_runs)
     assert counts["resume"] == 1 and counts["fail"] == 0
 
     again = wait_for(client, task_id, "input_required", "approve")
@@ -148,7 +146,7 @@ def test_after_a_restart_an_unreachable_orchestrator_fails_closed_with_no_mocked
     task_id = start(client, key="restart-then-fail-0001")["taskId"]
     plan_hash = wait_for(client, task_id, "input_required", "approve")["inputRequests"]["approval"]["plan_hash"]
     restart_core(client, task_id)
-    client.portal.call(recover_runs)
+    client.portal.call(recovery_mod.recover_runs)
     wait_for(client, task_id, "input_required", "approve")
 
     err = crew_dispatch.DispatchError("orchestrator unreachable (ConnectError)")
@@ -187,7 +185,7 @@ def test_a_run_interrupted_in_the_middle_of_a_proposal_is_resumed_not_lost(clien
 
     restart_core(client, task_id)
     assert slot_gate.active == 0  # cancellation released the slot
-    counts = client.portal.call(recover_runs)
+    counts = client.portal.call(recovery_mod.recover_runs)
     assert counts["resume"] == 1, counts  # build is idempotent → resumed
 
     release["go"] = True

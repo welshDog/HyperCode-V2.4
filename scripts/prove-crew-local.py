@@ -55,10 +55,10 @@ def env_for(**extra: str) -> dict[str, str]:
 
 
 def spawn(name: str, args: list[str], **extra: str) -> None:
-    log = open(tmp / f"{name}.log", "ab")
-    procs[name] = subprocess.Popen(
-        args, cwd=ROOT / "backend", env=env_for(**extra), stdout=log, stderr=subprocess.STDOUT, start_new_session=True
-    )
+    with open(tmp / f"{name}.log", "ab") as log:  # the child inherits its own copy of the descriptor
+        procs[name] = subprocess.Popen(
+            args, cwd=ROOT / "backend", env=env_for(**extra), stdout=log, stderr=subprocess.STDOUT, start_new_session=True
+        )
 
 
 def stop(name: str) -> None:
@@ -78,7 +78,7 @@ def wait_http(url: str, ok=lambda r: r.status_code < 500, timeout: float = 90) -
             if ok(httpx.get(url, timeout=3)):
                 return
         except httpx.HTTPError:
-            pass
+            pass  # the server is not accepting connections yet; keep trying until the timeout
         time.sleep(0.5)
     raise SystemExit(f"FAIL: timed out waiting for {url} (logs in {tmp})")
 
