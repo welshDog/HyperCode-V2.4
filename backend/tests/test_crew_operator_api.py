@@ -235,8 +235,13 @@ def _fake_dispatch(build=GOOD_BUILD, verify="Fine.\nVERDICT: PASS", error=None, 
     return fake
 
 
-def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatch=None, scribe="approve"):
-    """Run the whole crew flow. ``scribe`` answers the handover gate: approve | skip | wrong_hash."""
+def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatch=None, scribe="approve",
+           shepherd="off"):
+    """Run the whole crew flow. ``scribe`` answers the handover gate: approve | skip | wrong_hash.
+
+    ``shepherd`` is SAFETY_SHEPHERD_MODE for the run: "off" by default (no Shepherd in the sandbox), or
+    "monitor"/"enforce" with nothing listening, to prove the crew fails CLOSED when Safety Shepherd is down."""
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", shepherd)
     from tests.test_hyperflow import _runner_with_io
 
     monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", dispatch or _fake_dispatch())

@@ -56,6 +56,15 @@
 > (kept accurate every session; this file's own fleet table below is not — see the
 > banner in that section).
 
+## 🧠 HyperCrew (2026-10-02) — built, tested in a sandbox, **NOT deployed**
+
+- Multi-agent crew flow `hypercode.crew` (v5) + Calm Mode, Panic/Focus, Quest Settler, Scribe, Morning Card.
+  Branch `claude/focused-darwin-ljrs8k`, draft PR #547. **No Docker run yet** — see
+  `docs/HYPERCREW_DOCKER_RUNBOOK.md`. Needs: migration `023`, rebuild of `hypercode-core` + `dashboard`.
+- New behaviour to know: crew steps **fail closed** if Safety Shepherd is unreachable (so `safety-shepherd` must be up).
+- Full handover: `docs/NEXT_SESSION_HANDOVER_2026-10-02.md`.
+
+
 ---
 
 ## HyperLabs / Vibe Labs Funnel

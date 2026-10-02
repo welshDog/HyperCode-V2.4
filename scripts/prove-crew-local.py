@@ -86,8 +86,8 @@ def wait_http(url: str, ok=lambda r: r.status_code < 500, timeout: float = 90) -
 UVICORN = [sys.executable, "-m", "uvicorn"]
 
 
-def start_core() -> None:
-    spawn("core", UVICORN + ["crew_proof_harness:app", "--app-dir", str(ROOT / "scripts"), "--host", "127.0.0.1", "--port", str(CORE)])
+def start_core(**extra: str) -> None:
+    spawn("core", UVICORN + ["crew_proof_harness:app", "--app-dir", str(ROOT / "scripts"), "--host", "127.0.0.1", "--port", str(CORE)], **extra)
     wait_http(f"{CORE_URL}/api/v1/operator/tasks/nope", ok=lambda r: r.status_code in (401, 404))  # up and answering
 
 
@@ -315,6 +315,31 @@ async def main() -> None:
             check(dend["status"] == "failed" and dend["calmCard"]["status"] == "blocked", "run FAILED closed (not a mocked green)")
             check(dend["events"][-1]["event"]["code"] == "RUN_FAILED" and "hypercode.guard.verdict" not in names(dend), "no guard verdict from a stage that never ran")
             check(calls("crew_build") == before_calls, "nothing was dispatched")
+
+            # ── Day 10 chaos: Safety Shepherd down => the crew fails CLOSED (real core process, nothing listening) ──
+            stop("core")
+            start_core(SAFETY_SHEPHERD_MODE="monitor", SAFETY_SHEPHERD_URL="http://127.0.0.1:1")
+            s1 = await tool(session, "hypercode_crew_start", {"goal": "shepherd is down for this one", "idempotency_key": f"prove-crew-{RUN}-shepherd"})
+            s1gate = await poll(session, s1["taskId"], at_gate)
+            s1hash = next(e["event"]["value"]["planHash"] for e in s1gate["events"] if e["event"].get("name") == "hypercode.approval.required")
+            check(human("POST", f"/tasks/{s1['taskId']}/input", json={"decision": "approve", "plan_hash": s1hash}).status_code == 200, "approved while Safety Shepherd is down")
+            s1end = await poll(session, s1["taskId"], lambda p: p["done"], timeout=45)
+            check(s1end["status"] == "failed" and s1end["calmCard"]["status"] == "blocked", "Shepherd down: the run FAILED closed")
+            check(any("unreachable" in str(e["event"].get("message", "")) for e in s1end["events"]), "the stop says why: Safety Shepherd could not be reached")
+            check(calls("crew_build") == before_calls, "Shepherd down: no agent was ever asked")
+
+            # ── Day 10 chaos: the kill-switch trips a live run (off-box sentinel file, real core process) ──
+            kill_file = tmp / "KILL"
+            stop("core")
+            start_core(CREW_KILL_FILE=str(kill_file))
+            k1 = await tool(session, "hypercode_crew_start", {"goal": "the kill switch will trip for this one", "idempotency_key": f"prove-crew-{RUN}-kill"})
+            k1gate = await poll(session, k1["taskId"], at_gate)
+            k1hash = next(e["event"]["value"]["planHash"] for e in k1gate["events"] if e["event"].get("name") == "hypercode.approval.required")
+            kill_file.write_text("stop")
+            check(human("POST", f"/tasks/{k1['taskId']}/input", json={"decision": "approve", "plan_hash": k1hash}).status_code == 200, "approved just after the kill-switch was pulled")
+            k1end = await poll(session, k1["taskId"], lambda p: p["done"], timeout=45)
+            check(k1end["status"] == "failed" and any("kill switch engaged" in str(e["event"].get("message", "")) for e in k1end["events"]), "kill-switch: the run was stopped, and says why")
+            check(calls("crew_build") == before_calls, "kill-switch: nothing was dispatched")
     print("ALL PASS", flush=True)
 
 

@@ -35,6 +35,7 @@ import redis.asyncio as aioredis
 from app.agents.hyperflow.schema import FlowDefinition, FlowNode, NodeType
 from app.broski_operator.tools import LOCAL_TOOLS
 from app.crew import dispatch as crew_dispatch
+from app.crew.killswitch import kill_reason
 from app.crew.slots import SlotUnavailable, get_slot_gate, slot_timeout_s
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -75,6 +76,7 @@ def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
 
 class _FlowFailed(Exception):
     """Raised internally to mark a run as failed with a reason."""
+
 
 
 class _ApprovalRejected(Exception):
@@ -234,6 +236,9 @@ class HyperFlowRunner:
         try:
             while node_id is not None:
                 await self._pause_gate(node_id)
+                killed = kill_reason()
+                if killed:  # the fleet kill-switch (off-box sentinel): stop before starting another step
+                    raise _FlowFailed(f"{killed}: run stopped")
                 node = self.flow.node(node_id)
                 started = time.time()
                 try:
@@ -356,11 +361,11 @@ class HyperFlowRunner:
 
     async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
         """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
-        ctx = {"run_id": self.run_id, "history": list(self._history)}
+        ctx: dict[str, Any] = {"run_id": self.run_id, "history": list(self._history)}
         if node.params.get("with_arguments"):
             # Read from Postgres (not memory) so a run resumed after a restart still has them.
             ctx["arguments"] = await asyncio.to_thread(self._load_arguments_sync)
-        data = await LOCAL_TOOLS[node.tool](node.params, ctx)
+        data = await LOCAL_TOOLS[node.tool or ""](node.params, ctx)
         ok = bool(data.get("ok"))
         result: dict[str, Any] = {"ok": ok, "green": ok, "data": data}
         if node.success_key in data:
@@ -432,6 +437,15 @@ class HyperFlowRunner:
 
         data = await self._safety_evaluate(self._safety_request(node))
         if data is None:
+            if node.params.get("safety_unreachable") == "block":
+                # This node opted in to failing CLOSED: a Shepherd we cannot reach (or that errors) is a block,
+                # in monitor mode too. Nothing is sent to an agent or outside core on an unchecked say-so.
+                await self._emit(
+                    node, "safety_unreachable",
+                    {"mode": mode, "reason": "Safety Shepherd could not be reached, so this step was blocked"},
+                    HyperFlowRunStatus.RUNNING,
+                )
+                raise RuntimeError("safety shepherd unreachable: blocked (fail closed)")
             await self._emit(node, "safety_skipped", {"mode": mode}, HyperFlowRunStatus.RUNNING)
             return
 

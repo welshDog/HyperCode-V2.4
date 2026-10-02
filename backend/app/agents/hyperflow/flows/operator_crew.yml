@@ -5,7 +5,7 @@
 # Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
 
 name: hypercode-crew
-version: 4
+version: 5
 entry: plan
 intent: "HyperCrew plan gate then propose-only build verify and guard stages for a build goal without writing or deploying anything"
 
@@ -36,6 +36,7 @@ nodes:
     params:
       stage: build
       role: builder
+      safety_unreachable: block   # fail CLOSED if Safety Shepherd cannot be reached (Day 10)
 
   - id: verify
     type: agent_dispatch
@@ -45,6 +46,7 @@ nodes:
       stage: verify
       role: verifier
       input_from: build
+      safety_unreachable: block
 
   - id: guard
     type: tool
@@ -78,6 +80,8 @@ nodes:
     type: tool
     tool: local.crew_publish
     idempotent: true
+    params:
+      safety_unreachable: block
 
 edges:
   - from: plan

@@ -228,7 +228,7 @@ def test_flow_dispatch_nodes_are_strict_propose_only_and_use_the_static_registry
     from app.crew.dispatch import CREW_AGENTS
 
     flow = get_flow("hypercode-crew")
-    assert flow.version == 4
+    assert flow.version == 5
     for node_id, role in (("build", "builder"), ("verify", "verifier")):
         node = flow.node(node_id)
         assert node.type.value == "agent_dispatch" and node.agent == CREW_AGENTS[role]

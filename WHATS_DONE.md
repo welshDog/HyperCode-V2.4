@@ -2,6 +2,33 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 10: chaos + hardening, runbook, handover (sandbox + local-process PASS; Docker NOT run)
+
+- **Contradiction surfaced and fixed — Safety Shepherd down:** the design says fail-closed, but the HyperFlow runner
+  **failed OPEN** (it logged "failing open" and carried on). Crew `build`, `verify` and `publish` now carry
+  `safety_unreachable: block`: an unreachable (or erroring) Shepherd blocks the step with a plain reason, in
+  `monitor` mode as well as `enforce`; `off` still skips. Other flows keep their old behaviour. Flow is now **v5**.
+- **Gap found and fixed — kill-switch:** nothing in core looked at the fleet kill-switch. New opt-in
+  `CREW_KILL_FILE` (off-box sentinel, same semantics as the Governor's `GOVERNOR_KILL_FILE`; unreadable directory
+  counts as killed). Checked before every step of any HyperFlow run when set; a run in flight finishes its current
+  step (propose-only) and stops before the next. **Not wired in compose**; core does **not** read the Governor's
+  Redis flag (unverified cross-service contract).
+- **Chaos, `backend/tests/test_crew_chaos.py` (25, stable over repeats):** Shepherd down (monitor + enforce) · Shepherd
+  ALLOW/BLOCK · verifier dies mid-run · real strict dispatch vs 7 kinds of junk orchestrator reply · 8 concurrent starts
+  with one key = 1 run · same key different args = 409 · cancel during a dispatch (in-flight call cancelled, slot
+  released) · restart at the handover gate · decision made while core is down · replayed settle pays once · kill-switch
+  unit states + before start + mid-build + while parked at a gate · burst of 6 runs vs the 3-slot cap (peak ≤ 3,
+  all finish, 6 settlements).
+- **Real-process chaos:** `scripts/prove-crew-local.py` now also restarts a live core with an unreachable Shepherd
+  and with a pulled kill-switch: both fail closed and no agent is ever asked. ALL PASS.
+- Also fixed two mypy errors in `hyperflow_runner.py` (Day 3 code). Backend 1091 pass + the same 4 pre-existing
+  failures; dashboard 251 pass.
+- **Docs:** `docs/HYPERCREW_DOCKER_RUNBOOK.md` (the terminal steps for the Docker work, with stop rules and what to
+  expect), `docs/NEXT_SESSION_HANDOVER_2026-10-02.md`, `docs/STATUS.md`.
+- **Not done / not proven:** everything Docker (rebuild `hypercode-core` + `dashboard`, migration `023`,
+  `scripts/prove-crew.py`); Safety Shepherd's real verdict on a crew dispatch; real GitHub; kill-switch compose
+  wiring; dashboard-side approval; decisions D1–D12.
+
 ## 2026-10-02 — HyperCrew Day 9: Scribe + Morning Card (tests + local proof PASS; Docker/real-GitHub NOT run)
 
 - **Flow `hypercode-crew` v4:** `... guard → settle → scribe → approve_scribe → publish`. **A run now ends at a handover
