@@ -70,9 +70,13 @@ def test_never_more_than_cap_run_at_once():
 def test_slot_is_released_when_the_work_raises():
     async def scenario():
         g = gate(cap=1)
-        with pytest.raises(ValueError):
+
+        async def failing_work():
             async with g.slot(1):
                 raise ValueError("boom")
+
+        with pytest.raises(ValueError):
+            await failing_work()
         assert g.active == 0
 
     run(scenario())
@@ -90,8 +94,8 @@ def test_slot_is_released_when_the_work_is_cancelled():
         await asyncio.sleep(0.02)
         assert g.active == 1
         task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await task
+        await asyncio.gather(task, return_exceptions=True)
+        assert task.cancelled()
         assert g.active == 0
 
     run(scenario())

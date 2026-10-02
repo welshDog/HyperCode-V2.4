@@ -78,7 +78,6 @@ class SlotGate:
     async def acquire(self, timeout_s: float = DEFAULT_TIMEOUT_S) -> SlotTicket:
         start = self._clock()
         deadline = start + timeout_s
-        reason = "all crew slots are busy"
         while True:
             if self._active < self.cap:
                 ok, available = self._ram_ok()
