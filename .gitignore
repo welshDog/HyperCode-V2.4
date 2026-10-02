@@ -264,3 +264,6 @@ docs/reports/baseline-incr1/
 
 # Claude Code session scratchpad (symlinked/created at repo root)
 scratchpad/
+
+# Claude Code per-machine settings: absolute paths, local gateway URL and tokens live here. Never commit.
+.claude/settings.local.json
