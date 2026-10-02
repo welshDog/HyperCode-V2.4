@@ -62,7 +62,8 @@
   (draft PR #547); migration `023` applied (`alembic current` = 023, `quest_settlements` exists); `scripts/prove-crew.py`
   phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
 - `coder-agent` + `qa-engineer` are **running** (started 2026-10-03), but a live crew run still ends **FAILED CLOSED**: the proof goal ("health")
-  is hijacked by `coder-agent`'s hard-coded mock branch, and no LLM fits RAM yet. Happy path unproven. Mock-flag fix prepared, not deployed.
+  is hijacked by `coder-agent`'s hard-coded mock branch (now refused by name: "agent result was mocked" — fix deployed, live-proven), a second gap (core ignores `coder-agent`'s
+  `code` key) needs a decision, and no LLM fits RAM yet. Happy path unproven.
 - Crew steps **fail closed** if Safety Shepherd is unreachable. Shepherd answers ALLOW (`default_allow`) for crew `build/verify/publish`.
 - Dashboard needs `secrets/dashboard_service_jwt.txt` (30-day human JWT, minted 2026-10-02, **expires ~2026-11-01**) — see runbook §8.
 - Observability stack is **stopped** (stopped to free RAM); restart on request. Full handover: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.

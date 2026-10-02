@@ -15,9 +15,14 @@
   them as empty and refused. The crew behaved correctly (fail closed on canned data) — but only by accident of key names. Core's existing `mocked` guard checks the
   orchestrator **body**, not the agent's own result.
 - **Hazard:** any crew goal containing health/metrics/deploy/docker/"todo list" gets canned output from `coder-agent`; a mock that happened to include a `message`/`result` key would pass as real work.
-- **Fix prepared, awaiting Lyndz's go (NOT yet committed/deployed):** `coder-agent` marks the 3 mock branches `"mocked": True`; core `dispatch.py` raises
-  `DispatchError("agent result was mocked, not real")`. New test fails without the core fix (63 pass / 1 fail) and passes with it (64/64); the 3 mock branches verified
-  flagged directly. Needs a `hypercode-core` rebuild (code is in the image) and a `coder-agent` rebuild (only `base_agent.py` etc. are bind-mounted).
+- **FIXED + DEPLOYED + live-proven (`b13383b9`, corrected by `95940dad`):** `coder-agent` marks its 3 mock branches `"mocked": True`; core `dispatch.py` refuses a flagged agent result
+  (`DispatchError("agent result was mocked, not real")`). **My first version was wrong:** it checked only the top level of the agent's reply, but the orchestrator returns the agent's
+  whole `TaskResponse`, so the flag is at `results[agent]["result"]["mocked"]` — the live proof still said "empty result" and my flat-shaped unit test had hidden it. `_flagged_mocked()`
+  now looks into nested dicts (depth 3); tests use the real shape. Re-run live: phase1 3/3 PASS, real core restart, **`PHASE2 PASS` 9/9, reason now "agent result was mocked, not real"**.
+  106 crew tests pass (dispatch + chaos + guard) + 1 documented xfail. Both images rebuilt + swapped (`--no-deps`): all containers healthy, RestartCount 0, RAM ~1.89 GB.
+- **SECOND LATENT BUG on the happy path (NOT fixed — needs a decision):** `coder-agent`'s real Ollama reply is `{status, code, model}`; core's `_TEXT_KEYS` has no `code`, so a genuine answer
+  would also be refused as "agent returned an empty result". Documented by a strict-xfail test `test_a_real_nested_result_is_not_mistaken_for_a_mock`. Fix = add `"code"` to `_TEXT_KEYS`
+  (changes what core trusts as agent text; output is still forbidden-pattern scanned + redacted + guarded).
 - **Real LLM path still blocked by RAM:** without a keyword hit `coder-agent` calls Ollama (`qwen2.5:3b` ≈ 2 GB; fallback `tinyllama`) — too big for the 4 GB WSL cap with ~1.9 GB free
   (stop rule 1.2 GB). Needs a decision: tiny model, hosted model, or more headroom.
 - Side findings (not investigated): `qa-engineer` logs "Shared modules not found, running in limited mode"; `agents/coder/test_coder.py` can't run in the image (starlette TestClient vs newer

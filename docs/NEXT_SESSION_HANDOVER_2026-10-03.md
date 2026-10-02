@@ -47,9 +47,11 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 
 `PHASE2 PASS` (9/9) again, still **FAILED CLOSED**, now "agent returned an empty result". Cause: the proof goal contains the word **"health"**, which
 `coder-agent`'s keyword router turns into a **hard-coded mock** (`analyze_system_health()`); core refused it only because the mock's keys aren't text keys.
-Fix prepared (agent flags `mocked: true`, core refuses it; tests pass) — **awaiting your go to commit + rebuild `hypercode-core` and `coder-agent`**.
-To reach COMPLETED you also need a real LLM answer: pick a goal without trigger words (health/metrics/deploy/docker/todo list) and give `coder-agent` a model that
-fits RAM (`tinyllama` ≈ 640 MB vs `qwen2.5:3b` ≈ 2 GB; the 4 GB WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHATS_DONE.md` 2026-10-03.
+**Fixed + deployed + live-proven** (`b13383b9`, `95940dad`): the agent flags its mocks, core refuses them; live reason is now "agent result was mocked, not real". (My first version only checked the
+top level — the live proof caught it; the flag is nested at `result.mocked`.) **A SECOND bug blocks the happy path:** `coder-agent`'s real Ollama reply is `{status, code, model}` and `code` isn't in
+core's `_TEXT_KEYS`, so a genuine answer is refused as "empty" (strict-xfail test documents it) — **decision needed: add `"code"` to `_TEXT_KEYS`**.
+To reach COMPLETED you also need: a goal without trigger words (health/metrics/deploy/docker/todo list) and a model that fits RAM (`tinyllama` ≈ 640 MB vs `qwen2.5:3b` ≈ 2 GB; the 4 GB
+WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHATS_DONE.md` 2026-10-03.
 
 ## ❌ NOT PROVEN
 
@@ -70,7 +72,7 @@ fits RAM (`tinyllama` ≈ 640 MB vs `qwen2.5:3b` ≈ 2 GB; the 4 GB WSL cap + ~1
 
 ## ▶️ NEXT TASK (one sentence)
 
-Commit + deploy the `mocked` fix, then re-run `prove-crew.py` phase0→phase2 with a goal that avoids the mock trigger words and a RAM-safe model for `coder-agent`, to see whether the crew COMPLETES (guard verdict, XP, handover draft) — the happy path that has never run.
+Decide on adding `"code"` to core's `_TEXT_KEYS`, then re-run `prove-crew.py` phase0→phase2 with a goal that avoids the mock trigger words and a RAM-safe model for `coder-agent`, to see whether the crew COMPLETES (guard verdict, XP, handover draft) — the happy path that has never run.
 
 ---
 
