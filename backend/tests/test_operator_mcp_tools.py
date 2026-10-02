@@ -110,3 +110,85 @@ def test_recover_posts_the_allow_listed_tool_and_no_approval_tool_exists(monkeyp
     )
     tool_names = [n for n in dir(mod) if n.startswith("hypercode_")]
     assert not any("approve" in n or "input" in n for n in tool_names)
+
+
+# ── HyperCrew tools ───────────────────────────────────────────────────────────
+
+def test_crew_start_posts_the_allow_listed_tool_with_the_goal(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={"taskId": GOOD_ID})
+    assert asyncio.run(mod.hypercode_crew_start("add a health endpoint")) == {"taskId": GOOD_ID}
+    mod._post.assert_awaited_once_with(
+        "/api/v1/operator/tasks", {"tool": "hypercode.crew", "arguments": {"goal": "add a health endpoint"}}
+    )
+
+
+def test_crew_start_forwards_an_idempotency_key_only_when_given(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={})
+    asyncio.run(mod.hypercode_crew_start("a goal here", "retry-safe-key-1"))
+    assert mod._post.await_args.args[1]["idempotency_key"] == "retry-safe-key-1"
+    asyncio.run(mod.hypercode_crew_start("a goal here"))
+    assert "idempotency_key" not in mod._post.await_args.args[1]
+
+
+def test_crew_start_cannot_pick_the_tool_or_smuggle_arguments(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={})
+    asyncio.run(mod.hypercode_crew_start("goal", ""))
+    body = mod._post.await_args.args[1]
+    assert body["tool"] == "hypercode.crew" and list(body["arguments"]) == ["goal"]
+
+
+def test_crew_status_asks_for_events_after_the_cursor(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._get = AsyncMock(return_value={"events": []})
+    assert asyncio.run(mod.hypercode_crew_status(GOOD_ID)) == {"events": []}
+    mod._get.assert_awaited_once_with(f"/api/v1/operator/tasks/{GOOD_ID}/events", after=-1)
+    asyncio.run(mod.hypercode_crew_status(GOOD_ID.upper(), 7))
+    assert mod._get.await_args.args == (f"/api/v1/operator/tasks/{GOOD_ID}/events",)
+    assert mod._get.await_args.kwargs == {"after": 7}
+
+
+@pytest.mark.parametrize("bad", ["../../admin", "", GOOD_ID + "/cancel", None, 42, GOOD_ID.replace("-", "")])
+def test_crew_status_rejects_a_bad_task_id_before_any_http_call(monkeypatch, bad):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._get = AsyncMock()
+    assert asyncio.run(mod.hypercode_crew_status(bad)) == {"error": "invalid task_id"}
+    mod._get.assert_not_awaited()
+
+
+@pytest.mark.parametrize("bad", [-2, 10**10, "abc", None, "1.5"])
+def test_crew_status_rejects_a_bad_cursor(monkeypatch, bad):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._get = AsyncMock()
+    assert asyncio.run(mod.hypercode_crew_status(GOOD_ID, bad)) == {"error": "invalid after"}
+    mod._get.assert_not_awaited()
+
+
+def test_no_crew_tool_can_approve_a_plan(monkeypatch):
+    mod = _load(monkeypatch)
+    tool_names = [n for n in dir(mod) if n.startswith("hypercode_")]
+    assert {"hypercode_crew_start", "hypercode_crew_status"} <= set(tool_names)
+    assert not any("approve" in n or "input" in n or "decide" in n for n in tool_names)
+
+
+def test_the_crew_tools_are_registered_with_the_mcp_server(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    names = {t.name for t in asyncio.run(mod.mcp.list_tools())}
+    assert {"hypercode_crew_start", "hypercode_crew_status", "hypercode_task_get", "hypercode_task_cancel"} <= names
+    assert not any("approve" in n for n in names)

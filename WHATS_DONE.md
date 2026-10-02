@@ -2,6 +2,32 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 5: MCP crew tools + proofs (local proof PASS; Docker live proof NOT yet run)
+
+- **MCP tools** on `hypercode-mcp-server`: `hypercode_crew_start(goal, idempotency_key="")` and
+  `hypercode_crew_status(task_id, after=-1)` (events + Calm Card; pass the previous `nextAfter` to receive only what you missed).
+  The tool name is fixed to `hypercode.crew` and only `goal` can be sent; task ids must be real UUIDs and `after` an integer in
+  range, validated before any HTTP call. **No MCP tool can approve a plan** (asserted by tests, and again over the real protocol).
+- **Three layers of proof, honestly labelled:**
+  1. **Sandbox tests** (`tests/test_crew_restart_proof.py`): real DB rows, real runner, real `recover_runs()`; restart = runner task
+     cancelled like an event-loop shutdown. Covers restart-while-parked, replay, idempotent retry across a restart, cancel, fail-closed
+     after a restart, and a restart *mid-proposal* (re-run safely, slot released).
+  2. **Local multi-process proof** (`scripts/prove-crew-local.py`, 30+ PASS lines, run 4×, stable): real core process + real
+     `hypercode-mcp-server` process + a real MCP client over SSE, and a **real SIGTERM restart of core** on the same database file
+     with the boot-time recovery log checked. Human auth is the real JWT/superuser path; only the agent-key lookup (needs Postgres)
+     is replaced. Orchestrator is a stub (`scripts/crew_proof_stub_orchestrator.py`), sqlite replaces Postgres, no Redis, no LLMs.
+     Harness: `scripts/crew_proof_harness.py` — **proof-only, never deploy**.
+  3. **Docker live proof** (`scripts/prove-crew.py`, phases `phase0` / `phase1` / restart / `phase2`): written, **rehearsed locally
+     against the harness (both the completed and the fail-closed branch), NOT run against the real stack** — the build session had
+     no Docker. Commands are in the file's docstring. Needs `hypercode-core` (+ `hypercode-mcp-server` for the MCP tools) rebuilt.
+- **Real bug the proof found:** after a core restart the recovered runner re-parks at the gate and records the wait again, which the
+  AG-UI mapper turned into a duplicate `approval.required` (and a second STEP_STARTED). The mapper now treats a re-park of an
+  already-parked gate as the same wait (replay stays exact and append-only; unit-tested, and proved across a real restart).
+- **Tests:** backend 928 passed + the same 4 pre-existing failures (`test_agent_pulse` x3, `test_core_rag` x1); `mypy app/crew` clean.
+- **Not done / limits:** the Docker live proof above; Safety Shepherd `enforce` behaviour on `agent_dispatch` nodes still unverified;
+  agents (coder-agent / qa-engineer) were never exercised for real — the stub answers for them; the "RAM >= 1.2 GB throughout" gate
+  from the plan is not measured by any proof; no human review gate after the guard yet (Day 8).
+
 ## 2026-10-02 — HyperCrew Day 4: Calm Mode + Sensory Settings (dashboard)
 
 One settings model drives everything that changes how heavy the UI feels; the Day 5 Calm Card now sits inside a real Calm layout.

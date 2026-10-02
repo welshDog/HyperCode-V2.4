@@ -18,6 +18,8 @@ Tools exposed:
   hypercode_execute_agent   — send a command to the crew orchestrator
   hypercode_inspect         — start a read-only stack inspection (background task)
   hypercode_recover         — start a recovery diagnosis (background task, proposes only)
+  hypercode_crew_start      — start a HyperCrew run from a goal (plan gate, then propose-only build/verify/guard)
+  hypercode_crew_status     — AG-UI-shaped events + Calm Card for a crew run (replay with `after`)
   hypercode_task_get        — poll a background task
   hypercode_task_cancel     — cancel a background task
 """
@@ -298,6 +300,44 @@ async def hypercode_recover() -> dict:
     return await _post(
         f"{API_PREFIX}/operator/tasks", {"tool": "hypercode.recover", "arguments": {}}
     )
+
+
+@mcp.tool()
+async def hypercode_crew_start(goal: str, idempotency_key: str = "") -> dict:
+    """
+    Start a HyperCrew run for a build goal, as a background task. The crew writes a PLAN and stops
+    at a human gate: a person must approve the exact plan (by its hash) in the dashboard/API —
+    approvals are not possible through this server by design. After approval the builder and
+    verifier only PROPOSE text; nothing is written, run, built or deployed, and a guard decides
+    ALLOW/BLOCK. Returns a task handle immediately; follow progress with hypercode_crew_status.
+
+    idempotency_key (8-128 chars: letters, digits, . _ : -) makes a retry safe: the same key and
+    goal returns the SAME task instead of starting a second one. Pass one when you might retry.
+    """
+    body: dict = {"tool": "hypercode.crew", "arguments": {"goal": goal}}
+    if idempotency_key:
+        body["idempotency_key"] = idempotency_key
+    return await _post(f"{API_PREFIX}/operator/tasks", body)
+
+
+@mcp.tool()
+async def hypercode_crew_status(task_id: str, after: int = -1) -> dict:
+    """
+    Progress of a crew run: AG-UI-shaped events (RUN_STARTED, STEP_*, TOOL_CALL_*, CUSTOM
+    hypercode.* such as approval.required / guard.verdict, RUN_FINISHED / RUN_ERROR), the current
+    Calm Card (at most five lines and ONE next action) and a poll hint. Replay-safe: pass the
+    `nextAfter` from the previous reply as `after` to receive only what you have not seen.
+    """
+    tid = _valid_task_id(task_id)
+    if tid is None:
+        return {"error": "invalid task_id"}
+    try:
+        cursor = int(after)
+    except (TypeError, ValueError):
+        return {"error": "invalid after"}
+    if cursor < -1 or cursor > 10**9:
+        return {"error": "invalid after"}
+    return await _get(f"{API_PREFIX}/operator/tasks/{tid}/events", after=cursor)
 
 
 @mcp.tool()

@@ -146,6 +146,22 @@ def test_safety_and_failure_entries_become_custom_events():
     assert by_name(ev, "hypercode.step.unsuccessful")[0]["reason"].startswith("no valid goal")
 
 
+def test_a_gate_re_parked_after_a_restart_is_the_same_wait_not_a_new_one():
+    gate = {"node": "approve", "type": "human_approval_gate", "status": "awaiting_approval",
+            "result": {"prompt": "Approve?", "plan_hash": "sha256:" + "a" * 64}}
+    once = history_to_events("r", [gate])
+    twice = history_to_events("r", [gate, dict(gate, ts="later")])
+    assert twice == once
+    assert names(once).count("hypercode.approval.required") == 1
+
+
+def test_a_gate_that_resolves_can_be_asked_again_later():
+    gate = {"node": "approve", "type": "human_approval_gate", "status": "awaiting_approval", "result": {}}
+    resolved = {"node": "approve", "type": "human_approval_gate", "status": "completed", "result": {"approved": True}}
+    ev = history_to_events("r", [gate, resolved, gate])
+    assert names(ev).count("hypercode.approval.required") == 2
+
+
 def test_garbage_history_entries_are_ignored_not_fatal():
     ev = history_to_events("r", ["x", None, {}, {"node": None, "status": "completed"}, {"node": 5}])
     assert types(ev)[0] == "RUN_STARTED"

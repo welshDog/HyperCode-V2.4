@@ -134,9 +134,20 @@ def _entry_events(run_id: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
 def history_to_events(run_id: str, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """All events for the run so far, each wrapped as ``{"seq": n, "event": {...}}``."""
     events: list[dict[str, Any]] = [{"type": "RUN_STARTED", "threadId": run_id, "runId": run_id}]
+    awaiting: set[str] = set()  # gates currently parked
     for entry in history:
-        if isinstance(entry, dict):
-            events.extend(_entry_events(run_id, entry))
+        if not isinstance(entry, dict):
+            continue
+        node = entry.get("node")
+        if entry.get("status") == "awaiting_approval" and node:
+            # After a core restart the runner re-parks at the same gate and records the wait again.
+            # That is the SAME wait, not a new one: emit it once.
+            if node in awaiting:
+                continue
+            awaiting.add(str(node))
+        elif node and entry.get("status") in ("completed", "failed"):
+            awaiting.discard(str(node))
+        events.extend(_entry_events(run_id, entry))
     safe = redact_value(events)
     return [{"seq": i, "event": ev} for i, ev in enumerate(safe)]
 
