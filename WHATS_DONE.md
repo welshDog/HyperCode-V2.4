@@ -2,6 +2,15 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 1: Baton + Calm Card models (pure contracts, no runtime wiring)
+
+`backend/app/crew/` — `Baton` (typed handoff, hard length caps, sha256 evidence pointers, from!=to role) and
+`CalmCard` (1-5 TL;DR lines, exactly one next action, never-"unknown" status, markdown-free `plain_text`,
+`from_baton()`). Spec: `docs/superpowers/specs/2026-10-02-hypercrew-next-level-design.md` (PR #547). 47 unit tests in
+`backend/tests/test_crew_models.py` pass (run with `--noconftest` against pydantic 2.11 in a bare venv, matching the
+`<2.12` prod pin; **not yet run under the repo's full conftest/CI**). Nothing deployed, nothing imported by core yet.
+Next: Day 2 — `hypercode.crew` flow skeleton + plan gate.
+
 ## 2026-09-27 — BROski recover Phase 2b: authorize (fail-closed DRY_RUN, live-proven)
 
 Wires Phase 2a's sealed restart plan into the pre-existing Governor/Safety-Shepherd capability
