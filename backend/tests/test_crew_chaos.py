@@ -23,7 +23,7 @@ from app.models.broski import BROskiWallet, QuestSettlement
 from app.models.hyperflow import HyperFlowRun
 from app.models.models import User
 from tests.test_crew_operator_api import GOAL, KEY, _as, _drive, _fake_dispatch
-from tests.test_crew_restart_proof import answer_handover, restart_core, start, wait_for
+from tests.test_crew_restart_proof import restart_core, start, wait_for
 
 BASE = "/api/v1/operator"
 OK_BUILD = "```diff\n+def health():\n+    return {'ok': True}\n```\nAdds a health route."
