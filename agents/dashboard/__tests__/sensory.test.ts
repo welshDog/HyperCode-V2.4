@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import {
   BEFORE_CALM_KEY, DEFAULT_SETTINGS, OPTIONS, PRESETS, SETTING_KEYS, STORAGE_KEY, applyNdMode, bootScript,
   isCalm, loadBeforeCalm, loadSettings, ndModeOf, presetOf, sanitize, saveBeforeCalm, saveSettings, toAttributes,
-  toggleCalm, type PresetName, type SensorySettings,
+  safeJson, toggleCalm, type PresetName, type SensorySettings,
 } from '@/lib/sensory/settings'
 
 const root = join(__dirname, '..')
@@ -211,6 +211,18 @@ describe('pre-paint boot script', () => {
 
   it('uses the same storage key as the app', () => {
     expect(bootScript()).toContain(JSON.stringify(STORAGE_KEY))
+  })
+})
+
+describe('safeJson (embedding in an inline script)', () => {
+  it('escapes everything that could end or confuse a script block', () => {
+    const out = safeJson({ a: '</script><!--', b: 'x&y', c: '\u2028\u2029' })
+    expect(out).not.toMatch(/[<>&\u2028\u2029]/)
+    expect(JSON.parse(out)).toEqual({ a: '</script><!--', b: 'x&y', c: '\u2028\u2029' }) // still the same data
+  })
+
+  it('the boot script never contains a script terminator or line separator', () => {
+    expect(bootScript()).not.toMatch(/<\/script|<!--|\u2028|\u2029/i)
   })
 })
 

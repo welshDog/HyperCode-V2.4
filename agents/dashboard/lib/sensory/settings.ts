@@ -145,15 +145,24 @@ export function applyNdMode(s: SensorySettings, mode: string): SensorySettings {
   }
 }
 
+/** JSON that is safe to embed inside an inline <script>: no `</script>`, no HTML comments, no line separators. */
+export function safeJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
 /**
  * Inline script for <head>: applies saved settings BEFORE first paint so there is no flash.
  * Built from OPTIONS/DEFAULT_SETTINGS, so it validates exactly like sanitize().
  */
 export function bootScript(): string {
-  const options = JSON.stringify(OPTIONS)
-  const defaults = JSON.stringify(DEFAULT_SETTINGS)
-  const presets = JSON.stringify(PRESETS)
-  return `(function(){try{var O=${options},D=${defaults},P=${presets},s={};try{s=JSON.parse(localStorage.getItem(${JSON.stringify(
-    STORAGE_KEY,
-  )})||'{}')||{}}catch(e){}var r=document.documentElement,m={};for(var k in O){var v=s&&s[k];m[k]=O[k].indexOf(v)>-1?v:D[k];r.setAttribute('data-'+k,m[k])}var n='custom';for(var p in P){var ok=true;for(var k2 in O){if(P[p][k2]!==m[k2]){ok=false;break}}if(ok){n=p;break}}r.setAttribute('data-sensory',n)}catch(e){}})();`
+  const options = safeJson(OPTIONS)
+  const defaults = safeJson(DEFAULT_SETTINGS)
+  const presets = safeJson(PRESETS)
+  const key = safeJson(STORAGE_KEY)
+  return `(function(){try{var O=${options},D=${defaults},P=${presets},s={};try{s=JSON.parse(localStorage.getItem(${key})||'{}')||{}}catch(e){}var r=document.documentElement,m={};for(var k in O){var v=s&&s[k];m[k]=O[k].indexOf(v)>-1?v:D[k];r.setAttribute('data-'+k,m[k])}var n='custom';for(var p in P){var ok=true;for(var k2 in O){if(P[p][k2]!==m[k2]){ok=false;break}}if(ok){n=p;break}}r.setAttribute('data-sensory',n)}catch(e){}})();`
 }

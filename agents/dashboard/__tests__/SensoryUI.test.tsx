@@ -47,7 +47,9 @@ describe('SensoryProvider', () => {
   it('follows a change made in another tab', () => {
     wrap(<div />)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(PRESETS.focus))
-    act(() => { window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY })) })
+    const event = new Event('storage')
+    Object.defineProperty(event, 'key', { value: STORAGE_KEY })
+    act(() => { window.dispatchEvent(event) })
     expect(attr('sensory')).toBe('focus')
   })
 
