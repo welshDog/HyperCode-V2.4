@@ -262,7 +262,10 @@ services:
       # Service identity for tasks/planning/DLQ proxies (no login UI yet).
       # Empty = proxies forward the browser header only, as before.
       - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-dev-master-key}
-      - DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY:-dev-master-key}
+      # Human JWT (30-day, owner account) read from a Docker secret file by lib/server-auth.ts.
+      # NOT the master API key: core's /operator/* rejects that as both Bearer and X-Agent-Key.
+      # The env var DASHBOARD_SERVICE_JWT must stay unset or it wins over the file.
+      - DASHBOARD_SERVICE_JWT_FILE=/run/secrets/dashboard_service_jwt
       - NEXT_PUBLIC_CORE_WS_HOST=127.0.0.1
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
@@ -294,6 +297,8 @@ services:
     networks:
       - frontend-net
       - agents-net
+    secrets:
+      - dashboard_service_jwt
     restart: unless-stopped
     deploy:
       resources:
@@ -1833,6 +1838,10 @@ services:
     labels:
       - "com.hypercode.tier=infrastructure"
       - "com.hypercode.role=research-architect"
+
+secrets:
+  dashboard_service_jwt:
+    file: ./secrets/dashboard_service_jwt.txt
 
 volumes:
   github-sync-logs:
