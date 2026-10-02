@@ -180,15 +180,17 @@ class CoderAgent:
             "components/TodoList.tsx": "export const TodoList = () => <div>Todo List</div>;"
         }
         return {
-            "status": "completed", 
-            "files_created": list(files.keys()), 
+            "status": "completed",
+            "mocked": True,  # canned answer, not real work: HyperCrew's dispatch refuses it
+            "files_created": list(files.keys()),
             "message": "Implemented Todo List App"
         }
 
     async def analyze_and_deploy(self, code: str) -> Dict[str, Any]:
         """Analyze code and use Docker MCP to manage containers."""
         return {
-            "status": "completed", 
+            "status": "completed",
+            "mocked": True,  # canned answer, not real work: HyperCrew's dispatch refuses it
             "message": "Successfully analyzed and prepared for deployment.",
             "containers": [],
             "analysis": "Code analyzed."
@@ -198,6 +200,7 @@ class CoderAgent:
         """Mock system health analysis."""
         return {
             "status": "completed",
+            "mocked": True,  # canned answer, not real work: HyperCrew's dispatch refuses it
             "metrics": {
                 "cpu_usage": "45%",
                 "memory_usage": "60%"

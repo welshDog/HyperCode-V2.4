@@ -122,6 +122,14 @@ def test_a_mocked_result_is_refused():
         _call(lambda r: httpx.Response(200, json=body))
 
 
+def test_an_agent_that_flags_its_own_result_as_mocked_is_refused():
+    # The text is real-looking, so without the flag check it would pass extract_text.
+    body = {"status": "completed", "results": {"coder-agent": {
+        "status": "completed", "mocked": True, "message": "System is running within normal parameters."}}}
+    with pytest.raises(DispatchError, match="mocked"):
+        _call(lambda r: httpx.Response(200, json=body))
+
+
 @pytest.mark.parametrize("response", [
     httpx.Response(500, text="oops"),
     httpx.Response(404, json={}),

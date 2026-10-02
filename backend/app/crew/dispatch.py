@@ -157,6 +157,9 @@ async def dispatch_to_agent(
         raise DispatchError("no result from the requested agent")
     if isinstance(agent_result, dict) and agent_result.get("status") == "error":
         raise DispatchError("agent reported an error")
+    # An agent that answers with canned data (e.g. coder-agent's keyword shortcuts) says so; never treat it as real work.
+    if isinstance(agent_result, dict) and agent_result.get("mocked"):
+        raise DispatchError("agent result was mocked, not real")
     text = extract_text(agent_result)
     if not text.strip():
         raise DispatchError("agent returned an empty result")
