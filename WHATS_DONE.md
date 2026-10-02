@@ -2,6 +2,31 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — AG-UI at the edge: run events + Calm Card endpoint + `/ide` Calm Card panel (Day 5, first half)
+
+AG-UI is used as the **output format only** — no new gateway, table or approval path (the research doc proposed all three; HyperFlow
+already has the persisted, ordered run history, and the operator approve API with `plan_hash` is stronger than the doc's).
+
+- **Backend:** `GET /api/v1/operator/tasks/{id}/events?after=N` → `{events:[{seq,event}], nextAfter, done, status, now, calmCard,
+  pollInterval}`. `backend/app/crew/agui.py` is a pure function of the run history (RUN_STARTED, STEP_*, TOOL_CALL_* for
+  `agent_dispatch`, `CUSTOM hypercode.{plan.created, approval.required/resolved, plan.sealed, guard.verdict, step.failed,
+  step.unsuccessful, safety.decision}`, RUN_FINISHED / RUN_ERROR). **Replay is exact:** the sequence is the event's index in a
+  deterministic walk, history is append-only, so more history never changes an event already sent (property-tested over every
+  prefix of a real run). In-flight state is a separate snapshot, never a sequenced event. All values redacted and capped.
+  `backend/app/crew/cards.py` builds the Calm Card (≤5 lines, one next action) from the same history.
+- **Dashboard:** `lib/agui/runStore.ts` (pure reducer, dedupes by seq, switching task starts clean), `hooks/useCrewRun.ts` (polls
+  with `after=lastSeq`, honours `pollInterval`, backs off, stops when done), `components/crew/CalmCardPanel.tsx` on `/ide`
+  (icon + word status, one "Next:" action, details collapsed, "Read it to me"), and a **GET-only** proxy
+  `app/api/crew/[taskId]/events/route.ts` (strict task-id and `after` validation, upstream errors never echoed).
+- **Bug caught by tests:** the proxy's `parseInt` accepted `after=1.5x` as 1; now a strict regex.
+- **Tests:** backend 32 new (`test_crew_agui.py`; crew total 283; full `backend/tests` 905 passed, same 4 pre-existing failures);
+  dashboard 37 new (`crewRunStore`, `api.crew`, `CalmCardPanel`; full suite 125 passed); `tsc`, `eslint` and `next build` clean.
+  Shared crew fixtures moved to `tests/conftest.py`.
+- **Not done / honest limits:** nothing deployed or live-proven (needs a `hypercode-core` **and** `dashboard` rebuild — they are not
+  coupled, see N20); AG-UI event/field names are from the research doc and **not** checked against the current spec; the panel takes a
+  pasted task id (no "start a crew run" box yet) and has **no approve button** — approving stays a human, `plan_hash`-bound API call;
+  polling, not SSE; no Panic/Focus yet (Day 6); Calm Mode / Sensory Settings (Day 4) not started.
+
 ## 2026-10-02 — HyperCrew Day 3: `agent_dispatch`, build/verify/guard, evidence bundle, RAM slot gate
 
 `hypercode-crew` is now v2: `plan → approve → seal → build → verify → guard`. Agents only **propose text** — nothing is
