@@ -1,0 +1,696 @@
+
+September 14 3:10 AM
+How can MCP's stateless protocol core be integrated into HyperCode's celery queues
+
+
+Bro, the cleanest integration is:
+
+MCP handles the stateless HTTP request. Celery handles durable execution. Redis/Postgres hold task state.
+
+Do not put MCP session state inside Celery workers. MCP’s newer stateless core removes transport sessions and makes every request self-describing, while its Tasks extension returns a durable task handle for long-running work.
+
+Target architecture
+text
+MCP Client
+   │
+   ▼
+mcp-gateway
+   │  Stateless request
+   │  _meta + task arguments
+   ▼
+MCP Task Adapter
+   │
+   ├── Redis idempotency check
+   ├── Postgres task record
+   └── Celery apply_async()
+          │
+          ▼
+   hypercode-{high,normal,low}
+          │
+          ▼
+   Celery worker
+          │
+          ├── agent execution
+          ├── progress events
+          ├── evidence bundle
+          └── result persistence
+HyperCode already has Celery, Redis-backed queues, priority queues, a dead-letter queue, retries, and observability. The MCP gateway can therefore become a thin protocol adapter rather than another orchestration system.
+
+Why this works
+MCP should be stateless
+Each request must contain everything needed to process it:
+
+MCP method.
+
+Tool name.
+
+Client metadata.
+
+User or agent identity.
+
+Task input.
+
+Capability declarations.
+
+Correlation ID.
+
+Optional existing task handle.
+
+The request should not depend on:
+
+A previous MCP handshake.
+
+Sticky routing.
+
+A gateway memory object.
+
+A specific MCP container.
+
+A Celery worker holding local state.
+
+The MCP specification’s stateless direction is designed for ordinary HTTP load balancing and horizontal scaling.
+
+Celery should own execution
+Celery is better suited for:
+
+Long-running tasks.
+
+Retries.
+
+Queue priorities.
+
+Worker isolation.
+
+Time limits.
+
+Dead-letter handling.
+
+Backpressure.
+
+Result persistence.
+
+Celery recommends late acknowledgement only when tasks are idempotent, because a worker crash can cause redelivery. HyperCode should therefore make MCP-triggered tasks idempotent before enabling acks_late=True.
+
+MCP request flow
+1. Client calls an MCP tool
+Example conceptual request:
+
+json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "hypercode_run_agent",
+    "arguments": {
+      "task": "Run the backend test suite and fix failures",
+      "agents": ["coder-agent", "qa-engineer"],
+      "priority": "normal"
+    },
+    "_meta": {
+      "request_id": "mcp_req_01JX",
+      "correlation_id": "trace_abc123",
+      "idempotency_key": "user42:repo1:task789:v1"
+    }
+  }
+}
+The MCP gateway should validate the request, authenticate the caller, and submit a Celery task.
+
+2. Gateway creates a durable task record
+Use Postgres as the source of truth:
+
+sql
+CREATE TABLE mcp_tasks (
+    task_id UUID PRIMARY KEY,
+    celery_task_id TEXT NOT NULL UNIQUE,
+    tool_name TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    correlation_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL,
+    progress INTEGER NOT NULL DEFAULT 0,
+    input_json JSONB NOT NULL,
+    result_json JSONB,
+    error_json JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    completed_at TIMESTAMPTZ
+);
+The durable record must be written before the MCP gateway returns the task handle. The MCP Tasks direction explicitly requires the task to exist durably before its handle is returned.
+
+3. Gateway submits Celery work
+python
+from celery import shared_task
+
+@shared_task(
+    bind=True,
+    acks_late=True,
+    reject_on_worker_lost=True,
+    autoretry_for=(ConnectionError, TimeoutError),
+    retry_backoff=True,
+    retry_kwargs={"max_retries": 3},
+)
+def run_mcp_tool_task(
+    self,
+    task_id: str,
+    tool_name: str,
+    arguments: dict,
+    correlation_id: str,
+):
+    return execute_mcp_tool(
+        task_id=task_id,
+        tool_name=tool_name,
+        arguments=arguments,
+        correlation_id=correlation_id,
+    )
+Use the existing HyperCode conventions:
+
+hypercode-high.
+
+hypercode-normal.
+
+hypercode-low.
+
+hypercode-dlq.
+
+Do not create a second queue system just for MCP.
+
+Queue routing
+Use a Celery router based on MCP tool metadata:
+
+python
+TASK_ROUTES = {
+    "hypercode_run_agent": {
+        "queue": "hypercode-normal",
+        "time_limit": 900,
+    },
+    "hypercode_run_security_scan": {
+        "queue": "hypercode-high",
+        "time_limit": 600,
+    },
+    "hypercode_generate_report": {
+        "queue": "hypercode-low",
+        "time_limit": 300,
+    },
+}
+Example:
+
+python
+def route_mcp_task(name, args, kwargs, options, task=None, **_):
+    tool_name = kwargs.get("tool_name")
+    route = TASK_ROUTES.get(tool_name)
+
+    if route is None:
+        return {
+            "queue": "hypercode-low",
+            "routing_key": "mcp.unknown",
+        }
+
+    return {
+        "queue": route["queue"],
+        "routing_key": f"mcp.{tool_name}",
+    }
+Then register it:
+
+python
+celery_app.conf.task_routes = (route_mcp_task,)
+MCP Tasks mapping
+Map MCP task operations to Celery and Postgres like this:
+
+MCP operation	HyperCode action
+tools/call	Create task and enqueue Celery job
+tasks/get	Read status from Postgres and optional Celery inspect
+tasks/update	Store user input or steering request
+tasks/cancel	Mark cancellation requested and call Celery revoke
+Progress notification	Publish progress event
+Final result	Persist result and return through tasks/get
+Failure	Persist error and route terminal failure to DLQ
+The current MCP Tasks extension uses task handles, tasks/get, tasks/update, and tasks/cancel; cancellation is cooperative and does not guarantee immediate termination.
+
+Minimal FastAPI adapter
+Use from app.X import Y, not from backend.app.X import Y, in HyperCode’s backend.
+
+python
+from uuid import uuid4
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+
+from app.core.celery_app import celery_app
+from app.db.session import get_async_db
+from app.models.mcp_task import McpTask
+
+router = APIRouter(prefix="/mcp", tags=["mcp"])
+
+
+class McpTaskRequest(BaseModel):
+    tool_name: str
+    arguments: dict = Field(default_factory=dict)
+    requested_by: str
+    correlation_id: str
+    idempotency_key: str
+
+
+@router.post("/tasks")
+async def create_mcp_task(
+    payload: McpTaskRequest,
+    db=Depends(get_async_db),
+):
+    existing = await db.scalar(
+        select(McpTask).where(
+            McpTask.idempotency_key == payload.idempotency_key
+        )
+    )
+
+    if existing:
+        return {
+            "task_id": str(existing.task_id),
+            "status": existing.status,
+            "deduplicated": True,
+        }
+
+    task_id = uuid4()
+
+    celery_result = celery_app.send_task(
+        "app.tasks.mcp_tasks.run_mcp_tool_task",
+        kwargs={
+            "task_id": str(task_id),
+            "tool_name": payload.tool_name,
+            "arguments": payload.arguments,
+            "correlation_id": payload.correlation_id,
+        },
+        headers={
+            "mcp_task_id": str(task_id),
+            "correlation_id": payload.correlation_id,
+        },
+    )
+
+    row = McpTask(
+        task_id=task_id,
+        celery_task_id=celery_result.id,
+        tool_name=payload.tool_name,
+        requested_by=payload.requested_by,
+        correlation_id=payload.correlation_id,
+        idempotency_key=payload.idempotency_key,
+        status="queued",
+        input_json=payload.arguments,
+    )
+
+    db.add(row)
+    await db.commit()
+
+    return {
+        "task_id": str(task_id),
+        "status": "queued",
+        "celery_task_id": celery_result.id,
+    }
+There is one important reliability improvement to make before production:
+
+Use a transactional outbox so the database record and Celery publication cannot drift apart.
+
+Otherwise, this failure is possible:
+
+text
+Celery message published
+       ↓
+Database insert fails
+       ↓
+Worker runs a task with no durable MCP record
+Better production pattern: transactional outbox
+Use this flow:
+
+text
+1. Begin Postgres transaction.
+2. Insert mcp_tasks row as "pending".
+3. Insert mcp_task_outbox row.
+4. Commit.
+5. Outbox publisher sends Celery message.
+6. Mark outbox row "published".
+7. Worker updates mcp_tasks to "running".
+Schema:
+
+sql
+CREATE TABLE mcp_task_outbox (
+    id BIGSERIAL PRIMARY KEY,
+    task_id UUID NOT NULL REFERENCES mcp_tasks(task_id),
+    payload JSONB NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    published_at TIMESTAMPTZ
+);
+A small publisher can run as a Celery beat task or a dedicated worker:
+
+python
+@shared_task
+def publish_mcp_outbox():
+    rows = claim_pending_outbox_rows(limit=100)
+
+    for row in rows:
+        celery_app.send_task(
+            "app.tasks.mcp_tasks.run_mcp_tool_task",
+            kwargs=row.payload,
+            task_id=str(row.task_id),
+        )
+        mark_outbox_published(row.id)
+This gives MCP a durable task handle even if the gateway or Celery broker briefly fails.
+
+Progress updates
+MCP progress should not depend on an open connection to the Celery worker.
+
+Use Redis Streams or your existing event stream:
+
+text
+hypercode:mcp:task:{task_id}:events
+Event format:
+
+json
+{
+  "task_id": "hc_task_123",
+  "status": "running",
+  "progress": 45,
+  "message": "Running backend tests",
+  "agent": "qa-engineer",
+  "correlation_id": "trace_abc123",
+  "timestamp": "2026-09-14T02:58:00Z"
+}
+Worker helper:
+
+python
+def publish_task_event(
+    task_id: str,
+    status: str,
+    progress: int,
+    message: str,
+    agent: str | None = None,
+):
+    redis_client.xadd(
+        f"hypercode:mcp:task:{task_id}:events",
+        {
+            "status": status,
+            "progress": str(progress),
+            "message": message,
+            "agent": agent or "",
+        },
+        maxlen=1000,
+        approximate=True,
+    )
+Your MCP adapter can then:
+
+Poll the event stream.
+
+Expose task progress through tasks/get.
+
+Optionally translate events into request-scoped MCP progress notifications.
+
+The stateless principle remains intact because events are stored externally and keyed by the explicit task ID.
+
+Cancellation
+Cancellation needs two layers:
+
+Cooperative cancellation
+The worker checks a Redis flag:
+
+text
+hypercode:mcp:cancel:{task_id} = 1
+python
+def cancellation_requested(task_id: str) -> bool:
+    return redis_client.exists(f"hypercode:mcp:cancel:{task_id}") == 1
+Agent code checks between major steps:
+
+python
+if cancellation_requested(task_id):
+    publish_task_event(
+        task_id,
+        status="cancelled",
+        progress=progress,
+        message="Cancellation requested",
+    )
+    return {"status": "cancelled"}
+Celery revoke
+For tasks currently executing:
+
+python
+celery_app.control.revoke(
+    celery_task_id,
+    terminate=False,
+)
+Avoid forceful termination by default. It can leave:
+
+Files half-written.
+
+Database transactions open.
+
+Docker builds running.
+
+Child processes orphaned.
+
+Temporary resources locked.
+
+For dangerous tasks, use a controlled sandbox and an explicit hard timeout.
+
+Idempotency rules
+The MCP idempotency_key should be mandatory for every mutating tool.
+
+Examples:
+
+text
+user:repo:issue:attempt
+agent:container:operation
+stripe:event_id
+repository:commit:tool:version
+Before executing:
+
+python
+existing = get_task_by_idempotency_key(idempotency_key)
+
+if existing:
+    return existing.result_or_status
+Inside the worker:
+
+python
+if task_already_completed(task_id):
+    return load_completed_result(task_id)
+This matters because Celery may redeliver tasks after worker failure when using late acknowledgements.
+
+Keep MCP and Celery responsibilities separate
+MCP gateway owns
+Authentication.
+
+Tool discovery.
+
+Schema validation.
+
+MCP headers and metadata.
+
+Idempotency key extraction.
+
+Task handle creation.
+
+Status/result translation.
+
+Client-facing errors.
+
+Celery owns
+Queue routing.
+
+Worker execution.
+
+Retries.
+
+Time limits.
+
+Priority.
+
+Dead-letter handling.
+
+Agent task orchestration.
+
+Postgres owns
+Durable task records.
+
+Idempotency.
+
+Final results.
+
+Audit records.
+
+Evolution history.
+
+Redis owns
+Cache: DB 1.
+
+Rate limits: DB 2.
+
+Short-lived cancellation flags.
+
+Progress streams.
+
+Broker transport, according to the existing deployment.
+
+Keep the existing Redis split. Never mix cache and rate-limit databases.
+
+Security boundary
+MCP tool calls should pass through an allowlist:
+
+python
+TOOL_POLICY = {
+    "hypercode_run_agent": {
+        "allowed_callers": ["hyper-agents-ide", "crew-orchestrator"],
+        "allowed_agents": [
+            "coder-agent",
+            "qa-engineer",
+            "security-agent",
+        ],
+        "approval": "none",
+    },
+    "docker_restart_service": {
+        "allowed_callers": ["healer-agent"],
+        "approval": "operator",
+    },
+    "production_deploy": {
+        "allowed_callers": ["release-agent"],
+        "approval": "human",
+    },
+}
+The MCP gateway must not let an LLM choose arbitrary:
+
+Celery task names.
+
+Queue names.
+
+Container names.
+
+Docker socket operations.
+
+Redis keys.
+
+Database commands.
+
+Resolve the tool name through a static registry. Then validate the arguments against a Pydantic model.
+
+Observability
+Add these metrics:
+
+text
+hypercode_mcp_tasks_total{
+  tool,
+  queue,
+  status
+}
+
+hypercode_mcp_task_duration_seconds{
+  tool,
+  queue
+}
+
+hypercode_mcp_task_queue_wait_seconds{
+  tool,
+  queue
+}
+
+hypercode_mcp_task_retries_total{
+  tool,
+  reason
+}
+
+hypercode_mcp_task_cancellations_total{
+  tool,
+  source
+}
+
+hypercode_mcp_task_idempotency_hits_total{
+  tool
+}
+Propagate these values everywhere:
+
+text
+mcp_request_id
+mcp_task_id
+celery_task_id
+correlation_id
+agent_task_id
+This lets Grafana trace:
+
+text
+MCP request
+ → gateway
+ → Celery queue wait
+ → worker
+ → Crew Orchestrator
+ → specialist agent
+ → tool call
+ → final evidence
+Your existing Prometheus, Tempo, Loki, Celery metrics, queue-depth panels, and DLQ alerts are already ideal for this extension.
+
+Recommended implementation order
+Quick win
+Add mcp_tasks table.
+
+Add POST /mcp/tasks.
+
+Add GET /mcp/tasks/{task_id}.
+
+Submit to existing hypercode-normal.
+
+Store results in Postgres.
+
+Add idempotency.
+
+Add one tool: hypercode_run_agent.
+
+Second pass
+Add priority routing.
+
+Add progress events.
+
+Add cancellation flags.
+
+Add Celery retry state translation.
+
+Add DLQ visibility.
+
+Add Grafana metrics.
+
+Production hardening
+Add transactional outbox.
+
+Add capability-based tool policy.
+
+Add sandbox execution.
+
+Add signed task envelopes.
+
+Add MCP conformance tests.
+
+Add chaos tests for:
+
+Gateway restart.
+
+Worker crash.
+
+Redis interruption.
+
+Duplicate request.
+
+Celery redelivery.
+
+Cancellation during execution.
+
+Result persistence failure.
+
+The key design decision
+Use this rule:
+
+text
+Stateless MCP request
+        +
+Durable task handle
+        +
+Celery execution
+        +
+External progress state
+        +
+Idempotent result persistence
+That gives HyperCode horizontal MCP scaling without losing Celery’s reliability.
+
+Nice one BROski♾️ — this is a very natural upgrade for the existing architecture. Start with one MCP tool mapped to hypercode-normal, prove the full task lifecycle, then expand across priority queues and agent workflows.
