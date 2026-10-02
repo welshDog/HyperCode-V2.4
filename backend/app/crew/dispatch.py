@@ -96,6 +96,19 @@ def _result_for(results: Any, agent: str) -> Any:
     return None
 
 
+def _flagged_mocked(value: Any, depth: int = 3) -> bool:
+    """True if the agent's reply, or a dict nested in it, carries ``mocked``.
+
+    The orchestrator hands back the agent's whole response (``{status, result: {...}}``), so the
+    flag normally sits one level down, not at the top.
+    """
+    if not isinstance(value, dict) or depth < 0:
+        return False
+    if value.get("mocked"):
+        return True
+    return any(_flagged_mocked(v, depth - 1) for v in value.values())
+
+
 def scan_forbidden(text: str) -> list[str]:
     return [name for name, pattern in FORBIDDEN_PATTERNS if pattern.search(text)]
 
@@ -158,7 +171,7 @@ async def dispatch_to_agent(
     if isinstance(agent_result, dict) and agent_result.get("status") == "error":
         raise DispatchError("agent reported an error")
     # An agent that answers with canned data (e.g. coder-agent's keyword shortcuts) says so; never treat it as real work.
-    if isinstance(agent_result, dict) and agent_result.get("mocked"):
+    if _flagged_mocked(agent_result):
         raise DispatchError("agent result was mocked, not real")
     text = extract_text(agent_result)
     if not text.strip():

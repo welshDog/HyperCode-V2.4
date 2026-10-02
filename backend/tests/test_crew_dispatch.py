@@ -122,12 +122,28 @@ def test_a_mocked_result_is_refused():
         _call(lambda r: httpx.Response(200, json=body))
 
 
-def test_an_agent_that_flags_its_own_result_as_mocked_is_refused():
-    # The text is real-looking, so without the flag check it would pass extract_text.
-    body = {"status": "completed", "results": {"coder-agent": {
-        "status": "completed", "mocked": True, "message": "System is running within normal parameters."}}}
+@pytest.mark.parametrize("agent_reply", [
+    # flat, with real-looking text (would otherwise pass extract_text)
+    {"status": "completed", "mocked": True, "message": "System is running within normal parameters."},
+    # the REAL shape: the orchestrator returns the agent's whole TaskResponse, the flag is nested under "result"
+    {"task_id": "t", "agent": "coder-agent", "status": "completed", "error": None,
+     "result": {"status": "completed", "mocked": True, "message": "Successfully analyzed and prepared for deployment."}},
+])
+def test_an_agent_that_flags_its_own_result_as_mocked_is_refused(agent_reply):
+    body = {"status": "completed", "results": {"coder-agent": agent_reply}}
     with pytest.raises(DispatchError, match="mocked"):
         _call(lambda r: httpx.Response(200, json=body))
+
+
+@pytest.mark.xfail(strict=True, reason=(
+    "KNOWN GAP (found 2026-10-03): coder-agent's real Ollama reply is {status, code, model} and 'code' is not in "
+    "_TEXT_KEYS, so a genuine answer is refused as 'empty'. Needs a decision: add 'code' to _TEXT_KEYS. "
+    "strict=True: when fixed this XPASS fails the suite so this marker gets removed."))
+def test_a_real_nested_result_is_not_mistaken_for_a_mock():
+    reply = {"task_id": "t", "agent": "coder-agent", "status": "completed",
+             "result": {"status": "completed", "code": "def f(): ...", "model": "tinyllama:latest"}}
+    body = {"status": "completed", "results": {"coder-agent": reply}}
+    assert _call(lambda r: httpx.Response(200, json=body)) is not None
 
 
 @pytest.mark.parametrize("response", [
