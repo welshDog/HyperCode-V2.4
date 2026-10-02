@@ -223,6 +223,30 @@ async def main() -> None:
             cplan_hash = next(e["event"]["value"]["planHash"] for e in cplan["events"] if e["event"].get("name") == "hypercode.approval.required")
             check(human("POST", f"/tasks/{c['taskId']}/input", json={"decision": "approve", "plan_hash": cplan_hash}).status_code == 409, "a cancelled run can no longer be approved")
 
+            # ── Panic: a durable hold that survives a REAL restart and needs a human to release ──
+            pk = await tool(session, "hypercode_crew_start", {"goal": "hold this one with panic", "idempotency_key": f"prove-crew-{RUN}-panic"})
+            pgate = await poll(session, pk["taskId"], at_gate)
+            phash = next(e["event"]["value"]["planHash"] for e in pgate["events"] if e["event"].get("name") == "hypercode.approval.required")
+            panic = human("POST", "/panic").json()
+            check(panic["saved"] is True and pk["taskId"] in [x["taskId"] for x in panic["paused"]], "Panic saved and paused the run")
+            check(panic["message"] == "Saved. Nothing is running. Take your time.", "Panic tells you plainly that nothing is running")
+            pbody = {"decision": "approve", "plan_hash": phash}
+            check(human("POST", f"/tasks/{pk['taskId']}/input", json=pbody).status_code == 409, "a paused run cannot be approved (409)")
+            check(agent("POST", f"/tasks/{pk['taskId']}/resume").status_code == 403, "an agent key cannot resume (403)")
+            again = await tool(session, "hypercode_crew_pause", {"task_id": pk["taskId"], "reason": "agent pause"})
+            check(again.get("alreadyPaused") is True, "an agent can pause (idempotent), via MCP")
+            stop("core")
+            start_core()
+            held = await poll(session, pk["taskId"], lambda p: p.get("paused") is True and p["status"] == "working")
+            check(held["calmCard"]["status"] == "paused" and held["calmCard"]["tldr"][-1] == "Paused. Nothing is running.", "after a REAL restart the hold is still there and the card says nothing is running")
+            check(human("POST", f"/tasks/{pk['taskId']}/input", json=pbody).status_code == 409, "still cannot be approved after the restart")
+            check(pk["taskId"] in [x["taskId"] for x in human("GET", "/panic").json()["paused"]], "GET /panic lists what is held")
+            check(pk["taskId"] in human("POST", "/panic/resume").json()["resumed"], "a human releases the hold")
+            await poll(session, pk["taskId"], at_gate)
+            check(human("POST", f"/tasks/{pk['taskId']}/input", json=pbody).status_code == 200, "released: the same plan hash is accepted")
+            pdone = await poll(session, pk["taskId"], lambda p: p["done"], timeout=45)
+            check(pdone["status"] == "completed", "the held run then completed")
+
             # ── orchestrator down: fail closed ──
             stop("stub")
             before_calls = calls("crew_build")

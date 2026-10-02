@@ -17,6 +17,12 @@ const payload = (events: AguiEvent[], from = 0, over: Partial<EventsPayload> = {
 })
 
 describe('runStore', () => {
+  it('carries the paused flag from the server, defaulting to not paused', () => {
+    expect(initialRun('t1').paused).toBe(false)
+    expect(applyPayload(initialRun('t1'), payload([], 0, { paused: true })).paused).toBe(true)
+    expect(applyPayload(initialRun('t1'), payload([], 0)).paused).toBe(false)
+  })
+
   it('starts idle with nothing applied', () => {
     const s = initialRun()
     expect(s.status).toBe('idle')

@@ -20,6 +20,7 @@ Tools exposed:
   hypercode_recover         — start a recovery diagnosis (background task, proposes only)
   hypercode_crew_start      — start a HyperCrew run from a goal (plan gate, then propose-only build/verify/guard)
   hypercode_crew_status     — AG-UI-shaped events + Calm Card for a crew run (replay with `after`)
+  hypercode_crew_pause      — pause a background task between steps (agents may pause; only a human can resume)
   hypercode_task_get        — poll a background task
   hypercode_task_cancel     — cancel a background task
 """
@@ -338,6 +339,19 @@ async def hypercode_crew_status(task_id: str, after: int = -1) -> dict:
     if cursor < -1 or cursor > 10**9:
         return {"error": "invalid after"}
     return await _get(f"{API_PREFIX}/operator/tasks/{tid}/events", after=cursor)
+
+
+@mcp.tool()
+async def hypercode_crew_pause(task_id: str, reason: str = "") -> dict:
+    """
+    Pause a background task: no NEW step starts (a step already running finishes first), and nothing can
+    approve it while it is paused. Always safe to call. There is deliberately NO resume tool: only a human
+    can resume, from the dashboard or the API. Returns a snapshot of where the task was.
+    """
+    tid = _valid_task_id(task_id)
+    if tid is None:
+        return {"error": "invalid task_id"}
+    return await _post(f"{API_PREFIX}/operator/tasks/{tid}/pause", {"reason": (reason or "")[:200]})
 
 
 @mcp.tool()

@@ -15,11 +15,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import uuid
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -27,7 +29,7 @@ from app.agents.hyperflow.registry import get_flow
 from app.agents.hyperflow_runner import get_runner, start_flow_run
 from app.api import deps
 from app.broski_operator.catalog import TOOL_FLOWS, ArgumentError, tool_for_flow, validate_arguments
-from app.broski_operator.runs import finish_run_row, store_decision
+from app.broski_operator.runs import OPEN_STATUSES, clear_paused, finish_run_row, pause_info, set_paused, store_decision
 from app.crew import agui as crew_agui
 from app.crew.cards import calm_card_for_run
 from app.broski_operator.status import (
@@ -139,7 +141,12 @@ def _serialize(run: HyperFlowRun) -> dict[str, Any]:
         "result": None,
         "error": None,
         "inputRequests": None,
+        "paused": False,
     }
+    held = pause_info(run)
+    if held is not None and task_status in ("working", "input_required"):
+        body["paused"] = True
+        body["pausedAt"] = held.get("at")
     if task_status == "completed":
         body["result"] = build_result(history)
     elif task_status in ("failed", "cancelled"):
@@ -278,9 +285,10 @@ def get_task_events(
     task_status = to_task_status(run.status)
     every = crew_agui.history_to_events(run.id, history)
     fresh = crew_agui.events_after(every, after)
+    held = pause_info(run) if run.status not in TERMINAL_RUN_STATUSES else None
     card = calm_card_for_run(
         run_id=run.id, run_status=run.status, history=history, current_node=run.current_node,
-        error=state.get("error"), at_gate=_parked_gate(run) is not None,
+        error=state.get("error"), at_gate=_parked_gate(run) is not None, paused=held is not None,
     )
     return {
         "taskId": run.id,
@@ -288,7 +296,8 @@ def get_task_events(
         "nextAfter": fresh[-1]["seq"] if fresh else after,
         "done": run.status in TERMINAL_RUN_STATUSES,
         "status": task_status,
-        "now": crew_agui.node_label(run.current_node) if task_status == "working" else None,
+        "paused": held is not None,
+        "now": crew_agui.node_label(run.current_node) if task_status == "working" and held is None else None,
         "calmCard": card.model_dump(),
         "pollInterval": poll_interval_ms(task_status),
     }
@@ -331,6 +340,9 @@ async def submit_input(
     if sent_hash is not None and not isinstance(sent_hash, str):
         raise HTTPException(status_code=422, detail="'plan_hash' must be a string")
     run = _locked_run(db, task_id)
+    if pause_info(run) is not None and run.status not in TERMINAL_RUN_STATUSES:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"error": "paused"})  # nothing moves until a human resumes
     gate = _parked_gate(run) if run.status == HyperFlowRunStatus.AWAITING_APPROVAL.value else None
     if gate is None:
         status = to_task_status(run.status)
@@ -395,3 +407,170 @@ async def cancel_task(
         finish_run_row(db, run, HyperFlowRunStatus.CANCELLED, label)
         db.refresh(run)
     return {"taskId": task_id, "status": to_task_status(run.status), "reason": label}
+
+
+# ── Pause / Panic ─────────────────────────────────────────────────────────────
+# Pause = stop starting new steps (a step already running finishes first). It is stored with the run, so it
+# survives a restart. Anyone authenticated may PAUSE; only a human (never an agent key) may RESUME, and a
+# paused run cannot be approved: nothing moves until a person says so.
+
+_PAUSE_MESSAGE_SETTLED = "Saved. Nothing is running. Take your time."
+_PAUSE_MESSAGE_IN_FLIGHT = "Saved. The step in progress will finish, then nothing else will run."
+_PAUSE_MESSAGE_NONE = "Nothing was running. You are all clear."
+
+
+def _snapshot_for(run: HyperFlowRun) -> dict[str, Any]:
+    """Where the run was when it was paused: the Calm Card plus the identifiers needed to pick it back up."""
+    state = run.state or {}
+    history = state.get("history", [])
+    card = calm_card_for_run(
+        run_id=run.id, run_status=run.status, history=history, current_node=run.current_node,
+        error=state.get("error"), at_gate=_parked_gate(run) is not None,
+    )
+    return {"status": run.status, "currentNode": run.current_node, "card": card.model_dump()}
+
+
+def _require_human(principal: dict) -> None:
+    if principal["kind"] != "user":
+        raise HTTPException(status_code=403, detail="Only a human can resume; agent keys can pause but never resume")
+
+
+def _pause_one(db: Session, run: HyperFlowRun, principal: dict, reason: str) -> tuple[bool, bool]:
+    """Returns (newly_paused, in_flight). Must be called with ``run`` locked."""
+    in_flight = run.status == HyperFlowRunStatus.RUNNING.value
+    newly = set_paused(db, run, by=principal["name"], reason=reason, snapshot=_snapshot_for(run))
+    runner = get_runner(run.id)
+    if runner is not None:
+        runner.request_pause()
+    return newly, in_flight
+
+
+@router.post("/tasks/{task_id}/pause")
+async def pause_task(
+    task_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+    principal: dict = Depends(operator_principal),
+) -> Any:
+    reason = payload.get("reason") or "paused"
+    if not isinstance(reason, str) or len(reason) > _MAX_REASON:
+        raise HTTPException(status_code=422, detail=f"'reason' must be a string <= {_MAX_REASON} chars")
+    run = _locked_run(db, task_id)
+    if run.status in TERMINAL_RUN_STATUSES:
+        status = to_task_status(run.status)
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"error": "already_terminal", "status": status})
+    newly, in_flight = _pause_one(db, run, principal, reason)
+    held = pause_info(run) or {}
+    return {
+        "taskId": task_id,
+        "paused": True,
+        "alreadyPaused": not newly,
+        "snapshot": held.get("snapshot"),
+        "message": _PAUSE_MESSAGE_IN_FLIGHT if in_flight and run.current_node and _parked_gate(run) is None else _PAUSE_MESSAGE_SETTLED,
+    }
+
+
+@router.post("/tasks/{task_id}/resume")
+async def resume_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    principal: dict = Depends(operator_principal),
+) -> Any:
+    _require_human(principal)
+    run = _locked_run(db, task_id)
+    old = clear_paused(db, run)
+    if old is None:
+        db.rollback()
+        raise HTTPException(status_code=409, detail={"error": "not_paused"})
+    runner = get_runner(task_id)
+    if runner is not None:
+        runner.request_resume()
+    return {"taskId": task_id, "paused": False, "snapshot": old.get("snapshot")}
+
+
+def _open_runs(db: Session) -> list[HyperFlowRun]:
+    return (
+        db.query(HyperFlowRun)
+        .filter(HyperFlowRun.flow_name.in_(list(TOOL_FLOWS.values())), HyperFlowRun.status.in_(OPEN_STATUSES))
+        .order_by(HyperFlowRun.created_at)
+        .with_for_update()
+        .all()
+    )
+
+
+def _write_panic_ledger(payload: dict[str, Any], by: str) -> bool:
+    from app.db.session import SessionLocal
+    from app.models.governance import GovernanceLedger
+
+    try:
+        ledger_db = SessionLocal()
+        try:
+            ledger_db.add(GovernanceLedger(
+                user_id="broski-operator", action="panic_used", tool_used="hypercode.panic", payload=payload,
+                decision="approved", agent_name="broski-operator", approved_by=by,
+            ))
+            ledger_db.commit()
+            return True
+        finally:
+            ledger_db.close()
+    except Exception:
+        logging.getLogger(__name__).warning("panic: governance ledger insert failed", exc_info=True)
+        return False
+
+
+@router.post("/panic")
+async def panic(
+    db: Session = Depends(get_db),
+    principal: dict = Depends(operator_principal),
+) -> Any:
+    """Pause EVERYTHING the operator is running. One call, no confirmation, always safe."""
+    runs = _open_runs(db)
+    paused: list[dict[str, Any]] = []
+    already: list[str] = []
+    in_flight = False
+    for run in runs:
+        newly, flying = _pause_one(db, run, principal, "panic")
+        if newly:
+            paused.append({"taskId": run.id, "card": (pause_info(run) or {}).get("snapshot", {}).get("card")})
+            in_flight = in_flight or (flying and _parked_gate(run) is None)
+        else:
+            already.append(run.id)
+    ledger = _write_panic_ledger({"paused": [p["taskId"] for p in paused], "alreadyPaused": already}, principal["name"])
+    if not runs:
+        message = _PAUSE_MESSAGE_NONE
+    else:
+        message = _PAUSE_MESSAGE_IN_FLIGHT if in_flight else _PAUSE_MESSAGE_SETTLED
+    # "saved" is only claimed once every pause record is durably committed (set_paused commits per run).
+    return {"saved": True, "ledger": ledger, "paused": paused, "alreadyPaused": already, "message": message}
+
+
+@router.get("/panic")
+def panic_status(
+    db: Session = Depends(get_db),
+    _principal: dict = Depends(operator_principal),
+) -> Any:
+    """What is currently held by Panic (survives a page refresh or a restart)."""
+    held = []
+    for run in _open_runs(db):
+        info = pause_info(run)
+        if info is not None:
+            held.append({"taskId": run.id, "pausedAt": info.get("at"), "card": (info.get("snapshot") or {}).get("card")})
+    db.rollback()  # read only: release the row locks taken by _open_runs
+    return {"paused": held}
+
+
+@router.post("/panic/resume")
+async def panic_resume(
+    db: Session = Depends(get_db),
+    principal: dict = Depends(operator_principal),
+) -> Any:
+    _require_human(principal)
+    resumed: list[str] = []
+    for run in _open_runs(db):
+        if clear_paused(db, run) is not None:
+            resumed.append(run.id)
+            runner = get_runner(run.id)
+            if runner is not None:
+                runner.request_resume()
+    return {"resumed": resumed}

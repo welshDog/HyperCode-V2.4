@@ -240,3 +240,11 @@ describe('layout.tsx', () => {
     expect(layout).toContain('<SensoryProvider>')
   })
 })
+
+describe('focus session css', () => {
+  const css = read('app/sensory.css')
+  it('hides gamification and the extra Calm sections while focus is on', () => {
+    expect(css).toMatch(/html\[data-focus="on"\] \[data-gamify\]\s*\{[^}]*display:\s*none/)
+    expect(css).toMatch(/html\[data-focus="on"\] \.calm-more\s*\{[^}]*display:\s*none/)
+  })
+})

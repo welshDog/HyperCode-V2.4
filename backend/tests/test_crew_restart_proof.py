@@ -11,35 +11,14 @@ is proved by ``scripts/prove-crew.py`` against a live stack.
 import asyncio
 import time
 
-import pytest
-from sqlalchemy.orm import sessionmaker
 
 import app.agents.hyperflow_runner as runner_mod
 import app.broski_operator.recovery as recovery_mod
 from app.crew import dispatch as crew_dispatch
-from app.crew import tools as crew_tools
 from app.models.governance import GovernanceLedger
 from tests.test_crew_operator_api import GOAL, KEY, _as, _fake_dispatch
 
 BASE = "/api/v1/operator"
-
-
-@pytest.fixture
-def real_runner(db, monkeypatch, slot_gate):
-    """Point every runner-side DB use at the test database; silence only the network fan-out."""
-    factory = sessionmaker(bind=db.get_bind(), autoflush=False, autocommit=False)
-    for mod in (runner_mod, recovery_mod, crew_tools):
-        monkeypatch.setattr(mod, "SessionLocal", factory)
-
-    async def noop(*_a, **_k):
-        return None
-
-    monkeypatch.setattr(runner_mod.HyperFlowRunner, "_publish", noop)
-    monkeypatch.setattr(runner_mod.HyperFlowRunner, "_publish_approval_request", noop)
-    monkeypatch.setattr(runner_mod, "APPROVAL_POLL_SECONDS", 0.05)
-    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "off")
-    monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", _fake_dispatch())
-    return factory
 
 
 def wait_for(client, task_id, status, node=None, timeout=15.0):

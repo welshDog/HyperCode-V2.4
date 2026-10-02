@@ -103,3 +103,16 @@ html[data-layout="full"] .calm-more > summary { display: none; }
   padding: 8px 4px;
   color: var(--text-secondary);
 }
+
+/* ── Focus session: one quiet chunk of work (lib/focus/store.ts sets data-focus on <html>) ── */
+html[data-focus="on"] [data-gamify] { display: none !important; }
+html[data-focus="on"] .calm-more { display: none; }
+
+/* ── Panic notice: a calm, plain line; it never animates ── */
+.panic-notice {
+  border: 1px solid var(--pane-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}

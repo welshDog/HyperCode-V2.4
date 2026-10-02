@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NDToggle } from '@/components/ui/NDToggle'
 import { CalmModeToggle } from '@/components/sensory/CalmModeToggle'
+import { PanicButton, PanicNotice } from '@/components/crew/PanicControl'
+import { FocusSessionControl } from '@/components/crew/FocusSessionControl'
 import { useSensory } from '@/components/sensory/SensoryProvider'
 import { ViewModeToggle, type ViewMode } from '@/components/shell/ViewModeToggle'
 import { ToastProvider, useToast } from '@/components/ui/ToastProvider'
@@ -268,6 +270,8 @@ function AppShellInner({
               </div>
             )}
           </div>
+          <PanicButton />
+          <FocusSessionControl />
           <CalmModeToggle />
           <NDToggle value={ndMode} onChange={setNdMode} />
           {isMission && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
@@ -293,6 +297,7 @@ function AppShellInner({
       </aside>
 
       <main className="hc-main" role="main">
+        <PanicNotice />
         {children}
       </main>
     </div>

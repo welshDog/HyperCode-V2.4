@@ -62,10 +62,18 @@ def calm_card_for_run(
     current_node: Optional[str],
     error: Optional[str],
     at_gate: bool,
+    paused: bool = False,
 ) -> CalmCard:
     lines = _done_lines(history)
     status: CardStatus
-    if run_status == "completed":
+    if paused and run_status not in ("completed", "failed", "cancelled"):
+        # Held by Panic. "Nothing is running" is only true once the runner has stopped between steps
+        # (it records a control entry) or the run is parked at your gate; before that, say so honestly.
+        last = history[-1] if history and isinstance(history[-1], dict) else {}
+        stopped = at_gate or (last.get("type") == "control" and last.get("status") == "paused")
+        lines.append("Paused. Nothing is running." if stopped else "Pausing: the step in progress finishes first.")
+        status, nxt = "paused", "Resume when you are ready"
+    elif run_status == "completed":
         guard = _guard_data(history)
         if guard is not None and guard.get("verdict") != "ALLOW":
             status, nxt = "blocked", "Read why the guard blocked it"

@@ -192,3 +192,34 @@ def test_the_crew_tools_are_registered_with_the_mcp_server(monkeypatch):
     names = {t.name for t in asyncio.run(mod.mcp.list_tools())}
     assert {"hypercode_crew_start", "hypercode_crew_status", "hypercode_task_get", "hypercode_task_cancel"} <= names
     assert not any("approve" in n for n in names)
+
+
+def test_crew_pause_posts_to_the_pause_route_and_truncates_the_reason(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock(return_value={"paused": True})
+    assert asyncio.run(mod.hypercode_crew_pause(GOOD_ID.upper(), "x" * 500)) == {"paused": True}
+    path, body = mod._post.await_args.args
+    assert path == f"/api/v1/operator/tasks/{GOOD_ID}/pause" and len(body["reason"]) == 200
+    asyncio.run(mod.hypercode_crew_pause(GOOD_ID, None))
+    assert mod._post.await_args.args[1] == {"reason": ""}
+
+
+@pytest.mark.parametrize("bad", ["../../admin", "", GOOD_ID + "/resume", None, 42])
+def test_crew_pause_rejects_a_bad_task_id_before_any_http_call(monkeypatch, bad):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    mod._post = AsyncMock()
+    assert asyncio.run(mod.hypercode_crew_pause(bad)) == {"error": "invalid task_id"}
+    mod._post.assert_not_awaited()
+
+
+def test_agents_can_pause_but_there_is_no_resume_tool(monkeypatch):
+    import asyncio
+
+    mod = _load(monkeypatch)
+    names = {t.name for t in asyncio.run(mod.mcp.list_tools())}
+    assert "hypercode_crew_pause" in names
+    assert not any("resume" in n or "unpause" in n or "panic" in n for n in names)

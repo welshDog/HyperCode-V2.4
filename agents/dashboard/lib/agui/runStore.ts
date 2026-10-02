@@ -34,6 +34,7 @@ export interface RunState {
   lastSeq: number
   status: TaskStatus | 'idle'
   done: boolean
+  paused: boolean
   now: string | null
   pollInterval: number | null
   calmCard: CalmCardData | null
@@ -51,7 +52,7 @@ const MAX_SAFETY = 20
 
 export function initialRun(taskId: string | null = null): RunState {
   return {
-    taskId, lastSeq: -1, status: 'idle', done: false, now: null, pollInterval: null,
+    taskId, lastSeq: -1, status: 'idle', done: false, paused: false, now: null, pollInterval: null,
     calmCard: null, steps: {}, toolCalls: [], approval: null, planHash: null, sealed: false,
     verdict: null, safety: [], error: null,
   }
@@ -135,6 +136,7 @@ export function applyPayload(prev: RunState, payload: EventsPayload): RunState {
     ...state,
     status: payload.status,
     done: payload.done,
+    paused: Boolean(payload.paused),
     now: payload.now,
     pollInterval: payload.pollInterval,
     calmCard: payload.calmCard,

@@ -35,6 +35,7 @@ export interface EventsPayload {
   events: SequencedEvent[]
   nextAfter: number
   done: boolean
+  paused?: boolean
   status: TaskStatus
   now: string | null
   calmCard: CalmCardData

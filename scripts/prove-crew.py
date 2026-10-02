@@ -130,6 +130,16 @@ def phase0() -> None:
     other = _token(False)
     if other:
         check(call("POST", f"/tasks/{task_id}/input", headers={"Authorization": f"Bearer {other}"}, json={"decision": "approve", "plan_hash": h})[0] == 403, "a non-superuser cannot approve (403)")
+    # Pause THIS run only (the global /panic would also pause anything else open on a live stack).
+    code, pz = call("POST", f"/tasks/{task_id}/pause", json={"reason": "phase0 proof"})
+    check(code == 200 and pz["paused"] is True and pz["snapshot"]["card"]["tldr"], "pause stores a snapshot of where the run was")
+    check(call("POST", f"/tasks/{task_id}/pause", json={})[1]["alreadyPaused"] is True, "pausing again is harmless and keeps the first snapshot")
+    check(call("POST", f"/tasks/{task_id}/input", json={"decision": "approve", "plan_hash": h})[0] == 409, "a paused run cannot be approved (409)")
+    pev = events(task_id)
+    check(pev["paused"] is True and pev["calmCard"]["status"] == "paused", "events + Calm Card report the pause")
+    code, rs = call("POST", f"/tasks/{task_id}/resume")
+    check(code == 200 and rs["paused"] is False, "a human resumes it")
+    check(events(task_id)["paused"] is False, "no longer paused")
     code, c = call("POST", f"/tasks/{task_id}/cancel", json={"reason": "phase0 proof cleanup"})
     check(code == 200 and c["status"] == "cancelled", "cancel at the gate works")
     wait_for(task_id, lambda b: b["status"] == "cancelled")

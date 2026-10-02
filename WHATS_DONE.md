@@ -2,6 +2,29 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 6: Panic + Focus Session (tests/local proof PASS; Docker live proof NOT yet run)
+
+- **Panic = one click, no confirmation.** Header button "Pause everything" -> `POST /api/v1/operator/panic`
+  pauses every open run. It never claims "Saved" unless core says `saved: true`; if core is
+  unreachable it says nothing was changed. Becomes "Paused (n) · Resume" with "Where you were".
+- **Durable pause.** `state.context.paused` flag on the run; survives a core restart. The step in
+  progress finishes, then the runner parks. Approvals are refused (409) while paused.
+  Per-task `pause` / `resume` endpoints too. **Resume is human-only** (agents get `hypercode_crew_pause`
+  on MCP, deliberately no resume/approve tool). Panic writes a ledger note.
+- **Calm Card + AG-UI** show "paused" (`hypercode.run.paused/resumed` events, replay-safe;
+  `plan_recovery` ignores control entries).
+- **Focus session** (dashboard, local): 10/25/45 min chunk, `data-focus="on"` hides gamification
+  and extra Calm sections, non-error toasts wait quietly in the bell (count shown), errors still
+  show. Timer is a suggestion: time up changes one line, never ends the session.
+- Fixed on the way: a just-started focus timer briefly showed 25:01.
+- Tests: backend `test_crew_pause.py` (31); dashboard panic/focus/api/runStore/css tests.
+  Full dashboard 242 pass, tsc clean, eslint 0 errors, `next build` OK. Backend 966 pass, same 4
+  pre-existing failures on `main` (`test_agent_pulse` x3, `test_core_rag` x1).
+  `scripts/prove-crew-local.py` ALL PASS incl. real SIGTERM restart + Panic section.
+- **Not done / not proven:** Docker live proof (`scripts/prove-crew.py`) unrun; nothing deployed
+  (needs `dashboard` + `hypercode-core` rebuild); `hyper-split-agent` "Make it smaller?" chunking
+  deferred (needs an LLM agent); mypy shows 2 pre-existing errors in `app/db/session.py`.
+
 ## 2026-10-02 — HyperCrew Day 5: MCP crew tools + proofs (local proof PASS; Docker live proof NOT yet run)
 
 - **MCP tools** on `hypercode-mcp-server`: `hypercode_crew_start(goal, idempotency_key="")` and

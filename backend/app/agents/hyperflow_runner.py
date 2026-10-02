@@ -147,6 +147,9 @@ class HyperFlowRunner:
         self._task: Optional[asyncio.Task] = None
         self._cancel_reason: Optional[str] = None
         self.parked_gate: Optional[str] = None  # node id while parked at a human gate
+        # Panic / pause: honoured at node boundaries (a step already in flight finishes first).
+        self._paused = False
+        self._resume_event = asyncio.Event()
         self._last_decision_meta: dict[str, Any] = {}  # {"by", "plan_hash"} of the last consumed decision
         self._cache_url = cache_redis_url()
 
@@ -161,8 +164,52 @@ class HyperFlowRunner:
     async def start_at(self, node_id: str) -> "HyperFlowRunner":
         """Re-attach to a persisted run (see recovery.recover_runs) and continue from ``node_id``."""
         _ACTIVE[self.run_id] = self
+        # A pause requested before the restart is stored in the run row and must survive it.
+        self._paused = await asyncio.to_thread(self._read_paused_sync)
         self._task = asyncio.create_task(self._run(node_id))
         return self
+
+    # ── pause / resume (Panic) ───────────────────────────────────────────────
+
+    def request_pause(self) -> None:
+        """Stop starting new steps. Called by the operator API in the same process as the run."""
+        self._paused = True
+        self._resume_event.clear()
+
+    def request_resume(self) -> None:
+        self._paused = False
+        self._resume_event.set()
+
+    def _read_paused_sync(self) -> bool:
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id)
+            ctx = ((run.state or {}).get("context") or {}) if run is not None else {}
+            return isinstance(ctx.get("paused"), dict)
+        except Exception:  # pragma: no cover — an unreadable flag must not kill a recovering run
+            logger.exception("hyperflow %s pause flag read failed", self.run_id)
+            return False
+        finally:
+            db.close()
+
+    async def _pause_gate(self, next_node: str) -> None:
+        """Wait here, between steps, while the run is paused. Cancel still works (the sleep is cancellable)."""
+        if not self._paused:
+            return
+        await self._emit_control("paused", next_node)
+        while self._paused:
+            try:
+                await asyncio.wait_for(self._resume_event.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                continue
+        await self._emit_control("resumed", next_node)
+
+    async def _emit_control(self, status: str, next_node: str) -> None:
+        entry = {"node": None, "type": "control", "status": status,
+                 "result": {"next": next_node}, "ts": datetime.now(timezone.utc).isoformat()}
+        self._history.append(entry)
+        await self._persist(HyperFlowRunStatus.RUNNING, next_node)
+        await self._publish(entry, HyperFlowRunStatus.RUNNING)
 
     def resume(self, approved: bool) -> None:
         """Satisfy a pending human_approval_gate (called from the resume endpoint)."""
@@ -186,6 +233,7 @@ class HyperFlowRunner:
         node_id: Optional[str] = start_at or self.flow.entry
         try:
             while node_id is not None:
+                await self._pause_gate(node_id)
                 node = self.flow.node(node_id)
                 started = time.time()
                 try:

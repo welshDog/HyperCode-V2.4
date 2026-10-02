@@ -111,6 +111,8 @@ def _entry_events(run_id: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
             return [{"type": "RUN_FINISHED", "threadId": run_id, "runId": run_id}]
         code = "CANCELLED" if status == "cancelled" else "RUN_FAILED"
         return [{"type": "RUN_ERROR", "message": _cap(result.get("error") or "The run stopped", 200), "code": code}]
+    if typ == "control" and status in ("paused", "resumed"):
+        return [_custom(f"run.{status}", {"next": _cap(result.get("next"), 40)})]
     if not node:
         return []
     node = str(node)
