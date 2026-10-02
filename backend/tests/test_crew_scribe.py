@@ -4,6 +4,7 @@ import asyncio
 import json
 import re
 from datetime import date
+from functools import partial
 from pathlib import Path
 
 import httpx
@@ -15,7 +16,7 @@ from app.models.broski import BROskiUserAchievement, QuestSettlement
 from app.models.models import User
 from app.services.broski_service import seed_achievements
 from tests.test_crew_operator_api import GOAL, _drive
-from tests.test_crew_quests import HASH, PLAN, RUN, history
+from tests.test_crew_quests import RUN, history
 
 DAY = date(2026, 10, 2)
 SECRET = "sk-ant-api03-" + "A" * 40
@@ -339,8 +340,8 @@ def test_handover_written_unlocks_for_the_approver_once(db, human):
 
 
 @pytest.mark.parametrize("approver,hist", [
-    ("stranger@example.com", lambda: history()), ("agent:coder-agent", lambda: history()),
-    ("bro@example.com", lambda: history(verdict="BLOCK")),
+    ("stranger@example.com", history), ("agent:coder-agent", history),
+    ("bro@example.com", partial(history, verdict="BLOCK")),
 ])
 def test_handover_written_is_for_a_known_human_and_a_guard_allowed_run_only(db, human, approver, hist):
     from app.crew.quests import settle_handover
