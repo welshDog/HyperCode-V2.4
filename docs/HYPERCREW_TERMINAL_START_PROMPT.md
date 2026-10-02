@@ -48,7 +48,7 @@ Real bugs are likely here (first Docker run ever). Finding them is the win, not 
 
 THE RUNBOOK IS WRITTEN FROM THE REPO, NOT TESTED
 If a command in it is wrong (compose service name, profile, PowerShell vs bash redirects), fix the runbook and
-tell me. If my shell is PowerShell: `docker exec -i hypercore python - phase0 < file` does not work there; use
+tell me. If my shell is PowerShell: `docker exec -i hypercode-core python - phase0 < scripts/prove-crew.py` does not work there; use
 `Get-Content scripts\prove-crew.py -Raw | docker exec -i hypercode-core python - phase0`, or use Git Bash/WSL.
 
 AT THE END (all of it, not just the code)
