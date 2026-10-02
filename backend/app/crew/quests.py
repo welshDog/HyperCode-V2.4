@@ -34,7 +34,6 @@ RETRIED_XP = 10  # a run where a step had to be re-run: still positive, no shami
 DAILY_XP_CAP = 100
 COINS_PER_XP = 0.5
 
-_DISPATCH_NODES = ("build", "verify")
 _SKIP_RETRY_NODES = ("approve",)  # a gate re-parked after a restart is not a retry
 
 STATUS_AWARDED = "awarded"
