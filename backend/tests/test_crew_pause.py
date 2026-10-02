@@ -9,7 +9,6 @@ import app.agents.hyperflow_runner as runner_mod
 import app.broski_operator.recovery as recovery_mod
 from app.agents.hyperflow.schema import FlowDefinition
 from app.api.v1.endpoints import operator_tasks
-from app.broski_operator.recovery import plan_recovery
 from app.broski_operator.runs import clear_paused, pause_info, set_paused
 from app.crew import dispatch as crew_dispatch
 from app.crew.agui import history_to_events
@@ -118,20 +117,20 @@ def _hist(*entries):
 def test_recovery_ignores_pause_markers_when_deciding_what_to_do():
     flow = two_step_flow()
     done_a = _hist(("a", "tool", "completed"), (None, "control", "paused"))
-    assert plan_recovery(flow, "running", done_a).action == "fail"  # b is not idempotent: same as without the marker
+    assert recovery_mod.plan_recovery(flow, "running", done_a).action == "fail"  # b is not idempotent: same as without the marker
     idem = FlowDefinition.model_validate({
         "name": "t", "entry": "a",
         "nodes": [{"id": "a", "type": "tool", "tool": "t.a"}, {"id": "b", "type": "tool", "tool": "t.b", "idempotent": True}],
         "edges": [{"from": "a", "to": "b"}],
     })
-    plan = plan_recovery(idem, "running", _hist(("a", "tool", "completed"), (None, "control", "paused")))
+    plan = recovery_mod.plan_recovery(idem, "running", _hist(("a", "tool", "completed"), (None, "control", "paused")))
     assert plan.action == "resume" and plan.node_id == "b"
 
 
 def test_recovery_resumes_a_paused_run_that_was_parked_at_its_gate():
     flow = FlowDefinition.model_validate({
         "name": "g", "entry": "gate", "nodes": [{"id": "gate", "type": "human_approval_gate"}], "edges": []})
-    plan = plan_recovery(flow, "awaiting_approval", _hist(("gate", "human_approval_gate", "awaiting_approval"), (None, "control", "paused")))
+    plan = recovery_mod.plan_recovery(flow, "awaiting_approval", _hist(("gate", "human_approval_gate", "awaiting_approval"), (None, "control", "paused")))
     assert plan.action == "resume" and plan.node_id == "gate"
 
 
