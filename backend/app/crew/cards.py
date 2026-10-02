@@ -49,6 +49,13 @@ def _done_lines(history: list[dict[str, Any]]) -> list[str]:
             else:
                 failed = ", ".join(str(c) for c in data.get("failed_checks", [])[:3]) or "a check failed"
                 lines.append(f"Guardian blocked it: {failed}")
+        elif node == "settle":
+            # One quiet line, only for a real award; nothing at all when there was none (no shaming).
+            raw = (entry.get("result") or {}).get("data")
+            data = raw if isinstance(raw, dict) else {}
+            xp = int(data.get("xp") or 0) if data.get("status") == "awarded" else 0
+            if xp > 0:
+                lines.append(f"+{xp} XP for a verified run")
         else:
             lines.append(DONE_LABELS.get(node, f"Finished {node}"))
     return lines

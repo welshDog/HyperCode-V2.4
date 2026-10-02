@@ -2,6 +2,32 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 8: Quest Settler + first 5 achievements (tests + local proof PASS; Docker live proof NOT yet run)
+
+- **Contradiction surfaced:** the design said "call `broski-economy-mcp award_tokens`". Core already has its
+  own BROski$ wallet/XP/achievements (`broski_service`), so the settler pays through that, in one DB
+  transaction, instead of adding a network hop. The MCP economy server is untouched.
+- **Flow `hypercode-crew` v3:** new `settle` node after `guard` (only on ALLOW). Runs inside core: **no
+  endpoint, no MCP tool, no agent path** (tests assert it). A settle error never fails a finished run.
+- **Pays only on evidence:** sealed plan + guard ALLOW + an evidence bundle whose hash verifies and matches this
+  run and plan. Pays only the **human who approved the plan** (active superuser account). Agents can't be paid.
+- **Idempotent in the database:** new `quest_settlements` table (migration `023`), `source_id = run_id:crew_run`
+  is UNIQUE. Replay, restart and a lost race all settle at most once. No-award and capped runs are recorded too,
+  so replaying them later can't pay.
+- **Small defaults (decision D1 — Lyndz tunes in `app/crew/quests.py`):** 20 XP per verified run, 10 if a step
+  was re-run (still positive, no shaming), +0.5 coin per XP, **100 XP/day ceiling** per human. Nothing ever
+  subtracts XP (a test checks the source).
+- **5 achievements** (10 XP + 5 coins each, one-off per wallet): First Squad Run, Zero-Retry Run, Green on First
+  Verify, Panic Used Well (pause + resume same UTC day in the run). **Handover Written is seeded but only the
+  Day 9 Scribe can unlock it.**
+- **Quiet by design:** one `hypercode.quest.settled` event and one Calm Card line ("+20 XP for a verified run"),
+  only on a real award. Nothing is shown for no-award/capped/error.
+- Tests: `backend/tests/test_crew_quests.py` (31). Backend 996 pass, same 4 pre-existing failures on `main`.
+  `scripts/prove-crew-local.py` ALL PASS incl. real settle: one row, user 1, 20 XP, one wallet transaction.
+- **Not done / not proven:** Docker live proof unrun; `dashboard` + `hypercode-core` rebuild needed, and
+  migration `023` must be applied; streaks not built (design says gentle auto-freeze — Day 10 or later);
+  dashboard has no dedicated XP chip yet (the card line shows it).
+
 ## 2026-10-02 — HyperCrew Day 6: Panic + Focus Session (tests/local proof PASS; Docker live proof NOT yet run)
 
 - **Panic = one click, no confirmation.** Header button "Pause everything" -> `POST /api/v1/operator/panic`

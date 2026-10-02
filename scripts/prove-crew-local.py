@@ -213,6 +213,19 @@ async def main() -> None:
             check(calls("crew_build") == 1 and calls("crew_verify") == 1, "builder and verifier were each asked exactly once (no double dispatch)")
             check([e["seq"] for e in seen["events"]] == list(range(before["nextAfter"] + 1, seen["nextAfter"] + 1)), "replay with `after` returns only what was missed")
 
+            # ── Quest Settler: paid once, to the approving human, from the guard-ALLOWed run ──
+            import sqlite3
+
+            with sqlite3.connect(tmp / "core.db") as conn:
+                rows = conn.execute("select source_id, user_id, status, xp from quest_settlements").fetchall()
+                wallet = conn.execute("select xp, coins from broski_wallets where user_id = 1").fetchone()
+                paid = conn.execute("select count(*) from broski_transactions where reason = 'Quest: crew run'").fetchone()[0]
+            conn.close()
+            check(rows == [(f"{task_id}:crew_run", 1, "awarded", 20)], "settled exactly once, to the approving human (user 1), 20 XP")
+            check(wallet is not None and wallet[0] >= 20 and paid == 1, "the human's wallet was credited by one traceable transaction")
+            check("hypercode.quest.settled" in names(seen), "the quiet win arrived as one event")
+            check(any("+20 XP" in line for line in done["calmCard"]["tldr"]), "the Calm Card shows one quiet XP line")
+
             # ── cancel at the gate, through MCP ──
             c = await tool(session, "hypercode_crew_start", {"goal": "write a cancelled thing", "idempotency_key": f"prove-crew-{RUN}-cancel"})
             cplan = await poll(session, c["taskId"], at_gate)

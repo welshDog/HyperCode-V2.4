@@ -28,6 +28,7 @@ NODE_LABELS: dict[str, str] = {
     "build": "Builder is proposing a change",
     "verify": "Verifier is reviewing it",
     "guard": "Guardian is checking it",
+    "settle": "Counting up your win",
 }
 
 
@@ -97,6 +98,13 @@ def _completed_extras(entry: dict[str, Any], run_id: str) -> list[dict[str, Any]
                        for c in data["checks"] if isinstance(c, dict)][:12],
             "bundleHash": _cap(bundle.get("bundle_hash"), 80),
         }))
+    elif node == "settle":
+        # A quiet win, only when something was actually awarded. Never a "you got nothing" event.
+        if data.get("status") == "awarded":
+            out.append(_custom("quest.settled", {
+                "xp": int(data.get("xp") or 0), "coins": int(data.get("coins") or 0),
+                "achievements": [_cap(a, 120) for a in (data.get("achievements") or [])][:5],
+            }))
     elif result.get("success") is False:
         notes = data.get("notes") if isinstance(data.get("notes"), list) else []
         out.append(_custom("step.unsuccessful", {"node": node, "reason": _cap(notes[0] if notes else "", 160)}))

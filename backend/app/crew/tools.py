@@ -191,3 +191,44 @@ async def crew_guard(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, A
         "evidence_bundle": build_bundle(run_id, plan_hash, items),
         "performed": False,
     }
+
+
+def _settle_sync(run_id: str, history: list[dict[str, Any]]) -> dict[str, Any]:
+    from app.crew.quests import settle_run
+    from app.services.broski_service import seed_achievements
+
+    db = SessionLocal()
+    try:
+        seed_achievements(db)  # idempotent: makes sure the crew achievements exist before they can unlock
+        result = settle_run(db, run_id, history)
+        return {
+            "status": result.status, "xp": result.xp, "coins": result.coins, "reason": result.reason,
+            "already_settled": result.already_settled, "achievements": result.achievements,
+        }
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            logger.debug("crew settle: rollback failed", exc_info=True)
+        raise
+    finally:
+        db.close()
+
+
+async def crew_settle(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, Any]:
+    """Quest Settler: reward the approving human for a guard-ALLOWed run, once. Executes nothing.
+
+    Runs as a flow node inside core — there is no endpoint, MCP tool or agent path to it. A reward
+    problem must never undo finished work, so a failure is reported (``status: error``) rather than raised;
+    re-running is safe because ``run_id:quest_id`` is UNIQUE.
+    """
+    history = (ctx or {}).get("history", [])
+    run_id = str((ctx or {}).get("run_id", ""))
+    try:
+        out = await asyncio.to_thread(_settle_sync, run_id, history)
+    except Exception:
+        logger.warning("crew settle failed for run %s", run_id, exc_info=True)
+        # ok stays True: a failed reward must never turn finished, guard-approved work into a failed run.
+        return {"ok": True, "performed": False, "status": "error", "xp": 0, "coins": 0,
+                "reason": "settlement failed; safe to retry", "achievements": []}
+    return {"ok": True, "performed": False, **out}

@@ -60,6 +60,47 @@ SEED_ACHIEVEMENTS = [
         "coin_reward": 10,
         "icon": "☀️",
     },
+    # HyperCrew achievements (small, one-off per wallet, evidence-backed — never tied to safety/trust).
+    {
+        "slug": "first_squad_run",
+        "name": "First Squad Run 🤝",
+        "description": "Your first crew run that passed the Guardian with proof.",
+        "xp_reward": 10,
+        "coin_reward": 5,
+        "icon": "🤝",
+    },
+    {
+        "slug": "zero_retry_run",
+        "name": "Zero-Retry Run 🎯",
+        "description": "A crew run where no step needed a second go.",
+        "xp_reward": 10,
+        "coin_reward": 5,
+        "icon": "🎯",
+    },
+    {
+        "slug": "handover_written",
+        "name": "Handover Written 📝",
+        "description": "A handover the crew drafted and you approved.",
+        "xp_reward": 10,
+        "coin_reward": 5,
+        "icon": "📝",
+    },
+    {
+        "slug": "panic_used_well",
+        "name": "Panic Used Well 🫶",
+        "description": "You paused everything when you needed to, then came back the same day.",
+        "xp_reward": 10,
+        "coin_reward": 5,
+        "icon": "🫶",
+    },
+    {
+        "slug": "green_first_verify",
+        "name": "Green on First Verify ✅",
+        "description": "The verifier passed it on the first review.",
+        "xp_reward": 10,
+        "coin_reward": 5,
+        "icon": "✅",
+    },
 ]
 
 
@@ -242,6 +283,18 @@ def check_and_award_achievements(
     # early_bird — task completed before 9 AM today
     if context.get("completed_before_9am", False):
         _unlock("early_bird")
+
+    # HyperCrew — context is built by the Quest Settler from a guard-ALLOWed run, never from a client.
+    if context.get("crew_runs_settled_total", 0) >= 1:
+        _unlock("first_squad_run")
+    if context.get("crew_zero_retry", False):
+        _unlock("zero_retry_run")
+    if context.get("crew_green_first_verify", False):
+        _unlock("green_first_verify")
+    if context.get("crew_panic_used_well", False):
+        _unlock("panic_used_well")
+    if context.get("crew_handover_written", False):  # wired by the Scribe (Day 9)
+        _unlock("handover_written")
 
     return unlocked
 

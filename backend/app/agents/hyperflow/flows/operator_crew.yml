@@ -1,11 +1,11 @@
-# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3).
+# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3) + quest settle (Day 8).
 # The goal is bound to the fixed crew stages + constraints, shown to a human with a plan_hash and
 # sealed on approval. Then the builder PROPOSES a diff, the verifier reviews it, and the guard decides
 # ALLOW/BLOCK from deterministic checks. Nothing is written, built or deployed: agents only return text.
 # Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
 
 name: hypercode-crew
-version: 2
+version: 3
 entry: plan
 intent: "HyperCrew plan gate then propose-only build verify and guard stages for a build goal without writing or deploying anything"
 
@@ -52,6 +52,13 @@ nodes:
     idempotent: true
     success_key: allowed
 
+  # Reward for the approving human, only after a guard ALLOW. UNIQUE(run_id:quest_id) makes a re-run
+  # after a restart a no-op, so it is safe to repeat. Runs inside core: no agent or MCP path reaches it.
+  - id: settle
+    type: tool
+    tool: local.crew_settle
+    idempotent: true
+
 edges:
   - from: plan
     to: approve
@@ -64,3 +71,6 @@ edges:
     to: verify
   - from: verify
     to: guard
+  - from: guard
+    to: settle
+    condition: true
