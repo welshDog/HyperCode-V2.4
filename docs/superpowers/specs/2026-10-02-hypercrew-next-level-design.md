@@ -205,7 +205,7 @@ Rules for every day: **one deliverable, one proof, commit + push before "done"**
 | Day | Deliverable | Proof |
 |---|---|---|
 | **1** | Baton + Calm Card Pydantic models, caps, formatter. Spec test file first. | Unit tests: caps, 1-next-action rule, `plain_text` has no markdown |
-| **2** | `hypercode.crew` flow skeleton: `plan` node (core → `mission-director` `/v1/plan`) + approval gate with `plan_hash`. Add `idempotency_key` to operator start if missing. | Tests: gate needs exact hash; duplicate start returns same `task_id` |
+| **2 ✅** | `hypercode.crew` flow skeleton: deterministic `plan` node + approval gate with `plan_hash` + seal. `idempotency_key` added to operator start. *(Correction: `mission-director` plans fleet changes, not code work, so it is not used here.)* | Tests: gate needs exact hash; duplicate start returns same `task_id` |
 | **3** | `agent_dispatch` node via `crew-orchestrator`; wire dispatch-seam card (c)/N13 **record-only** (normalise agent names to hyphenated once at boundary, test both key styles). | Tests + one dispatch to a *running* specialist; Shepherd verdict recorded |
 | **4** | Verify + Guard nodes, evidence bundle (sha256 refs), slot gate (`throttle-agent` or static cap 3), on-demand wake via `agent-factory` for sleeping members. | Test: 4th concurrent dispatch waits, doesn't start; Shepherd down → BLOCK |
 | **5** | MCP tools `hypercode_crew_start` / `hypercode_crew_status`; `scripts/prove-crew.py` live proof. **Week 1 gate.** | Live, no mocks: handle returned instantly · survives `docker restart hypercode-core` parked at a gate · cancel works · agent key can't approve (403) · RAM ≥ 1.2 GB throughout |

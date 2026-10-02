@@ -2,6 +2,30 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 2: `hypercode.crew` plan gate + operator `idempotency_key`
+
+New operator tool `hypercode.crew` (flow `hypercode-crew`: `plan → approve(gate) → seal`). Takes `{"goal": "..."}`,
+builds a **deterministic, LLM-free** plan (goal + fixed crew stages + constraints + limits), shows it with a `plan_hash`,
+and on approval re-verifies and seals it (Governance Ledger `crew_plan_approved`, fail-soft). **Nothing is built or
+mutated** — build/verify/guard stages arrive Day 3+. Files: `backend/app/crew/{plan,tools}.py`,
+`backend/app/agents/hyperflow/flows/operator_crew.yml`.
+
+- **Operator API:** `POST /tasks` now accepts per-tool arguments (`TOOL_ARGUMENTS` in `catalog.py`; every other tool
+  still rejects any arguments) and an optional `idempotency_key` for *all* tools. Same caller + tool + key → same task
+  (`deduplicated: true`), same key + different arguments → `409 idempotency_key_reused`. No migration: the run id is a
+  deterministic uuid5 of caller|tool|key, so the primary key makes a concurrent twin collide instead of starting twice.
+  The row is created *before* the runner starts and holds the (secret-scrubbed) arguments in `state.context`.
+- **Runner:** a local tool node with `params.with_arguments: true` reads `state.context.arguments` from Postgres, so a
+  run resumed after a core restart still has its goal.
+- **Fail closed:** no/invalid goal → `has_proposal: false`, the flow never reaches the gate. Approve needs the exact
+  `plan_hash`; agent keys can't approve (unchanged operator rules).
+- **Correction to the plan:** `mission-director` plans *fleet* changes (compose profiles), not code work, so Day 2 does
+  not call it. Design docs amended.
+- **Found while testing:** the 422 echoed a caller-chosen field name; now only model-defined field names are echoed.
+- **Tests:** 71 new (`test_crew_plan.py`, `test_crew_operator_api.py`) incl. real-runner e2e for approve / reject /
+  wrong-hash / no-goal. Full `backend/tests`: 739 passed, 4 failed — the same 4 pre-existing failures as `main`
+  (`test_agent_pulse` ×3, `test_core_rag` ×1). **Not deployed, not live-proven** (needs a `hypercode-core` rebuild).
+
 ## 2026-10-02 — HyperCrew Day 1: Baton + Calm Card models (pure contracts, no runtime wiring)
 
 `backend/app/crew/` — `Baton` (typed handoff, hard length caps, sha256 evidence pointers, from!=to role) and

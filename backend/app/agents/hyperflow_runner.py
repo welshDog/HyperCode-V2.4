@@ -260,6 +260,9 @@ class HyperFlowRunner:
     async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
         """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
         ctx = {"run_id": self.run_id, "history": list(self._history)}
+        if node.params.get("with_arguments"):
+            # Read from Postgres (not memory) so a run resumed after a restart still has them.
+            ctx["arguments"] = await asyncio.to_thread(self._load_arguments_sync)
         data = await LOCAL_TOOLS[node.tool](node.params, ctx)
         ok = bool(data.get("ok"))
         result: dict[str, Any] = {"ok": ok, "green": ok, "data": data}
@@ -267,6 +270,20 @@ class HyperFlowRunner:
             # Lets a node's `success_key` (e.g. has_proposal) drive conditional edges.
             result[node.success_key] = data[node.success_key]
         return result
+
+    def _load_arguments_sync(self) -> dict[str, Any]:
+        """``state.context.arguments`` written when the operator API started this run."""
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id)
+            ctx = ((run.state or {}).get("context") or {}) if run is not None else {}
+            args = ctx.get("arguments")
+            return dict(args) if isinstance(args, dict) else {}
+        except Exception:  # pragma: no cover — missing arguments fail closed in the tool
+            logger.exception("hyperflow %s argument read failed", self.run_id)
+            return {}
+        finally:
+            db.close()
 
     # ── Safety Shepherd gate ─────────────────────────────────────────────────
 

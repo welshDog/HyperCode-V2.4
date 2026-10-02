@@ -1,0 +1,34 @@
+# HyperCrew Day 2: the plan gate. The goal is bound to the fixed crew stages + constraints, shown to
+# a human with a plan_hash, and sealed on approval. Nothing is built or mutated yet (Day 3+).
+# Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
+
+name: hypercode-crew
+version: 1
+entry: plan
+intent: "HyperCrew plan gate binding a build goal to the fixed crew stages and constraints for human approval without building anything"
+
+nodes:
+  - id: plan
+    type: tool
+    tool: local.crew_plan
+    idempotent: true
+    success_key: has_proposal
+    params:
+      with_arguments: true
+
+  - id: approve
+    type: human_approval_gate
+    params:
+      prompt: "Approve this crew plan? Day 2 only records the approval; nothing is built."
+      show_from: plan
+
+  - id: seal
+    type: tool
+    tool: local.crew_seal
+
+edges:
+  - from: plan
+    to: approve
+    condition: true
+  - from: approve
+    to: seal

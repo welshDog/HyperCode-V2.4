@@ -2,6 +2,7 @@
 
 Routes (mounted under ``/api/v1/operator``):
     POST /tasks               — start an allow-listed tool, returns a task handle at once
+                                (optional ``idempotency_key``: a repeat returns the same task)
     GET  /tasks/{id}          — poll status / progress / result
     POST /tasks/{id}/input    — approve or reject a parked approval gate (humans only)
     POST /tasks/{id}/cancel   — cancel a task
@@ -12,16 +13,20 @@ tasks but can NEVER submit an approval: the model must not approve its own risky
 
 from __future__ import annotations
 
+import hashlib
+import json
+import re
 import uuid
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.agents.hyperflow.registry import get_flow
 from app.agents.hyperflow_runner import get_runner, start_flow_run
 from app.api import deps
-from app.broski_operator.catalog import TOOL_FLOWS, tool_for_flow
+from app.broski_operator.catalog import TOOL_FLOWS, ArgumentError, tool_for_flow, validate_arguments
 from app.broski_operator.runs import finish_run_row, store_decision
 from app.broski_operator.status import (
     TERMINAL_RUN_STATUSES,
@@ -37,6 +42,9 @@ from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
 router = APIRouter()
 
 _MAX_REASON = 200
+_IDEMPOTENCY_KEY = re.compile(r"[A-Za-z0-9._:-]{8,128}")
+# Fixed namespace: the same caller + tool + key always maps to the same run id.
+_IDEMPOTENCY_NS = uuid.uuid5(uuid.NAMESPACE_URL, "hypercode:operator:idempotency:v1")
 
 
 async def operator_principal(
@@ -146,35 +154,103 @@ def _get_run(db: Session, task_id: str) -> HyperFlowRun:
     return run
 
 
+def _arguments_hash(arguments: dict[str, Any]) -> str:
+    canonical = json.dumps(arguments, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _handle(run_id: str, tool: str, status: str, **extra: Any) -> dict[str, Any]:
+    return {
+        "taskId": run_id,
+        "tool": tool,
+        "status": status,
+        "pollInterval": poll_interval_ms(status),
+        **extra,
+    }
+
+
+def _deduplicated(db: Session, run_id: str, tool: str, args_hash: str) -> dict[str, Any]:
+    """The run an earlier identical start created. Same key, different arguments → 409."""
+    run = db.get(HyperFlowRun, run_id)
+    if run is None:  # pragma: no cover — the insert conflict proves it exists
+        raise HTTPException(status_code=409, detail={"error": "idempotency_conflict"})
+    stored = ((run.state or {}).get("context") or {}).get("arguments_hash")
+    if stored != args_hash:
+        raise HTTPException(status_code=409, detail={"error": "idempotency_key_reused"})
+    return _handle(run_id, tool, to_task_status(run.status), deduplicated=True)
+
+
 @router.post("/tasks")
 async def start_task(
     payload: dict,
+    db: Session = Depends(get_db),
     principal: dict = Depends(operator_principal),
 ) -> Any:
     tool = payload.get("tool")
     arguments = payload.get("arguments", {})
+    key = payload.get("idempotency_key")
     if not isinstance(tool, str) or not tool:
         raise HTTPException(status_code=422, detail="'tool' must be a non-empty string")
     if not isinstance(arguments, dict):
         raise HTTPException(status_code=422, detail="'arguments' must be an object")
-    if arguments:
-        raise HTTPException(status_code=422, detail="This tool does not accept arguments yet")
+    if key is not None and (not isinstance(key, str) or not _IDEMPOTENCY_KEY.fullmatch(key)):
+        raise HTTPException(
+            status_code=422,
+            detail="'idempotency_key' must be 8-128 characters of letters, digits, . _ : -",
+        )
     flow_name = TOOL_FLOWS.get(tool)
     if flow_name is None:
         raise HTTPException(
             status_code=404, detail={"error": "unknown_tool", "tools": sorted(TOOL_FLOWS)}
         )
+    try:
+        arguments = validate_arguments(tool, arguments)
+    except ArgumentError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     flow = get_flow(flow_name)
     if flow is None:
         raise HTTPException(status_code=500, detail=f"Flow '{flow_name}' is not installed")
-    run_id = str(uuid.uuid4())
-    await start_flow_run(flow, run_id, user_id=principal["user_id"])
-    return {
-        "taskId": run_id,
-        "tool": tool,
-        "status": "working",
-        "pollInterval": poll_interval_ms("working"),
-    }
+
+    if not arguments and key is None:
+        run_id = str(uuid.uuid4())
+        await start_flow_run(flow, run_id, user_id=principal["user_id"])
+        return _handle(run_id, tool, "working")
+
+    # Arguments and/or an idempotency key: create the run row FIRST. The primary key makes a
+    # repeat (or a concurrent twin) collide here instead of starting the flow twice.
+    caller = f"{principal['kind']}:{principal['user_id'] if principal['user_id'] is not None else principal['name']}"
+    run_id = (
+        str(uuid.uuid5(_IDEMPOTENCY_NS, f"{caller}|{tool}|{key}")) if key else str(uuid.uuid4())
+    )
+    args_hash = _arguments_hash(arguments)
+    if db.get(HyperFlowRun, run_id) is not None:
+        return _deduplicated(db, run_id, tool, args_hash)
+    db.add(
+        HyperFlowRun(
+            id=run_id,
+            flow_name=flow.name,
+            flow_version=flow.version,
+            status=HyperFlowRunStatus.RUNNING.value,
+            current_node=flow.entry,
+            state={
+                "history": [],
+                "context": {"arguments": arguments, "arguments_hash": args_hash},
+            },
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:  # a concurrent twin won the insert
+        db.rollback()
+        return _deduplicated(db, run_id, tool, args_hash)
+    try:
+        await start_flow_run(flow, run_id, user_id=principal["user_id"])
+    except Exception:
+        row = db.get(HyperFlowRun, run_id)
+        if row is not None:
+            finish_run_row(db, row, HyperFlowRunStatus.FAILED, "could not start")
+        raise
+    return _handle(run_id, tool, "working")
 
 
 @router.get("/tasks/{task_id}")

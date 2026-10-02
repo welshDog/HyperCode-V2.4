@@ -99,7 +99,7 @@ Presets: **Calm**, **Focus**, **Energise** (the three that exist today) just set
 
 | v3 role | Existing agent(s) | Baton `Role` today | Notes |
 |---|---|---|---|
-| **Planner** | `mission-director`, `system-architect` | `conductor`, `architect` | Plans, splits via `hyper-split-agent`. |
+| **Planner** | `system-architect`, deterministic crew plan (Day 2) | `conductor`, `architect` | Plans, splits via `hyper-split-agent`. `mission-director` plans *fleet* changes only — not used for code work. |
 | **Coder** | `coder-agent`, specialists | `builder` | Branch + draft PR only. |
 | **Tester** | `qa-engineer`, `test-agent` | `verifier` | RAM-gated runs. |
 | **Docs** | `tips-tricks-writer`, `broski-coo` | `scribe` | Drafts as proposals. |
