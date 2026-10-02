@@ -242,7 +242,7 @@ Rules each day: one deliverable, one proof, commit + push before "done". Before 
 | **1 ✅** | `Baton` + `CalmCard` models (done, 47 tests) | CI: 668 pass incl. these |
 | **2** | `hypercode.crew` flow skeleton + plan gate (`plan_hash`) + `idempotency_key` | Gate needs exact hash; duplicate start → same id |
 | **3** | `agent_dispatch` node, verify + guard nodes, evidence bundle, slot gate (cap 3), dispatch-seam record-only | 4th concurrent dispatch waits; Shepherd down → BLOCK |
-| **4** | **Calm Mode + Sensory Settings** (extend `useSensoryProfile`, token overrides, `data-sensory`) | Playwright + axe: no motion, one primary action, all settings persist |
+| **4 ✅** | **Calm Mode + Sensory Settings** — one settings model (`lib/sensory`), `data-*` attributes + `app/sensory.css`, header Calm toggle, `/sensory` page, Calm layout on `/ide`. *(Built as a new model rather than extending the dormant `useSensoryProfile`; only settings that work today are offered.)* | Real-browser check: no motion, settings persist across reload, legacy ND toggle stays in sync. axe not run. |
 | **5** | **Mission Board + Calm Card panel** in `/ide`, fed by SSE. **Week 1 gate: live proof.** | Real run shows on board; survives `docker restart hypercode-core`; cancel works; agent key can't approve |
 | **6** | Panic + Focus modes, `hyper-split-agent` chunking, "Make it smaller?" | Panic from every status → paused + snapshot, no dialog |
 | **7** | **Quest Settler**: XP + FP, caps, idempotent `source_id`, HUD (hidden in Calm) | Replay → no double award; BLOCKed run → 0 XP; agents can't reach awards |

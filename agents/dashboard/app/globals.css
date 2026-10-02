@@ -8,6 +8,8 @@
    tokens.css adds the design-brain token namespace without restyling anything. */
 @import "./fonts.css";
 @import "./tokens.css";
+/* Sensory Settings (data-* driven; lib/sensory/settings.ts) */
+@import "./sensory.css";
 
 /* ====================================================
    HyperCode V2.0 — Global Styles

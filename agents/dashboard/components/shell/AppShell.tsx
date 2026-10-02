@@ -4,6 +4,8 @@ import React, { createContext, useContext, useEffect, useMemo, useRef, useState 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NDToggle } from '@/components/ui/NDToggle'
+import { CalmModeToggle } from '@/components/sensory/CalmModeToggle'
+import { useSensory } from '@/components/sensory/SensoryProvider'
 import { ViewModeToggle, type ViewMode } from '@/components/shell/ViewModeToggle'
 import { ToastProvider, useToast } from '@/components/ui/ToastProvider'
 
@@ -32,6 +34,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/mcp',     label: 'MCP' },
   { href: '/docker-zone', label: 'Docker Zone' },
   { href: '/health',  label: 'Health' },
+  { href: '/sensory', label: 'Sensory settings' },
   { href: '/grafana', label: '📈 Grafana' },
 ]
 
@@ -54,14 +57,15 @@ const INITIAL_LAST_SEEN_TIMESTAMP = Date.now()
 
 export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
   const pathname = usePathname()
-  const [ndMode, setNdMode] = useState<string>('default')
+  // The legacy ND-mode toggle now reads/writes the Sensory Settings, so there is one source of truth.
+  const { ndMode, setNdMode } = useSensory()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   useEffect(() => {
     document.documentElement.setAttribute('data-nd-mode', ndMode)
   }, [ndMode])
 
-  const ctx = useMemo(() => ({ ndMode, setNdMode, viewMode, setViewMode }), [ndMode, viewMode])
+  const ctx = useMemo(() => ({ ndMode, setNdMode, viewMode, setViewMode }), [ndMode, setNdMode, viewMode])
 
   return (
     <ShellContext.Provider value={ctx}>
@@ -264,6 +268,7 @@ function AppShellInner({
               </div>
             )}
           </div>
+          <CalmModeToggle />
           <NDToggle value={ndMode} onChange={setNdMode} />
           {isMission && <ViewModeToggle value={viewMode} onChange={setViewMode} />}
         </div>

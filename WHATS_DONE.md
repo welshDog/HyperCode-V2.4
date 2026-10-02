@@ -2,6 +2,35 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 4: Calm Mode + Sensory Settings (dashboard)
+
+One settings model drives everything that changes how heavy the UI feels; the Day 5 Calm Card now sits inside a real Calm layout.
+
+- **Model (`lib/sensory/`)**: six settings, each with a literal label — Motion (off/reduced/full), Spacing (roomy/normal/compact),
+  Contrast (normal/high), Reading font (standard/dyslexia-friendly), Progress and rewards (hidden/quiet/full), Layout (calm/full) — and
+  three presets (Calm/Focus/Energise). Per-field validation (`sanitize`), storage that never throws, an external store
+  (`useSyncExternalStore`, syncs across tabs). **Calm is the default for new people** (spec D10, still awaiting your confirmation).
+  Only settings that actually do something are offered; notification batching, sound and playful labels are *not* modelled until wired.
+- **How it applies**: `data-*` attributes on `<html>` (`data-motion`, `data-layout`, …) set by a tiny **pre-paint boot script** in
+  `<head>` (no flash; built from the same model and tested against it) and by the store. `app/sensory.css` has a rule for every option;
+  a test fails if an option exists without one. Motion "off" kills animation/transition/glows; "hidden" progress hides anything marked
+  `data-gamify` (XP bar, wallet) — it still counts underneath.
+- **UI**: header **Calm mode: On/Off** switch (state in words, pressed state stays visible in Calm; turning it on remembers your
+  previous settings and turning it off restores them), `/sensory` settings page (presets + one radio group per setting), nav item
+  "Sensory settings". **`/ide` in Calm**: Calm Card first, "More tools: find a skill" tucked behind one click, then Studio. Full layout
+  is unchanged apart from the Calm Card panel.
+- **Legacy ND toggle** (Default/Dyslexia/High-C/Focus) now reads/writes the same settings, so there is one source of truth and
+  `data-nd-mode` keeps working. The old `useSensoryProfile` hook and `app/themes/SensoryTheme*` are **dormant dead code** (never mounted);
+  left untouched, worth deleting later. `HyperShellLayout` has its own separate ND state and was not touched.
+- **Verified**: 79 new vitest tests (204 total pass), `tsc`/`eslint`/`next build` clean, and a **real Chromium run** of the built app:
+  Calm is the default, toggle flips layout and attributes, settings persist across reload and navigation, dyslexia font applies,
+  legacy High-C button changes contrast. Two mutation checks (change the default; remove the motion-off rule) were caught by the tests.
+  A flaw found by looking at the screenshot — Calm's quiet-button rule hid the pressed state — is fixed and tested.
+- **Not done / honest limits**: axe accessibility audit not run; settings are per-device (localStorage), no per-user server sync;
+  no fixed three-region shell — Calm layout applies to `/ide` only so far; "one primary button" is a convention, not enforced;
+  not deployed (needs a `dashboard` rebuild, see N20); `layout.tsx` still carries a pre-existing Next warning about
+  `viewport` in `metadata`.
+
 ## 2026-10-02 — AG-UI at the edge: run events + Calm Card endpoint + `/ide` Calm Card panel (Day 5, first half)
 
 AG-UI is used as the **output format only** — no new gateway, table or approval path (the research doc proposed all three; HyperFlow
