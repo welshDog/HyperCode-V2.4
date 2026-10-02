@@ -239,6 +239,14 @@ class HyperFlowRunner:
                 try:
                     result = await self._exec_with_retry(node)
                 except _ApprovalRejected:
+                    if node.params.get("on_reject") == "end":
+                        # An optional extra (e.g. a handover draft): "no thanks" ends the run cleanly
+                        # instead of failing work that already finished.
+                        self._observe(node, "completed", started)
+                        await self._emit(node, "completed", {"success": True, "approved": False, "declined": True},
+                                         HyperFlowRunStatus.RUNNING)
+                        node_id = None
+                        continue
                     self._observe(node, "failed", started)
                     await self._emit(node, "failed", {"reason": "approval_rejected"},
                                      HyperFlowRunStatus.RUNNING)

@@ -29,6 +29,9 @@ NODE_LABELS: dict[str, str] = {
     "verify": "Verifier is reviewing it",
     "guard": "Guardian is checking it",
     "settle": "Counting up your win",
+    "scribe": "Scribe is drafting the handover",
+    "approve_scribe": "Waiting for you to read the handover draft",
+    "publish": "Opening a draft pull request",
 }
 
 
@@ -85,6 +88,18 @@ def _completed_extras(entry: dict[str, Any], run_id: str) -> list[dict[str, Any]
             "summaryHash": _cap(data.get("summary_hash"), 80), "truncated": bool(data.get("truncated")),
             "slotWaitMs": data.get("slot_wait_ms") if isinstance(data.get("slot_wait_ms"), int) else None,
         })})
+    elif node == "scribe":
+        proposal = _d(data.get("proposal"))
+        out.append(_custom("handover.drafted", {
+            "files": [_cap(_d(f).get("path"), 160) for f in proposal.get("files", [])][:5],
+            "draftHash": _cap(proposal.get("plan_hash"), 80),
+        }))
+    elif node == "publish":
+        pr = _d(data.get("pr"))
+        out.append(_custom("handover.published", {
+            "status": _cap(pr.get("status"), 20), "url": _cap(pr.get("url"), 200),
+            "prOpened": bool(data.get("pr_opened")),
+        }))
     elif "proposal" in data:
         out.extend(_plan_events(data))
     elif data.get("sealed") is True:
@@ -127,7 +142,7 @@ def _entry_events(run_id: str, entry: dict[str, Any]) -> list[dict[str, Any]]:
     if status == "awaiting_approval" and typ == "human_approval_gate":
         return [_step("STEP_STARTED", node), _custom("approval.required", {
             "approvalId": f"{run_id}:{node}", "node": node, "title": _cap(result.get("prompt"), 200),
-            "action": "approve_plan", "planHash": _cap(result.get("plan_hash"), 80),
+            "action": "approve_handover" if node == "approve_scribe" else "approve_plan", "planHash": _cap(result.get("plan_hash"), 80),
         })]
     if status == "completed":
         return [_step("STEP_STARTED", node), *_completed_extras(entry, run_id), _step("STEP_FINISHED", node)]

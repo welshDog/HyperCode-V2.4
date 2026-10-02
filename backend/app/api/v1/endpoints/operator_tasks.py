@@ -545,6 +545,20 @@ async def panic(
     return {"saved": True, "ledger": ledger, "paused": paused, "alreadyPaused": already, "message": message}
 
 
+@router.get("/morning")
+async def morning_card(
+    db: Session = Depends(get_db), principal: dict = Depends(operator_principal)
+) -> Any:
+    """"Where was I?": one Calm Card (yesterday's wins, what is waiting, one traffic light, one next step)."""
+    from app.crew.morning import build_morning_card
+    from app.crew.slots import get_slot_gate, read_available_mb
+
+    return build_morning_card(
+        db, user_id=principal.get("user_id"), available_mb=read_available_mb(),
+        floor_mb=get_slot_gate().min_available_mb,
+    )
+
+
 @router.get("/panic")
 def panic_status(
     db: Session = Depends(get_db),

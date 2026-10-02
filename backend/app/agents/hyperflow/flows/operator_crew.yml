@@ -1,11 +1,11 @@
-# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3) + quest settle (Day 8).
+# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3) + quest settle (Day 8) + scribe draft, human gate, draft PR (Day 9).
 # The goal is bound to the fixed crew stages + constraints, shown to a human with a plan_hash and
 # sealed on approval. Then the builder PROPOSES a diff, the verifier reviews it, and the guard decides
 # ALLOW/BLOCK from deterministic checks. Nothing is written, built or deployed: agents only return text.
 # Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
 
 name: hypercode-crew
-version: 3
+version: 4
 entry: plan
 intent: "HyperCrew plan gate then propose-only build verify and guard stages for a build goal without writing or deploying anything"
 
@@ -59,6 +59,26 @@ nodes:
     tool: local.crew_settle
     idempotent: true
 
+  # Day 9. The Scribe drafts a handover as TEXT. You approve with the draft's own hash (same rule as the plan).
+  # "No thanks" ends the run cleanly. publish opens a docs-only DRAFT PR if a token is configured, else keeps
+  # the draft in the run. It never merges and never edits an existing file.
+  - id: scribe
+    type: tool
+    tool: local.crew_scribe
+    idempotent: true
+
+  - id: approve_scribe
+    type: human_approval_gate
+    params:
+      prompt: "Approve this handover draft? If a GitHub token is configured a DRAFT docs-only PR is opened; nothing is merged."
+      show_from: scribe
+      on_reject: end
+
+  - id: publish
+    type: tool
+    tool: local.crew_publish
+    idempotent: true
+
 edges:
   - from: plan
     to: approve
@@ -74,3 +94,9 @@ edges:
   - from: guard
     to: settle
     condition: true
+  - from: settle
+    to: scribe
+  - from: scribe
+    to: approve_scribe
+  - from: approve_scribe
+    to: publish

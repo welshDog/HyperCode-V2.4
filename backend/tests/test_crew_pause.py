@@ -17,7 +17,7 @@ from app.main import app
 from app.models.governance import GovernanceLedger
 from app.models.hyperflow import HyperFlowRun
 from tests.test_crew_operator_api import GOAL, _as, _fake_dispatch
-from tests.test_crew_restart_proof import events, restart_core, start, wait_for
+from tests.test_crew_restart_proof import answer_handover, events, restart_core, start, wait_for
 from tests.test_hyperflow import _runner_with_io
 
 BASE = "/api/v1/operator"
@@ -371,6 +371,7 @@ def test_panic_at_the_gate_holds_through_a_core_restart_until_a_human_resumes(cl
     assert client.post(f"{BASE}/tasks/{task_id}/resume").status_code == 200
     wait_for(client, task_id, "input_required", "approve")  # released: it parks at the gate again, same plan
     assert approve(client, task_id, plan_hash).status_code == 200
+    answer_handover(client, task_id)
     assert wait_for(client, task_id, "completed")["result"]["success"] is True
     assert events(client, task_id)["calmCard"]["status"] == "done"
 
@@ -411,6 +412,7 @@ def test_panic_mid_run_lets_the_step_finish_then_holds_before_the_next_one(clien
     assert slot_gate.active == 0  # nothing is holding a slot while held
 
     client.post(f"{BASE}/panic/resume")
+    answer_handover(client, task_id)
     done = wait_for(client, task_id, "completed")
     assert done["result"]["success"] is True and calls == ["build", "verify"]
     assert "hypercode.run.resumed" in [e["event"].get("name") for e in events(client, task_id)["events"]]
@@ -444,6 +446,7 @@ def test_a_pause_set_while_the_runner_is_down_is_honoured_after_recovery(client,
     assert wait_for(client, task_id, "working")["paused"] is True
     assert calls.count("verify") == 0  # the recovered runner stopped before doing anything new
     client.post(f"{BASE}/tasks/{task_id}/resume")
+    answer_handover(client, task_id)
     assert wait_for(client, task_id, "completed")["result"]["success"] is True
 
 

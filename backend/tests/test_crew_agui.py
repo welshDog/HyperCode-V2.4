@@ -48,9 +48,12 @@ def test_a_real_crew_run_tells_the_whole_story_in_order(full_history):
     ev = history_to_events(run_id, hist)
     story = [n for n in names(ev) if n in (
         "hypercode.plan.created", "hypercode.approval.required", "hypercode.approval.resolved",
-        "hypercode.plan.sealed", "hypercode.guard.verdict")]
+        "hypercode.plan.sealed", "hypercode.guard.verdict", "hypercode.handover.drafted",
+        "hypercode.handover.published")]
     assert story == ["hypercode.plan.created", "hypercode.approval.required",
-                     "hypercode.approval.resolved", "hypercode.plan.sealed", "hypercode.guard.verdict"]
+                     "hypercode.approval.resolved", "hypercode.plan.sealed", "hypercode.guard.verdict",
+                     "hypercode.handover.drafted", "hypercode.approval.required",  # the handover gate
+                     "hypercode.approval.resolved", "hypercode.handover.published"]
     steps_started = [e["event"]["stepName"] for e in ev if e["event"]["type"] == "STEP_STARTED"]
     steps_finished = [e["event"]["stepName"] for e in ev if e["event"]["type"] == "STEP_FINISHED"]
     assert steps_started[:1] == ["plan"] and "guard" in steps_finished
@@ -203,7 +206,8 @@ def test_card_for_an_allowed_crew_run_points_at_the_evidence(full_history):
     run_id, hist = full_history
     c = card(run_status="completed", history=hist, current_node=None)
     assert c.status == "done" and c.next_action == "Review the evidence and the proposed change"
-    assert c.tldr[-1] == "Guardian allowed it" and len(c.tldr) <= 5
+    assert "Guardian allowed it" in c.tldr or "Draft PR opened" in " ".join(c.tldr) or "Handover draft kept in this run" in c.tldr
+    assert c.tldr[-1] == "Handover draft kept in this run" and len(c.tldr) <= 5  # no token configured here: said honestly
 
 
 def test_card_for_a_blocked_crew_run_names_the_failed_checks():

@@ -18,6 +18,7 @@ DONE_LABELS: dict[str, str] = {
     "seal": "Approval recorded",
     "build": "Builder proposed a change",
     "verify": "Verifier reviewed it",
+    "scribe": "Handover drafted",
 }
 
 
@@ -49,6 +50,13 @@ def _done_lines(history: list[dict[str, Any]]) -> list[str]:
             else:
                 failed = ", ".join(str(c) for c in data.get("failed_checks", [])[:3]) or "a check failed"
                 lines.append(f"Guardian blocked it: {failed}")
+        elif node == "approve_scribe":
+            declined = (entry.get("result") or {}).get("declined") is True
+            lines.append("You skipped the handover" if declined else "You approved the handover")
+        elif node == "publish":
+            raw = (entry.get("result") or {}).get("data")
+            opened = isinstance(raw, dict) and raw.get("pr_opened") is True
+            lines.append("Draft PR opened" if opened else "Handover draft kept in this run")
         elif node == "settle":
             # One quiet line, only for a real award; nothing at all when there was none (no shaming).
             raw = (entry.get("result") or {}).get("data")
@@ -96,7 +104,11 @@ def calm_card_for_run(
         lines.append("Cancelled")
     elif run_status == "awaiting_approval":
         status = "waiting_on_you"
-        nxt = "Read the plan, then approve or reject it" if at_gate else "A safety decision is waiting on you"
+        if at_gate:
+            nxt = ("Read the handover draft, then approve or skip it" if current_node == "approve_scribe"
+                   else "Read the plan, then approve or reject it")
+        else:
+            nxt = "A safety decision is waiting on you"
     else:
         status, nxt = "running", f"Nothing needed. Now: {node_label(current_node).lower()}"
     tldr = [_fit(line) for line in lines[-MAX_TLDR_LINES:]] or ["Starting up"]

@@ -245,7 +245,7 @@ def test_the_settle_tool_is_only_a_flow_node_after_a_guard_allow():
     from app.agents.hyperflow.registry import get_flow
 
     flow = get_flow("hypercode-crew")
-    assert flow.version == 3 and flow.node("settle").tool == "local.crew_settle" and flow.node("settle").idempotent
+    assert flow.version == 4 and flow.node("settle").tool == "local.crew_settle" and flow.node("settle").idempotent
     edge = [e for e in flow.edges if e.dst == "settle"]
     assert len(edge) == 1 and edge[0].src == "guard" and edge[0].condition is True
 

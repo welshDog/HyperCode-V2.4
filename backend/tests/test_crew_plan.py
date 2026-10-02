@@ -216,7 +216,7 @@ def test_seal_survives_a_ledger_failure(monkeypatch):
 def test_flow_loads_and_is_shaped_like_the_design():
     flow = get_flow("hypercode-crew")
     assert flow is not None and flow.entry == "plan" and flow.intent
-    assert [n.id for n in flow.nodes] == ["plan", "approve", "seal", "build", "verify", "guard", "settle"]
+    assert [n.id for n in flow.nodes] == ["plan", "approve", "seal", "build", "verify", "guard", "settle", "scribe", "approve_scribe", "publish"]
     plan, gate, seal = (flow.node(i) for i in ("plan", "approve", "seal"))
     assert plan.tool == "local.crew_plan" and plan.idempotent and plan.params["with_arguments"] is True
     assert plan.success_key == "has_proposal"
@@ -228,7 +228,7 @@ def test_flow_dispatch_nodes_are_strict_propose_only_and_use_the_static_registry
     from app.crew.dispatch import CREW_AGENTS
 
     flow = get_flow("hypercode-crew")
-    assert flow.version == 3
+    assert flow.version == 4
     for node_id, role in (("build", "builder"), ("verify", "verifier")):
         node = flow.node(node_id)
         assert node.type.value == "agent_dispatch" and node.agent == CREW_AGENTS[role]
@@ -245,7 +245,7 @@ def test_flow_order_is_plan_approve_seal_build_verify_guard():
     while flow.edges_from(cur):
         cur = flow.edges_from(cur)[0].dst
         order.append(cur)
-    assert order == ["plan", "approve", "seal", "build", "verify", "guard", "settle"]
+    assert order == ["plan", "approve", "seal", "build", "verify", "guard", "settle", "scribe", "approve_scribe", "publish"]
 
 
 def test_flow_only_continues_to_the_gate_when_a_plan_exists():

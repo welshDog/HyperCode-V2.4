@@ -235,7 +235,8 @@ def _fake_dispatch(build=GOOD_BUILD, verify="Fine.\nVERDICT: PASS", error=None, 
     return fake
 
 
-def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatch=None):
+def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatch=None, scribe="approve"):
+    """Run the whole crew flow. ``scribe`` answers the handover gate: approve | skip | wrong_hash."""
     from tests.test_hyperflow import _runner_with_io
 
     monkeypatch.setattr(crew_dispatch, "dispatch_to_agent", dispatch or _fake_dispatch())
@@ -253,6 +254,12 @@ def _drive(monkeypatch, arguments, *, approve, shown_hash_override=None, dispatc
             sent = shown_hash_override or awaiting["result"]["plan_hash"]
 
             def take(node_id=None):
+                if node_id == "approve_scribe":  # the handover gate has its own draft hash
+                    shown = [e for e in runner._history if e["node"] == "approve_scribe" and e["status"] == "awaiting_approval"][-1]
+                    bad = "sha256:" + "0" * 64
+                    runner._last_decision_meta = {
+                        "by": "bro@example.com", "plan_hash": bad if scribe == "wrong_hash" else shown["result"]["plan_hash"]}
+                    return scribe != "skip"
                 runner._last_decision_meta = {"by": "bro@example.com", "plan_hash": sent}
                 return approve
 
@@ -271,7 +278,7 @@ def _data(runner, node):
 def test_e2e_approved_plan_runs_build_verify_and_guard_allows(monkeypatch, ledger_db, slot_gate):
     calls = []
     runner, final = _drive(monkeypatch, {"goal": GOAL}, approve=True, dispatch=_fake_dispatch(calls=calls))
-    assert final["status"] is HyperFlowRunStatus.COMPLETED
+    assert final["status"] is HyperFlowRunStatus.COMPLETED, final.get("error")
     sealed = _data(runner, "seal")
     assert sealed["sealed"] and sealed["performed"] is False and sealed["approved_by"] == "bro@example.com"
     assert ledger_db().query(GovernanceLedger).filter_by(action="crew_plan_approved").count() == 1

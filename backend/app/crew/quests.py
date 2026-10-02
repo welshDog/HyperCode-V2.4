@@ -236,3 +236,54 @@ def settle_run(
     else:
         db.commit()
     return Settlement(status, xp, coins, reason, achievements=achievements)
+
+
+HANDOVER_QUEST_ID = "handover_written"
+
+
+def settle_handover(
+    db: Session, run_id: str, history: list[dict[str, Any]], approver: str, *, now: Optional[datetime] = None
+) -> Settlement:
+    """Unlock "Handover Written" for the human who approved the Scribe's draft. Achievement only (0 XP here),
+    at most once per run, and only for a run the Guardian allowed. The caller has already proved the approval
+    was for exactly the drafted text."""
+    from app.models.broski import QuestSettlement
+    from app.models.models import User
+    from app.services import broski_service as eco
+
+    now = now or datetime.now(timezone.utc)
+    source_id = source_id_for(run_id, HANDOVER_QUEST_ID)
+    existing = db.query(QuestSettlement).filter_by(source_id=source_id).first()
+    if existing is not None:
+        return Settlement(existing.status, existing.xp, existing.coins, existing.reason, already_settled=True)
+
+    ev = evaluate(run_id, history)
+    user = (
+        db.query(User)
+        .filter(User.email == approver, User.is_active.is_(True), User.is_superuser.is_(True))
+        .first()
+        if ev.eligible else None
+    )
+    ok = user is not None
+    reason = "handover drafted and approved" if ok else (ev.reason if not ev.eligible else "approver is not an active human account")
+    db.add(QuestSettlement(
+        source_id=source_id, run_id=run_id, quest_id=HANDOVER_QUEST_ID, user_id=user.id if user else None,
+        status=STATUS_AWARDED if ok else STATUS_NO_AWARD, xp=0, coins=0, reason=reason, created_at=now,
+    ))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        again = db.query(QuestSettlement).filter_by(source_id=source_id).first()
+        if again is None:
+            raise
+        return Settlement(again.status, again.xp, again.coins, again.reason, already_settled=True)
+    db.commit()
+    achievements: list[str] = []
+    if user is not None:
+        try:
+            achievements = eco.check_and_award_achievements(user.id, db, {"crew_handover_written": True})
+        except Exception:
+            db.rollback()
+            logger.warning("quest settler: handover achievement failed for %s", source_id, exc_info=True)
+    return Settlement(STATUS_AWARDED if ok else STATUS_NO_AWARD, 0, 0, reason, achievements=achievements)

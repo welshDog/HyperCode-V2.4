@@ -4,6 +4,7 @@ import React from 'react'
 import { StudioView } from '@/components/views/StudioView'
 import { SkillFinder } from '@/components/views/SkillFinder'
 import { CalmCardPanel } from '@/components/crew/CalmCardPanel'
+import { MorningCard } from '@/components/crew/MorningCard'
 import { useSensory } from '@/components/sensory/SensoryProvider'
 import { isCalm } from '@/lib/sensory/settings'
 
@@ -14,6 +15,7 @@ export default function IDEPage(): React.JSX.Element {
   if (isCalm(settings)) {
     return (
       <>
+        <MorningCard />
         <CalmCardPanel />
         <details className="calm-more" data-testid="calm-more">
           <summary>More tools: find a skill</summary>
@@ -25,6 +27,7 @@ export default function IDEPage(): React.JSX.Element {
   }
   return (
     <>
+      <MorningCard />
       <SkillFinder />
       <CalmCardPanel />
       <StudioView />

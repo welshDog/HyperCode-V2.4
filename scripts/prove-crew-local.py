@@ -149,6 +149,20 @@ async def poll(session: ClientSession, task_id: str, want, timeout: float = 30, 
     raise SystemExit(f"FAIL: timed out polling {task_id}; last status={last and last.get('status')}")
 
 
+def at_handover_gate(p: dict) -> bool:
+    return p["status"] == "input_required" and p["calmCard"]["next_action"].startswith("Read the handover draft")
+
+
+async def answer_handover(session: ClientSession, task_id: str, decision: str = "approve") -> str:
+    """The run ends with a handover gate. Approve with the DRAFT's own hash (the same rule as the plan)."""
+    gate = await poll(session, task_id, at_handover_gate, timeout=45)
+    h = next(e["event"]["value"]["planHash"] for e in gate["events"]
+             if e["event"].get("name") == "hypercode.approval.required" and e["event"]["value"]["node"] == "approve_scribe")
+    body = {"decision": decision, **({"plan_hash": h} if decision == "approve" else {})}
+    check(human("POST", f"/tasks/{task_id}/input", json=body).status_code == 200, f"handover draft answered: {decision}")
+    return h
+
+
 def names(payload: dict) -> list:
     return [e["event"].get("name") for e in payload["events"] if e["event"]["type"] == "CUSTOM"]
 
@@ -203,6 +217,17 @@ async def main() -> None:
             check(human("POST", url, json={"decision": "approve"}).status_code == 422, "missing plan hash is refused (422)")
             check(human("POST", url, json={"decision": "approve", "plan_hash": plan_hash}).status_code == 200, "the exact plan hash is accepted")
 
+            # ── Scribe: a draft handover, a gate bound to the draft's own hash, a docs-only DRAFT PR ──
+            gate = await poll(session, task_id, at_handover_gate, timeout=45)
+            drafted = [e["event"]["value"] for e in gate["events"] if e["event"].get("name") == "hypercode.handover.drafted"]
+            check(len(drafted) == 1 and all(f.startswith(("docs/NEXT_SESSION_HANDOVER_", "docs/crew-proposals/")) for f in drafted[0]["files"]), "the Scribe drafted docs-only files and parked at its own gate")
+            ctx = human("GET", f"/tasks/{task_id}").json()["inputRequests"]["approval"]
+            draft_hash = ctx["plan_hash"]
+            check(ctx["node"] == "approve_scribe" and draft_hash != plan_hash and draft_hash.startswith("sha256:"), "the handover gate has its own hash, not the plan's")
+            check(human("POST", url, json={"decision": "approve"}).status_code == 422, "approving the draft without its hash is refused (422)")
+            check(human("POST", url, json={"decision": "approve", "plan_hash": plan_hash}).status_code == 409, "approving the draft with the PLAN's hash is refused (409)")
+            check(human("POST", url, json={"decision": "approve", "plan_hash": draft_hash}).status_code == 200, "the exact draft hash is accepted")
+
             done = await poll(session, task_id, lambda p: p["done"], timeout=45)
             seen = await poll(session, task_id, lambda p: True, after=before["nextAfter"])
             check(done["status"] == "completed" and done["calmCard"]["status"] == "done", "run completed; Calm Card says done")
@@ -217,7 +242,7 @@ async def main() -> None:
             import sqlite3
 
             with sqlite3.connect(tmp / "core.db") as conn:
-                rows = conn.execute("select source_id, user_id, status, xp from quest_settlements").fetchall()
+                rows = conn.execute("select source_id, user_id, status, xp from quest_settlements where quest_id = 'crew_run'").fetchall()
                 wallet = conn.execute("select xp, coins from broski_wallets where user_id = 1").fetchone()
                 paid = conn.execute("select count(*) from broski_transactions where reason = 'Quest: crew run'").fetchone()[0]
             conn.close()
@@ -225,6 +250,24 @@ async def main() -> None:
             check(wallet is not None and wallet[0] >= 20 and paid == 1, "the human's wallet was credited by one traceable transaction")
             check("hypercode.quest.settled" in names(seen), "the quiet win arrived as one event")
             check(any("+20 XP" in line for line in done["calmCard"]["tldr"]), "the Calm Card shows one quiet XP line")
+
+            # ── publish: with no GitHub token configured it must say so and open nothing ──
+            published = [e["event"]["value"] for e in seen["events"] if e["event"].get("name") == "hypercode.handover.published"]
+            check(len(published) == 1 and published[0]["prOpened"] is False and published[0]["status"] == "not_configured", "no GitHub token: it says the draft stayed in the run, and opened no PR")
+            check(done["calmCard"]["tldr"][-1] == "Handover draft kept in this run" or "Handover draft kept in this run" in done["calmCard"]["tldr"], "the Calm Card says so too")
+            with sqlite3.connect(tmp / "core.db") as conn2:
+                hrow = conn2.execute("select status, xp, user_id from quest_settlements where quest_id = 'handover_written'").fetchall()
+                badge = conn2.execute("select count(*) from broski_user_achievements where achievement_slug = 'handover_written'").fetchone()[0]
+                audit = conn2.execute("select approved_by from governance_ledger where action = 'crew_handover_published'").fetchall()
+            conn2.close()
+            check(hrow == [("awarded", 0, 1)] and badge == 1, "Handover Written unlocked once, for the human who approved the draft")
+            check(audit == [("proof-super@example.com",)], "the publish was written to the Governance Ledger with the approver")
+
+            # ── Morning Card ──
+            m = human("GET", "/morning").json()
+            mc = m["calmCard"]
+            check(m["light"] in ("green", "amber", "red") and len(mc["tldr"]) <= 5 and any("verified run" in t for t in mc["tldr"]), "the Morning Card has one light, at most 5 lines, and yesterday's win")
+            check(agent("GET", "/morning").status_code == 200 and not any("XP" in t for t in agent("GET", "/morning").json()["calmCard"]["tldr"]), "an agent key can read it but sees no one's XP")
 
             # ── cancel at the gate, through MCP ──
             c = await tool(session, "hypercode_crew_start", {"goal": "write a cancelled thing", "idempotency_key": f"prove-crew-{RUN}-cancel"})
@@ -257,6 +300,7 @@ async def main() -> None:
             check(pk["taskId"] in human("POST", "/panic/resume").json()["resumed"], "a human releases the hold")
             await poll(session, pk["taskId"], at_gate)
             check(human("POST", f"/tasks/{pk['taskId']}/input", json=pbody).status_code == 200, "released: the same plan hash is accepted")
+            await answer_handover(session, pk["taskId"])
             pdone = await poll(session, pk["taskId"], lambda p: p["done"], timeout=45)
             check(pdone["status"] == "completed", "the held run then completed")
 

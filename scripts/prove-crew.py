@@ -170,7 +170,22 @@ def phase2(task_id: str, key: str, next_after: int) -> None:
     check(code == 200 and dup["taskId"] == task_id and dup.get("deduplicated") is True, "a retried start after the restart returns the SAME task")
     h = plan_hash_of(body)
     check(call("POST", f"/tasks/{task_id}/input", json={"decision": "approve", "plan_hash": h})[0] == 200, "the exact plan hash is accepted")
-    end = wait_for(task_id, lambda b: b["status"] in ("completed", "failed"), timeout=420)
+    def handover_gate(b: dict) -> bool:
+        approval = (b.get("inputRequests") or {}).get("approval") or {}
+        return b["status"] == "input_required" and approval.get("node") == "approve_scribe"
+
+    end = wait_for(task_id, lambda b: b["status"] in ("completed", "failed") or handover_gate(b), timeout=420)
+    if handover_gate(end):
+        # Safe by default: on a live stack a configured GitHub token would open a REAL draft PR, so the proof
+        # SKIPS the handover unless you opt in with PROVE_APPROVE_HANDOVER=1.
+        dh = plan_hash_of(end)
+        check(dh != h, "the handover gate has its own hash, not the plan's")
+        check(call("POST", f"/tasks/{task_id}/input", json={"decision": "approve", "plan_hash": h})[0] == 409, "approving the draft with the PLAN's hash is refused (409)")
+        if os.environ.get("PROVE_APPROVE_HANDOVER") == "1":
+            check(call("POST", f"/tasks/{task_id}/input", json={"decision": "approve", "plan_hash": dh})[0] == 200, "the exact draft hash is accepted (a draft PR opens only if a GitHub token is configured)")
+        else:
+            check(call("POST", f"/tasks/{task_id}/input", json={"decision": "reject"})[0] == 200, "the handover was skipped (default: opens nothing)")
+        end = wait_for(task_id, lambda b: b["status"] in ("completed", "failed"), timeout=120)
     fin = events(task_id, after=ev["nextAfter"])
     check("hypercode.plan.sealed" in names(fin), "the approved plan was sealed")
     last = fin["events"][-1]["event"]

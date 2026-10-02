@@ -2,6 +2,43 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-02 — HyperCrew Day 9: Scribe + Morning Card (tests + local proof PASS; Docker/real-GitHub NOT run)
+
+- **Flow `hypercode-crew` v4:** `... guard → settle → scribe → approve_scribe → publish`. **A run now ends at a handover
+  gate**, so it is not "completed" until a human answers it (approve, or skip). Skip ends the run cleanly (new
+  `on_reject: end` gate option); it does not fail finished work.
+- **Scribe = a proposal, never a write.** Deterministic (no LLM, no network): from the run's own redacted,
+  hash-pinned history it drafts a handover in the repo's format (`# 📋 NEXT_SESSION_HANDOVER — DATE`, LIVE STATE,
+  PROOF, NOT DONE, ONE next task) plus a WHATS_DONE entry. Only for a guard-ALLOWed run. It says plainly nothing was
+  applied.
+- **Contradiction surfaced:** the design says a "WHATS_DONE draft". `WHATS_DONE.md` is edited in parallel by other
+  sessions, so editing it from core could clobber their work. The entry is a **new file** under
+  `docs/crew-proposals/`; you paste it in when you apply the change. Handover file name carries `_crew-<run8>` so it
+  can never collide with a human handover on the same day.
+- **Human gate bound to the draft's hash** (same rule as the plan gate, reusing the same API check): approving needs
+  the draft's own hash; the plan's hash is refused (409); missing is refused (422). Publish re-verifies the hash and
+  every file's sha256 and path, so a draft edited after you saw it, or a smuggled path, fails closed.
+- **Publisher (`app/crew/github_pr.py`) is the only GitHub touch:** needs `CREW_GITHUB_TOKEN` (or
+  `CREW_GITHUB_TOKEN_FILE`) — **not set anywhere, not wired into compose, so by default nothing is ever sent** and the
+  card says "Handover draft kept in this run". When configured: new `crew/...` branch from base, docs-only
+  markdown allow-list, create-only files (never overwrites), **always draft**, never merges, one-repo
+  (`CREW_GITHUB_REPO`, default this repo), idempotent retry, token never logged/returned.
+  **Tested only against a fake GitHub (`httpx.MockTransport`), never the real API.**
+- **Handover Written** now unlocks (achievement, once per run, for the human who approved the draft, guard-ALLOW only);
+  every publish is also written to the Governance Ledger (`crew_handover_published`, with approver and PR status).
+- **Morning Card (W3):** `GET /api/v1/operator/morning` + dashboard "Where was I?" on `/ide`: last-24h wins (the
+  human's own, an agent key sees none), runs waiting/paused, ONE traffic light from free RAM (unreadable = amber), ONE
+  next action. No streaks, nothing shaming. Uses core's own data only — **does not call `broski-coo`/`session-snapshot`**
+  (unverified contract; card is useful without it).
+- Tests: backend 1066 pass, same 4 pre-existing failures on `main`; `mypy app/crew` clean apart from the 2 old
+  `db/session.py` errors; dashboard 251 pass, tsc clean, eslint 0 errors, `next build` OK.
+  `scripts/prove-crew-local.py` ALL PASS incl. real restart, gate hash rules, no-token publish, achievement,
+  ledger row, Morning Card. `scripts/prove-crew.py` phase2 now answers the handover gate and **skips it by default**
+  (set `PROVE_APPROVE_HANDOVER=1` to approve; a configured token would open a real draft PR).
+- **Not done / not proven:** Docker live proof unrun; real GitHub never touched; migration `023` still to apply;
+  `dashboard` + `hypercode-core` rebuild needed; the dashboard cannot approve the handover (still human-via-API/CLI);
+  `hyper-split-agent` chunking still deferred.
+
 ## 2026-10-02 — HyperCrew Day 8: Quest Settler + first 5 achievements (tests + local proof PASS; Docker live proof NOT yet run)
 
 - **Contradiction surfaced:** the design said "call `broski-economy-mcp award_tokens`". Core already has its

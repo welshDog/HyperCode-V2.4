@@ -33,6 +33,16 @@ def wait_for(client, task_id, status, node=None, timeout=15.0):
     raise AssertionError(f"timed out waiting for {status}/{node} on {task_id}; last={last}")
 
 
+def answer_handover(client, task_id, decision="approve"):
+    """The run now ends with a handover gate: answer it with the draft's own hash, the same rule as the plan."""
+    body = wait_for(client, task_id, "input_required", "approve_scribe")
+    payload = {"decision": decision}
+    if decision == "approve":
+        payload["plan_hash"] = body["inputRequests"]["approval"]["plan_hash"]
+    assert client.post(f"{BASE}/tasks/{task_id}/input", json=payload).status_code == 200
+    return body
+
+
 def events(client, task_id, after=-1):
     return client.get(f"{BASE}/tasks/{task_id}/events", params={"after": after}).json()
 
@@ -88,6 +98,7 @@ def test_a_crew_run_survives_a_core_restart_replays_exactly_and_finishes(client,
     assert client.post(url, json={"decision": "approve"}).status_code == 422
     assert client.post(url, json={"decision": "approve", "plan_hash": plan_hash}).status_code == 200
 
+    answer_handover(client, task_id)
     done = wait_for(client, task_id, "completed")
     assert done["result"]["success"] is True
     final = events(client, task_id, after=before["nextAfter"])
@@ -168,6 +179,7 @@ def test_a_run_interrupted_in_the_middle_of_a_proposal_is_resumed_not_lost(clien
     assert counts["resume"] == 1, counts  # build is idempotent → resumed
 
     release["go"] = True
+    answer_handover(client, task_id)
     done = wait_for(client, task_id, "completed", timeout=20)
     assert done["result"]["success"] is True
     assert started["n"] >= 2  # the proposal was re-requested after the restart

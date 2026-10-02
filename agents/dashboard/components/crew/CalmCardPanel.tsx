@@ -6,7 +6,7 @@ import type { CardStatus } from '@/lib/agui/types'
 
 // Calm Card: at most five summary lines, exactly ONE next action, details collapsed.
 // Status is always icon + word (never colour alone). No motion, no popups.
-const STATUS: Record<CardStatus, { glyph: string; word: string; color: string }> = {
+export const STATUS: Record<CardStatus, { glyph: string; word: string; color: string }> = {
   running: { glyph: '…', word: 'Running', color: 'var(--accent-cyan)' },
   waiting_on_you: { glyph: '!', word: 'Waiting on you', color: 'var(--accent-amber)' },
   paused: { glyph: '‖', word: 'Paused', color: 'var(--text-secondary)' },

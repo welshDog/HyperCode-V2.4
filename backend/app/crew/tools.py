@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from app.broski_operator.recover_tools import _last_data, _last_result
@@ -59,13 +59,14 @@ async def crew_plan(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, An
 
 
 def _write_ledger(entry: dict[str, Any]) -> bool:
+    action = str(entry.get("action", "crew_plan_approved"))
     try:
         db = SessionLocal()
         try:
             db.add(
                 GovernanceLedger(
                     user_id="broski-operator",
-                    action="crew_plan_approved",
+                    action=action,
                     tool_used="hypercode.crew",
                     payload=entry["payload"],
                     decision="approved",
@@ -232,3 +233,65 @@ async def crew_settle(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, 
         return {"ok": True, "performed": False, "status": "error", "xp": 0, "coins": 0,
                 "reason": "settlement failed; safe to retry", "achievements": []}
     return {"ok": True, "performed": False, **out}
+
+
+# ── Day 9: Scribe + publish ───────────────────────────────────────────────────────
+def _today() -> date:
+    return datetime.now(timezone.utc).date()
+
+
+async def crew_scribe(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, Any]:
+    """Draft the handover as a proposal for a human to read. Writes nothing, anywhere."""
+    from app.crew.scribe import ScribeError, build_proposal
+
+    history = (ctx or {}).get("history", [])
+    run_id = str((ctx or {}).get("run_id", ""))
+    try:
+        proposal = build_proposal(run_id, history, _today())
+    except ScribeError as exc:
+        raise CrewSealError(str(exc)) from exc
+    return {"ok": True, "performed": False, "proposal": proposal}
+
+
+def _record_publish_sync(run_id: str, approver: str, proposal: dict[str, Any], outcome: dict[str, Any],
+                         history: list[dict[str, Any]]) -> dict[str, Any]:
+    from app.crew.quests import settle_handover
+
+    ledger_ok = _write_ledger({
+        "action": "crew_handover_published", "approved_by": approver,
+        "payload": {"run_id": run_id, "proposal_hash": proposal["plan_hash"], "pr_status": outcome.get("status"),
+                    "pr_url": outcome.get("url", ""), "files": [f["path"] for f in proposal["files"]]},
+    })
+    db = SessionLocal()
+    try:
+        won = settle_handover(db, run_id, history, approver)
+        return {"ledger": bool(ledger_ok), "achievements": won.achievements, "handover": won.status}
+    except Exception:
+        db.rollback()
+        logger.warning("crew publish: handover settle failed for %s", run_id, exc_info=True)
+        return {"ledger": bool(ledger_ok), "achievements": [], "handover": "error"}
+    finally:
+        db.close()
+
+
+async def crew_publish(params: dict[str, Any], ctx: dict[str, Any]) -> dict[str, Any]:
+    """After a human approved the exact draft: open a DRAFT docs-only PR (if a token is configured).
+
+    Never claims a PR exists unless GitHub said so; with no token the draft simply stays in the run.
+    """
+    from app.crew.github_pr import open_draft_pr
+    from app.crew.scribe import ScribeError, approved_proposal
+
+    history = (ctx or {}).get("history", [])
+    run_id = str((ctx or {}).get("run_id", ""))
+    try:
+        proposal, approver = approved_proposal(history)
+    except ScribeError as exc:
+        raise CrewSealError(str(exc)) from exc
+    outcome = await open_draft_pr(proposal)
+    extra = await asyncio.to_thread(_record_publish_sync, run_id, approver, proposal, outcome, history)
+    opened = outcome["status"] in ("opened", "exists")
+    return {
+        "ok": True, "performed": opened, "pr": outcome, "pr_opened": opened,
+        "files": [f["path"] for f in proposal["files"]], **extra,
+    }
