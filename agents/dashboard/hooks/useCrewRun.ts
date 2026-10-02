@@ -25,7 +25,7 @@ export function useCrewRun(taskId: string | null): { run: RunState; connection: 
     let failures = 0
 
     const tick = async (): Promise<void> => {
-      let delay = DEFAULT_POLL_MS
+      let delay: number
       let finished = false
       try {
         const res = await fetch(`/api/crew/${encodeURIComponent(taskId)}/events?after=${after}`, { cache: 'no-store' })
