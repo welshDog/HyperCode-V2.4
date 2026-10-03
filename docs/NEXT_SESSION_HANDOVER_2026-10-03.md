@@ -34,7 +34,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Probe whether the model's reasoning can be limited through fcc-proxy (thinking budget/disabled or a brief-reasoning instruction) for the VERIFIER: ~10 verify calls, compare out_tokens / latency / verdicts, then decide; also make coder-agent return an ERROR status (not a 'completed' error string) when its model call times out.** Measured with logging: 6 of 10 ALLOW (15-run total 9/15); the 4 BLOCKs = 1 genuine verifier FAIL, 1 builder ReadTimeout, 2 verifier reasoning-budget exhaustion (UNKNOWN). Done today: verifier logging, crew rate x2, full end-to-end run, latency headroom, relay env trimmed.
+**Decide between (a) re-running the reasoning-limit QUALITY probe (variants baseline vs thinking-off, 5 diffs incl. broken ones, 10 calls, output to a file, retry on 5xx, only when memory is comfortable) and (b) hardening against upstream NIM flakes (one short retry on 503/529/500 in the verifier; coder-agent returns an ERROR status on timeout).** Learned today: NVIDIA NIM's free tier is intermittently overloaded (HTTP 503 -> proxy 529/500); thinking-off cuts a clean-diff verify to ~13 tokens / 1-5 s but its bug-catching ability is UNTESTED. Done today: verifier logging, crew rate x2 (9/15, then 6/10 with causes), full end-to-end run, latency headroom, relay env trimmed.
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
@@ -50,7 +50,7 @@
 
 ## ❌ NOT PROVEN
 
-Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · a crew success rate with enough runs to trust (5 measured: 3 ALLOW / 2 BLOCK); whether limiting the model's reasoning removes the UNKNOWNs without hurting verdict quality (untested) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
+Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · a crew success rate with enough runs to trust (5 measured: 3 ALLOW / 2 BLOCK); whether limiting the model's reasoning removes the UNKNOWNs without hurting bug-catching (probe inconclusive: upstream overload, then killed by memory pressure) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
 
 ## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check was scheduled for 17:07 local, job `d5a747ee`)
 
