@@ -38,6 +38,8 @@ ENV_KEY = "HYPERCODE_JWT_SECRET"
 DASH_KEY = "DASHBOARD_SERVICE_JWT"
 SECRET_VARS = ("JWT_SECRET", "HYPERCODE_JWT_SECRET")
 SECRET_FILE_VARS = ("JWT_SECRET_FILE", "HYPERCODE_JWT_SECRET_FILE")
+# Data stores get the whole .env via `env_file:` but never use the JWT secret: not worth a database restart.
+LEAVE_RUNNING = {"postgres", "redis"}
 
 
 # --- pure helpers (unit-tested; no I/O) -------------------------------------------------------------------------
@@ -151,7 +153,10 @@ def main() -> int:
     print(f"  old dashboard token: sub={claims.get('sub')} has iss={'iss' in claims} aud={'aud' in claims}"
           f" exp={datetime.fromtimestamp(claims['exp']).date()}; 10-year .env token present: {bool(old_dash_env)}")
     by_env, by_file = consumers(old_hash)
-    print("  holds old secret (env):", [n for n, _ in by_env] or "none")
+    left = [n for n, s_ in by_env if s_ in LEAVE_RUNNING]
+    by_env = [t for t in by_env if t[1] not in LEAVE_RUNNING]
+    print("  holds old secret (env) -> will restart:", [n for n, _ in by_env] or "none")
+    print("  holds a copy via env_file, does NOT use it -> left running:", left or "none")
     print("  reads a secret file   :", [n for n, _ in by_file] or "none")
     if not any(n == "hypercode-core" for n, _ in by_env):
         raise SystemExit("hypercode-core is not among the consumers - unexpected, stop")
@@ -215,7 +220,7 @@ def main() -> int:
         results["dashboard /api/pulse healthy (want True)"] = str("degraded" not in pulse)
     except Exception as e:  # noqa: BLE001 - report, don't hide
         results["dashboard /api/pulse healthy (want True)"] = f"error: {type(e).__name__}"
-    still = [n for n, _ in consumers(old_hash)[0]]
+    still = [n for n, s_ in consumers(old_hash)[0] if s_ not in LEAVE_RUNNING]
     results["containers still holding the old secret (want [])"] = str(still)
     results["core RestartCount (want 0)"] = run(["docker", "inspect", "-f", "{{.RestartCount}}", "hypercode-core"]).stdout.strip()
     for k, v in results.items():
