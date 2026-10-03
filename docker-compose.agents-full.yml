@@ -307,6 +307,9 @@ services:
       - THROTTLE_MODE=${THROTTLE_MODE:-observe}
       - THROTTLE_SIGNAL_FILE=/signal/ram.json
       - THROTTLE_SIGNAL_MAX_AGE_S=${THROTTLE_SIGNAL_MAX_AGE_S:-120}
+      # Debounce: AMBER must be seen in this many consecutive NEW host samples before it acts (a flaky read must not pause things); RED acts after 1.
+      - THROTTLE_AMBER_CYCLES=${THROTTLE_AMBER_CYCLES:-3}
+      - THROTTLE_RED_CYCLES=${THROTTLE_RED_CYCLES:-1}
     volumes:
       - ./ram-signal:/signal:ro
     networks:

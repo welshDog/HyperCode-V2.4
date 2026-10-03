@@ -184,7 +184,8 @@ def measure(skip_docker: bool = False) -> Metrics:
         m.host_free_mb, m.host_total_mb, m.compression_mb = d.get("free"), d.get("total"), d.get("compression")
         top = d.get("top")
         m.top_host_procs = [str(x) for x in top] if isinstance(top, list) else None
-        free_txt = _run(["wsl", "-e", "free", "-m"], 25)
+        # 40 s: on 2026-10-03 this read timed out at 25 s while WSL was busy building/starting containers (wsl_avail=None)
+        free_txt = _run(["wsl", "-e", "free", "-m"], 40)
     else:  # running inside Linux/WSL: no Windows host view
         free_txt = _run(["free", "-m"], 10)
     w = parse_free_m(free_txt or "")

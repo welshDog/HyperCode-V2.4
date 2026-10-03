@@ -139,5 +139,87 @@ class Step(unittest.TestCase):
         self.assertEqual(paused, set())
 
 
+class Debounce(unittest.TestCase):
+    """A flaky reading must not trigger a pause. Real cause: on 2026-10-03 a timed-out WSL read (None -> AMBER) and a
+    compression value flickering around its threshold produced AMBER blips while the machine was fine."""
+
+    def feed(self, samples, amber_cycles=3, red_cycles=1, protect=PROTECT):
+        """samples: list of (level, new_sample). Returns the list of Steps; applies pauses/resumes like main does."""
+        paused, gs, a, r, out = set(), None, 0, 0, []
+        for i, (level, new) in enumerate(samples):
+            s = p.step(level, paused, protect, TIERS, gs, 1000.0 + 30 * i, HOLD,
+                       amber_streak=a, red_streak=r, amber_cycles=amber_cycles, red_cycles=red_cycles, new_sample=new)
+            paused |= set(s.to_pause)
+            paused -= set(s.to_resume)
+            gs, a, r = s.green_since, s.amber_streak, s.red_streak
+            out.append(s)
+        return out
+
+    def test_defaults_keep_the_old_behaviour_act_on_the_first_reading(self):
+        self.assertEqual(run(p.AMBER).to_pause, (6,))
+        self.assertEqual(run(p.RED).to_pause, (6, 5, 4))
+
+    def test_amber_needs_three_consecutive_new_samples(self):
+        steps = self.feed([(p.AMBER, True)] * 3)
+        self.assertEqual([s.to_pause for s in steps], [(), (), (6,)])
+        self.assertEqual([s.effective for s in steps], [p.PENDING, p.PENDING, p.AMBER])
+        self.assertEqual([s.amber_streak for s in steps], [1, 2, 3])
+
+    def test_the_same_sample_read_again_does_not_count(self):
+        steps = self.feed([(p.AMBER, True), (p.AMBER, False), (p.AMBER, False), (p.AMBER, False)])
+        self.assertTrue(all(s.to_pause == () for s in steps))
+        self.assertEqual(steps[-1].amber_streak, 1)
+
+    def test_a_green_sample_in_between_resets_the_streak(self):
+        steps = self.feed([(p.AMBER, True), (p.AMBER, True), (p.GREEN, True), (p.AMBER, True), (p.AMBER, True)])
+        self.assertTrue(all(s.to_pause == () for s in steps))
+        self.assertEqual(steps[-1].amber_streak, 2)
+
+    def test_UNKNOWN_resets_the_streak_too(self):
+        steps = self.feed([(p.AMBER, True), (p.AMBER, True), (p.UNKNOWN, True), (p.AMBER, True)])
+        self.assertTrue(all(s.to_pause == () for s in steps))
+        self.assertEqual(steps[-1].amber_streak, 1)
+
+    def test_RED_acts_on_the_first_sample_by_default(self):
+        steps = self.feed([(p.RED, True)])
+        self.assertEqual((steps[0].to_pause, steps[0].effective), ((6, 5, 4), p.RED))
+
+    def test_red_cycles_can_be_raised_and_amber_streak_still_carries_a_red(self):
+        steps = self.feed([(p.RED, True)] * 3, amber_cycles=3, red_cycles=2)
+        # sample 1: red 1<2, amber 1<3 -> pending; sample 2: red 2>=2 -> RED
+        self.assertEqual([s.effective for s in steps][:2], [p.PENDING, p.RED])
+        self.assertEqual(steps[1].to_pause, (6, 5, 4))
+
+    def test_a_red_that_cools_to_amber_keeps_its_amber_streak(self):
+        steps = self.feed([(p.RED, True), (p.AMBER, True), (p.AMBER, True)], amber_cycles=3, red_cycles=3)
+        # RED never reaches 3 consecutive; the AMBER-or-worse streak does: 1,2,3 -> AMBER on the third sample
+        self.assertEqual([s.effective for s in steps], [p.PENDING, p.PENDING, p.AMBER])
+        self.assertEqual(steps[2].to_pause, (6,))
+        self.assertEqual(steps[1].red_streak, 0)
+
+    def test_pending_does_not_resume_what_is_paused_and_restarts_the_hold(self):
+        paused = {6}
+        s = p.step(p.AMBER, paused, PROTECT, TIERS, 1000.0, 1000.0 + 10 * HOLD, HOLD,
+                   amber_streak=0, red_streak=0, amber_cycles=3, new_sample=True)
+        self.assertEqual((s.effective, s.to_resume, s.green_since), (p.PENDING, (), None))
+
+    def test_replay_of_the_real_2026_10_03_readings_would_never_have_paused(self):
+        # writer log, 13:24:56 - 13:28:25: G, A (compression 2542), G, G, A (wsl None), A (wsl None)
+        steps = self.feed([(p.GREEN, True), (p.AMBER, True), (p.GREEN, True), (p.GREEN, True), (p.AMBER, True), (p.AMBER, True)])
+        self.assertTrue(all(s.to_pause == () for s in steps))
+        # ...whereas the original act-on-first-reading policy WOULD have paused tier 6 at the very first blip
+        old = self.feed([(p.GREEN, True), (p.AMBER, True)], amber_cycles=1)
+        self.assertEqual(old[1].to_pause, (6,))
+
+    def test_a_sustained_amber_does_eventually_pause_and_calm_resumes(self):
+        samples = [(p.AMBER, True)] * 4 + [(p.GREEN, True)] * 12
+        steps = self.feed(samples)
+        paused_at = [i for i, s in enumerate(steps) if s.to_pause]
+        resumed_at = [i for i, s in enumerate(steps) if s.to_resume]
+        self.assertEqual(paused_at, [2])           # 3rd consecutive AMBER sample
+        self.assertEqual(len(resumed_at), 1)       # resumes once, after the green hold
+        self.assertGreater(resumed_at[0], paused_at[0] + 5)
+
+
 if __name__ == "__main__":
     unittest.main()

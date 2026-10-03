@@ -31,6 +31,10 @@ class Base(unittest.TestCase):
         main._autopilot_below_since = None
         main._decision_log.clear()
         main._last_logged_level = None
+        main._last_logged_effective = None
+        main._amber_streak = 0
+        main._red_streak = 0
+        main._last_sample_mtime = None
         main._last_signal = None
         self.client = unittest.mock.Mock(name="docker_client_factory")
         self.pause = unittest.mock.Mock(name="pause_tier")
@@ -42,6 +46,9 @@ class Base(unittest.TestCase):
             unittest.mock.patch.object(main, "_pause_tier_sync", self.pause),
             unittest.mock.patch.object(main, "_resume_tier_sync", self.resume),
             unittest.mock.patch.object(main.time, "time", lambda: self.now),
+            # the original act-on-first-reading behaviour; the debounce has its own class below with the real default
+            unittest.mock.patch.object(main, "THROTTLE_AMBER_CYCLES", 1),
+            unittest.mock.patch.object(main, "THROTTLE_RED_CYCLES", 1),
         ]
         for p in patches:
             p.start()
@@ -154,6 +161,69 @@ class Enforce(Base):
         self.assertEqual(main._autopilot_paused_tiers, set())
 
 
+class DebounceIntegration(Base):
+    """The real main.py with the real default (3): a flaky AMBER must not even log a would-pause."""
+
+    def cycle3(self, mode="observe"):
+        with unittest.mock.patch.object(main, "THROTTLE_AMBER_CYCLES", 3), \
+             unittest.mock.patch.object(main, "THROTTLE_RED_CYCLES", 1):
+            self.cycle(mode)
+
+    def test_three_distinct_amber_samples_are_needed_before_it_would_pause(self):
+        for i, expected in enumerate([set(), set(), {6}]):
+            self.now += 30
+            self.signal("AMBER")
+            self.cycle3()
+            self.assertEqual(main._sim_paused_tiers, expected, f"sample {i + 1}")
+        self.assertEqual(main._last_signal["effective"], "AMBER")
+        self.client.assert_not_called()
+
+    def test_reading_the_same_sample_on_every_poll_does_not_advance_the_streak(self):
+        self.signal("AMBER")
+        for _ in range(5):          # the agent polls every 30 s; the file has NOT been rewritten
+            self.cycle3()
+        self.assertEqual((main._amber_streak, main._sim_paused_tiers), (1, set()))
+        self.assertEqual(main._last_signal["effective"], "PENDING")
+
+    def test_the_real_2026_10_03_blips_never_produce_a_would_pause(self):
+        for level in ("GREEN", "AMBER", "GREEN", "GREEN", "AMBER", "AMBER"):   # the writer log, 13:24:56 - 13:28:25
+            self.now += 30
+            self.signal(level)
+            self.cycle3()
+        self.assertEqual(main._sim_paused_tiers, set())
+        self.assertFalse(any(d.get("would_pause") for d in main._decision_log))
+        self.pause.assert_not_called()
+
+    def test_enforce_mode_ignores_blips_too_and_never_connects_to_docker(self):
+        for level in ("AMBER", "GREEN", "AMBER", "AMBER"):
+            self.now += 30
+            self.signal(level)
+            self.cycle3("enforce")
+        self.pause.assert_not_called()
+        self.client.assert_not_called()
+
+    def test_sustained_amber_does_pause_in_enforce_on_the_third_sample(self):
+        for _ in range(3):
+            self.now += 30
+            self.signal("AMBER")
+            self.cycle3("enforce")
+        self.assertEqual([c.args[1] for c in self.pause.call_args_list], [6])
+
+    def test_RED_acts_on_the_first_sample_even_with_the_debounce_on(self):
+        self.now += 30
+        self.signal("RED")
+        self.cycle3("enforce")
+        self.assertEqual([c.args[1] for c in self.pause.call_args_list], [6, 5, 4])
+
+    def test_signal_endpoint_shows_the_debounce_state(self):
+        self.signal("AMBER")
+        with unittest.mock.patch.object(main, "THROTTLE_AMBER_CYCLES", 3), \
+             unittest.mock.patch.object(main, "THROTTLE_MODE", "observe"):
+            self.cycle("observe")
+            s = main.signal_status()["signal"]
+        self.assertEqual((s["effective"], s["amber_streak"], s["amber_cycles"], s["red_cycles"]), ("PENDING", 1, 3, 1))
+
+
 class Config(unittest.TestCase):
     def mode(self, **env):
         e = {k: v for k, v in os.environ.items() if not k.startswith("THROTTLE_") and k != "AUTO_THROTTLE_ENABLED"}
@@ -173,6 +243,18 @@ class Config(unittest.TestCase):
     def test_a_typo_can_never_arm_enforcement(self):
         for typo in ("enfroce", "ENFORCE_NOW", "yes", "1"):
             self.assertEqual(self.mode(THROTTLE_MODE=typo, AUTO_THROTTLE_ENABLED="true"), "observe", typo)
+
+    def test_debounce_settings_have_safe_defaults_and_a_floor_of_one(self):
+        def cycles(**env):
+            e = {k: v for k, v in os.environ.items() if not k.startswith("THROTTLE_")}
+            e.update(env)
+            r = subprocess.run([sys.executable, "-c", "import main; print(main.THROTTLE_AMBER_CYCLES, main.THROTTLE_RED_CYCLES)"],
+                               cwd=HERE, env=e, capture_output=True, text=True, timeout=120)
+            return r.stdout.strip().splitlines()[-1]
+        self.assertEqual(cycles(), "3 1")
+        self.assertEqual(cycles(THROTTLE_AMBER_CYCLES="5", THROTTLE_RED_CYCLES="2"), "5 2")
+        self.assertEqual(cycles(THROTTLE_AMBER_CYCLES="0", THROTTLE_RED_CYCLES="-4"), "1 1")   # never below 1
+        self.assertEqual(cycles(THROTTLE_AMBER_CYCLES="abc"), "3 1")                            # invalid -> default
 
     def test_tiers_override_and_bad_override_falls_back(self):
         def tiers(raw):

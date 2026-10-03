@@ -403,6 +403,11 @@ else:
 # container-RAM-% signal (blind to the Windows host). Missing/stale/invalid file = UNKNOWN = never acts.
 THROTTLE_SIGNAL_FILE = os.getenv("THROTTLE_SIGNAL_FILE", "").strip()
 THROTTLE_SIGNAL_MAX_AGE_S = _parse_threshold("THROTTLE_SIGNAL_MAX_AGE_S", 120.0)
+# Debounce (observe mode caught a flaky WSL read and a compression value flickering around its threshold): AMBER must be
+# seen in this many consecutive NEW signal samples before it acts; RED needs this many (default 1: RED is only produced
+# by real bad numbers, an unreadable value is AMBER). Minimum 1; invalid -> the default.
+THROTTLE_AMBER_CYCLES = max(1, int(_parse_threshold("THROTTLE_AMBER_CYCLES", 3.0)))
+THROTTLE_RED_CYCLES = max(1, int(_parse_threshold("THROTTLE_RED_CYCLES", 1.0)))
 
 
 async def poll_memstream_and_throttle() -> None:
@@ -746,13 +751,18 @@ _sim_paused_tiers: set[int] = set()  # observe mode: tiers we WOULD hold paused 
 _decision_log: deque = deque(maxlen=50)
 _last_signal: dict[str, Any] | None = None
 _last_logged_level: str | None = None
+_last_logged_effective: str | None = None
+_amber_streak = 0  # debounce: consecutive NEW signal samples that were AMBER or RED
+_red_streak = 0    # consecutive NEW samples that were RED
+_last_sample_mtime: float | None = None  # the host writes every ~30-60 s; the agent polls every 30 s: count writes, not polls
 _observe_without_signal_warned = False
 _LEVEL_NUM = {pressure.GREEN: 0, pressure.AMBER: 1, pressure.RED: 2, pressure.UNKNOWN: -1}
 
 
 def _signal_cycle_sync() -> None:
     """One decision from the HOST RAM guard's signal. observe = log only; enforce = act (never on UNKNOWN)."""
-    global _autopilot_below_since, _last_poll_ts, _last_signal, _last_logged_level
+    global _autopilot_below_since, _last_poll_ts, _last_signal, _last_logged_level, _last_logged_effective
+    global _amber_streak, _red_streak, _last_sample_mtime
     sig = pressure.read_signal(THROTTLE_SIGNAL_FILE, max_age_s=THROTTLE_SIGNAL_MAX_AGE_S)
     tiers_cfg = _get_tiers()
     now = time.time()
@@ -761,30 +771,43 @@ def _signal_cycle_sync() -> None:
     with _throttle_lock:
         _last_poll_ts = now
         held = set(_autopilot_paused_tiers) if enforce else set(_sim_paused_tiers)
-        st = pressure.step(sig.level, held, THROTTLE_PROTECT_TIERS, tiers_cfg, _autopilot_below_since, now, hold_s)
+        new_sample = sig.mtime is not None and sig.mtime != _last_sample_mtime
+        st = pressure.step(
+            sig.level, held, THROTTLE_PROTECT_TIERS, tiers_cfg, _autopilot_below_since, now, hold_s,
+            amber_streak=_amber_streak, red_streak=_red_streak,
+            amber_cycles=THROTTLE_AMBER_CYCLES, red_cycles=THROTTLE_RED_CYCLES, new_sample=new_sample,
+        )
         _autopilot_below_since = st.green_since
+        _amber_streak, _red_streak = st.amber_streak, st.red_streak
+        if new_sample:
+            _last_sample_mtime = sig.mtime
         _last_signal = {
             "level": sig.level, "reason": sig.reason, "age_s": None if sig.age_s is None else round(sig.age_s, 1),
             "host_free_mb": sig.host_free_mb, "wsl_avail_mb": sig.wsl_avail_mb, "compression_mb": sig.compression_mb,
+            "effective": st.effective, "amber_streak": st.amber_streak, "amber_cycles": THROTTLE_AMBER_CYCLES,
+            "red_streak": st.red_streak, "red_cycles": THROTTLE_RED_CYCLES,
         }
     SIGNAL_LEVEL.set(_LEVEL_NUM.get(sig.level, -1))
 
-    changed = sig.level != _last_logged_level
+    changed = sig.level != _last_logged_level or st.effective != _last_logged_effective
     if st.to_pause or st.to_resume or changed:
         entry = {
             "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z", "mode": THROTTLE_MODE, "signal": sig.level,
-            "reason": sig.reason,
+            "reason": sig.reason, "effective": st.effective,
+            "debounce": {"amber": f"{st.amber_streak}/{THROTTLE_AMBER_CYCLES}", "red": f"{st.red_streak}/{THROTTLE_RED_CYCLES}"},
             "would_pause" if not enforce else "pause": {str(t): tiers_cfg.get(t, []) for t in st.to_pause},
             "would_resume" if not enforce else "resume": {str(t): tiers_cfg.get(t, []) for t in st.to_resume},
             "protected_skipped": list(st.protected_skipped),
         }
         _decision_log.append(entry)
         logger.info(
-            f"signal={sig.level} ({sig.reason}) mode={THROTTLE_MODE} "
+            f"signal={sig.level} effective={st.effective} amber={st.amber_streak}/{THROTTLE_AMBER_CYCLES} "
+            f"red={st.red_streak}/{THROTTLE_RED_CYCLES} ({sig.reason}) mode={THROTTLE_MODE} "
             f"{'would ' if not enforce else ''}pause={list(st.to_pause)} {'would ' if not enforce else ''}resume={list(st.to_resume)}",
             extra={"action": "observe_decision" if not enforce else "enforce_decision", "reason": sig.reason},
         )
     _last_logged_level = sig.level
+    _last_logged_effective = st.effective
 
     if not enforce:
         # observe: track what we WOULD be holding so the log shows the whole pause/resume timeline. Docker is never called.
