@@ -2,6 +2,13 @@
 
 > Last synced: 2026-10-03 16:05 UTC by Claude (since 14:15: Shepherd real grants for hyphenated agents, JWT signing secret rotated, verifier tightened, Pulse fixed) — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (16:08 UTC) — throttle-agent observe review, SCHEDULED check (read-only; changed nothing) — confirms the 16:10 review below
+
+- **Now:** guard GREEN (host free 801 MB, compression 1,446 MB, WSL available 1,616 MB); Task Scheduler writer running, signal file 7 s old; throttle-agent healthy, RestartCount 0, OOMKilled false, up since 12:48:21Z; **0 containers paused**.
+- **Timeline unchanged:** still 60 `observe_decision` lines (they are logged on change only); none after 15:05:25Z, i.e. an hour+ of quiet GREEN. Totals as in the review below: 6 would-pause events, 21 blips absorbed, 0 UNKNOWN/stale, 0 errors, no flapping.
+- **`GET /signal` read from inside the container (key not printed) — closes the limit I noted in the review below:** level GREEN, `reason: fresh`, `age_s` 7.5, effective GREEN, streaks 0, `paused_tiers: []`, `paused_tiers_are_simulated: true`, protect tiers `[1,2,3]`; the agent IS evaluating live, and it still lists `fcc-proxy` in tier 6. Worst reading over the period is NOT recorded anywhere (the log carries levels, not values; `/signal` shows only the latest) — a small observability gap.
+- **Verdict (same as the review below):** keep OBSERVE; enforce NOT yet (no baseline of a real, unforced pressure episode, no reboot test of the scheduled task, `pause` frees no RAM, tier 6 holds `fcc-proxy`).
+
 ## 2026-10-03 (16:10 UTC) — throttle-agent OBSERVE review done (read-only): recommendation = keep observing, do NOT enforce; move fcc-proxy out of tier 6
 
 - **Data (12:48-16:06 UTC, ~3 h 18 min):** 60 decisions; effective AMBER/RED for ~27 min total (~14 %) in 8 clusters; 21 one-sample AMBER blips absorbed by the debounce (the debounce works: without it these would have been 21 would-pauses); 6 would-pause events (tier 6 x4 at AMBER, tiers 5+4 x2 at RED); **0 UNKNOWN/stale periods, 0 errors, 0 containers ever paused**, RestartCount 0. Since 14:38 only ONE blip (15:04) and an hour of GREEN.
