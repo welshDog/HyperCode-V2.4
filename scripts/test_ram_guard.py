@@ -12,7 +12,7 @@ import os
 import sys
 import tempfile
 import unittest
-from unittest import mock
+import unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ram_guard as rg  # noqa: E402
@@ -112,8 +112,8 @@ class Output(unittest.TestCase):
 class Main(unittest.TestCase):
     def run_main(self, argv, metrics_seq):
         seq = list(metrics_seq)
-        with mock.patch.object(rg, "measure", side_effect=lambda skip=False: seq.pop(0) if len(seq) > 1 else seq[0]), \
-             mock.patch.object(rg.time, "sleep"), contextlib.redirect_stdout(io.StringIO()) as out:
+        with unittest.mock.patch.object(rg, "measure", side_effect=lambda skip=False: seq.pop(0) if len(seq) > 1 else seq[0]), \
+             unittest.mock.patch.object(rg.time, "sleep"), contextlib.redirect_stdout(io.StringIO()) as out:
             code = rg.main(argv)
         return code, out.getvalue()
 
@@ -129,7 +129,7 @@ class Main(unittest.TestCase):
         self.assertEqual(code, 0)
 
     def test_wait_gives_up_when_the_time_is_up(self):
-        with mock.patch.object(rg.time, "time", side_effect=[0, 0, 100, 100, 100]):
+        with unittest.mock.patch.object(rg.time, "time", side_effect=[0, 0, 100, 100, 100]):
             code, _ = self.run_main(["--for", "build", "--wait", "30"], [THRASH])
         self.assertEqual(code, 2)
 
