@@ -2,6 +2,17 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 — HyperCrew: Guardian fail-open hole closed (builder could write the verifier's verdict)
+
+- **Found by:** reading the "echo stub can't fake a PASS" claim against `parse_verdict`. It held only when the builder's text had no
+  standalone `VERDICT:` line. The proposal is embedded in the verify prompt, so a verifier that echoes/quotes its prompt (today's `qa-engineer`
+  stub, or a model talked into it) returned the BUILDER's own `VERDICT: PASS` line, "last whole-line verdict wins" read it as PASS, and the
+  guard would **ALLOW an unreviewed run** (then settle XP + Scribe). Reproduced before the fix.
+- **Fix:** `build_task("verify")` defangs any line starting `VERDICT` in the untrusted proposal (`VERDICT-IN-PROPOSAL:`), so only the verifier's
+  own reply can carry a verdict. 4 tests: 3 fail without the fix (verified), plus "a real verifier's own last-line verdict still counts".
+  Crew tests 487 pass.
+- **Still true:** a real verifier model is needed to reach guard ALLOW at all (`qa-engineer` is an echo stub: every run is BLOCK, correctly).
+
 ## 2026-10-03 — HyperCrew: FIRST REAL COMPLETED RUN (guard BLOCK, as designed) — 4 more bugs found + fixed on the way
 
 **Phase 2 outcome: `COMPLETED: RUN_FINISHED with a guard verdict` → `guard decided BLOCK with an evidence bundle hash` → `Calm Card reflects the verdict` → `PHASE2 PASS` (EXIT 0).**
