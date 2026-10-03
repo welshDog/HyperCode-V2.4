@@ -34,11 +34,11 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Review throttle-agent's observe timeline together (read-only, checklist below) and decide on `enforce` and pause-vs-stop** — the data is already there; then fix the `evolve-relay` compose path so the real compose works again.
+**Decide on the throttle-agent recommendation (review DONE 16:10 UTC: keep OBSERVE, do not enforce; optionally move `fcc-proxy` out of tier 6 and log which threshold tripped — see `WHATS_DONE.md`), then fix the `evolve-relay` compose path so the real compose works again.**
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
-1. **throttle-agent `enforce`** — not yet. Needs: the observe review (below), a logon/reboot test of the scheduled task, and a choice between `docker pause` (frees **no RAM**, only CPU) and `stop` (frees RAM, but the healer fights it).
+1. **throttle-agent `enforce`** — review done, recommendation **no**: containers total only ~1.4 GB (tiers 4-6 ~563 MiB), `pause` frees no RAM, `stop` frees <~305 MiB and the healer fights it, and tier 6 holds `fcc-proxy` (the crew's model path). Your call: keep observe (recommended) + optionally take `fcc-proxy` out of tier 6 / add threshold logging. Still not done: a logon/reboot test of the scheduled task.
 2. **Core + orchestrator `monitor` → `enforce`** — never without checking the Safety Feed for ESCALATEs first, and remembering the four agents' real grants now apply (e.g. `devops-engineer` may use docker).
 3. **`evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`** breaks the combined compose project (`docker-compose.yml` + `agents-full.yml`); throttle-agent was deployed via a temporary single-service compose. `evolve-relay` itself cannot be recreated until fixed.
 4. **Observability stack:** restart it or leave it off (needs ~1+ GB; the 4 GB WSL cap is tight).
