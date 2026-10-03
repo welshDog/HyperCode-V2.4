@@ -1036,6 +1036,12 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
       - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-ai/smollm2}
+      # HyperCrew builder model. EMPTY = local Ollama/DMR (smollm2, too small to write a diff). Set
+      # CREW_LLM_BASE_URL=http://fcc-proxy:8083 at launch to use the fcc-proxy's free cloud model; that SENDS crew goal/
+      # proposal text to the provider (NVIDIA NIM), so it is opt-in. The token is the proxy's own (public placeholder default).
+      - CREW_LLM_BASE_URL=${CREW_LLM_BASE_URL:-}
+      - CREW_LLM_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-freecc}
+      - CREW_LLM_MODEL=${CREW_LLM_MODEL:-claude-sonnet-5}
       - AGENT_PORT=8002
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
     volumes:
@@ -1686,6 +1692,10 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=qa-engineer
+      # HyperCrew verifier model (see coder-agent). Empty = local smollm2. Uses ONLY this token, never ANTHROPIC_API_KEY.
+      - CREW_LLM_BASE_URL=${CREW_LLM_BASE_URL:-}
+      - CREW_LLM_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-freecc}
+      - CREW_LLM_MODEL=${CREW_LLM_MODEL:-claude-sonnet-5}
       - AGENT_PORT=8005
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}

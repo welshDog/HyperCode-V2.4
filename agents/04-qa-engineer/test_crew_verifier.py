@@ -114,6 +114,53 @@ def test_a_proposal_made_only_of_a_verdict_is_empty_after_stripping_so_it_fails_
     assert calls == [] and out["result"].endswith("VERDICT: FAIL")
 
 
+# ── the capable-model proxy path (Anthropic format) ─────────────────────────
+def test_anthropic_text_reads_only_text_blocks_never_thinking():
+    data = {"content": [{"type": "thinking", "thinking": "VERDICT: PASS (secret reasoning)"},
+                        {"type": "text", "text": "- ok\nVERDICT: FAIL"}]}
+    assert cv.anthropic_text(data) == "- ok\nVERDICT: FAIL"
+    assert cv.anthropic_text({"content": [{"type": "thinking", "thinking": "x"}]}) == ""
+    for bad in (None, [], "x", {"content": "x"}, {"content": [None, 3]}):
+        assert cv.anthropic_text(bad) == ""
+
+
+def test_with_a_proxy_configured_the_dedicated_token_is_used_and_the_real_anthropic_key_never_is(monkeypatch):
+    seen = {}
+
+    def fake_post(base, token, model, prompt, timeout, max_tokens):
+        seen.update(base=base, token=token, model=model, max_tokens=max_tokens)
+        return "none\nVERDICT: PASS"
+
+    monkeypatch.setattr(cv, "_post_anthropic", fake_post)
+    monkeypatch.setenv("CREW_LLM_BASE_URL", "http://fcc-proxy:8083/")
+    monkeypatch.setenv("CREW_LLM_AUTH_TOKEN", "crew-token")
+    monkeypatch.setenv("CREW_LLM_MODEL", "claude-sonnet-5")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "REAL-KEY-MUST-NOT-LEAK")
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert seen == {"base": "http://fcc-proxy:8083", "token": "crew-token", "model": "claude-sonnet-5", "max_tokens": 1500}
+    assert out["result"].endswith("VERDICT: PASS") and "REAL-KEY" not in str(out) and "REAL-KEY" not in str(seen)
+
+
+def test_a_proxy_failure_is_an_error_and_never_falls_back_to_the_local_model(monkeypatch):
+    monkeypatch.setenv("CREW_LLM_BASE_URL", "http://fcc-proxy:8083")
+
+    def boom(*a, **k):
+        raise cv.VerifierError("model proxy error: HTTP 410")
+
+    local_called = []
+    monkeypatch.setattr(cv, "_post_anthropic", boom)
+    monkeypatch.setattr(cv, "_post_generate", lambda *a, **k: local_called.append(1) or "VERDICT: PASS")
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and "410" in out["message"] and local_called == []
+
+
+def test_without_a_proxy_the_local_model_path_is_unchanged(monkeypatch):
+    monkeypatch.delenv("CREW_LLM_BASE_URL", raising=False)
+    monkeypatch.setattr(cv, "_post_generate", lambda *a, **k: "ok\nVERDICT: FAIL")
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["result"].endswith("VERDICT: FAIL")
+
+
 # ── failure handling ────────────────────────────────────────────────────────
 def test_model_unreachable_is_an_error_not_a_verdict():
     out, _ = run(task_for(DIFF), boom=cv.VerifierError("model unreachable (URLError)"))

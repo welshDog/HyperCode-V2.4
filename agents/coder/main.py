@@ -16,6 +16,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger("coder-agent")
 
+
+def anthropic_text(data: Any) -> str:
+    """Only the final ``text`` blocks of an Anthropic-format reply.
+
+    Reasoning models return a separate ``thinking`` block first. That is not an answer and is never forwarded.
+    """
+    if not isinstance(data, dict):
+        return ""
+    blocks = data.get("content")
+    if not isinstance(blocks, list):
+        return ""
+    return "".join(
+        b.get("text", "") for b in blocks
+        if isinstance(b, dict) and b.get("type") == "text" and isinstance(b.get("text"), str)
+    ).strip()
+
 def _self_agent_key() -> str:
     """OWN identity for agent->core calls (Phase 10E) — env first, then the
     registered Docker secret. Empty = event mirroring silently off."""
@@ -141,7 +157,7 @@ class CoderAgent:
                 # HyperCrew stage task. The orchestrator prepends a skills loadout whose text mentions "metrics",
                 # "docker", etc., so the keyword shortcuts below would ALWAYS fire and return canned data.
                 # Crew work goes to the model.
-                result_data = await self.generate_code_with_ollama(request.task)
+                result_data = await self.generate_crew_text(request.task)
             elif "metrics" in task_lower or "health" in task_lower:
                 result_data = self.analyze_system_health()
             elif "deploy" in task_lower or "docker" in task_lower:
@@ -212,6 +228,47 @@ class CoderAgent:
             },
             "analysis": "System is running within normal parameters."
         }
+
+    async def generate_crew_text(self, prompt: str) -> Dict[str, Any]:
+        """Crew stage generation. A capable proxy model if CREW_LLM_BASE_URL is set, else the local Ollama path.
+
+        With the proxy configured there is NO silent fallback to the small local model: if the proxy fails, the
+        task reports an error and the crew run fails closed with a plain reason.
+        """
+        base = (os.getenv("CREW_LLM_BASE_URL") or "").strip().rstrip("/")
+        if not base:
+            return await self.generate_code_with_ollama(prompt)
+        return await self.generate_with_anthropic_compat(prompt, base)
+
+    async def generate_with_anthropic_compat(self, prompt: str, base: str) -> Dict[str, Any]:
+        """POST {base}/v1/messages (Anthropic format, e.g. the fcc-proxy). Uses CREW_LLM_AUTH_TOKEN only."""
+        token = (os.getenv("CREW_LLM_AUTH_TOKEN") or "").strip()
+        model = (os.getenv("CREW_LLM_MODEL") or "claude-sonnet-5").strip()
+        try:
+            max_tokens = int(os.getenv("CREW_LLM_MAX_TOKENS", "1500"))
+        except ValueError:
+            max_tokens = 1500
+        headers = {"Content-Type": "application/json", "anthropic-version": "2023-06-01"}
+        if token:
+            headers["x-api-key"] = token
+            headers["Authorization"] = f"Bearer {token}"
+        payload = {"model": model, "max_tokens": max_tokens, "temperature": 0,
+                   "messages": [{"role": "user", "content": prompt}]}
+        try:
+            # the crew allows an agent 120 s; a reasoning model can think for a while, so don't use the 60 s default
+            response = await self.http_client.post(f"{base}/v1/messages", json=payload, headers=headers, timeout=100.0)
+            response.raise_for_status()
+            data = response.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"LLM proxy HTTP {e.response.status_code}")
+            return {"status": "error", "message": f"LLM proxy error: HTTP {e.response.status_code}"}
+        except (httpx.RequestError, ValueError) as e:
+            logger.error(f"LLM proxy request failed: {type(e).__name__}")
+            return {"status": "error", "message": f"LLM proxy unreachable ({type(e).__name__})"}
+        text = anthropic_text(data)
+        if not text:
+            return {"status": "error", "message": "LLM proxy returned no text"}
+        return {"status": "completed", "code": text, "model": str(data.get("model") or model), "provider": "anthropic-compat"}
 
     async def generate_code_with_ollama(self, prompt: str, model: str | None = None) -> Dict[str, Any]:
         """Generate code using Ollama."""
