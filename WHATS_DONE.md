@@ -2,6 +2,17 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 — HyperCrew: CI found a real Quest Settler race (first-wallet creation) — fixed
+
+- **Found by:** the Day 10 burst chaos test failing on CI (5 settlements instead of 6; passed on a faster machine). Not flaky: a real race.
+- **Bug:** when several crew runs finish at once for a human who has no BROski$ wallet yet, each settle INSERTs the wallet;
+  the loser hit `UNIQUE constraint failed: broski_wallets.user_id`, `crew_settle` swallowed it (by design: a reward error must not fail the run),
+  and **that run's XP was silently lost** until a replay.
+- **Fix:** `quests._wallet_for()` rolls back and reads the winner's wallet on `IntegrityError` (used by `settle_run` and `settle_handover`).
+  Regression test fails without the fix (verified), burst + quest tests stable x5. Backend 1099 pass + the same 4 pre-existing failures.
+- **Still true / not fixed:** `broski_service._get_or_create_wallet` has the same race for every other caller; the daily-XP-cap
+  check-then-insert can overshoot the cap by at most one run's XP under extreme concurrency (bounded, not exploitable for farming).
+
 ## 2026-10-03 — HyperCrew: agents started, phase 2 re-run → PASS but STILL FAILED CLOSED; coder-agent mock hazard found
 
 - Built + started **only** `coder-agent` and `qa-engineer` (`docker compose --profile agents up -d --no-deps`): both **healthy, RestartCount 0**,

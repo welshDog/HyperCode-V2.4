@@ -290,3 +290,43 @@ def test_the_event_stream_announces_a_win_only_when_one_was_awarded():
     got = quest_events(status="awarded", xp=20, coins=10, achievements=["a"])
     assert len(got) == 1 and got[0]["value"]["xp"] == 20
     assert quest_events(status="capped", xp=0) == [] and quest_events(status="no_award", xp=0) == []
+
+
+# ── concurrency: two runs finishing at once for a human with no wallet yet ────────────
+def test_losing_the_race_to_create_the_first_wallet_still_pays_the_run(db, human, monkeypatch):
+    """CI found this with six simultaneous runs: both settles INSERT the wallet, one hits UNIQUE and lost its reward."""
+    from app.services import broski_service as eco
+
+    real = eco.get_wallet
+    calls = {"n": 0}
+
+    def lose_the_insert_race(user_id, session):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            real(user_id, session)  # the "other settle" wins: the wallet now exists and is committed
+            raise IntegrityError("INSERT broski_wallets", {}, Exception("UNIQUE constraint failed: broski_wallets.user_id"))
+        return real(user_id, session)
+
+    monkeypatch.setattr(eco, "get_wallet", lose_the_insert_race)
+    s = settle(db)
+    assert s.status == "awarded" and s.xp == 20 and calls["n"] == 2
+    assert wallet(db, human).xp >= 20 and db.query(QuestSettlement).count() == 1
+
+
+def test_the_handover_unlock_survives_the_same_race(db, human, monkeypatch):
+    from app.crew.quests import settle_handover
+    from app.services import broski_service as eco
+
+    real = eco.get_wallet
+    calls = {"n": 0}
+
+    def lose_once(user_id, session):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            real(user_id, session)
+            raise IntegrityError("INSERT broski_wallets", {}, Exception("UNIQUE constraint failed: broski_wallets.user_id"))
+        return real(user_id, session)
+
+    monkeypatch.setattr(eco, "get_wallet", lose_once)
+    won = settle_handover(db, RUN, history(), "bro@example.com")
+    assert won.status == "awarded" and "handover_written" in earned(db)

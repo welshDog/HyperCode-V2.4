@@ -138,6 +138,19 @@ class Settlement:
     achievements: list[str] = field(default_factory=list)
 
 
+def _wallet_for(db: Session, eco: Any, user_id: int) -> Any:
+    """The human's wallet, creating it if needed, safe when several runs finish at once.
+
+    Two settles for a human who has no wallet yet both try to INSERT it and the loser hits UNIQUE
+    (``broski_wallets.user_id``). Roll back and read the winner's wallet instead of losing that run's reward.
+    """
+    try:
+        return eco.get_wallet(user_id, db)
+    except IntegrityError:
+        db.rollback()
+        return eco.get_wallet(user_id, db)
+
+
 def _day_start(now: datetime) -> datetime:
     return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -173,7 +186,7 @@ def settle_run(
         if user is None:
             ev = Evaluation(False, "approver is not an active human account")
 
-    wallet = eco.get_wallet(user.id, db) if user is not None else None  # may commit a new wallet; only a paid human gets one
+    wallet = _wallet_for(db, eco, user.id) if user is not None else None  # may create the wallet; only a paid human gets one
     xp = coins = 0
     status = STATUS_NO_AWARD
     reason = ev.reason
@@ -282,6 +295,7 @@ def settle_handover(
     achievements: list[str] = []
     if user is not None:
         try:
+            _wallet_for(db, eco, user.id)  # the achievement check creates the wallet too: same race
             achievements = eco.check_and_award_achievements(user.id, db, {"crew_handover_written": True})
         except Exception:
             db.rollback()
