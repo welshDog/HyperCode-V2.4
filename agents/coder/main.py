@@ -1,5 +1,8 @@
+import asyncio
 import os
 import logging
+import re
+import time
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional
 import httpx
@@ -15,6 +18,21 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
 )
 logger = logging.getLogger("coder-agent")
+
+# --- crew model call: bounded retry on transient upstream errors (2026-10-03) -----------------------------------------
+# NVIDIA NIM's free tier intermittently answers 'Service temporarily overloaded' (503, proxied as 529) or a bare 500.
+# Same policy as the verifier (agents/04-qa-engineer/crew_verifier.py): retry ONLY those statuses, at most 3 attempts (waits
+# 3 s then 8 s), all attempts inside ONE budget so the stage never takes longer than before (core gives up at 120 s), never
+# start an attempt with < 15 s left. Timeouts and every other 4xx are never retried (a timeout already spent the time).
+CREW_MODEL_BUDGET_S = 100.0
+RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504, 529})
+RETRY_BACKOFF_S = (3.0, 8.0)
+MIN_ATTEMPT_S = 15.0
+_clock = time.monotonic
+
+
+async def _sleep(seconds: float) -> None:  # module-level so tests can run on a fake clock
+    await asyncio.sleep(seconds)
 
 
 def anthropic_text(data: Any) -> str:
@@ -158,6 +176,20 @@ class CoderAgent:
                 # "docker", etc., so the keyword shortcuts below would ALWAYS fire and return canned data.
                 # Crew work goes to the model.
                 result_data = await self.generate_crew_text(request.task)
+                if isinstance(result_data, dict) and result_data.get("status") == "error":
+                    # A failed model call is an ERROR, never a 'completed' build whose "proposal" is the error text.
+                    # (Wrapped as completed, the error sat one level down: core only rejects a TOP-LEVEL status 'error',
+                    # so it extracted the message as the diff - seen live twice on 2026-10-03, ReadTimeout = 35 chars.)
+                    message = str(result_data.get("message") or "model call failed")[:300]
+                    logger.error(f"Task {request.id} failed: {message}")
+                    await _publish_core_event("failed", request.id, {"task": request.task[:120], "error": message})
+                    return TaskResponse(
+                        task_id=request.id,
+                        agent=self.config.name,
+                        status="error",
+                        error=message,
+                        result=result_data,
+                    )
             elif "metrics" in task_lower or "health" in task_lower:
                 result_data = self.analyze_system_health()
             elif "deploy" in task_lower or "docker" in task_lower:
@@ -254,20 +286,48 @@ class CoderAgent:
             headers["Authorization"] = f"Bearer {token}"
         payload = {"model": model, "max_tokens": max_tokens, "temperature": 0,
                    "messages": [{"role": "user", "content": prompt}]}
-        try:
-            # the crew allows an agent 120 s; a reasoning model can think for a while, so don't use the 60 s default
-            response = await self.http_client.post(f"{base}/v1/messages", json=payload, headers=headers, timeout=100.0)
-            response.raise_for_status()
-            data = response.json()
-        except httpx.HTTPStatusError as e:
-            logger.error(f"LLM proxy HTTP {e.response.status_code}")
-            return {"status": "error", "message": f"LLM proxy error: HTTP {e.response.status_code}"}
-        except (httpx.RequestError, ValueError) as e:
-            logger.error(f"LLM proxy request failed: {type(e).__name__}")
-            return {"status": "error", "message": f"LLM proxy unreachable ({type(e).__name__})"}
+        started = _clock()
+        deadline = started + CREW_MODEL_BUDGET_S
+        attempt_timeout = CREW_MODEL_BUDGET_S  # the first attempt gets the whole budget, exactly as before
+        attempts = 0
+        while True:
+            attempts += 1
+            try:
+                # the crew allows an agent 120 s; a reasoning model can think for a while, so don't use the 60 s default
+                response = await self.http_client.post(f"{base}/v1/messages", json=payload, headers=headers, timeout=attempt_timeout)
+                response.raise_for_status()
+                data = response.json()
+                break
+            except httpx.HTTPStatusError as e:
+                code = e.response.status_code
+                logger.error(f"LLM proxy HTTP {code} (attempt {attempts})")
+                if code in RETRYABLE_STATUS and attempts <= len(RETRY_BACKOFF_S):
+                    wait = RETRY_BACKOFF_S[attempts - 1]
+                    remaining = deadline - _clock()
+                    if remaining - wait >= MIN_ATTEMPT_S:
+                        logger.info(f"crew_build retry attempt={attempts} status={code} wait={wait:.0f}s time_left={remaining:.0f}s")
+                        await _sleep(wait)
+                        attempt_timeout = deadline - _clock()
+                        continue
+                    return {"status": "error", "message": f"LLM proxy error: HTTP {code} (gave up after {attempts} attempt(s): no time left to retry)"}
+                suffix = f" (gave up after {attempts} attempts)" if attempts > 1 else ""
+                return {"status": "error", "message": f"LLM proxy error: HTTP {code}{suffix}"}
+            except (httpx.RequestError, ValueError) as e:
+                logger.error(f"LLM proxy request failed: {type(e).__name__}")
+                return {"status": "error", "message": f"LLM proxy unreachable ({type(e).__name__})"}
         text = anthropic_text(data)
+        stop = data.get("stop_reason") if isinstance(data, dict) else None
+        stop = stop if isinstance(stop, str) and re.fullmatch(r"[a-z_]{1,30}", stop) else None
+        usage = data.get("usage") if isinstance(data, dict) and isinstance(data.get("usage"), dict) else {}
+        # ONE diagnostic line per build model call: numbers and labels only, never the prompt, the proposal or a credential.
+        logger.info(
+            f"crew_build model={model} elapsed={_clock() - started:.1f}s attempts={attempts} stop_reason={stop} "
+            f"in_tokens={usage.get('input_tokens') if isinstance(usage.get('input_tokens'), int) else None} "
+            f"out_tokens={usage.get('output_tokens') if isinstance(usage.get('output_tokens'), int) else None} "
+            f"max_tokens={max_tokens} text_chars={len(text)}"
+        )
         if not text:
-            return {"status": "error", "message": "LLM proxy returned no text"}
+            return {"status": "error", "message": f"LLM proxy returned no text (stop_reason={stop})"}
         return {"status": "completed", "code": text, "model": str(data.get("model") or model), "provider": "anthropic-compat"}
 
     async def generate_code_with_ollama(self, prompt: str, model: str | None = None) -> Dict[str, Any]:

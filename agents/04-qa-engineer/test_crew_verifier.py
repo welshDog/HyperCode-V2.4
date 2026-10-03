@@ -442,6 +442,7 @@ class Clock:
         self.t = 0.0
         self.sleeps = []
         self.timeouts = []
+        self.ends = []  # per attempt: the latest moment it would be ALLOWED to run until (start + its timeout)
 
 
 @pytest.fixture
@@ -459,6 +460,7 @@ def script(monkeypatch, clock, steps):
 
     def fake_post(base, token, model, prompt, timeout, max_tokens):
         clock.timeouts.append(timeout)
+        clock.ends.append(clock.t + timeout)
         took, outcome = next(it)
         clock.t += took
         if isinstance(outcome, Exception):
@@ -521,7 +523,8 @@ def test_each_retry_gets_only_the_time_that_is_left(monkeypatch, clock):
 def test_the_whole_thing_never_exceeds_the_single_attempt_budget(monkeypatch, clock):
     script(monkeypatch, clock, [(30, err(529)), (30, err(529)), (30, err(529))])
     asyncio.run(cv.verify(task_for(DIFF)))
-    assert clock.t <= cv.MODEL_TIMEOUT_S, f"spent {clock.t}s of a {cv.MODEL_TIMEOUT_S}s budget"
+    # no attempt may be ALLOWED to run past the deadline (a real call is cut off at its timeout)
+    assert len(clock.ends) == 3 and max(clock.ends) <= cv.MODEL_TIMEOUT_S, clock.ends
 
 
 def test_it_never_starts_an_attempt_it_cannot_finish(monkeypatch, clock):
