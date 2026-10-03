@@ -82,6 +82,17 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 - Pause everything with a *running* run ("Saved… / Paused (n) · Resume") — only the "nothing running" text seen.
 - Real GitHub PR publisher (never touched). `tests/test_safety_contract.py` (crew-orchestrator) won't collect — not investigated.
 
+## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check was also scheduled for 17:07 local, job `d5a747ee`)
+
+Observe has run since 12:48 UTC 2026-10-03. Nothing is paused (observe never touches Docker). Before ever setting `THROTTLE_MODE=enforce`, review it. All read-only:
+
+1. `python scripts/ram_guard.py --for check` — memory now (if RED, only do the cheap steps).
+2. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status` — writer `Running`, signal file age well under 120 s.
+3. `docker inspect -f '{{.State.Health.Status}} r={{.RestartCount}}' throttle-agent` and `docker ps --filter status=paused -q | wc -l` (**must be 0**).
+4. `docker logs throttle-agent 2>&1 | grep observe_decision` — the whole timeline (AMBER/RED episodes, `would pause=[…]`, `would resume=[…]`, `effective=PENDING` = blips the debounce absorbed). `GET /signal` (agent key, from inside the container) shows the last 50 + current state.
+5. Judge: were the would-pauses right (real pressure) or wrong (blips)? Any flapping (pause/resume within minutes)? Any UNKNOWN periods (writer down)? Remember `docker pause` frees no RAM (CPU only), so enforce on tiers 4/5/6 may not help a RAM squeeze; a real "free memory" action needs `stop`, which the healer fights.
+Evidence still missing for enforce: a quiet baseline (the first episode at 12:48-12:54 UTC was partly caused by my own docker builds/tests), a logon/reboot test of the Task Scheduler job, and a decision on pause vs stop.
+
 ## 🧠 GOTCHAS LEARNED
 
 - `!` in this Claude Code prompt runs **Git Bash**, not PowerShell. `free -m` → `wsl -e free -m`. Git Bash mangles `/app` → use `MSYS_NO_PATHCONV=1`.
