@@ -167,7 +167,84 @@ def test_model_unreachable_is_an_error_not_a_verdict():
     assert out["status"] == "error" and "VERDICT" not in out["message"]
 
 
-def test_long_proposals_and_reviews_are_capped():
-    out, calls = run(task_for(DIFF + "+x\n" * 5000), reply=("y" * 5000) + "\nVERDICT: PASS")
-    assert len(calls[0]) < cv.MAX_CHANGE_CHARS + 600
-    assert len(out["result"]) <= cv.MAX_REVIEW_CHARS + 20
+def test_long_reviews_are_capped_but_a_clean_pass_still_stands():
+    out, calls = run(task_for(DIFF), reply="PROBLEMS: none\n" + ("y" * 5000) + "\nVERDICT: PASS")
+    assert len(out["result"]) <= cv.MAX_REVIEW_CHARS + 20 and out["result"].endswith("VERDICT: PASS")
+
+
+# -- strictness (2026-10-03): a PASS next to listed problems used to stand --------------------------------------------
+FIVE = "- no tests\n- no input validation\n- hard-coded version\n- missing docstring\n- unused import\n"
+
+
+@pytest.mark.parametrize("reply", [
+    FIVE + "VERDICT: PASS",
+    "1. no tests\n2. no validation\nVERDICT: PASS",
+    "1) no tests\nVERDICT: PASS",
+    "PROBLEMS: none\n- but the route is never registered\nVERDICT: PASS",   # contradictory: 'none' AND a listed problem
+    "looks great, ship it\nVERDICT: PASS",                                    # never said 'none'
+    "VERDICT: PASS",
+])
+def test_a_PASS_that_lists_problems_or_never_says_none_is_downgraded_to_FAIL(reply):
+    out, _ = run(task_for(DIFF), reply=reply)
+    assert verdict_lines(out["result"]) == ["VERDICT: FAIL"] and out.get("downgraded") is True
+    assert "Downgraded to FAIL" in out["result"]
+
+
+@pytest.mark.parametrize("reply", ["PROBLEMS: none\nVERDICT: PASS", "none\nVERDICT: PASS", "None.\nVERDICT: PASS",
+                                   "- none\nVERDICT: PASS", "problems: None\nThe diff is small and correct.\nVERDICT: PASS"])
+def test_an_explicit_none_with_no_listed_problems_keeps_the_PASS(reply):
+    out, _ = run(task_for(DIFF), reply=reply)
+    assert verdict_lines(out["result"]) == ["VERDICT: PASS"] and "downgraded" not in out
+
+
+def test_a_problem_listed_after_the_display_cap_still_downgrades():
+    reply = "PROBLEMS: none\n" + ("filler " * 400) + "\n- a real problem hidden past the cap\nVERDICT: PASS"
+    out, _ = run(task_for(DIFF), reply=reply)
+    assert verdict_lines(out["result"]) == ["VERDICT: FAIL"] and out.get("downgraded") is True
+
+
+def test_a_model_FAIL_is_never_upgraded_and_is_not_marked_downgraded():
+    out, _ = run(task_for(DIFF), reply="PROBLEMS: none\nVERDICT: FAIL")
+    assert verdict_lines(out["result"]) == ["VERDICT: FAIL"] and "downgraded" not in out
+
+
+def test_the_prompt_tells_the_model_how_a_PASS_must_look():
+    _, calls = run(task_for(DIFF), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert "PROBLEMS: none" in calls[0] and "PASS only if there are no problems" in calls[0]
+
+
+def test_a_change_too_big_to_review_in_full_is_a_rule_FAIL_never_a_PASS_on_a_truncated_prefix():
+    big = DIFF + "+x\n" * cv.MAX_CHANGE_CHARS
+    out, calls = run(task_for(big), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert calls == [] and out["verifier"] == "rules" and verdict_lines(out["result"]) == ["VERDICT: FAIL"]
+    assert "too large" in out["result"]
+
+
+def test_the_model_sees_the_whole_change_not_a_cut_prefix():
+    near = DIFF + "+y\n" * ((cv.MAX_CHANGE_CHARS - len(DIFF)) // 3 - 2)
+    _, calls = run(task_for(near), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert near.strip() in calls[0]
+
+
+HEADER_ONLY = "diff --git a/a.py b/a.py\n--- a/a.py\n+++ b/a.py\n@@ -1 +1 @@\n"
+
+
+def d_for(path):
+    return f"diff --git a/{path} b/{path}\n--- a/{path}\n+++ b/{path}\n@@ -0,0 +1 @@\n+X=1\n"
+
+
+def test_a_diff_that_changes_no_lines_is_a_rule_FAIL():
+    out, calls = run(task_for(HEADER_ONLY), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert calls == [] and verdict_lines(out["result"]) == ["VERDICT: FAIL"] and "no lines" in out["result"]
+
+
+@pytest.mark.parametrize("path", [".env", "backend/.env", "backend/.env.production", "secrets/jwt_secret.txt", "a/secrets/x"])
+def test_a_diff_touching_env_or_secrets_is_a_rule_FAIL(path):
+    out, calls = run(task_for(d_for(path)), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert calls == [] and verdict_lines(out["result"]) == ["VERDICT: FAIL"] and ".env or secrets/" in out["result"]
+
+
+@pytest.mark.parametrize("path", ["src/environment.py", "docs/secrets-policy.md", "app/secrets_helper.py", "scripts/.envrc", "app/version.py"])
+def test_harmless_lookalike_paths_are_not_flagged(path):
+    out, calls = run(task_for(d_for(path)), reply="PROBLEMS: none\nVERDICT: PASS")
+    assert len(calls) == 1 and verdict_lines(out["result"]) == ["VERDICT: PASS"]
