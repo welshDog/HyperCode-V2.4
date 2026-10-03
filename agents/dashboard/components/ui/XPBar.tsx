@@ -11,7 +11,7 @@ export function XPBar({
 }): React.JSX.Element {
   const pct = Math.min(100, Math.round((xp / maxXp) * 100))
   return (
-    <div>
+    <div data-gamify>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-secondary)', marginBottom: 2 }}>
         <span>LVL {level}</span>
         <span>{xp} / {maxXp} XP</span>

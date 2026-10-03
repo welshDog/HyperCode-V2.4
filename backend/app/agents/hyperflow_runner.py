@@ -3,7 +3,8 @@
 The runner executes a :class:`~app.agents.hyperflow.schema.FlowDefinition` as an
 in-core asyncio task inside hypercode-core. Per node it:
 
-  * dispatches ``agent_role`` / ``tool`` nodes to the crew-orchestrator
+  * dispatches ``agent_role`` / ``tool`` nodes to the crew-orchestrator (``agent_dispatch``
+    is the strict, slot-gated variant used by HyperCrew),
     (``settings.ORCHESTRATOR_URL/execute``), mirroring the dispatch pattern in
     ``app.api.v1.endpoints.orchestrator``;
   * suspends at ``human_approval_gate`` nodes until a human resumes the run;
@@ -33,6 +34,9 @@ import redis.asyncio as aioredis
 
 from app.agents.hyperflow.schema import FlowDefinition, FlowNode, NodeType
 from app.broski_operator.tools import LOCAL_TOOLS
+from app.crew import dispatch as crew_dispatch
+from app.crew.killswitch import kill_reason
+from app.crew.slots import SlotUnavailable, get_slot_gate, slot_timeout_s
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.hyperflow import HyperFlowRun, HyperFlowRunStatus
@@ -72,6 +76,7 @@ def _strip_data(entry: dict[str, Any]) -> dict[str, Any]:
 
 class _FlowFailed(Exception):
     """Raised internally to mark a run as failed with a reason."""
+
 
 
 class _ApprovalRejected(Exception):
@@ -144,6 +149,9 @@ class HyperFlowRunner:
         self._task: Optional[asyncio.Task] = None
         self._cancel_reason: Optional[str] = None
         self.parked_gate: Optional[str] = None  # node id while parked at a human gate
+        # Panic / pause: honoured at node boundaries (a step already in flight finishes first).
+        self._paused = False
+        self._resume_event = asyncio.Event()
         self._last_decision_meta: dict[str, Any] = {}  # {"by", "plan_hash"} of the last consumed decision
         self._cache_url = cache_redis_url()
 
@@ -158,8 +166,52 @@ class HyperFlowRunner:
     async def start_at(self, node_id: str) -> "HyperFlowRunner":
         """Re-attach to a persisted run (see recovery.recover_runs) and continue from ``node_id``."""
         _ACTIVE[self.run_id] = self
+        # A pause requested before the restart is stored in the run row and must survive it.
+        self._paused = await asyncio.to_thread(self._read_paused_sync)
         self._task = asyncio.create_task(self._run(node_id))
         return self
+
+    # ── pause / resume (Panic) ───────────────────────────────────────────────
+
+    def request_pause(self) -> None:
+        """Stop starting new steps. Called by the operator API in the same process as the run."""
+        self._paused = True
+        self._resume_event.clear()
+
+    def request_resume(self) -> None:
+        self._paused = False
+        self._resume_event.set()
+
+    def _read_paused_sync(self) -> bool:
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id)
+            ctx = ((run.state or {}).get("context") or {}) if run is not None else {}
+            return isinstance(ctx.get("paused"), dict)
+        except Exception:  # pragma: no cover — an unreadable flag must not kill a recovering run
+            logger.exception("hyperflow %s pause flag read failed", self.run_id)
+            return False
+        finally:
+            db.close()
+
+    async def _pause_gate(self, next_node: str) -> None:
+        """Wait here, between steps, while the run is paused. Cancel still works (the sleep is cancellable)."""
+        if not self._paused:
+            return
+        await self._emit_control("paused", next_node)
+        while self._paused:
+            try:
+                await asyncio.wait_for(self._resume_event.wait(), timeout=1.0)
+            except asyncio.TimeoutError:
+                continue
+        await self._emit_control("resumed", next_node)
+
+    async def _emit_control(self, status: str, next_node: str) -> None:
+        entry = {"node": None, "type": "control", "status": status,
+                 "result": {"next": next_node}, "ts": datetime.now(timezone.utc).isoformat()}
+        self._history.append(entry)
+        await self._persist(HyperFlowRunStatus.RUNNING, next_node)
+        await self._publish(entry, HyperFlowRunStatus.RUNNING)
 
     def resume(self, approved: bool) -> None:
         """Satisfy a pending human_approval_gate (called from the resume endpoint)."""
@@ -183,11 +235,23 @@ class HyperFlowRunner:
         node_id: Optional[str] = start_at or self.flow.entry
         try:
             while node_id is not None:
+                await self._pause_gate(node_id)
+                killed = kill_reason()
+                if killed:  # the fleet kill-switch (off-box sentinel): stop before starting another step
+                    raise _FlowFailed(f"{killed}: run stopped")
                 node = self.flow.node(node_id)
                 started = time.time()
                 try:
                     result = await self._exec_with_retry(node)
                 except _ApprovalRejected:
+                    if node.params.get("on_reject") == "end":
+                        # An optional extra (e.g. a handover draft): "no thanks" ends the run cleanly
+                        # instead of failing work that already finished.
+                        self._observe(node, "completed", started)
+                        await self._emit(node, "completed", {"success": True, "approved": False, "declined": True},
+                                         HyperFlowRunStatus.RUNNING)
+                        node_id = None
+                        continue
                     self._observe(node, "failed", started)
                     await self._emit(node, "failed", {"reason": "approval_rejected"},
                                      HyperFlowRunStatus.RUNNING)
@@ -207,7 +271,10 @@ class HyperFlowRunner:
                 emit_result: dict[str, Any] = {"success": success}
                 if result.get("mocked"):
                     emit_result["mocked"] = True
-                if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS and "data" in result:
+                if "data" in result and (
+                    node.type is NodeType.AGENT_DISPATCH
+                    or (node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS)
+                ):
                     emit_result["data"] = result["data"]
                 if node.type is NodeType.HUMAN_APPROVAL_GATE:
                     for key in ("approved", "by", "plan_hash"):
@@ -253,20 +320,72 @@ class HyperFlowRunner:
             return await self._await_approval(node)
         # P0-2: consult Safety Shepherd before any agent/tool dispatch.
         await self._safety_gate(node)
+        if node.type is NodeType.AGENT_DISPATCH:
+            return await self._run_agent_dispatch(node)
         if node.type is NodeType.TOOL and node.tool in LOCAL_TOOLS:
             return await self._run_local_tool(node)
         return await self._dispatch(node)
 
+    async def _run_agent_dispatch(self, node: FlowNode) -> dict[str, Any]:
+        """One crew stage → one allow-listed agent, inside a RAM-gated slot. Never mocked."""
+        sealed = self._last_tool_data("seal") or {}
+        plan = sealed.get("plan")
+        if not isinstance(plan, dict):
+            raise RuntimeError("crew dispatch needs a sealed plan")
+        stage = str(node.params.get("stage", ""))
+        role = str(node.params.get("role", ""))
+        prior_summary: Optional[str] = None
+        source = node.params.get("input_from")
+        if source:
+            prior_summary = (self._last_tool_data(str(source)) or {}).get("summary")
+            if not isinstance(prior_summary, str) or not prior_summary:
+                raise RuntimeError(f"crew dispatch is missing the output of '{source}'")
+        try:
+            task = crew_dispatch.build_task(stage, plan, prior_summary)
+            async with get_slot_gate().slot(slot_timeout_s()) as ticket:
+                data = await crew_dispatch.dispatch_to_agent(
+                    orchestrator_url=settings.ORCHESTRATOR_URL,
+                    headers=_orchestrator_headers(),
+                    agent=str(node.agent),
+                    role=role,
+                    stage=stage,
+                    run_id=self.run_id,
+                    node=node.id,
+                    task=task,
+                )
+        except (crew_dispatch.DispatchError, SlotUnavailable) as exc:
+            raise RuntimeError(str(exc)) from None
+        data["slot_wait_ms"] = ticket.wait_ms
+        data["ram_available_mb"] = ticket.available_mb
+        return {"ok": True, "green": True, "data": data}
+
     async def _run_local_tool(self, node: FlowNode) -> dict[str, Any]:
         """Run an in-core tool. No orchestrator hop and no mocked-OK fallback."""
-        ctx = {"run_id": self.run_id, "history": list(self._history)}
-        data = await LOCAL_TOOLS[node.tool](node.params, ctx)
+        ctx: dict[str, Any] = {"run_id": self.run_id, "history": list(self._history)}
+        if node.params.get("with_arguments"):
+            # Read from Postgres (not memory) so a run resumed after a restart still has them.
+            ctx["arguments"] = await asyncio.to_thread(self._load_arguments_sync)
+        data = await LOCAL_TOOLS[node.tool or ""](node.params, ctx)
         ok = bool(data.get("ok"))
         result: dict[str, Any] = {"ok": ok, "green": ok, "data": data}
         if node.success_key in data:
             # Lets a node's `success_key` (e.g. has_proposal) drive conditional edges.
             result[node.success_key] = data[node.success_key]
         return result
+
+    def _load_arguments_sync(self) -> dict[str, Any]:
+        """``state.context.arguments`` written when the operator API started this run."""
+        db = SessionLocal()
+        try:
+            run = db.get(HyperFlowRun, self.run_id)
+            ctx = ((run.state or {}).get("context") or {}) if run is not None else {}
+            args = ctx.get("arguments")
+            return dict(args) if isinstance(args, dict) else {}
+        except Exception:  # pragma: no cover — missing arguments fail closed in the tool
+            logger.exception("hyperflow %s argument read failed", self.run_id)
+            return {}
+        finally:
+            db.close()
 
     # ── Safety Shepherd gate ─────────────────────────────────────────────────
 
@@ -318,6 +437,15 @@ class HyperFlowRunner:
 
         data = await self._safety_evaluate(self._safety_request(node))
         if data is None:
+            if node.params.get("safety_unreachable") == "block":
+                # This node opted in to failing CLOSED: a Shepherd we cannot reach (or that errors) is a block,
+                # in monitor mode too. Nothing is sent to an agent or outside core on an unchecked say-so.
+                await self._emit(
+                    node, "safety_unreachable",
+                    {"mode": mode, "reason": "Safety Shepherd could not be reached, so this step was blocked"},
+                    HyperFlowRunStatus.RUNNING,
+                )
+                raise RuntimeError("safety shepherd unreachable: blocked (fail closed)")
             await self._emit(node, "safety_skipped", {"mode": mode}, HyperFlowRunStatus.RUNNING)
             return
 

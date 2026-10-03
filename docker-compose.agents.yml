@@ -262,7 +262,10 @@ services:
       # Service identity for tasks/planning/DLQ proxies (no login UI yet).
       # Empty = proxies forward the browser header only, as before.
       - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-dev-master-key}
-      - DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY:-dev-master-key}
+      # Human JWT (30-day, owner account) read from a Docker secret file by lib/server-auth.ts.
+      # NOT the master API key: core's /operator/* rejects that as both Bearer and X-Agent-Key.
+      # The env var DASHBOARD_SERVICE_JWT must stay unset or it wins over the file.
+      - DASHBOARD_SERVICE_JWT_FILE=/run/secrets/dashboard_service_jwt
       - NEXT_PUBLIC_CORE_WS_HOST=127.0.0.1
       - NEXT_PUBLIC_CORE_WS_PORT=8000
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
@@ -294,6 +297,8 @@ services:
     networks:
       - frontend-net
       - agents-net
+    secrets:
+      - dashboard_service_jwt
     restart: unless-stopped
     deploy:
       resources:
@@ -1031,6 +1036,12 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
       - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-ai/smollm2}
+      # HyperCrew builder model. EMPTY = local Ollama/DMR (smollm2, too small to write a diff). Set
+      # CREW_LLM_BASE_URL=http://fcc-proxy:8083 at launch to use the fcc-proxy's free cloud model; that SENDS crew goal/
+      # proposal text to the provider (NVIDIA NIM), so it is opt-in. The token is the proxy's own (public placeholder default).
+      - CREW_LLM_BASE_URL=${CREW_LLM_BASE_URL:-}
+      - CREW_LLM_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-freecc}
+      - CREW_LLM_MODEL=${CREW_LLM_MODEL:-claude-sonnet-5}
       - AGENT_PORT=8002
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
     volumes:
@@ -1681,6 +1692,10 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=qa-engineer
+      # HyperCrew verifier model (see coder-agent). Empty = local smollm2. Uses ONLY this token, never ANTHROPIC_API_KEY.
+      - CREW_LLM_BASE_URL=${CREW_LLM_BASE_URL:-}
+      - CREW_LLM_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-freecc}
+      - CREW_LLM_MODEL=${CREW_LLM_MODEL:-claude-sonnet-5}
       - AGENT_PORT=8005
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -1833,6 +1848,10 @@ services:
     labels:
       - "com.hypercode.tier=infrastructure"
       - "com.hypercode.role=research-architect"
+
+secrets:
+  dashboard_service_jwt:
+    file: ./secrets/dashboard_service_jwt.txt
 
 volumes:
   github-sync-logs:

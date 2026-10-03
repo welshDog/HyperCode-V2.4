@@ -1,0 +1,118 @@
+/* Sensory Settings — driven by data-* attributes on <html> (see lib/sensory/settings.ts).
+   Every option value of every setting appears here; __tests__/sensory.test.ts enforces that, so a
+   setting can never be offered in the UI without a rule behind it.
+   Defaults (motion full, density normal, contrast normal, font inter, progress full, layout full)
+   need no rule: they are the app as it was. */
+
+/* ── Motion ───────────────────────────────────────────────────────────────── */
+html[data-motion="off"] {
+  --transition-fast: 0ms;
+  --transition-med: 0ms;
+  --ds-dur-micro: 0ms;
+  --ds-dur-trans: 0ms;
+  --ds-dur-enter: 0ms;
+  --ds-glow-gold: none;
+  --ds-glow-live: none;
+  --ds-glow-ring: none;
+  --hc-motion-duration: 0ms;
+  scroll-behavior: auto;
+}
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+html[data-motion="off"] .pane,
+html[data-motion="off"] .pane.focused,
+html[data-motion="off"] .pane:hover {
+  box-shadow: none;
+}
+
+html[data-motion="reduced"] {
+  --transition-fast: 80ms ease;
+  --transition-med: 120ms ease;
+  --ds-glow-gold: none;
+  --ds-glow-live: none;
+  --hc-motion-duration: 80ms;
+}
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+}
+
+html[data-motion="full"] {
+  /* the app as designed: nothing overridden (the OS "reduce motion" guard in globals.css still wins) */
+  --hc-motion-duration: 200ms;
+}
+
+/* ── Spacing ──────────────────────────────────────────────────────────────── */
+html[data-density="roomy"] .pane-body { padding: 16px; }
+html[data-density="roomy"] .hc-nav-item { padding-block: 10px; }
+html[data-density="normal"] .pane-body { padding: 8px; }
+html[data-density="compact"] .pane-body { padding: 4px; }
+html[data-density="compact"] .hc-nav-item { padding-block: 4px; }
+
+/* ── Contrast ─────────────────────────────────────────────────────────────── */
+html[data-contrast="normal"] { --sensory-contrast: normal; }
+html[data-contrast="high"] {
+  --shell-bg: #000000;
+  --pane-bg: #0a0a0a;
+  --text-primary: #ffffff;
+  --text-secondary: #e6e6e6;
+  --pane-border: #ffffff;
+}
+
+/* ── Reading font (same values as the legacy dyslexia mode) ───────────────── */
+html[data-font="inter"] { --sensory-font: standard; }
+html[data-font="dyslexia"] {
+  --font-primary: 'OpenDyslexic', sans-serif;
+  --font-display: 'OpenDyslexic', sans-serif;
+  --font-size-base: 18px;
+  --line-height: 1.6;
+  --letter-spacing: 0.05em;
+  --word-spacing: 0.1em;
+}
+
+/* ── Progress and rewards (XP bars, wallet). They keep counting while hidden. ── */
+html[data-progress="hidden"] [data-gamify] { display: none !important; }
+html[data-progress="quiet"] [data-gamify] { opacity: 0.7; filter: saturate(0.5); }
+html[data-progress="full"] [data-gamify] { opacity: 1; }
+
+/* ── Calm layout: quiet buttons, no hover glow, details tucked away ────────── */
+html[data-layout="calm"] .btn {
+  background: transparent;
+  border-color: var(--pane-border);
+  color: var(--text-secondary);
+}
+html[data-layout="calm"] .btn:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+/* A pressed button must still look pressed in Calm (higher specificity than the quiet rule above). */
+html[data-layout="calm"] .btn.active {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+html[data-layout="calm"] .pane:hover { border-color: var(--pane-border); }
+html[data-layout="full"] .calm-more > summary { display: none; }
+
+.calm-more > summary {
+  cursor: pointer;
+  padding: 8px 4px;
+  color: var(--text-secondary);
+}
+
+/* ── Focus session: one quiet chunk of work (lib/focus/store.ts sets data-focus on <html>) ── */
+html[data-focus="on"] [data-gamify] { display: none !important; }
+html[data-focus="on"] .calm-more { display: none; }
+
+/* ── Panic notice: a calm, plain line; it never animates ── */
+.panic-notice {
+  border: 1px solid var(--pane-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}

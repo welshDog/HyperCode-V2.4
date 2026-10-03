@@ -34,7 +34,10 @@ export function BROskiPulseView(): React.JSX.Element {
     }
   }, [])
 
-  const totalXP = useMemo(() => agents.reduce((s, a) => s + (a.xp ?? 0), 0), [agents])
+  // "Total XP" is the user's real BROski XP from /api/broski (it sat in `pulse.xp`, unused: the panel showed the SUM of the
+  // agents' own XP, which is 0 because the registry reports no per-agent XP). Falls back to the agent sum if /api/broski failed.
+  const agentXp = useMemo(() => agents.reduce((s, a) => s + (a.xp ?? 0), 0), [agents])
+  const totalXP = typeof pulse?.xp === 'number' && Number.isFinite(pulse.xp) ? pulse.xp : agentXp
   const topAgent = useMemo(() => {
     if (agents.length === 0) return null
     return [...agents].sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0))[0] ?? null

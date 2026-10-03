@@ -36,7 +36,8 @@ def plan_recovery(flow: FlowDefinition, status: str, history: list[dict[str, Any
     if status not in OPEN_STATUSES:
         return RecoveryPlan("skip", reason=f"status={status}")
 
-    last = history[-1] if history else None
+    # Pause/resume markers record that the run was held between steps; they are not a step.
+    last = next((e for e in reversed(history) if e.get("type") != "control"), None)
     if last is None:
         next_id: Optional[str] = flow.entry
     elif last.get("status") == "awaiting_approval":
