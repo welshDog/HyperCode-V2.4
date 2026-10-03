@@ -2,6 +2,19 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 — HyperCrew: qa-engineer now a REAL fail-safe verifier — live: guard fails ONLY on `verifier_verdict: FAIL` (earned); ALLOW still blocked by a too-weak builder model
+
+- **What:** `agents/04-qa-engineer/crew_verifier.py` (+ `agent.py` override, bind-mounted so one `docker restart qa-engineer`, no rebuild). Crew verify tasks get **(1) rules, no model** —
+  empty / not-a-unified-diff proposal → `VERDICT: FAIL`; **(2) a model review** (only if the rules pass) whose own `VERDICT: PASS|FAIL` is passed through. **Never invents a PASS**: no usable model verdict →
+  no verdict line → guard UNKNOWN → BLOCK. The proposal is untrusted: `VERDICT` lines are stripped before the model sees it and every verdict line in the reply is collapsed to ONE final line. Model
+  unreachable → `status: error` → run fails closed. Stdlib only (image has no httpx). Non-crew tasks keep the base behaviour. **An LLM verdict is not a security boundary** — guard checks + human gates remain.
+- **Tests:** 20 unit tests (`agents/04-qa-engineer/test_crew_verifier.py`), run in the qa image. **Mutation-checked:** stripping disabled → 5 red; inventing PASS on no verdict → 6 red; rule floor skipped → 5 red.
+- **Live (run `cff2b14c-…`, real core restart between phases):** `PHASE2 PASS`, `COMPLETED … guard decided BLOCK`. Read from the run record: **5 of 6 guard checks PASS; only `verifier_verdict` fails, with `FAIL`** (was `UNKNOWN`).
+  Build (`smollm2`, 362M) returned the prompt's own instructions parroted back, not a diff; the verifier's rule layer said "the proposal is not a unified diff" → `VERDICT: FAIL`. **Correct outcome.**
+- **Why ALLOW is still unreachable:** the only model on the host runner is `smollm2` (`docker model list`); it cannot write a unified diff. Needs a more capable builder model (bigger DMR model = a download, or a hosted/proxy model).
+  settle/XP, Scribe draft, handover gate, publish remain unproven live.
+- **Running core is behind the branch:** it lacks `a2ee4530` (Quest Settler wallet race), `34ba1667` (Guardian fail-open fix) and `d628ea8b`. Rebuild + swap core to deploy them.
+
 ## 2026-10-03 — HyperCrew: Guardian fail-open hole closed (builder could write the verifier's verdict)
 
 - **Found by:** reading the "echo stub can't fake a PASS" claim against `parse_verdict`. It held only when the builder's text had no
@@ -30,7 +43,9 @@ Chain of live-found bugs, each hidden behind the previous (all committed + pushe
    and still flagged mocked. Verified in the coder image (crew task → 1 model call, not mocked; 3 shortcuts → 0 calls, mocked).
 
 **Why BLOCK, and why that is the right outcome:** `qa-engineer` has **no model** — the base agent's `process_task` just echoes "Task received by qa-engineer: …". Its reply has no whole-line
-`VERDICT: PASS|FAIL` (the regex needs the entire line; the echoed prompt embeds it mid-sentence), so the verdict is `UNKNOWN` and the guard BLOCKs. Checked: an echo can NOT produce a fake PASS.
+`VERDICT: PASS|FAIL` (the regex needs the entire line; the echoed prompt embeds it mid-sentence), so the verdict is `UNKNOWN` and the guard BLOCKs. **CORRECTION (2026-10-03, found by the parallel session, `34ba1667`):** my earlier claim "an echo can NOT produce a fake PASS" was
+only true for the normal prompt. If the builder's own text contains a standalone `VERDICT: PASS` line, an echoing verifier returned it and the guard would ALLOW an unreviewed run. Core fix
+`34ba1667` (defang `VERDICT` lines in the proposal) is pushed but **not deployed**; the new qa-engineer verifier (`8043d355`) closes it at the agent (strips + never echoes).
 The model is `ai/smollm2` (tiny; via the `hypercode-ollama` shim → Docker Model Runner on the host; ~30 MB WSL RAM per call), so build output is low quality.
 
 **Still unproven (needs a real verifier):** guard **ALLOW** → settle (XP, `quest_settlements` row) → Scribe draft → handover approval gate → publish. A BLOCKed run never reaches them.

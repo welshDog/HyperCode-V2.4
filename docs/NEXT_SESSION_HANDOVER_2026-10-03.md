@@ -43,6 +43,12 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 - Obs stack: restart it, or leave it off? (Needs ~1+ GB; the 4 GB ceiling is tight.)
 - D1–D12 decisions, kill-switch compose wiring, real GitHub token for the Scribe: all still open, untouched.
 
+## ✅ UPDATE (01:10 UTC) — qa-engineer is now a real verifier (`8043d355`)
+
+Rules (empty / not-a-diff → FAIL) + model review, never invents a PASS, strips smuggled `VERDICT` lines, fails closed. 20 tests (mutation-checked). Live: guard fails ONLY on `verifier_verdict: FAIL`
+(5/6 checks PASS) — the builder's output is the prompt parroted back, not a diff. **Blocker for ALLOW is now the builder model**, not the verifier. **Correction to my earlier claim:** "an echo can't fake a PASS" was
+wrong when the builder writes its own `VERDICT: PASS` line — fixed in core by the other session (`34ba1667`), **not yet deployed** (running core lacks it, plus `a2ee4530`); my verifier closes it at the agent.
+
 ## 🏁 UPDATE (00:45 UTC) — FIRST REAL COMPLETED RUN
 
 `PHASE2 PASS`: **COMPLETED with a guard verdict = BLOCK** (evidence bundle hash present). Four more bugs found + fixed on the way (orchestrator import; mocked results incl. the nested-flag miss;
@@ -78,7 +84,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Give the crew's `verify` stage a real verifier (`qa-engineer` is an echo stub, so every run ends guard BLOCK), then re-run `prove-crew.py` phase1→restart→phase2 (with `PROVE_GOAL` optional) to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run.
+Give the crew a builder model that can actually write a unified diff (the only host model, `smollm2`, parrots the prompt), rebuild + swap core to deploy the other session's fixes (`34ba1667`, `a2ee4530`), then re-run `prove-crew.py` phase1→restart→phase2 to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run. (The real verifier is DONE: `8043d355`.)
 
 ---
 

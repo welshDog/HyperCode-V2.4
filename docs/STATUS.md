@@ -63,7 +63,8 @@
   phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
 - `coder-agent` + `qa-engineer` are **running** (started 2026-10-03). **First real COMPLETED run proven** (phase 2: COMPLETED + guard verdict **BLOCK** + evidence hash): `coder-agent` now
   reaches the model (`ai/smollm2` via the Ollama shim/DMR, ~60 s per call), mocks are refused by name, `code` is accepted as text. The guard BLOCKs because `qa-engineer` is an echo stub (no
-  model → verdict UNKNOWN) — correct fail-safe. **Guard ALLOW → settle/XP → Scribe → publish still unproven** (needs a real verifier).
+  model → verdict UNKNOWN) — correct fail-safe. **UPDATE:** `qa-engineer` now has a real fail-safe verifier (`8043d355`, rules + model); live the guard fails only on `verifier_verdict: FAIL`
+  because the builder model (`smollm2`) can't write a diff. **Guard ALLOW → settle/XP → Scribe → publish still unproven** (needs a capable builder model). Running core lags the branch (`34ba1667`, `a2ee4530`).
 - Crew steps **fail closed** if Safety Shepherd is unreachable. Shepherd answers ALLOW (`default_allow`) for crew `build/verify/publish`.
 - Dashboard needs `secrets/dashboard_service_jwt.txt` (30-day human JWT, minted 2026-10-02, **expires ~2026-11-01**) — see runbook §8.
 - Observability stack is **stopped** (stopped to free RAM); restart on request. Full handover: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
