@@ -124,3 +124,61 @@ def test_evaluate_response_backcompat():
     d = evaluate(manifest, {"agent": "x", "category": "generic"})
     out = d.as_dict()
     assert set(["decision", "reason", "rule", "category"]).issubset(out)  # old contract intact
+
+
+# -- crew stage tools (2026-10-03, found by the IDE health check) ------------------------------------
+# The orchestrator asks the Shepherd about tools `crew_build` / `crew_verify` using the HYPHENATED agent names
+# (`coder-agent`, `qa-engineer`). policy._agent_caps is an exact-key lookup and the manifest's per-agent entries are
+# underscored (`coder_agent`, `qa_engineer`), so these agents fell through to the `*` wildcard (tools: file_read only):
+# every crew dispatch ESCALATEd ("tool not granted"), hidden by monitor mode (enforce would have stalled every crew build).
+# Fix (data only, least privilege): two hyphenated entries = the wildcard's rights + exactly ONE crew tool each.
+
+def test_the_builder_may_dispatch_crew_build_under_the_name_the_orchestrator_sends():
+    assert d("coder-agent", category="generic", tool="crew_build").decision == ALLOW
+
+
+def test_the_verifier_may_dispatch_crew_verify_under_the_name_the_orchestrator_sends():
+    assert d("qa-engineer", category="generic", tool="crew_verify").decision == ALLOW
+
+
+def test_separation_of_duties_builder_cannot_verify_and_verifier_cannot_build():
+    for agent, tool in (("coder-agent", "crew_verify"), ("qa-engineer", "crew_build")):
+        out = d(agent, category="generic", tool=tool)
+        assert out.decision == ESCALATE and out.rule == "tool_not_granted", (agent, tool)
+
+
+def test_no_other_agent_holds_a_crew_tool():
+    holders = {name: sorted(t for t in caps.get("tools", []) if t.startswith("crew_"))
+               for name, caps in MANIFEST["agents"].items()
+               if any(t.startswith("crew_") for t in caps.get("tools", []))}
+    assert holders == {"coder-agent": ["crew_build"], "qa-engineer": ["crew_verify"]}
+
+
+def test_the_underscored_entries_were_not_widened():
+    # they are not what the orchestrator sends; granting them would have changed nothing live (and widened them for nothing)
+    for agent in ("coder_agent", "qa_engineer"):
+        for tool in ("crew_build", "crew_verify"):
+            assert d(agent, category="generic", tool=tool).decision == ESCALATE, (agent, tool)
+
+
+BATTERY = [  # everything EXCEPT the crew tools: the new entries must behave exactly like the wildcard they replace
+    dict(category="file_write", tool="file_write", target="/workspace/a.txt"),
+    dict(category="file_write", tool="file_write", target="backend/.env"),
+    dict(category="file_write", tool="file_write", target="/etc/passwd"),
+    dict(category="generic", tool="file_read", target="/workspace/a.txt"),
+    dict(category="generic", tool="git"),
+    dict(category="generic", tool="docker"),
+    dict(category="docker", tool="docker"),
+    dict(category="http_external", tool="http_external", domain="github.com"),
+    dict(category="http_external", tool="http_external", domain="evil.example.com"),
+    dict(category="generic"),
+    dict(category="stripe", domain="api.stripe.com"),
+]
+
+
+@pytest.mark.parametrize("agent", ["coder-agent", "qa-engineer"])
+@pytest.mark.parametrize("req", BATTERY, ids=lambda r: f"{r['category']}:{r.get('tool', '-')}:{r.get('target', r.get('domain', '-'))}")
+def test_apart_from_its_one_crew_tool_the_new_entry_decides_exactly_like_the_wildcard(agent, req):
+    via_wildcard = evaluate(MANIFEST, {"agent": "an-agent-with-no-entry", **req})
+    via_entry = evaluate(MANIFEST, {"agent": agent, **req})
+    assert (via_entry.decision, via_entry.rule) == (via_wildcard.decision, via_wildcard.rule), (agent, req)
