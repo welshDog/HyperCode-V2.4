@@ -17,7 +17,6 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 import agents.coder.main as m  # noqa: E402
-from agents.coder.main import AgentConfig, CoderAgent, TaskRequest  # noqa: E402
 
 BASE = "http://fcc-proxy:8083"
 S_PROMPT, S_TEXT, S_TOKEN = "SENTINEL_PROMPT_1187", "SENTINEL_PROPOSAL_2291", "SENTINEL_TOKEN_3301"
@@ -56,7 +55,7 @@ class FakeClient:
 
 @pytest.fixture(scope="module")
 def shared_agent():
-    return CoderAgent(AgentConfig(name="test-coder", port=8002))  # building a FastAPI app is slow: do it once
+    return m.CoderAgent(m.AgentConfig(name="test-coder", port=8002))  # building a FastAPI app is slow: do it once
 
 
 @pytest.fixture
@@ -89,7 +88,7 @@ def overloaded(status=529):
 
 # ── the nested-error regression ─────────────────────────────────────────────
 def crew_task(task="[HyperCrew stage: build] Goal: add f"):
-    return TaskRequest(id="crew:run:build", task=task)
+    return m.TaskRequest(id="crew:run:build", task=task)
 
 
 def execute(agent, task):
@@ -126,7 +125,7 @@ def test_the_error_conversion_is_limited_to_crew_stages(env, monkeypatch):
         return {"status": "error", "message": "Ollama Error: x"}
 
     monkeypatch.setattr(agent, "generate_code_with_ollama", failing)
-    resp = execute(agent, TaskRequest(id="t1", task="write a function"))
+    resp = execute(agent, m.TaskRequest(id="t1", task="write a function"))
     assert resp.status == "completed" and resp.result["status"] == "error"
 
 
