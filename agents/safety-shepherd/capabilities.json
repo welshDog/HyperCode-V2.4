@@ -72,6 +72,7 @@
       "max_actions": 100
     },
     "coder_studio": {
+      "exact_name_only": true,
       "_comment": "HyperStudio write path. Targets arrive worktree-relative, so '**' means 'anywhere inside the throwaway worktree' — the boundary is enforced in coder-studio/shepherd.py before this manifest is consulted. blocked_paths still wins (rule 2 precedes rule 5). 'bash' is deliberately NOT granted: its target is a shell command, which the blocked_paths globs cannot read.",
       "tools": ["file_read", "file_write", "git"],
       "file_paths": ["**"],
