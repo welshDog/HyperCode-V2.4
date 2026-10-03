@@ -12,7 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest import mock
+import unittest.mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -32,16 +32,16 @@ class Base(unittest.TestCase):
         main._decision_log.clear()
         main._last_logged_level = None
         main._last_signal = None
-        self.client = mock.Mock(name="docker_client_factory")
-        self.pause = mock.Mock(name="pause_tier")
-        self.resume = mock.Mock(name="resume_tier")
+        self.client = unittest.mock.Mock(name="docker_client_factory")
+        self.pause = unittest.mock.Mock(name="pause_tier")
+        self.resume = unittest.mock.Mock(name="resume_tier")
         self.now = NOW
         patches = [
-            mock.patch.object(main, "THROTTLE_SIGNAL_FILE", self.path),
-            mock.patch.object(main, "_docker_client", self.client),
-            mock.patch.object(main, "_pause_tier_sync", self.pause),
-            mock.patch.object(main, "_resume_tier_sync", self.resume),
-            mock.patch.object(main.time, "time", lambda: self.now),
+            unittest.mock.patch.object(main, "THROTTLE_SIGNAL_FILE", self.path),
+            unittest.mock.patch.object(main, "_docker_client", self.client),
+            unittest.mock.patch.object(main, "_pause_tier_sync", self.pause),
+            unittest.mock.patch.object(main, "_resume_tier_sync", self.resume),
+            unittest.mock.patch.object(main.time, "time", lambda: self.now),
         ]
         for p in patches:
             p.start()
@@ -56,7 +56,7 @@ class Base(unittest.TestCase):
         os.utime(self.path, (self.now - age, self.now - age))
 
     def cycle(self, mode):
-        with mock.patch.object(main, "THROTTLE_MODE", mode):
+        with unittest.mock.patch.object(main, "THROTTLE_MODE", mode):
             main._signal_cycle_sync()
 
 
@@ -101,7 +101,7 @@ class Observe(Base):
 
     def test_signal_endpoint_reports_state_and_says_it_is_simulated(self):
         self.signal("AMBER")
-        with mock.patch.object(main, "THROTTLE_MODE", "observe"):
+        with unittest.mock.patch.object(main, "THROTTLE_MODE", "observe"):
             self.cycle("observe")
             s = main.signal_status()
         self.assertEqual((s["mode"], s["paused_tiers"], s["paused_tiers_are_simulated"]), ("observe", [6], True))
@@ -125,7 +125,7 @@ class Enforce(Base):
 
     def test_protected_tiers_are_never_paused(self):
         self.signal("RED")
-        with mock.patch.object(main, "THROTTLE_PROTECT_TIERS", {1, 2, 3, 4}):
+        with unittest.mock.patch.object(main, "THROTTLE_PROTECT_TIERS", {1, 2, 3, 4}):
             self.cycle("enforce")
         self.assertEqual([c.args[1] for c in self.pause.call_args_list], [6, 5])
 
