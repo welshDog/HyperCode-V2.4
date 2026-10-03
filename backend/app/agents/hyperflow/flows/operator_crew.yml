@@ -1,0 +1,106 @@
+# HyperCrew: plan gate (Day 2) + propose-only build/verify/guard (Day 3) + quest settle (Day 8) + scribe draft, human gate, draft PR (Day 9).
+# The goal is bound to the fixed crew stages + constraints, shown to a human with a plan_hash and
+# sealed on approval. Then the builder PROPOSES a diff, the verifier reviews it, and the guard decides
+# ALLOW/BLOCK from deterministic checks. Nothing is written, built or deployed: agents only return text.
+# Run it: POST /api/v1/operator/tasks {"tool": "hypercode.crew", "arguments": {"goal": "..."}}
+
+name: hypercode-crew
+version: 5
+entry: plan
+intent: "HyperCrew plan gate then propose-only build verify and guard stages for a build goal without writing or deploying anything"
+
+nodes:
+  - id: plan
+    type: tool
+    tool: local.crew_plan
+    idempotent: true
+    success_key: has_proposal
+    params:
+      with_arguments: true
+
+  - id: approve
+    type: human_approval_gate
+    params:
+      prompt: "Approve this crew plan? Agents will only PROPOSE a change as text; nothing is written or deployed."
+      show_from: plan
+
+  - id: seal
+    type: tool
+    tool: local.crew_seal
+
+  # Proposal only: re-running after a restart costs tokens but changes nothing, so it is safe.
+  - id: build
+    type: agent_dispatch
+    agent: coder-agent
+    idempotent: true
+    params:
+      stage: build
+      role: builder
+      safety_unreachable: block   # fail CLOSED if Safety Shepherd cannot be reached (Day 10)
+
+  - id: verify
+    type: agent_dispatch
+    agent: qa-engineer
+    idempotent: true
+    params:
+      stage: verify
+      role: verifier
+      input_from: build
+      safety_unreachable: block
+
+  - id: guard
+    type: tool
+    tool: local.crew_guard
+    idempotent: true
+    success_key: allowed
+
+  # Reward for the approving human, only after a guard ALLOW. UNIQUE(run_id:quest_id) makes a re-run
+  # after a restart a no-op, so it is safe to repeat. Runs inside core: no agent or MCP path reaches it.
+  - id: settle
+    type: tool
+    tool: local.crew_settle
+    idempotent: true
+
+  # Day 9. The Scribe drafts a handover as TEXT. You approve with the draft's own hash (same rule as the plan).
+  # "No thanks" ends the run cleanly. publish opens a docs-only DRAFT PR if a token is configured, else keeps
+  # the draft in the run. It never merges and never edits an existing file.
+  - id: scribe
+    type: tool
+    tool: local.crew_scribe
+    idempotent: true
+
+  - id: approve_scribe
+    type: human_approval_gate
+    params:
+      prompt: "Approve this handover draft? If a GitHub token is configured a DRAFT docs-only PR is opened; nothing is merged."
+      show_from: scribe
+      on_reject: end
+
+  - id: publish
+    type: tool
+    tool: local.crew_publish
+    idempotent: true
+    params:
+      safety_unreachable: block
+
+edges:
+  - from: plan
+    to: approve
+    condition: true
+  - from: approve
+    to: seal
+  - from: seal
+    to: build
+  - from: build
+    to: verify
+  - from: verify
+    to: guard
+  - from: guard
+    to: settle
+    condition: true
+  - from: settle
+    to: scribe
+  - from: scribe
+    to: approve_scribe
+  - from: approve_scribe
+    to: publish

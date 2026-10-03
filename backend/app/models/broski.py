@@ -128,6 +128,26 @@ class CourseSyncEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class QuestSettlement(Base):
+    """One row per settled crew run. ``source_id`` (``run_id:quest_id``) is UNIQUE, so a replayed
+    settle can never pay twice. Rows with status ``no_award``/``capped`` are kept on purpose: they
+    record that the run was looked at, so a later replay cannot pay for it either."""
+    __tablename__ = "quest_settlements"
+    __table_args__ = (UniqueConstraint("source_id", name="uq_quest_settlement_source_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    source_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    run_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    quest_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    xp: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    coins: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    bundle_hash: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
 class DiscordIdempotencyKey(Base):
     __tablename__ = "discord_idempotency_keys"
     __table_args__ = (UniqueConstraint("idempotency_key", name="uq_discord_idempotency_key"),)

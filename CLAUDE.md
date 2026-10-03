@@ -1,7 +1,7 @@
 # 🧠 CLAUDE.md — HyperCode-V2.4 Constitution
 > **For ANY AI, agent, or human working on HyperCode-V2.4.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **Updated 2026-08-19**
+> Built by @welshDog — **Updated 2026-10-03 20:15 UTC** (HyperCrew + host-RAM-safety sections are current; the 27-agent tables further down are still the Aug 2026 snapshot)
 
 ---
 
@@ -24,6 +24,32 @@
 5. This file (`CLAUDE.md`) → **HyperCode-specific gotchas**
 
 > ⚠️ **Conflict rule:** Live status beats this file. `WHATS_DONE.md` beats everything. **Newest always wins.**
+
+---
+
+## 🧠 HyperCrew — DEPLOYED 2026-10-03 (read `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` first)
+
+- Flow `hypercode.crew` (plan → approve → seal → build → verify → guard → settle → scribe → approve → publish) + Calm Mode,
+  Panic/Focus, Quest Settler, Scribe, Morning Card. Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Runbook: `docs/HYPERCREW_DOCKER_RUNBOOK.md`.
+- **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
+  **🎉 Guard ALLOW → Quest Settler (20 XP/10 coins/achievement) → Scribe draft → handover gate PROVEN live 2026-10-03 12:50 UTC** (run `b01b22bc-…`; builder + verifier = `nemotron-3-ultra-550b-a55b` via `fcc-proxy`, opt-in
+  `CREW_LLM_BASE_URL`, sends crew text to NVIDIA NIM). **Still unproven:** real GitHub publish (no GitHub token is configured, by design; every test run rejects the handover gate). **Proven since:** a FULL end-to-end run (guard ALLOW across a core restart, ~17:12 UTC); the verifier downgrades a PASS that lists problems (`d78fa0e3`) and uses one unambiguous two-format prompt (`29f20038`, fixing a live regression that made it return UNKNOWN). Earlier: first COMPLETED run (guard BLOCK) with the weak model.
+  `qa-engineer` has a real fail-safe verifier (`agents/04-qa-engineer/crew_verifier.py`, `8043d355`: rules + model, never invents a PASS); live the guard fails only on `verifier_verdict: FAIL`
+  because the only host model (`smollm2`) can't write a unified diff. Core was rebuilt at `79b5be99` (2026-10-03 02:05 UTC) so it includes the Guardian fix `34ba1667` and `a2ee4530`; after any backend commit, rebuild + swap core (`up -d --no-deps hypercode-core`) before trusting a live proof. `coder-agent`'s keyword mocks (health/metrics/deploy/docker/"todo list")
+  are now flagged `mocked` and refused by core, and crew stage tasks skip them. Crew steps also fail closed if Shepherd is down.
+- **Crew reliability (measured 2026-10-03, real model):** success rate **9 of 15 live runs ALLOW (60 %)** (first 3/5, then 6/10 with logging); every BLOCK explained from logs: 1 genuine verifier FAIL, 1 builder ReadTimeout reported as a build, 2 verifier reasoning-budget exhaustions (UNKNOWN). NVIDIA NIM's free tier is intermittently overloaded (503 -> 529 / bare 500) and its latency swings 3 s - 100+ s. **Hardened since (all deployed + live-verified):** verifier = two-format prompt, 105 s budget, one `crew_verify` log line per call, bounded 5xx retry (`b04b081c`); builder = a failed model call is now an ERROR status (it used to be a nested 'completed' build that core read as the diff), bounded 5xx retry, one `crew_build` log line (`1edf14c5`). Tools: `scripts/measure-crew-run.py`, `scripts/measure-crew-rate.sh` (always reject the handover gate: no PR can open). **Not yet measured after the hardening** (one ALLOW run since). **Recreating coder-agent/qa-engineer drops the opt-in proxy unless `CREW_LLM_BASE_URL=http://fcc-proxy:8083` is in the shell env.** Read the logs with `docker logs qa-engineer 2>&1 | grep crew_verify` / `docker logs coder-agent 2>&1 | grep crew_build`.
+- **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
+  not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.
+- **Dashboard → core auth:** `/operator/*` needs a human JWT (Bearer) or agent key (X-Agent-Key), **never** the master API key. The dashboard
+  reads a 30-day JWT from `secrets/dashboard_service_jwt.txt` (`DASHBOARD_SERVICE_JWT_FILE`; env var must stay unset). **Re-minted 2026-10-03 15:13 UTC; expires ~2026-11-02.**
+- **throttle-agent (fixed 2026-10-03, DEPLOYED observe-only 13:30 UTC; debounce added 13:55 (AMBER must repeat in 3 consecutive NEW samples; RED acts at once) — DECIDED 2026-10-03 (Lyndz): stay in OBSERVE, do NOT set `enforce` (review: `WHATS_DONE.md` 16:10 UTC); the combined compose was broken by a wrong Pets-repo path until 2026-10-03 (now fixed via `BROSKIPETS_DIR`, see `WHATS_DONE.md`), so it was deployed via a temp single-service compose):** `THROTTLE_MODE=off|observe|enforce` (default off; a typo → observe, never enforce); signal = the host guard's JSON (`ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, mounted read-only); an UNKNOWN (missing/stale) signal never acts; `GET /signal` shows what it WOULD do. `docker pause` frees no RAM. Details: `WHATS_DONE.md` 13:20.
+- **The host signal writer is a Task Scheduler job** (`\HyperCode\HyperCode RAM Guard Signal`, as you, at logon, hidden, no elevation, measure-only): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`. If it stops, the signal goes stale → throttle-agent reads UNKNOWN → does nothing.
+- **Before any build / start / restart run `python scripts/ram_guard.py --for build`** (host + WSL + Docker; GREEN needed for a build; `--wait 120` to poll). The Windows HOST running out of RAM (1 MB free, 2026-10-03) hung Docker while `wsl -e free -m` looked fine.
+- **End of day 2026-10-03:** memory is tight (WSL available ~1.2 GB with `grafana` + `grafana-agent` running, 440 MiB, not started by the assistant: Lyndz decides). The healer (`docker logs healer-agent | grep docker_restart`) restarts the dashboard/core on latency anomalies: check it before calling a restart unexplained. Tomorrow's routine + next task: top of `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+- **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
+  (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
+  `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.
+- **JWT signing secret ROTATED 2026-10-03 15:13 UTC** (the exposed 10-year admin JWT is dead: 403). Core signs with `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`; the `.env` `JWT_SECRET` line is a different, unused value). Rotate again with `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight) then `--yes`; prints only hashes. New 30-day dashboard token **expires ~2026-11-02** (re-run the script before then). All logins/tokens issued before the rotation need re-issuing.
 
 ---
 

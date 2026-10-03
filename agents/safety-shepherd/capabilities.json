@@ -72,11 +72,26 @@
       "max_actions": 100
     },
     "coder_studio": {
+      "exact_name_only": true,
       "_comment": "HyperStudio write path. Targets arrive worktree-relative, so '**' means 'anywhere inside the throwaway worktree' — the boundary is enforced in coder-studio/shepherd.py before this manifest is consulted. blocked_paths still wins (rule 2 precedes rule 5). 'bash' is deliberately NOT granted: its target is a shell command, which the blocked_paths globs cannot read.",
       "tools": ["file_read", "file_write", "git"],
       "file_paths": ["**"],
       "domains": [],
       "max_actions": 300
+    },
+    "coder-agent": {
+      "_comment": "The orchestrator sends the HYPHENATED name; policy._agent_caps is an exact-key lookup, so this agent used to fall through to the '*' wildcard and its per-agent entry (coder_agent) never applied. This entry is the wildcard's rights PLUS exactly one crew tool (least privilege, separation of duties). Added 2026-10-03; see docs/IDE_HEALTH_REPORT_2026-10-03.md.",
+      "tools": ["file_read", "crew_build"],
+      "file_paths": ["/workspace/**"],
+      "domains": [],
+      "max_actions": 50
+    },
+    "qa-engineer": {
+      "_comment": "The orchestrator sends the HYPHENATED name; policy._agent_caps is an exact-key lookup, so this agent used to fall through to the '*' wildcard and its per-agent entry (qa_engineer) never applied. This entry is the wildcard's rights PLUS exactly one crew tool (least privilege, separation of duties). Added 2026-10-03; see docs/IDE_HEALTH_REPORT_2026-10-03.md.",
+      "tools": ["file_read", "crew_verify"],
+      "file_paths": ["/workspace/**"],
+      "domains": [],
+      "max_actions": 50
     },
     "*": {
       "tools": ["file_read"],

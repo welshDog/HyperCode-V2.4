@@ -6,7 +6,8 @@ services:
   bropets-api:
     profiles: ["pets"]
     build:
-      context: ../BROskiPets-LLM-dNFT
+      # BROSKIPETS_DIR overrides where the Pets repo is checked out (default: one level above HperCore on this box)
+      context: ${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}
       dockerfile: Dockerfile
     container_name: bropets-api
     ports:
@@ -66,16 +67,21 @@ services:
     # -> evolve()). Profile "agents" so it runs alongside broski-pets-bridge.
     profiles: ["agents"]
     build:
-      context: ../BROskiPets-LLM-dNFT
+      context: ${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}
       dockerfile: Dockerfile.relay
     container_name: evolve-relay
     environment:
       - PORT=8097
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     env_file:
-      # SEPOLIA_RPC / CONTRACT_ADDRESS / DEPLOYER_KEY / PINATA_JWT — secrets
-      # stay in the Pets repo's gitignored .env
-      - ../BROskiPets-LLM-dNFT/.env
+      # LEAST PRIVILEGE (2026-10-03): NOT the Pets repo's whole .env (~50 vars: CDP secret, GitHub token, Supabase
+      # service key, Anthropic key...). Only what the relay's code reads: SEPOLIA_RPC / CONTRACT_ADDRESS / DEPLOYER_KEY /
+      # PINATA_JWT (+ optional REDIS_*, IPFS_GATEWAY, IMAGES_ROOT_CID). Generate it with:
+      #   MSYS_NO_PATHCONV=1 python scripts/make_relay_env.py --write     (gitignored; re-run after rotating a key)
+      # Optional so a missing file can't break `docker compose config` for the WHOLE project (it did when this pointed at
+      # a wrong path); without it the relay starts with no keys and fails at evolve time with "missing env", not silently.
+      - path: ./secrets/evolve_relay.env
+        required: false
     ports:
       - "127.0.0.1:8097:8097"
     networks:
