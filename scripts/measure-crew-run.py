@@ -55,7 +55,7 @@ def wait(task, pred, timeout):
                 if pred(body):
                     return body
         except httpx.HTTPError:
-            pass
+            pass  # core may be mid-restart; keep polling until the deadline
         time.sleep(2)
     return last
 
@@ -103,7 +103,7 @@ try:
     else:
         res.update(outcome="FAILED", error=str(end.get("error"))[:200])
 except SystemExit:
-    pass
+    pass  # early-exit paths above (raise SystemExit) already recorded their outcome in `res`
 except Exception as exc:  # noqa: BLE001 - report, never hide
     res.update(outcome=res["outcome"] or "FAILED", error=f"{type(exc).__name__}: {str(exc)[:160]}")
 finally:
