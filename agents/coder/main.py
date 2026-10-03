@@ -137,7 +137,12 @@ class CoderAgent:
             task_lower = request.task.lower()
             result_data = {}
             
-            if "metrics" in task_lower or "health" in task_lower:
+            if "[hypercrew stage:" in task_lower:
+                # HyperCrew stage task. The orchestrator prepends a skills loadout whose text mentions "metrics",
+                # "docker", etc., so the keyword shortcuts below would ALWAYS fire and return canned data.
+                # Crew work goes to the model.
+                result_data = await self.generate_code_with_ollama(request.task)
+            elif "metrics" in task_lower or "health" in task_lower:
                 result_data = self.analyze_system_health()
             elif "deploy" in task_lower or "docker" in task_lower:
                 code_context = request.context.get("code", "") if request.context else request.task

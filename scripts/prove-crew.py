@@ -27,7 +27,10 @@ from app.models.models import User
 
 ROOT = os.getenv("PROVE_CORE_URL", "http://localhost:8000")  # override only to rehearse against a local harness
 BASE = ROOT + "/api/v1/operator"
-GOAL = "add a health endpoint to the API"
+# Default unchanged. coder-agent answers goals containing health/metrics/deploy/docker/"todo list" with canned mocks
+# (core refuses those), so to reach a REAL agent answer pass a goal without those words, in BOTH phase1 and phase2:
+#   docker exec -e PROVE_GOAL="add a version endpoint to the API" -i hypercode-core python - phase1 < scripts/prove-crew.py
+GOAL = os.getenv("PROVE_GOAL", "add a health endpoint to the API")
 
 
 def _token(superuser: bool = True):
