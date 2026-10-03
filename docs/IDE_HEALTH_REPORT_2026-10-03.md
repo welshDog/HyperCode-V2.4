@@ -43,6 +43,18 @@
 
 Running a real task in Studio (agent stream / diff & review), the Plan Generator, Panic with a *running* crew run, any POST proxy (execute, DLQ replay), keyboard/screen-reader accessibility, the wide-screen layout, and behaviour after a Docker Desktop restart.
 
-## ▶️ SUGGESTED FIXES (small → bigger)
+## ✅ FOLLOW-UP — the four suggested fixes were done (15:10 UTC), with two corrected diagnoses
+
+| # | Fix | Result |
+|---|---|---|
+| 1 | Cancel the stale parked run `01908424-8c21…` | Cancelled through the operator API (HTTP 200); runs: 17 completed / 9 failed / 8 cancelled / **0 parked**. **Morning Card is now green** ("Fleet: green (1.8 GB free)", no "waiting on you"). |
+| 2 | Pulse | `/api/pulse` now returns **25 coins, 6,705 XP, 11 agents**, no `degraded`. **Correction:** the visible panel never used that route — it summed the agents' own XP (0) and ignored the user's `xp` that `/api/broski` returns; the panel now shows the real XP (fallback: agent sum). 12 new tests (5 red on the old code). `healthy_agents` is honestly 0/11: core's 11 are a static roster, all `idle`, not a liveness signal. Commit `63f5edd2`. |
+| 3 | Shepherd grants | **Root cause was bigger than the missing grant:** `policy._agent_caps` is an exact-key lookup and the manifest's per-agent entries are *underscored* (`coder_agent`, `qa_engineer`) while the orchestrator sends *hyphenated* names (`coder-agent` ×21, `qa-engineer` ×9 in the feed). Those agents never matched their own entries and ran on the **`*` wildcard** (tools: `file_read` only). Fix (data-only, least privilege): two hyphenated entries = the wildcard's current rights **+ exactly one crew tool each** (`coder-agent`: `crew_build`, `qa-engineer`: `crew_verify`); the underscored entries are untouched. Safety-shepherd rebuilt + recreated; **live check: 7/7 decisions as designed** (both crew tools ALLOW; builder can't verify, verifier can't build; file_write/docker still ESCALATE; underscored names still ESCALATE). 41 policy tests (3 red without the entries; a battery test proves the new entries equal the wildcard apart from their crew tool). Commit `f83c8321`. |
+| 4 | Remove 9 stray containers | Inspected first (all exited, 0 mounts, none running, no data), then `docker rm` of exactly those 9 names (no `-f`, no `-v`): 21 → 12 stopped (the 12 are the obs stack, by design); 36 running unchanged. |
+
+**Still open (a decision, not done):** because of the name-key mismatch, **other hyphenated agents (backend-specialist, frontend-specialist, devops-engineer, database-architect) also evaluate under the `*` wildcard instead of their own entries.** Normalising hyphen↔underscore in `_agent_caps` would make their per-agent grants apply (a behaviour change across several agents), so I did not do it unasked. Also still true: core + orchestrator remain in `monitor` mode.
+Process notes: the deploy was gated on the guard; it correctly **stopped at the first gate** (AMBER) and only proceeded after the browser closed and I stopped my own optional `fcc-proxy` (restarted afterwards, healthy). My first policy-test append silently went to the wrong directory (a stray root `test_policy.py`, deleted) so my first "mutation check" proved nothing — I caught it because the check passed when it should have failed, and redid it.
+
+## ▶️ SUGGESTED FIXES (small → bigger) — original list, now done (see above); remaining: 5. restart Grafana when RAM allows, 6. refresh the Scout baseline, 7. decide on `_agent_caps` normalisation
 
 1. Cancel the stale run `01908424…` (clears the amber light). 2. Fix `pulse/route.ts` (2 field names + service JWT). 3. `docker rm` the 9 stray stopped containers (your call). 4. Decide Shepherd: grant `crew_build`/`crew_verify` or keep monitor mode on purpose. 5. Restart Grafana when RAM allows. 6. Refresh the Scout baseline.
