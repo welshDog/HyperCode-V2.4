@@ -2,6 +2,17 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (14:05 UTC) — host signal writer is now a Windows Task Scheduler job (persistent), with an install/uninstall script
+
+- **What:** task `\HyperCode\HyperCode RAM Guard Signal` runs `pythonw.exe scripts\ram_guard.py --loop 30 --skip-docker --out ram-signal\ram.json` **as the current user (Lyndz), at logon, hidden, NO elevation (RunLevel Limited)**; `MultipleInstances=IgnoreNew` (never two copies), restart up to 3× 1 min apart on failure,
+  no time limit, allowed on battery. The script only MEASURES memory (host free, Windows compression, WSL available) — it never stops/starts anything; if it ever dies the file goes stale → the throttle-agent reads UNKNOWN → does nothing.
+- **Manage it:** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action install|status|start|stop|uninstall` (`-IntervalSeconds N`; install is idempotent; `uninstall` stops and removes it). Or Task Scheduler → `HyperCode` folder. The execution-policy bypass is process-scoped (nothing system-wide changed).
+- **Also:** `ram_guard._run` now passes `CREATE_NO_WINDOW` (a hidden task would otherwise flash a console window on every PowerShell/`wsl` call); 24 guard tests pass (2 new).
+- **Verified:** installed without admin; started it; state `Running`; ONE hidden `pythonw.exe` (pid 12024), no stray `python.exe ram_guard`; I had stopped my old ad-hoc background writer first so the write was provably the task's: file age 20 s, `overall GREEN`; the throttle-agent then read it (`age_s 0.1`, GREEN, observe, **0 containers paused**, healthy, 0 restarts).
+  Not tested: a reboot/logon cycle (the logon trigger itself), and I cannot see whether a window flashes — `CREATE_NO_WINDOW` + `pythonw` is the standard way to prevent it.
+- **Observe-mode timeline so far (UTC, from `GET /signal`):** 12:48:37 AMBER PENDING 1/3 → 12:50:17 AMBER 3/3 **would pause tier 6** → 12:51:17 RED **would pause 5, 4** → 12:51:47 AMBER → 12:52:48 RED → 12:53:18 AMBER → 12:54:18 GREEN → 12:58:48 AMBER PENDING (a blip; restarts the resume clock) → 12:59:18 GREEN.
+  A genuine ~5-minute pressure episode, **partly self-inflicted (my docker build + test runs at that moment)**. Simulated paused set at 14:03 local: `[4,5,6]`; real paused containers: 0. Resume is simulated only after 5 min of continuous GREEN.
+
 ## 2026-10-03 (13:55 UTC) — throttle-agent DEBOUNCE built, deployed (observe) and seen working live
 
 - **Why:** the 13:30 observe review found two false AMBERs (a timed-out WSL read → `wsl_avail=None` → AMBER; compression flickering around 2,500 MB). In enforce mode the first blip would have paused tier 6.

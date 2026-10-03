@@ -160,8 +160,10 @@ def parse_host_json(text: str) -> dict[str, Any]:
 # ── measurement (touches the machine; read-only) ────────────────────────────
 def _run(cmd: list[str], timeout: float) -> Optional[str]:
     """stdout, or None on timeout / missing binary / non-zero exit."""
+    # CREATE_NO_WINDOW: run from a hidden Task Scheduler task (pythonw), each powershell/wsl call would flash a console window
+    extra = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace", **extra)
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
         return None
     return r.stdout if r.returncode == 0 else None

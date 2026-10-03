@@ -72,6 +72,23 @@ class Evaluate(unittest.TestCase):
         self.assertEqual(rg.evaluate(m, {"wsl_avail_amber": 1300})[0], rg.GREEN)
 
 
+class RunHelper(unittest.TestCase):
+    def test_child_processes_get_no_console_window_on_windows(self):  # a hidden scheduled task must not flash windows
+        fake = unittest.mock.Mock(returncode=0, stdout="ok")
+        with unittest.mock.patch.object(rg.subprocess, "run", return_value=fake) as run:
+            self.assertEqual(rg._run(["x"], 5), "ok")
+        if os.name == "nt":
+            self.assertEqual(run.call_args.kwargs.get("creationflags"), rg.subprocess.CREATE_NO_WINDOW)
+        else:
+            self.assertNotIn("creationflags", run.call_args.kwargs)
+
+    def test_failures_are_None_not_exceptions(self):
+        with unittest.mock.patch.object(rg.subprocess, "run", side_effect=rg.subprocess.TimeoutExpired("x", 1)):
+            self.assertIsNone(rg._run(["x"], 1))
+        with unittest.mock.patch.object(rg.subprocess, "run", return_value=unittest.mock.Mock(returncode=1, stdout="no")):
+            self.assertIsNone(rg._run(["x"], 1))
+
+
 class SkipDocker(unittest.TestCase):
     def test_skipping_docker_on_purpose_is_not_a_warning(self):
         m = rg.Metrics(**{**GOOD.__dict__, "docker_ok": None, "unhealthy": None})
