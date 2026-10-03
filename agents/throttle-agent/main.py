@@ -25,6 +25,8 @@ from prometheus_client import (
 )
 from pydantic import BaseModel
 
+import pressure  # host RAM-guard signal + pause/resume planning (pure, unit-tested)
+
 import docker
 
 
@@ -111,6 +113,12 @@ RAM_THRESHOLD_PCT = Gauge(
     registry=PROM_REGISTRY,
 )
 
+SIGNAL_LEVEL = Gauge(
+    "throttle_signal_level",
+    "Host RAM-guard signal: 0 GREEN, 1 AMBER, 2 RED, -1 UNKNOWN (missing/stale/invalid: never acted on)",
+    registry=PROM_REGISTRY,
+)
+
 CONTAINER_STATE = Gauge(
     "throttle_container_state",
     "Container state as a gauge (labels include state)",
@@ -171,16 +179,24 @@ DECISION_CALCULATION_DURATION_SECONDS = Histogram(
 # RAM history for predictions
 ram_history: deque = deque(maxlen=30)  # Keep last 30 measurements
 
+# Refreshed 2026-10-03 against `docker ps` + `docker stats` (the old list named ~16 containers and missed the crew, the
+# registry, the healer/shepherd/governor, hyper-brain and the rest of the fleet). A PROPOSAL to review: in observe mode
+# nothing is ever paused. Tiers 1-3 are protected by default (THROTTLE_PROTECT_TIERS); override with THROTTLE_TIERS_JSON.
 DEFAULT_TIERS: dict[int, list[str]] = {
-    1: ["postgres", "redis", "hypercode-core", "hypercode-ollama"],
-    2: ["crew-orchestrator", "hypercode-dashboard"],
-    3: ["celery-worker"],
-    4: ["test-agent"],
-    5: ["prometheus", "tempo", "loki", "grafana"],
-    6: ["minio", "cadvisor", "node-exporter", "security-scanner"],
+    1: ["postgres", "redis", "hypercode-core", "hypercode-ollama", "safety-shepherd", "healer-agent", "memstream",
+        "governor", "docker-socket-proxy", "docker-socket-proxy-build", "docker-socket-proxy-healer"],
+    2: ["crew-orchestrator", "hypercode-dashboard", "coder-agent", "qa-engineer", "agent-registry"],
+    3: ["celery-worker", "hypercode-mcp-server"],
+    4: ["test-agent", "evolve-relay", "hyperhealth-worker", "broski-bot", "coder-studio", "agent-morning-briefing",
+        "skillweaver", "hyper-brain", "agent-hyper-brain-core", "agent-mcp-bridge", "agent-focus-tracker",
+        "obsidian-watcher", "github-sync", "github-sync-brain", "chroma"],
+    5: ["prometheus", "prometheus-cloud", "tempo", "loki", "grafana", "pyroscope", "promtail", "alertmanager",
+        "grafana-agent", "celery-exporter"],
+    6: ["minio", "cadvisor", "node-exporter", "security-scanner", "fcc-proxy"],
 }
 
-ALL_CONTAINERS: list[str] = sorted({c for tier in DEFAULT_TIERS.values() for c in tier})
+_ACTIVE_TIERS: dict[int, list[str]] = pressure.parse_tiers(os.getenv("THROTTLE_TIERS_JSON"), DEFAULT_TIERS)
+ALL_CONTAINERS: list[str] = sorted({c for tier in _ACTIVE_TIERS.values() for c in tier})
 
 
 class TierContainerStatus(BaseModel):
@@ -327,7 +343,7 @@ def _get_tier_status(
 
 
 def _get_tiers() -> dict[int, list[str]]:
-    return DEFAULT_TIERS
+    return _ACTIVE_TIERS
 
 
 def _parse_threshold(name: str, default: float) -> float:
@@ -372,6 +388,21 @@ THROTTLE_KEEP_OBSERVABILITY = os.getenv(
     "on",
 }
 POLL_INTERVAL_SECONDS = int(_parse_threshold("POLL_INTERVAL_SECONDS", 30.0))
+
+# THROTTLE_MODE: off (default; nothing automatic) | observe (compute + log what it WOULD do, never touches Docker)
+# | enforce (acts). Unset keeps the old behaviour: AUTO_THROTTLE_ENABLED=true means enforce. A typo must never arm it.
+_raw_mode = os.getenv("THROTTLE_MODE", "").strip().lower()
+if _raw_mode in {"off", "observe", "enforce"}:
+    THROTTLE_MODE = _raw_mode
+elif _raw_mode:
+    THROTTLE_MODE = "observe"
+    logger.warning(f"Unknown THROTTLE_MODE '{_raw_mode[:20]}' - using 'observe' (a typo must never arm enforcement)")
+else:
+    THROTTLE_MODE = "enforce" if AUTO_THROTTLE_ENABLED else "off"
+# The host RAM guard's JSON (scripts/ram_guard.py --json --out FILE --loop 30), mounted read-only. Empty = the old
+# container-RAM-% signal (blind to the Windows host). Missing/stale/invalid file = UNKNOWN = never acts.
+THROTTLE_SIGNAL_FILE = os.getenv("THROTTLE_SIGNAL_FILE", "").strip()
+THROTTLE_SIGNAL_MAX_AGE_S = _parse_threshold("THROTTLE_SIGNAL_MAX_AGE_S", 120.0)
 
 
 async def poll_memstream_and_throttle() -> None:
@@ -435,7 +466,8 @@ THROTTLE_PROTECT_TIERS = _parse_int_set(os.getenv("THROTTLE_PROTECT_TIERS", "1,2
 THROTTLE_PROTECT_CONTAINERS = _parse_str_set(
     os.getenv(
         "THROTTLE_PROTECT_CONTAINERS",
-        "throttle-agent,healer-agent,hypercode-core,postgres,redis",
+        "throttle-agent,healer-agent,hypercode-core,postgres,redis,safety-shepherd,memstream,governor,"
+        "hypercode-ollama,crew-orchestrator,docker-socket-proxy,docker-socket-proxy-build,docker-socket-proxy-healer",
     )
 )
 THROTTLE_ACTIVE_CONTAINER = os.getenv("THROTTLE_ACTIVE_CONTAINER", "").strip()
@@ -710,8 +742,85 @@ def _resume_tier_sync(client: docker.DockerClient, tier: int) -> dict[str, Any]:
     }
 
 
+_sim_paused_tiers: set[int] = set()  # observe mode: tiers we WOULD hold paused (no Docker call is ever made)
+_decision_log: deque = deque(maxlen=50)
+_last_signal: dict[str, Any] | None = None
+_last_logged_level: str | None = None
+_observe_without_signal_warned = False
+_LEVEL_NUM = {pressure.GREEN: 0, pressure.AMBER: 1, pressure.RED: 2, pressure.UNKNOWN: -1}
+
+
+def _signal_cycle_sync() -> None:
+    """One decision from the HOST RAM guard's signal. observe = log only; enforce = act (never on UNKNOWN)."""
+    global _autopilot_below_since, _last_poll_ts, _last_signal, _last_logged_level
+    sig = pressure.read_signal(THROTTLE_SIGNAL_FILE, max_age_s=THROTTLE_SIGNAL_MAX_AGE_S)
+    tiers_cfg = _get_tiers()
+    now = time.time()
+    enforce = THROTTLE_MODE == "enforce"
+    hold_s = max(THROTTLE_RESUME_HOLD_MINUTES, 1) * 60.0
+    with _throttle_lock:
+        _last_poll_ts = now
+        held = set(_autopilot_paused_tiers) if enforce else set(_sim_paused_tiers)
+        st = pressure.step(sig.level, held, THROTTLE_PROTECT_TIERS, tiers_cfg, _autopilot_below_since, now, hold_s)
+        _autopilot_below_since = st.green_since
+        _last_signal = {
+            "level": sig.level, "reason": sig.reason, "age_s": None if sig.age_s is None else round(sig.age_s, 1),
+            "host_free_mb": sig.host_free_mb, "wsl_avail_mb": sig.wsl_avail_mb, "compression_mb": sig.compression_mb,
+        }
+    SIGNAL_LEVEL.set(_LEVEL_NUM.get(sig.level, -1))
+
+    changed = sig.level != _last_logged_level
+    if st.to_pause or st.to_resume or changed:
+        entry = {
+            "ts": datetime.utcnow().isoformat(timespec="seconds") + "Z", "mode": THROTTLE_MODE, "signal": sig.level,
+            "reason": sig.reason,
+            "would_pause" if not enforce else "pause": {str(t): tiers_cfg.get(t, []) for t in st.to_pause},
+            "would_resume" if not enforce else "resume": {str(t): tiers_cfg.get(t, []) for t in st.to_resume},
+            "protected_skipped": list(st.protected_skipped),
+        }
+        _decision_log.append(entry)
+        logger.info(
+            f"signal={sig.level} ({sig.reason}) mode={THROTTLE_MODE} "
+            f"{'would ' if not enforce else ''}pause={list(st.to_pause)} {'would ' if not enforce else ''}resume={list(st.to_resume)}",
+            extra={"action": "observe_decision" if not enforce else "enforce_decision", "reason": sig.reason},
+        )
+    _last_logged_level = sig.level
+
+    if not enforce:
+        # observe: track what we WOULD be holding so the log shows the whole pause/resume timeline. Docker is never called.
+        with _throttle_lock:
+            _sim_paused_tiers.update(st.to_pause)
+            _sim_paused_tiers.difference_update(st.to_resume)
+        return
+
+    if sig.level == pressure.UNKNOWN or not (st.to_pause or st.to_resume):
+        return  # never act on a signal we cannot trust; nothing to do otherwise
+    client = _docker_client()
+    client.ping()
+    DOCKER_UP.set(1)
+    with _throttle_lock:
+        for tier in st.to_pause:
+            _pause_tier_sync(client, tier)
+            _autopilot_paused_tiers.add(tier)
+        for tier in st.to_resume:
+            _resume_tier_sync(client, tier)
+            _autopilot_paused_tiers.discard(tier)
+
+
 def _autopilot_cycle_sync() -> None:
     global _autopilot_below_since, _autopilot_paused_tiers, _last_poll_ts, _last_ram_pct
+    global _observe_without_signal_warned
+
+    if THROTTLE_SIGNAL_FILE:
+        _signal_cycle_sync()
+        return
+    if THROTTLE_MODE == "observe":
+        # The old container-RAM-% signal is blind to the Windows host: observing it would mislead. Say so instead.
+        if not _observe_without_signal_warned:
+            logger.warning("THROTTLE_MODE=observe but THROTTLE_SIGNAL_FILE is not set: nothing to observe",
+                           extra={"action": "observe_no_signal"})
+            _observe_without_signal_warned = True
+        return
 
     tiers_cfg = _get_tiers()
     client = _docker_client()
@@ -774,11 +883,10 @@ def _autopilot_cycle_sync() -> None:
 
 @app.on_event("startup")
 async def startup() -> None:
-    if AUTO_THROTTLE_ENABLED:
-        logger.info("AUTO_THROTTLE_ENABLED is true")
+    logger.info(f"THROTTLE_MODE={THROTTLE_MODE} signal_file={'set' if THROTTLE_SIGNAL_FILE else 'not set'} "
+                f"(AUTO_THROTTLE_ENABLED={AUTO_THROTTLE_ENABLED})")
+    if THROTTLE_MODE in {"observe", "enforce"}:
         asyncio.create_task(_autopilot_loop())
-    else:
-        logger.info("AUTO_THROTTLE_ENABLED is false")
     asyncio.create_task(poll_memstream_and_throttle())
 
 
@@ -843,6 +951,27 @@ def health() -> dict[str, Any]:
             "detail": str(e),
             "healer_ok": healer_ok,
         }
+
+
+@app.get("/signal")
+def signal_status() -> dict[str, Any]:
+    """What the agent sees and what it has decided (or WOULD do in observe mode). Read-only; never touches Docker."""
+    enforce = THROTTLE_MODE == "enforce"
+    with _throttle_lock:
+        paused = sorted(_autopilot_paused_tiers if enforce else _sim_paused_tiers)
+        sig = dict(_last_signal) if _last_signal else None
+        recent = list(_decision_log)[-10:]
+    return {
+        "mode": THROTTLE_MODE,
+        "signal_file": THROTTLE_SIGNAL_FILE or None,
+        "max_age_s": THROTTLE_SIGNAL_MAX_AGE_S,
+        "signal": sig,
+        "paused_tiers": paused,
+        "paused_tiers_are_simulated": not enforce,
+        "protect_tiers": sorted(THROTTLE_PROTECT_TIERS),
+        "tiers": {str(k): v for k, v in sorted(_get_tiers().items())},
+        "recent_decisions": recent,
+    }
 
 
 @app.get("/metrics")
@@ -978,7 +1107,7 @@ def throttle_tier(tier: int, request: Request, action: str = "pause") -> dict[st
     api_key = os.getenv("THROTTLE_API_KEY", "").strip()
     if api_key:
         provided = request.headers.get("x-api-key", "").strip()
-        if not provided or provided != api_key:
+        if not provided or not secrets.compare_digest(provided, api_key):
             return {"error": "unauthorized"}
 
     try:

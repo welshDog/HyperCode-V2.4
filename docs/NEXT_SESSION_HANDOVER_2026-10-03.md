@@ -94,7 +94,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Stop the host from thrashing: the RAM pre-flight guard is DONE (`scripts/ram_guard.py`, 13:05 UTC); next fix throttle-agent's signal (feed it `ram_guard.py --json --out`), tiers and auth and run it observe-only (assessment in `WHATS_DONE.md` 12:50). Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
+Deploy the fixed throttle-agent in OBSERVE mode once `python scripts/ram_guard.py --for build` is GREEN (the guard went RED again at 13:15 UTC: host 66 MB free, compression 4.2 GB, while WSL looked fine): start the host writer (`python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`), rebuild + start `throttle-agent` (steps in `WHATS_DONE.md` 13:20), then review `GET /signal` for a while before ever setting `THROTTLE_MODE=enforce`. The RAM guard (13:05) and the throttle-agent code + 57 tests (13:20) are DONE. Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
 
 ---
 

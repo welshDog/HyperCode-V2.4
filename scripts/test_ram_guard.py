@@ -72,6 +72,60 @@ class Evaluate(unittest.TestCase):
         self.assertEqual(rg.evaluate(m, {"wsl_avail_amber": 1300})[0], rg.GREEN)
 
 
+class SkipDocker(unittest.TestCase):
+    def test_skipping_docker_on_purpose_is_not_a_warning(self):
+        m = rg.Metrics(**{**GOOD.__dict__, "docker_ok": None, "unhealthy": None})
+        self.assertEqual(rg.evaluate(m)[0], rg.AMBER)  # unchecked by accident: still AMBER
+        overall, f = rg.evaluate(m, check_docker=False)
+        self.assertEqual(overall, rg.GREEN)
+        self.assertNotIn("docker", levels(f))
+
+    def test_skipping_docker_never_hides_a_memory_problem(self):
+        self.assertEqual(rg.evaluate(rg.Metrics(**{**THRASH.__dict__, "docker_ok": None}), check_docker=False)[0], rg.RED)
+
+
+class Loop(unittest.TestCase):
+    """--loop is the host-side signal writer: rewrite --out every N seconds, stop on Ctrl+C."""
+
+    def run_loop(self, metrics_seq, cycles=3):
+        seq = list(metrics_seq)
+        sleeps = []
+
+        def fake_sleep(s):
+            sleeps.append(s)
+            if len(sleeps) >= cycles:
+                raise KeyboardInterrupt
+
+        self.d = tempfile.TemporaryDirectory()
+        self.addCleanup(self.d.cleanup)
+        path = os.path.join(self.d.name, "sub", "ram.json")  # the directory does not exist yet
+        with unittest.mock.patch.object(rg, "measure", side_effect=lambda skip=False: seq.pop(0) if len(seq) > 1 else seq[0]), \
+             unittest.mock.patch.object(rg.time, "sleep", fake_sleep), contextlib.redirect_stdout(io.StringIO()) as out:
+            code = rg.main(["--loop", "30", "--out", path, "--skip-docker"])
+        return code, path, out.getvalue(), sleeps
+
+    def test_writes_the_file_every_cycle_and_stops_cleanly_on_ctrl_c(self):
+        code, path, out, sleeps = self.run_loop([THRASH, GOOD, GOOD], cycles=3)
+        self.assertEqual(code, 0)
+        self.assertEqual(sleeps, [30, 30, 30])
+        with open(path, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["overall"], "GREEN")  # the LAST cycle's verdict
+        self.assertIn("RED", out)
+        self.assertIn("stopped", out)
+        out.encode("ascii")
+        self.assertFalse(os.path.exists(path + ".tmp"))
+
+    def test_loop_needs_out(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            rg.main(["--loop", "30"])
+
+    def test_the_loop_signal_is_what_throttle_agent_reads(self):
+        _code, path, _out, _s = self.run_loop([THRASH], cycles=1)
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        self.assertEqual((data["overall"], data["metrics"]["host_free_mb"], data["metrics"]["compression_mb"]), ("RED", 1, 4511))
+
+
 class ExitCodes(unittest.TestCase):
     def test_a_build_needs_GREEN_the_others_only_need_not_RED(self):
         self.assertEqual([rg.exit_code("build", x) for x in (rg.GREEN, rg.AMBER, rg.RED)], [0, 1, 2])

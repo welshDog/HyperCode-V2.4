@@ -87,8 +87,11 @@ def _high_is_bad(v: Optional[int], red: int, amber: int) -> str:
     return RED if v > red else AMBER if v > amber else GREEN
 
 
-def evaluate(m: Metrics, th: Optional[dict[str, int]] = None) -> tuple[str, list[Finding]]:
-    """(overall level, findings). An unreadable number is AMBER, never silently GREEN."""
+def evaluate(m: Metrics, th: Optional[dict[str, int]] = None, check_docker: bool = True) -> tuple[str, list[Finding]]:
+    """(overall level, findings). An unreadable number is AMBER, never silently GREEN.
+
+    check_docker=False (--skip-docker) leaves the docker finding out entirely: skipping it on purpose is not a warning.
+    """
     t = {**DEFAULTS, **(th or {})}
     f: list[Finding] = []
 
@@ -108,7 +111,9 @@ def evaluate(m: Metrics, th: Optional[dict[str, int]] = None) -> tuple[str, list
     f.append(Finding("WSL swap used", lv, "unreadable" if m.swap_used_mb is None else f"{m.swap_used_mb} MB",
                      f"RED>{t['swap_red']} AMBER>{t['swap_amber']} (informational: ~1.1 GB in both good and bad states)"))
 
-    if m.docker_ok is False:
+    if not check_docker:
+        pass
+    elif m.docker_ok is False:
         f.append(Finding("docker", RED, "unresponsive", "`docker version` did not answer in time (the engine is stalling)"))
     elif m.docker_ok is None:
         f.append(Finding("docker", AMBER, "not checked", "docker CLI missing or skipped"))
@@ -222,6 +227,32 @@ def to_json(purpose: str, overall: str, findings: list[Finding], m: Metrics, cod
             "metrics": asdict(m), "findings": [asdict(x) for x in findings]}
 
 
+def write_atomic(path: str, data: dict[str, Any]) -> None:
+    """Write-then-replace in the same directory, so a reader never sees a half-written file."""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+    os.replace(tmp, path)
+
+
+def run_loop(a: argparse.Namespace, th: dict[str, int]) -> int:
+    """The host-side signal writer: measure every a.loop seconds, rewrite a.out, print one ASCII line per cycle."""
+    d = os.path.dirname(os.path.abspath(a.out))
+    os.makedirs(d, exist_ok=True)
+    print(f"ram_guard loop: every {a.loop}s -> {a.out} (Ctrl+C to stop)", flush=True)
+    try:
+        while True:
+            m = measure(a.skip_docker)
+            overall, findings = evaluate(m, th, check_docker=not a.skip_docker)
+            write_atomic(a.out, to_json(a.purpose, overall, findings, m, exit_code(a.purpose, overall)))
+            print(f"{time.strftime('%H:%M:%S')} {overall:<5} host_free={m.host_free_mb} compression={m.compression_mb} "
+                  f"wsl_avail={m.wsl_avail_mb}", flush=True)
+            time.sleep(max(5, a.loop))
+    except KeyboardInterrupt:
+        print("stopped", flush=True)
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     p = argparse.ArgumentParser(description="Read-only RAM pre-flight guard (host + WSL + Docker).")
     p.add_argument("--for", dest="purpose", default="check", choices=["check", "build", "restart", "start"],
@@ -229,16 +260,24 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--wait", type=int, default=0, metavar="SECONDS", help="re-check every 10 s until OK or the time is up")
     p.add_argument("--json", action="store_true", help="print JSON instead of the table")
     p.add_argument("--out", metavar="FILE", help="also write the JSON here (atomic)")
-    p.add_argument("--skip-docker", action="store_true", help="do not call docker")
+    p.add_argument("--skip-docker", action="store_true", help="do not call docker (and do not judge it)")
+    p.add_argument("--loop", type=int, default=0, metavar="SECONDS",
+                   help="keep running: measure every SECONDS and rewrite --out (the host-side signal writer for throttle-agent). "
+                        "Needs --out. Stop with Ctrl+C.")
     for k, v in DEFAULTS.items():
         p.add_argument("--" + k.replace("_", "-"), type=int, default=v, help=f"threshold (default {v})")
     a = p.parse_args(argv)
     th = {k: getattr(a, k) for k in DEFAULTS}
 
+    if a.loop:
+        if not a.out:
+            p.error("--loop needs --out FILE (it is the signal writer)")
+        return run_loop(a, th)
+
     deadline = time.time() + max(0, a.wait)
     while True:
         m = measure(a.skip_docker)
-        overall, findings = evaluate(m, th)
+        overall, findings = evaluate(m, th, check_docker=not a.skip_docker)
         code = exit_code(a.purpose, overall)
         if code == 0 or time.time() >= deadline:
             break
@@ -246,10 +285,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     data = to_json(a.purpose, overall, findings, m, code)
     if a.out:
-        tmp = a.out + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(data, fh)
-        os.replace(tmp, a.out)
+        write_atomic(a.out, data)
     print(json.dumps(data) if a.json else render(a.purpose, overall, findings, m, code))
     return code
 

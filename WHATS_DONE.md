@@ -2,6 +2,26 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (13:20 UTC) — throttle-agent FIXED (step 2): host-aware signal, current tiers, OBSERVE mode — code + 57 tests done; NOT deployed (guard went RED)
+
+- **Corrections to my own audit first:** (a) auth was FINE — an app-wide middleware requires the agent key on everything except /health and /metrics and fails closed (503) if unset; my "unauthenticated" claim was wrong. (b) The autopilot was already OFF by
+  default (`AUTO_THROTTLE_ENABLED=false`). What was missing was an *observe* mode and a real signal.
+- **`agents/throttle-agent/pressure.py` (new, pure, stdlib):** reads the HOST guard's JSON (`overall` GREEN/AMBER/RED) using the file's mtime for age. **Missing / stale / corrupt / invalid = UNKNOWN, and UNKNOWN never pauses or resumes anything.** AMBER → pause tier 6; RED → tiers 6, 5, 4;
+  tiers in the protect set (default 1-3) are never paused; resume only after **continuous GREEN for the hold time (default 5 min)**, any other level restarts the clock. `parse_tiers` validates `THROTTLE_TIERS_JSON` and falls back to the defaults on anything invalid.
+- **`main.py`:** `THROTTLE_MODE` = `off` (default; nothing automatic) | `observe` | `enforce` (unset keeps the old meaning: `AUTO_THROTTLE_ENABLED=true` → enforce). **A typo can never arm enforcement** (unknown value → observe).
+  **observe** computes decisions, logs "would pause/resume", tracks a simulated paused set, keeps a 50-entry decision log and **never calls Docker**. New `GET /signal` (auth by the existing middleware) shows mode, the signal, simulated/real paused tiers, tiers,
+  protect set and recent decisions; new gauge `throttle_signal_level`. `THROTTLE_SIGNAL_FILE` unset = the old container-RAM-% path (blind to the host). Tiers refreshed from `docker ps`/`docker stats` (35 containers; sum of all their RAM was only ~1.4 GB — the
+  pressure is the Windows host): protected 1-3 now include safety-shepherd, healer, memstream, governor, the docker proxies, orchestrator, dashboard, coder-agent, qa-engineer, registry, celery, mcp-server; tier 4 = background agents; 5 = observability; 6 = minio/cadvisor/node-exporter/security-scanner/fcc-proxy.
+  Also `compare_digest` for `THROTTLE_API_KEY`, and the Dockerfile now `COPY main.py pressure.py ./` (**without this the image would have crashed on `import pressure`**).
+- **`scripts/ram_guard.py`:** added `--loop SECONDS --out FILE` (the host-side signal writer; atomic rewrite every cycle; Ctrl+C stops it) and fixed `--skip-docker` so a deliberate skip is not judged AMBER (it would have made the signal permanently AMBER).
+- **Compose (`docker-compose.agents-full.yml`, throttle-agent block only, +8 lines):** `THROTTLE_MODE=${THROTTLE_MODE:-observe}`, `THROTTLE_SIGNAL_FILE=/signal/ram.json`, max age 120 s, volume `./ram-signal:/signal:ro`; `ram-signal/` gitignored. YAML parses; the combined project does not validate in this repo with or without my change (needs another repo's `.env`; pre-existing).
+- **Tests (57, all passing):** `scripts/test_ram_guard.py` 22 · `agents/throttle-agent/test_pressure.py` 20 (stdlib, host) · `agents/throttle-agent/test_main_signal.py` 15 (the REAL main.py inside the throttle image with Docker faked: observe never touches Docker; UNKNOWN never acts, not even to connect;
+  protected tiers never paused; resume needs continuous green; typo-in-mode → observe; tiers override + bad override fall back; no container in two tiers; must-never-pause names are protected). Not mutation-checked this time.
+- **⛔ NOT deployed — the guard went RED at 13:15 UTC:** host free **66 MB**, Windows compression **4,166 MB**, while WSL showed 1,670 MB available (the exact case a WSL-only check misses). I had run the test container in the same command as the guard without gating it on the result — **my process slip**
+  (the tests had ~85 s runtime under the squeeze). Nothing built or started since. Deploy steps (when the guard is GREEN): `python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json` in a terminal; rebuild `hypercode-throttle-agent` (image predates the change); start it observe-only with
+  `docker compose --profile agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d --no-deps throttle-agent`; read `GET /signal` (needs the agent key) and the logs.
+- **Still true:** `docker pause` frees no RAM (it freezes CPU; cold pages may be swapped); a real "turn off to free RAM" needs `stop`, which collides with the healer. `hypervisor-agent` (dry-run guardian) still overlaps. `enforce` has NOT been tried live and should not be until observe has been reviewed.
+
 ## 2026-10-03 (13:05 UTC) — RAM pre-flight guard `scripts/ram_guard.py` (step 1 of the throttle plan) — read-only, host-aware, tested
 
 - **Why:** the 12:30 thrash was the **Windows host** (1 MB free, "Memory Compression" 4.5 GB) while `wsl -e free -m` still said 1.3 GB — a WSL-only check could not see it. The guard measures **host + WSL + Docker** in ~5 s and says GREEN / AMBER / RED.
@@ -38,7 +58,7 @@ Read from the database (not just the PASS lines):
 
 **throttle-agent assessment (Lyndz asked "get throttle-agent to fix memory"):** `agents/throttle-agent/main.py` (994 lines) is real but would NOT have prevented today's thrash. Verified in the code: (1) its "RAM %" is the **sum of ~16 hard-coded tier
 containers' RAM ÷ Docker's total** (`_estimate_system_ram_pct`) — blind to the other 30+ agents, page cache, swap and the **Windows host** (host hit 1 MB free while WSL still had 1.3 GB); (2) it uses `container.pause()`, which freezes but does
-**not free RAM**; (3) `DEFAULT_TIERS` omit `coder-agent`, `qa-engineer`, `fcc-proxy`, `hyper-brain`, most of the fleet; (4) `/throttle/{tier}` is **unauthenticated unless `THROTTLE_API_KEY` is set**; (5) it is not running (defined only in
+**not free RAM**; (3) `DEFAULT_TIERS` omit `coder-agent`, `qa-engineer`, `fcc-proxy`, `hyper-brain`, most of the fleet; (4) ~~`/throttle/{tier}` is unauthenticated unless `THROTTLE_API_KEY` is set~~ **[CORRECTED 13:20 UTC — I was wrong: an app-wide middleware already requires the agent key on every path except /health and /metrics, failing closed with 503 if no key is configured; `THROTTLE_API_KEY` is only a second layer]**; (5) it is not running (defined only in
 `agents-full.yml` / `memory-limits.yml`); and `hypervisor-agent` (dry-run resource guardian) overlaps it. The note `throttle-agent HYPER upgrade.md` is stale (its container id does not exist). **Proposed:** (a) a RAM pre-flight script (host free + WSL avail + swap + compression),
 (b) fix throttle-agent's signal + tiers + auth and run it observe-only, (c) then enable pausing for safe tiers.
 
