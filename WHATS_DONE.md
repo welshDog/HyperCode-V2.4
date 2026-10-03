@@ -2,6 +2,15 @@
 
 > Last synced: 2026-10-03 14:15 UTC by Claude — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (16:15 UTC) — JWT signing secret ROTATED; the exposed 10-year admin token is dead — verified live
+
+- **Why:** the 10-year admin JWT (`.env` `DASHBOARD_SERVICE_JWT`, user 9) was exposed in a transcript earlier today; a JWT can't be revoked singly, so the signing secret was rotated (Lyndz's go; Lyndz ran the script themself, because secret writes are blocked for me by design).
+- **Correction found while mapping it:** core's live secret is `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`, hash-checked equal to the live container), NOT the 65-char `.env` `JWT_SECRET` line (different, unused value). Both in-use copies were rotated together.
+- **Tool:** `scripts/rotate_jwt_secret.py` (+ 9 tests, mutation-checked: removing the line anchor fails 1). Preflight is the default; `--yes` rotates. It aborts unless `.env`, the secrets file and live core agree on the old secret, backs up three files (`*.bak-jwt-rotation-<ts>`, gitignored), writes the new secret, removes the `.env` token line, restarts only the real consumer (`hypercode-core`; `postgres` merely receives `.env` via `env_file:` and was deliberately left running), re-mints the 30-day dashboard JWT (same subject, in place) and restarts the dashboard (it caches the token). Prints only hash prefixes and HTTP codes.
+- **Result (script, then my independent check):** new token → 200; old 30-day token → 403; old 10-year token → 403; no restarted container holds the old secret; core RestartCount 0, dashboard 0, all healthy; dashboard `/api/pulse` 200 without `degraded`, `/api/orchestrator` 200, `/ide` 200. Backups confirmed git-ignored.
+- **Consequences / still true:** every token issued before 16:13 UTC is invalid (re-login); the new dashboard token **expires ~2026-11-02 — re-run the script before then**; `postgres` still carries a copy of the OLD (now dead) secret until its next recreate; I did not verify `hyper-mission-api` / `ai-backend` (not running; they read the same variable, so they pick up the new value when started).
+- **Not rotated (separate decision):** the earlier note about `f1edc13e` (a `.claude/settings.local.json` gateway token in pushed history).
+
 ## 2026-10-03 (15:25 UTC) — Shepherd now applies REAL grants to hyphenated agents (approved follow-on) — deployed + live-verified
 
 - **Change (`55aea70a`):** `policy._agent_caps` resolves exact name → hyphen/underscore variant → `*` (it was exact-key → `*`, so every hyphenated agent ran on the `*` wildcard). Exact match always wins (the `coder-agent`/`qa-engineer` crew entries keep precedence). **Guard:** an entry flagged `"exact_name_only": true` is never reached through a variant — set on `coder_studio` (its `**` path grant relies on Studio's own client-side worktree boundary; Studio sends `coder_studio`), so you approved four agents and exactly four changed.
@@ -287,8 +296,8 @@ hypercode-core, hypercode-dashboard, crew-orchestrator, safety-shepherd.
 
 **⚠️ Security incident (disclosed live):** a `docker compose config | grep` printed the `.env` `DASHBOARD_SERVICE_JWT` value into this
 session's transcript. It is a **10-year (exp 2036) admin JWT for user 9** (superuser). Compose also injects it into `hypercode-core` and
-**`postgres`** (looks accidental). A JWT cannot be revoked singly; the fix is rotating `JWT_SECRET` (invalidates every token incl. the new
-30-day one). **Not done — needs Lyndz's decision.** Always use `docker compose config -q` or name-only filters.
+**`postgres`** (looks accidental). A JWT cannot be revoked singly; the fix is rotating the signing secret (invalidates every token incl. the new
+30-day one). **DONE 2026-10-03 16:13 UTC — see the newest entry at the top of this file.** Always use `docker compose config -q` or name-only filters.
 
 **Not done / not proven:**
 - **The happy path** (`build` → `verify` → guard ALLOW → settle/XP → Scribe) has **never run**: no `coder-agent`/`qa-engineer` containers;

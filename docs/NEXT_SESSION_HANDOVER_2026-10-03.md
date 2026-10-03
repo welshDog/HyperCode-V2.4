@@ -44,7 +44,7 @@ verifier 24, crew suites 224 (earlier run).
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU
 
-1. **Exposed 10-year admin JWT** — `.env` line 214 `DASHBOARD_SERVICE_JWT` (user 9, superuser, exp 2036) was printed into a session transcript by my mistake; compose also injects it into `hypercode-core` and `postgres` (accidental?). Fix = rotate `JWT_SECRET` (invalidates every token incl. the 30-day dashboard one → re-mint, runbook §8) and delete that `.env` line. **Not done.**
+1. ✅ **RESOLVED 2026-10-03 16:13 UTC — signing secret rotated** (see `WHATS_DONE.md` newest entry; the old 10-year token now returns 403, new 30-day dashboard token expires ~2026-11-02). Original note: **Exposed 10-year admin JWT** — `.env` line 214 `DASHBOARD_SERVICE_JWT` (user 9, superuser, exp 2036) was printed into a session transcript by my mistake; compose also injects it into `hypercode-core` and `postgres` (accidental?). Fix = rotate `JWT_SECRET` (invalidates every token incl. the 30-day dashboard one → re-mint, runbook §8) and delete that `.env` line. **Not done.**
 2. **Earlier leak in history:** `f1edc13e` says `.claude/settings.local.json` "contained a gateway token"; untracking does not remove it from the pushed history. Rotate it if it was ever real.
 3. **Verifier strictness** — it said `PASS` with 5 problems listed. Tighten it?
 4. **throttle-agent `enforce`** — not yet. Needs: a quiet baseline, a logon/reboot test of the scheduled task, and a decision between `docker pause` (frees **no RAM**, only CPU) and `stop` (frees RAM, but the healer fights it).

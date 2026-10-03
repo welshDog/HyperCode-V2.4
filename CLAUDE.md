@@ -40,14 +40,14 @@
 - **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
   not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.
 - **Dashboard → core auth:** `/operator/*` needs a human JWT (Bearer) or agent key (X-Agent-Key), **never** the master API key. The dashboard
-  reads a 30-day JWT from `secrets/dashboard_service_jwt.txt` (`DASHBOARD_SERVICE_JWT_FILE`; env var must stay unset). **Expires ~2026-11-01.**
+  reads a 30-day JWT from `secrets/dashboard_service_jwt.txt` (`DASHBOARD_SERVICE_JWT_FILE`; env var must stay unset). **Re-minted 2026-10-03 16:13 UTC; expires ~2026-11-02.**
 - **throttle-agent (fixed 2026-10-03, DEPLOYED observe-only 13:30 UTC; debounce added 13:55 (AMBER must repeat in 3 consecutive NEW samples; RED acts at once) — still do NOT set `enforce` until observe has been reviewed, see `WHATS_DONE.md` 13:55; the combined compose is broken by `evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`, so it was deployed via a temp single-service compose):** `THROTTLE_MODE=off|observe|enforce` (default off; a typo → observe, never enforce); signal = the host guard's JSON (`ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, mounted read-only); an UNKNOWN (missing/stale) signal never acts; `GET /signal` shows what it WOULD do. `docker pause` frees no RAM. Details: `WHATS_DONE.md` 13:20.
 - **The host signal writer is a Task Scheduler job** (`\HyperCode\HyperCode RAM Guard Signal`, as you, at logon, hidden, no elevation, measure-only): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`. If it stops, the signal goes stale → throttle-agent reads UNKNOWN → does nothing.
 - **Before any build / start / restart run `python scripts/ram_guard.py --for build`** (host + WSL + Docker; GREEN needed for a build; `--wait 120` to poll). The Windows HOST running out of RAM (1 MB free, 2026-10-03) hung Docker while `wsl -e free -m` looked fine.
 - **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
   (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
   `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.
-- **Open security item:** a 10-year admin JWT (`.env` line 214, user 9) was exposed in a session transcript 2026-10-03; rotate `JWT_SECRET` (needs a decision).
+- **JWT signing secret ROTATED 2026-10-03 16:13 UTC** (the exposed 10-year admin JWT is dead: 403). Core signs with `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`; the `.env` `JWT_SECRET` line is a different, unused value). Rotate again with `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight) then `--yes`; prints only hashes. New 30-day dashboard token **expires ~2026-11-02** (re-run the script before then). All logins/tokens issued before the rotation need re-issuing.
 
 ---
 
