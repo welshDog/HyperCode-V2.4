@@ -2,7 +2,23 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
-## 2026-10-03 (13:20 UTC) — throttle-agent FIXED (step 2): host-aware signal, current tiers, OBSERVE mode — code + 57 tests done; NOT deployed (guard went RED)
+## 2026-10-03 (13:30 UTC) — throttle-agent DEPLOYED in OBSERVE mode — healthy, reads the host signal, pauses nothing; observe already found 2 flaky-signal issues
+
+- **Gated every heavy step on the RAM guard** (`ram_guard.py --for build` exit 0, then `--for start` exit 0; host 827 MB free, WSL 1,631 MB). Started the **host signal writer** (`python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, a background process I
+  started; the file is valid, no docker finding = not permanently AMBER). Rebuilt `hypercode-throttle-agent:latest` (image predated the change) and started `throttle-agent` observe-only.
+- **Deploy workaround (pre-existing breakage, NOT caused by me):** the combined compose project (`docker-compose.yml` + `agents-full.yml`) does not validate, with or without my change, because `evolve-relay` in `docker-compose.bropets.yml` needs `../BROskiPets-LLM-dNFT/.env` and that sibling repo is
+  not at that path. I extracted the throttle-agent block (programmatically, minus `depends_on`, whose services are already running) into a TEMPORARY compose file in scratch (not committed) and ran it under the same project name/networks:
+  `docker compose -p hypercode-v24 --project-directory . -f <tmp>.yml up -d --no-deps throttle-agent`. **Decision for Lyndz:** fix the `evolve-relay` `env_file` path (or mark it `required: false`) so the real compose works — I did not touch other people's compose. Note `evolve-relay` itself would fail to be recreated today.
+- **Verified:** container `healthy`, RestartCount 0, no OOM, 0 error lines; log `THROTTLE_MODE=observe signal_file=set`; `GET /signal` (via the container's own key, never printed): mode observe, signal read from the host file (age ~20 s), simulated paused tiers `[6]`, protect tiers `[1,2,3]`, tier sizes 11/5/2/15/10/5,
+  and the decision it logged: *would pause tier 6 = minio, cadvisor, node-exporter, security-scanner, fcc-proxy*. **`docker ps --filter status=paused` = 0** — observe never touched Docker. RAM after: 1,622 MB.
+- **What observe mode just taught us (the point of observing):**
+  1. **A flaky WSL read becomes a false AMBER.** From 13:27 the writer's `wsl -e free -m` timed out (25 s cap; cycles stretched to ~58 s) while I was building/starting containers, so `wsl_avail=None` → AMBER ("unreadable = AMBER" is right for a human pre-flight, wrong as an instant auto-pause trigger).
+  2. **Compression flaps around the 2,500 MB AMBER line** (2,542 → 2,167 → 2,040 …), producing AMBER/GREEN flicker.
+  → In **enforce** mode the agent would pause tier 6 on the first such blip. **Proposed (not done):** debounce — pause on AMBER only after N consecutive AMBER cycles (e.g. 3 ≈ 90 s); RED (only produced by real bad numbers) may act at once; raise the guard's WSL read timeout / read WSL memory inside the agent. **Do not set `enforce` until this is fixed.**
+- **Also true:** the agent's older MemStream loop is NOT gated by observe mode — it POSTs `delay_ms` (0/200/500 by MemStream's own pressure) to MemStream every 10 s; harmless today (🟢 LOW → delay 0ms ×8). The host writer is a background process: if the machine reaps it, the signal goes stale → UNKNOWN → the agent does nothing (fail-safe).
+  For a persistent writer use Task Scheduler (your call; I did not create one).
+
+## 2026-10-03 (13:20 UTC) — throttle-agent FIXED (step 2): host-aware signal, current tiers, OBSERVE mode — code + 57 tests done (deployed at 13:30, see above)
 
 - **Corrections to my own audit first:** (a) auth was FINE — an app-wide middleware requires the agent key on everything except /health and /metrics and fails closed (503) if unset; my "unauthenticated" claim was wrong. (b) The autopilot was already OFF by
   default (`AUTO_THROTTLE_ENABLED=false`). What was missing was an *observe* mode and a real signal.
