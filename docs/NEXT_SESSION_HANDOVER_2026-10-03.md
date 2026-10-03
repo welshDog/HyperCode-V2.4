@@ -94,7 +94,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Stop the host from thrashing: build a RAM pre-flight guard (host free + WSL avail + swap + compression), then fix throttle-agent's signal/tiers/auth and run it observe-only (assessment in `WHATS_DONE.md` 12:50). Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
+Stop the host from thrashing: the RAM pre-flight guard is DONE (`scripts/ram_guard.py`, 13:05 UTC); next fix throttle-agent's signal (feed it `ram_guard.py --json --out`), tiers and auth and run it observe-only (assessment in `WHATS_DONE.md` 12:50). Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
 
 ---
 

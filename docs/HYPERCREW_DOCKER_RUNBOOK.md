@@ -26,6 +26,9 @@ docker ps --format '{{.Names}} {{.Status}}' | head -40
 alertmanager celery-exporter prometheus prometheus-cloud grafana-agent`. Some may report "zombie, can not be killed" yet RAM still frees.
 Core logs `Failed to export traces to tempo:4317` while Tempo is stopped — harmless.
 
+**[2026-10-03] Run the guard first:** `python scripts/ram_guard.py --for build` (host + WSL + Docker in ~5 s; a build needs GREEN, exit 0/1/2). Add `--wait 120` to poll. It only measures. `wsl -e free -m` alone
+cannot see the Windows **host** running out (1 MB free on 2026-10-03 while WSL showed 1.3 GB) — that thrash hung Docker and made every container read "unhealthy".
+
 **Stop rule (any step):** available RAM < 1.2 GB, `hypercode-core` unhealthy past 5×30 s, or any unexpected
 restart → stop, start no optional services, write down what you saw.
 

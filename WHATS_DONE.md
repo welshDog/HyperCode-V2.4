@@ -2,6 +2,18 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (13:05 UTC) — RAM pre-flight guard `scripts/ram_guard.py` (step 1 of the throttle plan) — read-only, host-aware, tested
+
+- **Why:** the 12:30 thrash was the **Windows host** (1 MB free, "Memory Compression" 4.5 GB) while `wsl -e free -m` still said 1.3 GB — a WSL-only check could not see it. The guard measures **host + WSL + Docker** in ~5 s and says GREEN / AMBER / RED.
+- **Use:** `python scripts/ram_guard.py --for build` (a build needs GREEN: exit 0 ok / 1 AMBER / 2 RED); `--for restart|start|check` are blocked only by RED; `--wait 120` polls every 10 s; `--json --out ram.json` writes machine-readable
+  output (the intended signal for a fixed throttle-agent). Prints the biggest Windows processes + safe-to-stop-BY-NAME containers when not GREEN. **It never stops or starts anything.** ASCII-only output (cp1252 console).
+- **Thresholds (flags override), calibrated on ONE machine on ONE day:** host free RED<100 / AMBER<300 MB · host compression RED>3500 / AMBER>2500 MB · WSL available RED<1200 (the stop rule) / AMBER<1500 (the build floor) MB · swap used
+  RED>1900 / AMBER>1500 (informational: ~1.08 GB in BOTH the thrash and the good state) · Docker unresponsive = RED, unhealthy containers = AMBER · an unreadable number = AMBER, never GREEN.
+- **Tests:** 17 stdlib `unittest` tests (`python -m unittest discover -s scripts -p "test_ram_guard.py"`), pinned to the REAL readings of 2026-10-03 (thrash must be RED; the good state must be GREEN). **Mutation-checked:** a host-blind guard → 4 tests fail;
+  unreadable-as-GREEN → 1; "build no longer needs GREEN" → 2; Docker-unresponsive-not-RED → 1.
+- **Live, 13:01 UTC:** `python scripts/ram_guard.py --for build` → **AMBER, exit 1, 5.6 s** (host free 821 MB, compression 2,155 MB, WSL available **1,485 MB = 15 MB under the build floor**, swap 1,074 MB, Docker responsive, 0 unhealthy). Correct per the rule.
+- **Not done (next):** step 2 — fix throttle-agent (real signal from `--json --out`, current tiers, auth on) and run it observe-only; step 3 — enable pausing for safe tiers. The guard is NOT yet wired into any script/CI.
+
 ## 2026-10-03 (12:50 UTC) — HyperCrew: 🎉 FIRST GUARD ALLOW on Docker — settle/XP, Scribe draft and the handover gate proven live (capable model via fcc-proxy)
 
 Run `b01b22bc-f784-52e7-a636-0806510b29d5`, default goal, after host memory recovered (host 767 MB free, WSL 1,782 MB avail, 8/8 key containers healthy, RestartCount 0). Proxy started
