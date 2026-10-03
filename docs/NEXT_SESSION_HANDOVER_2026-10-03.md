@@ -34,7 +34,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Audit the older leak (open item 6): check whether `f1edc13e`'s `.claude/settings.local.json` "gateway token" in pushed history was ever a real credential, and rotate it if so.** Done today: throttle-agent stays in OBSERVE (Lyndz), `evolve-relay` compose path fixed, relay env trimmed.
+**Run a full end-to-end crew run with the tightened verifier (the one thing today's changes have not been proven on; `scripts/prove-crew.py` needs a core restart in the middle, so do it deliberately, guard GREEN, no crew run in flight).** Done today: throttle-agent stays in OBSERVE (Lyndz), `evolve-relay` compose path fixed, relay env trimmed.
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
@@ -43,7 +43,7 @@
 3. ✅ **`evolve-relay` compose path FIXED 2026-10-03 (16:15 UTC):** the Pets repo lives at `H:/HYPERFOCUSZONE/BROskiPets-LLM-dNFT` (one level above HperCore), not next to HyperCode-V2.4. `docker-compose.bropets.yml` now uses `${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}` for both build contexts and the relay's `env_file` (now `required: false`); the combined project validates again (56 services). **Least-privilege trim DONE (16:44 UTC, `49f0cc6b`):** the relay now gets only 7 variables from the Pets `.env` via the gitignored `secrets/evolve_relay.env` (made by `scripts/make_relay_env.py`; 38 others are no longer passed), the container was recreated on the SAME image (no rebuild), healthy, restarts 0. Re-run the script after rotating any of those keys, then recreate the relay.
 4. **Observability stack:** restart it or leave it off (needs ~1+ GB; the 4 GB WSL cap is tight).
 5. **Dashboard token expiry ~2026-11-02:** re-run `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight, then `--yes`) before then. Also remove the `/permissions` rule you added for the old mint command if it is still there.
-6. **Earlier leak in history:** `f1edc13e` says `.claude/settings.local.json` "contained a gateway token"; untracking does not remove it from pushed history. Rotate it if it was ever real.
+6. ✅ **Earlier leak in history AUDITED 2026-10-03 — no action needed** (see `WHATS_DONE.md`): the file held one token, the local `fcc-proxy` auth (`ANTHROPIC_BASE_URL` = `http://localhost:8083`), in public history 2026-08-27 → 2026-10-02; it is NOT in use any more (295 local values compared, no match), so it authenticates to nothing. No rotation, no history rewrite.
 7. **Verifier false FAILs:** the model is not deterministic, so a clean diff can occasionally FAIL (costs a re-run, never a bad PASS). Watch it; loosen only with evidence.
 8. Original D1–D12 decisions, kill-switch compose wiring, a real GitHub token for the Scribe (do NOT configure one without asking): all still open and untouched.
 9. The **unexplained dashboard restart** at 12:50:23Z — worth a look if it recurs. Also: `postgres` still holds a copy of the OLD (dead) JWT secret via `env_file:` until its next recreate (harmless).
