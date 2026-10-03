@@ -33,7 +33,7 @@
   Panic/Focus, Quest Settler, Scribe, Morning Card. Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Runbook: `docs/HYPERCREW_DOCKER_RUNBOOK.md`.
 - **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
   **🎉 Guard ALLOW → Quest Settler (20 XP/10 coins/achievement) → Scribe draft → handover gate PROVEN live 2026-10-03 12:50 UTC** (run `b01b22bc-…`; builder + verifier = `nemotron-3-ultra-550b-a55b` via `fcc-proxy`, opt-in
-  `CREW_LLM_BASE_URL`, sends crew text to NVIDIA NIM). **Still unproven:** real GitHub publish; the verifier PASSed with 5 problems listed (strictness = a decision). Earlier: first COMPLETED run (guard BLOCK) with the weak model.
+  `CREW_LLM_BASE_URL`, sends crew text to NVIDIA NIM). **Still unproven:** real GitHub publish; the verifier now downgrades a PASS that lists problems (`d78fa0e3`, 2026-10-03 16:50). Earlier: first COMPLETED run (guard BLOCK) with the weak model.
   `qa-engineer` has a real fail-safe verifier (`agents/04-qa-engineer/crew_verifier.py`, `8043d355`: rules + model, never invents a PASS); live the guard fails only on `verifier_verdict: FAIL`
   because the only host model (`smollm2`) can't write a unified diff. Core was rebuilt at `79b5be99` (2026-10-03 02:05 UTC) so it includes the Guardian fix `34ba1667` and `a2ee4530`; after any backend commit, rebuild + swap core (`up -d --no-deps hypercode-core`) before trusting a live proof. `coder-agent`'s keyword mocks (health/metrics/deploy/docker/"todo list")
   are now flagged `mocked` and refused by core, and crew stage tasks skip them. Crew steps also fail closed if Shepherd is down.
