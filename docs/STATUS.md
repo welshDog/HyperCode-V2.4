@@ -56,7 +56,7 @@
 > (kept accurate every session; this file's own fleet table below is not — see the
 > banner in that section).
 
-## 🧠 HyperCrew + host-RAM safety (2026-10-03, verified 14:14 UTC) — **DEPLOYED on Docker; happy path PROVEN; throttle-agent in OBSERVE mode**
+## 🧠 HyperCrew + host-RAM safety (2026-10-03, verified 16:01 UTC; since 14:14: Shepherd grants for hyphenated agents, JWT secret rotated, verifier tightened) — **DEPLOYED on Docker; happy path PROVEN; throttle-agent in OBSERVE mode**
 
 - **HyperCrew:** deployed (`hypercode-core` + `hypercode-dashboard` rebuilt from branch `claude/focused-darwin-ljrs8k`, draft PR #547); migration `023` applied; `scripts/prove-crew.py` phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
   **Guard ALLOW → settle/XP (20 XP, 10 coins, "First Squad Run") → Scribe draft → handover gate (skipped, no PR) PROVEN live** (run `b01b22bc-…`, 12:50 UTC). Crew steps fail closed if Safety Shepherd is down. Shepherd grants now apply to hyphenated agent names too (`55aea70a`, live 2026-10-03; `coder-studio` stays on the wildcard); core/orchestrator still `monitor` mode.
