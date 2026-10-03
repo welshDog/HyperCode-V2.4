@@ -26,7 +26,8 @@ CREW_AGENTS: dict[str, str] = {
 ALLOWED_AGENTS = frozenset(CREW_AGENTS.values())
 
 MAX_SUMMARY_CHARS = 4000
-_TEXT_KEYS = ("result", "output", "response", "text", "content", "message", "summary")
+# "code" is last so it never outranks the others: coder-agent's real (Ollama) reply is {status, code, model}.
+_TEXT_KEYS = ("result", "output", "response", "text", "content", "message", "summary", "code")
 _DISPATCH_TIMEOUT_S = 120.0
 
 # A tripwire for commands an agent *proposes*, not a sandbox: nothing here is ever executed.

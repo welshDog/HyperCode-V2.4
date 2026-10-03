@@ -135,15 +135,32 @@ def test_an_agent_that_flags_its_own_result_as_mocked_is_refused(agent_reply):
         _call(lambda r: httpx.Response(200, json=body))
 
 
-@pytest.mark.xfail(strict=True, reason=(
-    "KNOWN GAP (found 2026-10-03): coder-agent's real Ollama reply is {status, code, model} and 'code' is not in "
-    "_TEXT_KEYS, so a genuine answer is refused as 'empty'. Needs a decision: add 'code' to _TEXT_KEYS. "
-    "strict=True: when fixed this XPASS fails the suite so this marker gets removed."))
-def test_a_real_nested_result_is_not_mistaken_for_a_mock():
-    reply = {"task_id": "t", "agent": "coder-agent", "status": "completed",
-             "result": {"status": "completed", "code": "def f(): ...", "model": "tinyllama:latest"}}
-    body = {"status": "completed", "results": {"coder-agent": reply}}
-    assert _call(lambda r: httpx.Response(200, json=body)) is not None
+def _coder_reply(code):
+    """coder-agent's real (Ollama) reply as the orchestrator returns it: the whole TaskResponse."""
+    reply = {"task_id": "t", "agent": "coder-agent", "status": "completed", "error": None,
+             "result": {"status": "completed", "code": code, "model": "tinyllama:latest"}}
+    return {"status": "completed", "results": {"coder-agent": reply}}
+
+
+def test_a_real_coder_reply_with_a_code_key_is_accepted_and_not_mistaken_for_a_mock():
+    out = _call(lambda r: httpx.Response(200, json=_coder_reply("def f():\n    return 1")))
+    assert out["ok"] is True and out["summary"] == "def f():\n    return 1"
+
+
+def test_a_code_reply_is_redacted_like_any_other_text():
+    out = _call(lambda r: httpx.Response(200, json=_coder_reply("KEY = 'sk-abcdefghijklmnopqrstuvwxyz123456'")))
+    assert "sk-abc" not in out["summary"] and "[REDACTED]" in out["summary"]
+    assert out["summary_hash"] == sha256_hex(out["summary"])
+
+
+def test_an_empty_code_reply_is_still_refused():
+    with pytest.raises(DispatchError, match="empty"):
+        _call(lambda r: httpx.Response(200, json=_coder_reply("   ")))
+
+
+def test_a_code_reply_still_trips_the_forbidden_scan_downstream():
+    out = _call(lambda r: httpx.Response(200, json=_coder_reply("then git push --force origin main")))
+    assert "force flag" in scan_forbidden(out["summary"])
 
 
 @pytest.mark.parametrize("response", [
