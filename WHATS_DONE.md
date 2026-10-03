@@ -2,6 +2,20 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (13:55 UTC) — throttle-agent DEBOUNCE built, deployed (observe) and seen working live
+
+- **Why:** the 13:30 observe review found two false AMBERs (a timed-out WSL read → `wsl_avail=None` → AMBER; compression flickering around 2,500 MB). In enforce mode the first blip would have paused tier 6.
+- **Rule (`pressure.step`, pure):** AMBER-or-worse must be seen in **N consecutive NEW signal samples** (`THROTTLE_AMBER_CYCLES`, default 3) before it acts; RED acts after `THROTTLE_RED_CYCLES` (default 1 — RED only comes from real bad numbers; unreadable = AMBER). **Samples are identified by the signal file's mtime** because the agent polls every 30 s
+  but the host writes every 30-60 s: re-reading the same file does not count. GREEN or UNKNOWN resets the streaks; the resume hysteresis (continuous GREEN for the hold) is unchanged; `step`'s defaults (1/1) keep the old behaviour. `/signal` + the decision log show `effective` (RED/AMBER/PENDING/GREEN/UNKNOWN) and the streaks.
+  `ram_guard`: WSL read timeout 25 → 40 s. Compose (`agents-full.yml`, throttle-agent block): `THROTTLE_AMBER_CYCLES` / `THROTTLE_RED_CYCLES` exposed. Commit `85da2367`.
+- **Tests: 54 (31 pure + 23 integration with the real main.py in the throttle image), all pass.** Includes a **replay of the real 13:24-13:28 readings** (G, A, G, G, A, A → never pauses; the old policy would have paused at the first A), "same sample re-read does not count", GREEN/UNKNOWN reset, RED acts at once,
+  enforce mode ignores blips and never connects to Docker, and the config floor (min 1, invalid → default). **Mutation-checked:** counting a re-read as new → 1 red; UNKNOWN not resetting → 1; threshold ignored → 9; PENDING still pausing → 8.
+- **Deployed:** guard gated the build (GREEN, exit 0) and the start (GREEN, exit 0); temp single-service compose regenerated; `throttle-agent` recreated in observe mode. Its own healthcheck read `unhealthy` twice during startup under load, then **healthy, RestartCount 0, no OOM**.
+- **Seen working live:** 12:48:37 `signal=AMBER effective=PENDING amber=1/3 → would pause=[]` (correctly did NOT act); 12:50:17 `amber=3/3 → effective=AMBER would pause=[6]`. **That AMBER was REAL** (host free 198 MB, compression 2,923 MB, WSL 1,412 MB — the machine really was under pressure right after my rebuild), so the debounce
+  passed a genuine signal after 3 consecutive samples (~100 s) and held back the first one. `GET /signal`: mode observe, simulated paused tiers `[6]`, protect tiers `[1,2,3]`. **`docker ps --filter status=paused` = 0.** At 13:55 the guard read AMBER with compression **3,382 MB (RED at 3,500)** — the host is trending toward the thrash zone again; no heavy work after this.
+- **Still true / not done:** enforce has NOT been tried and should not be until observe has run for a while and the would-pause list (tier 6: minio, cadvisor, node-exporter, security-scanner, fcc-proxy; on RED also tiers 5 and 4) has been reviewed; `docker pause` frees no RAM (it only stops CPU; a real "free memory" action needs `stop`, which the healer fights); the temp compose workaround
+  stands (`evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`); the host signal writer is a background process (if reaped → stale → UNKNOWN → no action) — Task Scheduler is the user's call.
+
 ## 2026-10-03 (13:30 UTC) — throttle-agent DEPLOYED in OBSERVE mode — healthy, reads the host signal, pauses nothing; observe already found 2 flaky-signal issues
 
 - **Gated every heavy step on the RAM guard** (`ram_guard.py --for build` exit 0, then `--for start` exit 0; host 827 MB free, WSL 1,631 MB). Started the **host signal writer** (`python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, a background process I
