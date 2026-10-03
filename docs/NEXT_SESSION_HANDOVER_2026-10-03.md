@@ -34,7 +34,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Decide between (a) re-running the reasoning-limit QUALITY probe (variants baseline vs thinking-off, 5 diffs incl. broken ones, 10 calls, output to a file, retry on 5xx, only when memory is comfortable) and (b) hardening against upstream NIM flakes (one short retry on 503/529/500 in the verifier; coder-agent returns an ERROR status on timeout).** Learned today: NVIDIA NIM's free tier is intermittently overloaded (HTTP 503 -> proxy 529/500); thinking-off cuts a clean-diff verify to ~13 tokens / 1-5 s but its bug-catching ability is UNTESTED. Done today: verifier logging, crew rate x2 (9/15, then 6/10 with causes), full end-to-end run, latency headroom, relay env trimmed.
+**Harden the BUILDER (`agents/coder/main.py`): return an ERROR status instead of a 'completed' error string when its model call fails or times out, and add the same bounded 5xx retry inside its 100 s budget (it is baked into an image: rebuild + recreate with the RAM guard GREEN, nothing running).** Then (optional, when memory is comfortable) re-run the reasoning-limit QUALITY probe (baseline vs thinking-off, 5 diffs incl. broken ones, 10 calls, output to a FILE, retry on 5xx). Done today: VERIFIER retry on 5xx (proven; builder flake is now the weakest link: 2 ReadTimeouts in the last ~17 runs), verifier logging, crew rate x2, full end-to-end run, latency headroom, relay env trimmed.
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
