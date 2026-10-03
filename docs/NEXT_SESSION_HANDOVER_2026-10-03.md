@@ -53,6 +53,11 @@ verifier 24, crew suites 224 (earlier run).
 7. The **`/permissions` rule** you added for the dashboard-token mint command — remove it now that the token exists. The dashboard JWT **expires ~2026-11-01**.
 8. D1–D12 original decisions, kill-switch compose wiring, a real GitHub token for the Scribe: all still open and untouched.
 9. The **unexplained dashboard restart** at 12:50:23 UTC (above) — worth a look if it recurs.
+10. **From the IDE health check (`docs/IDE_HEALTH_REPORT_2026-10-03.md`, 14:40 UTC):**
+    - **Safety Shepherd grants:** `crew_build`/`crew_verify` are not in `capabilities.json` for `coder_agent`/`qa_engineer`, so the orchestrator's dispatch check ESCALATEs (20 in the Safety Feed). The crew works only because core + orchestrator are in `monitor` mode — **never switch to `enforce` without granting them.** (This corrects my earlier "Shepherd answers ALLOW for crew steps", true only for the flow runner's check.) Grant them, or keep monitor on purpose.
+    - **Pulse panel bug** (`agents/dashboard/app/api/pulse/route.ts`): reads `broski_coins`/`total_xp` but core returns `coins`/`xp` (shows 0 XP, real 6,705), and sends no JWT to `/orchestrator/agents` (401 → 0 agents; with the JWT core returns 11). Small fix.
+    - **Stale parked crew run** `01908424-8c21…` (awaiting_approval since 11:38 UTC): cancel it (clears the Morning Card amber + "1 run is waiting on you").
+    - **9 stray stopped auto-named containers** (`sweet_bose`, `frosty_benz`, …) show as DOWN in the Services panel: `docker rm` them if you agree. Grafana panel is broken only because the obs stack is stopped (expected).
 
 ## ❌ NOT PROVEN
 
