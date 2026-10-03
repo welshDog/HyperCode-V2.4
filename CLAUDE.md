@@ -1,7 +1,7 @@
 # 🧠 CLAUDE.md — HyperCode-V2.4 Constitution
 > **For ANY AI, agent, or human working on HyperCode-V2.4.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **Updated 2026-10-03 19:35 UTC** (HyperCrew + host-RAM-safety sections are current; the 27-agent tables further down are still the Aug 2026 snapshot)
+> Built by @welshDog — **Updated 2026-10-03 20:15 UTC** (HyperCrew + host-RAM-safety sections are current; the 27-agent tables further down are still the Aug 2026 snapshot)
 
 ---
 
@@ -45,6 +45,7 @@
 - **throttle-agent (fixed 2026-10-03, DEPLOYED observe-only 13:30 UTC; debounce added 13:55 (AMBER must repeat in 3 consecutive NEW samples; RED acts at once) — DECIDED 2026-10-03 (Lyndz): stay in OBSERVE, do NOT set `enforce` (review: `WHATS_DONE.md` 16:10 UTC); the combined compose was broken by a wrong Pets-repo path until 2026-10-03 (now fixed via `BROSKIPETS_DIR`, see `WHATS_DONE.md`), so it was deployed via a temp single-service compose):** `THROTTLE_MODE=off|observe|enforce` (default off; a typo → observe, never enforce); signal = the host guard's JSON (`ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, mounted read-only); an UNKNOWN (missing/stale) signal never acts; `GET /signal` shows what it WOULD do. `docker pause` frees no RAM. Details: `WHATS_DONE.md` 13:20.
 - **The host signal writer is a Task Scheduler job** (`\HyperCode\HyperCode RAM Guard Signal`, as you, at logon, hidden, no elevation, measure-only): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`. If it stops, the signal goes stale → throttle-agent reads UNKNOWN → does nothing.
 - **Before any build / start / restart run `python scripts/ram_guard.py --for build`** (host + WSL + Docker; GREEN needed for a build; `--wait 120` to poll). The Windows HOST running out of RAM (1 MB free, 2026-10-03) hung Docker while `wsl -e free -m` looked fine.
+- **End of day 2026-10-03:** memory is tight (WSL available ~1.2 GB with `grafana` + `grafana-agent` running, 440 MiB, not started by the assistant: Lyndz decides). The healer (`docker logs healer-agent | grep docker_restart`) restarts the dashboard/core on latency anomalies: check it before calling a restart unexplained. Tomorrow's routine + next task: top of `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
 - **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
   (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
   `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.

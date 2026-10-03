@@ -1,10 +1,18 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-03 (HyperCrew on Docker, hardened and measured)
 
-> Current as of **2026-10-03 ~19:35 UTC**, verified live. Branch `claude/focused-darwin-ljrs8k` · draft PR #547. `WHATS_DONE.md` has the full detail and every exact proof line; live status beats this file.
+> Current as of **2026-10-03 ~20:15 UTC (end of day)**, verified live. Branch `claude/focused-darwin-ljrs8k` · draft PR #547. `WHATS_DONE.md` has the full detail and every exact proof line; live status beats this file.
 > Rewritten as one clean document: every dated "UPDATE"/"RESOLVED" patch it had accumulated is folded in (history is in `WHATS_DONE.md` and `git log`).
 > ⏱️ **Time labels:** this machine runs BST (UTC+1). Labels written before ~14:15 UTC in the older docs mix docker/UTC and local clock times; labels from 14:05 UTC on were checked against commit times and container timestamps. **Git commit times (`%z`) and `docker inspect` are authoritative; true UTC = local − 1 h.**
 
 ---
+
+## 🌅 START HERE TOMORROW (5 minutes, all read-only)
+
+1. `cd` to `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`, `git fetch`, `git status -sb` (the other Claude session may have pushed CodeQL tidy-ups: rebase, re-run the tests). `results/*` shows modified from another process: never commit it.
+2. **Memory first:** `MSYS_NO_PATHCONV=1 python scripts/ram_guard.py --for check`. Last night it read **AMBER, WSL available ~1,207 MB (7 MB above your 1.2 GB stop rule)** with `grafana` + `grafana-agent` running (440 MiB, not started by me). If it is RED/AMBER-edge: no builds, no measurement runs, no optional services (your stop rule); decide the Grafana question first (open item 1).
+3. `docker ps --filter health=unhealthy -q | wc -l` (expect 0) and `docker ps --filter status=paused -q | wc -l` (expect 0).
+4. **Proxy still ON?** `docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' coder-agent | grep ^CREW_LLM_BASE_URL=` (must show `http://fcc-proxy:8083`; same for `qa-engineer`). If the builder is ever recreated without it, the crew silently uses the weak local model (see gotchas).
+5. Then the **NEXT TASK** below. Healer note: if something restarted on its own, check `docker logs healer-agent 2>&1 | grep docker_restart` BEFORE calling it unexplained (it restarts the dashboard and core on latency anomalies; see open item 3).
 
 ## 🎉 THE SHORT VERSION
 
@@ -33,19 +41,19 @@
 
 | Thing | State |
 |---|---|
-| Containers | **36 running, 0 paused, 0 unhealthy**; core, dashboard, orchestrator, coder-agent, qa-engineer, safety-shepherd, fcc-proxy, throttle-agent, healer, evolve-relay all `healthy`, RestartCount 0 |
+| Containers | **38 running, 0 paused, 0 unhealthy** (it was 36: `grafana` + `grafana-agent` were STARTED this evening at 19:57Z / 20:01Z by someone other than me; created weeks ago, no restarts; the rest of the obs stack is still stopped, so Grafana has no data behind it). core, dashboard, orchestrator, coder-agent, qa-engineer, safety-shepherd, fcc-proxy, throttle-agent, healer, evolve-relay all `healthy`, RestartCount 0 |
 | `coder-agent` | image **built 19:20Z** (`82839e91d008`, was `7038663b170f`) and **recreated with the proxy ON at 19:26Z** (an earlier recreate at ~19:22Z had lost it, see below), with the builder hardening; **proxy ON** (`CREW_LLM_BASE_URL=http://fcc-proxy:8083`). ⚠️ I first recreated it WITHOUT that variable (compose default is empty = opt-in) and caught it by checking; **any recreate of coder-agent/qa-engineer must pass `CREW_LLM_BASE_URL=http://fcc-proxy:8083` in the shell env** (e.g. `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose --profile agents -f docker-compose.yml up -d --no-deps --no-build coder-agent`) |
 | `qa-engineer` | healthy; last restarted 18:56Z; source is bind-mounted (restart picks up code); verifier 105 s budget + retry + `crew_verify` log line live |
 | `hypercode-core` | healthy; last started 17:10Z (my deliberate `docker restart` for the end-to-end proof; a healer restart at 14:19Z earlier); **core code was NOT changed today** |
-| `throttle-agent` | healthy, `THROTTLE_MODE=observe`; since 12:48Z: **136 decisions** (GREEN 61, AMBER-pending 54 = blips the debounce absorbed, AMBER 18, RED 3), **10 would-pause events** (all tier 6 at AMBER except the early RED ones; the recent ones coincide with my heavy crew-run loops), **0 stale-signal periods, 0 errors, 0 containers ever paused** |
+| `throttle-agent` | healthy, `THROTTLE_MODE=observe`; since 12:48Z: **139 decisions** (GREEN 62, AMBER-pending 55 = blips the debounce absorbed, AMBER 19, RED 3), **11 would-pause events** (all tier 6 at AMBER except the early RED ones; recent ones coincide with my heavy crew-run loops), **0 stale-signal periods, 0 errors, 0 containers ever paused**; last decision 19:59Z |
 | `evolve-relay` | recreated 17:43 local with the trimmed env (7 vars), healthy |
-| Observability stack | **STOPPED** (12 containers; Grafana panel "refused to connect" is expected) |
-| Memory (guard, 19:30 UTC) | **AMBER** — host free 611 MB, compression 1,811 MB, WSL available 1,491 MB (it is often AMBER/GREEN-edge now; the harness killed one background probe at low memory). Build floor is 1.5 GB WSL available |
+| Observability stack | **MOSTLY STOPPED**: prometheus, prometheus-cloud, loki, tempo, promtail, alertmanager, pyroscope, cadvisor, node-exporter, celery-exporter are stopped (by me this morning to free RAM); **`grafana` (313 MiB) + `grafana-agent` (127 MiB) are running** (started this evening, not by me; ~440 MiB for a Grafana with no datasources up). The healer logs `alert_only ... CRITICAL: 6,500 consecutive failures` for Prometheus/HyperHealth/Grafana roughly every minute (noise from the stopped stack) |
+| Memory (20:06-20:15 UTC) | **AMBER, at the edge:** `wsl -e free -m` = total 3,917 MB, used 2,501, **available 1,207 MB** (your stop rule is 1.2 GB; the build floor is 1.5 GB); host free 794 MB, compression 1,264 MB. Containers total 1,802 MiB. The guard printed `WSL available: unreadable` once (`wsl -e` timed out with `Wsl/Service/0x8007274c`, then answered on retry): an unreadable WSL reading is itself a warning sign |
 | Git | branch in sync with `origin` after a clean rebase onto the other session's CodeQL tidy-ups; `results/*` shows modified from another process (not mine; never commit it) |
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Re-measure the crew success rate with ALL the hardening in place** (`MSYS_NO_PATHCONV=1 bash scripts/measure-crew-rate.sh` with ~10 goals, guard not RED, one at a time) and, for every non-ALLOW, read its `crew_build` / `crew_verify` log line to see whether the cause is now NIM slowness, a genuine FAIL, or something new.
+**Re-measure the crew success rate with ALL the hardening in place** (`MSYS_NO_PATHCONV=1 bash scripts/measure-crew-rate.sh` with ~10 goals, one at a time) and, for every non-ALLOW, read its `crew_build` / `crew_verify` log line to see whether the cause is now NIM slowness, a genuine FAIL, or something new. **Only when the guard is GREEN and WSL available is comfortably above 1.5 GB: tonight's 1,207 MB is too tight (decide the Grafana question first).**
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
@@ -56,9 +64,13 @@
 5. **Dashboard token expiry ~2026-11-02:** re-run `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight, then `--yes`) before then. Remove the `/permissions` rule you added for the old mint command if it is still there.
 6. **Observability stack:** restart it or leave it off (needs ~1+ GB; the 4 GB WSL cap is tight).
 7. Original D1–D12 decisions, kill-switch compose wiring, a real GitHub token for the Scribe (do **NOT** configure one without asking): all still open and untouched.
-8. The **unexplained dashboard restart** at 12:50:23Z — worth a look if it recurs. `postgres` still holds a copy of the OLD (dead) JWT secret via `env_file:` until its next recreate (harmless).
+8. ✅ **The 'unexplained' dashboard restarts are EXPLAINED (my earlier 'not the healer' was wrong: I searched the wrong log lines):** `healer-agent` logs `Healing Mission Control via docker_restart` (Mission Control = the dashboard) at 12:50:04Z, 13:55Z, 14:33Z, 19:13Z and 19:21Z, and `Healing HyperCode Backend via docker_restart` (= core) at 12:11Z, 12:43Z, 13:46Z, 14:19Z, on latency z-score anomalies (threshold 3.0) and after my own deliberate restarts ('N consecutive failures'). See open item 3. `postgres` still holds a copy of the OLD (dead) JWT secret via `env_file:` until its next recreate (harmless).
 9. **Pre-existing, not mine:** `agents/coder/test_coder.py` has 5 failing tests (they predate the agent's auth middleware and get 503/401); my new tests are in `agents/coder/test_crew_build.py`. Fix or retire them deliberately; do not "fix" by loosening.
 10. **Housekeeping:** synthetic probe files remain in `qa-engineer`'s `/tmp` (removal not permitted; harmless; gone on recreate).
+
+11. **Grafana + grafana-agent are running (440 MiB) and WSL available is 1,207 MB, 7 MB above your stop rule.** I did not start them and did not stop them (not mine). They have no datasources (prometheus/loki/tempo are stopped). Your call tomorrow: stop both (`docker stop grafana grafana-agent`, frees ~440 MiB, restores ~1.65 GB available) or restart the whole obs stack deliberately (needs ~1+ GB, which the 4 GB WSL cap does not have while the crew stack runs).
+12. **The healer is noisy and can interrupt crew runs:** (a) it logs `alert_only ... CRITICAL: ~6,500 consecutive failures` about once a minute for the stopped obs components; (b) it `docker_restart`s the dashboard and core on latency anomalies (5 + 4 restarts today), which can land in the middle of a crew run (a run survives a core restart, proven, but it is churn). Consider tuning its z-score threshold / watch list or marking the stopped obs services as expected-down. Not started.
+13. **WSL responsiveness:** `wsl -e` can time out under load (seen once at 20:06Z); the guard then reports `unreadable` + AMBER. If it persists, treat the host as short of memory.
 
 ## ❌ NOT PROVEN
 
@@ -98,6 +110,7 @@ The other Claude session also pushes to this branch (CodeQL tidy-ups): **always 
 - **Recreating `coder-agent`/`qa-engineer` drops the opt-in proxy** unless `CREW_LLM_BASE_URL=http://fcc-proxy:8083` is in the shell env (verify afterwards: `docker inspect` env, the URL only; the token is `CREW_LLM_AUTH_TOKEN`, never print it). `coder-agent` is baked into an image (rebuild + recreate); `qa-engineer` and `crew-orchestrator` source is bind-mounted (restart only); core and `safety-shepherd` are images.
 - **Agents wrap every result as `status="completed"`** (base agent): an error dict returned by `process_task` ends up nested. Only a TOP-LEVEL `status: error` (the coder's `execute()` now does this for crew stages) is rejected by core.
 - `!` in the Claude Code prompt runs **Git Bash**; `free -m` → `wsl -e free -m`; `MSYS_NO_PATHCONV=1` (and `export` it). The console is cp1252: keep script output ASCII. The tool layer **halves backslashes** in shell/Python heredocs: use the Edit/Write tool or write the script to a file (twice today a patch script silently wrote nothing/garbage).
+- **The healer restarts things:** check `docker logs healer-agent 2>&1 | grep docker_restart` (it has timestamps) before treating a clean restart (exit 0, RestartCount 0) of the dashboard/core/ollama as unexplained. Mission Control = the dashboard in its log.
 - **Never** show `docker compose config` (expands `.env` secrets; use `-q`, or pipe `--format json` into a script that prints only chosen fields). A token must never be printed; scan files for `eyJ…`/`nvapi-`/`sk-` before every commit. The auto-mode classifier blocks reading/writing credentials by design — prepare a script and have the user run it with `!` (that is how the JWT rotation and the relay env were done).
 - Core signs JWTs with **`HYPERCODE_JWT_SECRET`** (= `secrets/jwt_secret.txt`), not the `.env` `JWT_SECRET` line. The dashboard **caches** its token in memory → restart it after re-minting.
 - **Mutation-check your tests and verify the mutation actually applied** (three times a "mutation" silently didn't, and twice a test passed for the wrong reason: a 100 s fake duration tripped a different guard, a fake call that ignored its timeout). A retry test must use fast-failing cases.
