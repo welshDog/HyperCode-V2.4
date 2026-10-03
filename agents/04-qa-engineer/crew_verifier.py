@@ -45,7 +45,11 @@ _SECRET_PATH = re.compile(r"(?i)(?:^|/)(?:\.env(?:\.[\w.-]+)?|secrets)(?:/|$)")
 
 MAX_CHANGE_CHARS = 8000  # over this the proposal is a rule FAIL: it is never silently truncated
 MAX_REVIEW_CHARS = 1500
-MODEL_TIMEOUT_S = 90.0  # the crew's dispatch gives an agent 120 s
+# Core waits _DISPATCH_TIMEOUT_S = 120 s for the whole /execute (backend/app/crew/dispatch.py); the orchestrator spends a few
+# seconds before it calls this agent (Shepherd check, skills routing). Live reasoning-model calls took 24-90 s (2026-10-03), so
+# 90 s left no headroom. 105 s keeps ~15 s of margin. A test pins this below the core limit: a higher value would be useless
+# (core gives up first), and a timeout is an ERROR, never a verdict (the run fails closed).
+MODEL_TIMEOUT_S = 105.0
 
 
 class VerifierError(Exception):

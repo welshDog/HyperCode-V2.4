@@ -256,3 +256,40 @@ def test_a_diff_touching_env_or_secrets_is_a_rule_FAIL(path):
 def test_harmless_lookalike_paths_are_not_flagged(path):
     out, calls = run(task_for(d_for(path)), reply="PROBLEMS: none\nVERDICT: PASS")
     assert len(calls) == 1 and verdict_lines(out["result"]) == ["VERDICT: PASS"]
+
+
+# -- latency headroom (2026-10-03): live reasoning-model calls took 24-90 s against a 90 s timeout ----------------------
+def test_the_model_timeout_has_headroom_but_stays_below_the_core_dispatch_limit():
+    import pathlib
+
+    src = pathlib.Path(__file__).resolve().parents[2] / "backend" / "app" / "crew" / "dispatch.py"
+    if not src.exists():
+        pytest.skip("core source not next to the agent (running inside the image)")
+    m = re.search(r"_DISPATCH_TIMEOUT_S\s*=\s*([0-9.]+)", src.read_text(encoding="utf-8"))
+    assert m, "could not find core's dispatch timeout"
+    core = float(m.group(1))
+    assert cv.MODEL_TIMEOUT_S >= 100.0, "live calls reach ~90 s: the old 90 s limit had no headroom"
+    assert cv.MODEL_TIMEOUT_S <= core - 10.0, f"core gives up after {core}s: the model timeout must stay >=10 s below it"
+
+
+def test_the_configured_timeout_is_what_the_model_call_receives(monkeypatch):
+    seen = {}
+
+    def fake_post(base, token, model, prompt, timeout, max_tokens):
+        seen["timeout"] = timeout
+        return "PROBLEMS: none\nVERDICT: PASS"
+
+    monkeypatch.setattr(cv, "_post_anthropic", fake_post)
+    monkeypatch.setenv("CREW_LLM_BASE_URL", "http://fcc-proxy:8083")
+    asyncio.run(cv.verify(task_for(DIFF)))
+    assert seen["timeout"] == cv.MODEL_TIMEOUT_S
+
+
+def test_a_real_socket_timeout_becomes_an_error_never_a_verdict(monkeypatch):
+    def slow(*a, **k):
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(cv.urllib.request, "urlopen", slow)
+    monkeypatch.setenv("CREW_LLM_BASE_URL", "http://fcc-proxy:8083")
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and "VERDICT" not in out["message"] and "unreachable" in out["message"]
