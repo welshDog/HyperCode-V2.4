@@ -34,7 +34,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Diagnose the UNKNOWN verdict (1 of 5 live runs): first add logging in qa-engineer of `stop_reason` / output tokens / text length / verdict per verify call (never the diff), re-measure with `scripts/measure-crew-rate.sh`, then decide the fix (smaller thinking budget, or one retry on UNKNOWN only; NOT a blind `max_tokens` increase).** Measured today: crew success rate 3 of 5 ALLOW (2 BLOCK: 1 genuine model FAIL, 1 UNKNOWN), 0 failed/stuck.
+**Re-measure the crew rate WITH the new logging (`scripts/measure-crew-rate.sh`, ~10 runs ideally) and, for every non-ALLOW, read its `crew_verify` line in `docker logs qa-engineer 2>&1 | grep crew_verify` (stop_reason / tokens / thinking size / reply_verdict) to learn WHY, then decide the UNKNOWN fix (smaller thinking budget or one retry on UNKNOWN only; NOT a blind `max_tokens` increase).** Done today: verifier logging (live-proven), crew rate measured (3 of 5 ALLOW), full end-to-end run, latency headroom, relay env trimmed.
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
@@ -50,7 +50,7 @@
 
 ## ❌ NOT PROVEN
 
-Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · a crew success rate with enough runs to trust (5 measured: 3 ALLOW / 2 BLOCK); WHY the 1 UNKNOWN happened (verifier text + stop reason are not logged) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
+Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · a crew success rate with enough runs to trust (5 measured: 3 ALLOW / 2 BLOCK); WHY the 1 UNKNOWN happened (logging now exists, but that run predates it) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
 
 ## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check was scheduled for 17:07 local, job `d5a747ee`)
 
