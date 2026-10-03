@@ -34,13 +34,13 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Decide on the throttle-agent recommendation (review DONE 16:10 UTC: keep OBSERVE, do not enforce; optionally move `fcc-proxy` out of tier 6 and log which threshold tripped — see `WHATS_DONE.md`), then fix the `evolve-relay` compose path so the real compose works again.**
+**Decide on the throttle-agent recommendation (review DONE 16:10 UTC: keep OBSERVE, do not enforce; optionally move `fcc-proxy` out of tier 6 and log which threshold tripped — see `WHATS_DONE.md`). The `evolve-relay` compose path is FIXED (17:15 local); next after the throttle decision: trim what the Pets `.env` hands to `evolve-relay` (open item 3).**
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
 1. **throttle-agent `enforce`** — review done, recommendation **no**: containers total only ~1.4 GB (tiers 4-6 ~563 MiB), `pause` frees no RAM, `stop` frees <~305 MiB and the healer fights it, and tier 6 holds `fcc-proxy` (the crew's model path). Your call: keep observe (recommended) + optionally take `fcc-proxy` out of tier 6 / add threshold logging. Still not done: a logon/reboot test of the scheduled task.
 2. **Core + orchestrator `monitor` → `enforce`** — never without checking the Safety Feed for ESCALATEs first, and remembering the four agents' real grants now apply (e.g. `devops-engineer` may use docker).
-3. **`evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`** breaks the combined compose project (`docker-compose.yml` + `agents-full.yml`); throttle-agent was deployed via a temporary single-service compose. `evolve-relay` itself cannot be recreated until fixed.
+3. ✅ **`evolve-relay` compose path FIXED 2026-10-03 (16:15 UTC):** the Pets repo lives at `H:/HYPERFOCUSZONE/BROskiPets-LLM-dNFT` (one level above HperCore), not next to HyperCode-V2.4. `docker-compose.bropets.yml` now uses `${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}` for both build contexts and the relay's `env_file` (now `required: false`); the combined project validates again (56 services). **NEW, needs your call:** the relay's `env_file` is the Pets repo's WHOLE `.env` (~50 variables incl. `DEPLOYER_KEY`, `CDP_API_KEY_SECRET`, `GITHUB_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`), while its own comment says it needs only `SEPOLIA_RPC` / `CONTRACT_ADDRESS` / `DEPLOYER_KEY` / `PINATA_JWT`. Least-privilege = pass only those four via `environment:`. The RUNNING `evolve-relay` (created Aug 24, up since yesterday evening, healthy) was not touched or recreated.
 4. **Observability stack:** restart it or leave it off (needs ~1+ GB; the 4 GB WSL cap is tight).
 5. **Dashboard token expiry ~2026-11-02:** re-run `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight, then `--yes`) before then. Also remove the `/permissions` rule you added for the old mint command if it is still there.
 6. **Earlier leak in history:** `f1edc13e` says `.claude/settings.local.json` "contained a gateway token"; untracking does not remove it from pushed history. Rotate it if it was ever real.

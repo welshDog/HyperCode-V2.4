@@ -65,7 +65,7 @@
 - **Host-RAM safety:** `scripts/ram_guard.py` (Windows host + WSL + Docker → GREEN/AMBER/RED; run `python scripts/ram_guard.py --for build` before any build) · Task Scheduler job `\HyperCode\HyperCode RAM Guard Signal` keeps `ram-signal/ram.json` fresh (Running) ·
   `throttle-agent` runs `THROTTLE_MODE=observe` with a debounce (AMBER ×3 new samples, RED ×1): it logs what it WOULD pause and **pauses nothing** (0 paused). Do not set `enforce` yet — see the handover review checklist. `docker pause` frees no RAM.
 - **State 14:14 UTC:** 36 containers running, 0 paused, key containers healthy; guard GREEN (host 685 MB free, compression 1,666 MB, WSL 1,511 MB). Observability stack STOPPED (restart is a decision). The dashboard needs `secrets/dashboard_service_jwt.txt` (30-day JWT, **expires ~2026-11-01**, runbook §8).
-- **Known problems:** `evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env` breaks the combined compose project (throttle-agent was deployed via a temporary single-service compose); a 10-year admin JWT in `.env` was exposed in a transcript (rotate `JWT_SECRET`); an unexplained clean dashboard restart at 12:50:23 UTC.
+- **Known problems:** (FIXED 2026-10-03: the combined compose validated again after the Pets-repo path became `BROSKIPETS_DIR`, default `../../BROskiPets-LLM-dNFT`; `evolve-relay` itself still runs from its old Aug-24 container and gets the Pets `.env` passed in WHOLE, see `WHATS_DONE.md`); a 10-year admin JWT in `.env` was exposed in a transcript (rotate `JWT_SECRET`); an unexplained clean dashboard restart at 12:50:23 UTC.
 - Full detail: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` and `WHATS_DONE.md`.
 
 ## HyperLabs / Vibe Labs Funnel

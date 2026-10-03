@@ -6,7 +6,8 @@ services:
   bropets-api:
     profiles: ["pets"]
     build:
-      context: ../BROskiPets-LLM-dNFT
+      # BROSKIPETS_DIR overrides where the Pets repo is checked out (default: one level above HperCore on this box)
+      context: ${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}
       dockerfile: Dockerfile
     container_name: bropets-api
     ports:
@@ -66,7 +67,7 @@ services:
     # -> evolve()). Profile "agents" so it runs alongside broski-pets-bridge.
     profiles: ["agents"]
     build:
-      context: ../BROskiPets-LLM-dNFT
+      context: ${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}
       dockerfile: Dockerfile.relay
     container_name: evolve-relay
     environment:
@@ -74,8 +75,12 @@ services:
       - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
     env_file:
       # SEPOLIA_RPC / CONTRACT_ADDRESS / DEPLOYER_KEY / PINATA_JWT — secrets
-      # stay in the Pets repo's gitignored .env
-      - ../BROskiPets-LLM-dNFT/.env
+      # stay in the Pets repo's gitignored .env. Optional so a wrong/missing path can no longer
+      # break `docker compose config` for the WHOLE project (it did, 2026-10-03: the repo lives at
+      # H:\HYPERFOCUSZONE\BROskiPets-LLM-dNFT, one level above HperCore, not next to HyperCode-V2.4).
+      # Without it evolve-relay starts with no Sepolia/Pinata keys and fails at runtime, not at validation.
+      - path: ${BROSKIPETS_DIR:-../../BROskiPets-LLM-dNFT}/.env
+        required: false
     ports:
       - "127.0.0.1:8097:8097"
     networks:
