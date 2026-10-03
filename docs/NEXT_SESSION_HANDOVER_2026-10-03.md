@@ -47,7 +47,7 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 
 Rules (empty / not-a-diff → FAIL) + model review, never invents a PASS, strips smuggled `VERDICT` lines, fails closed. 20 tests (mutation-checked). Live: guard fails ONLY on `verifier_verdict: FAIL`
 (5/6 checks PASS) — the builder's output is the prompt parroted back, not a diff. **Blocker for ALLOW is now the builder model**, not the verifier. **Correction to my earlier claim:** "an echo can't fake a PASS" was
-wrong when the builder writes its own `VERDICT: PASS` line — fixed in core by the other session (`34ba1667`), **not yet deployed** (running core lacks it, plus `a2ee4530`); my verifier closes it at the agent.
+wrong when the builder writes its own `VERDICT: PASS` line — fixed in core by the other session (`34ba1667`) and **now deployed** (core rebuilt at `79b5be99`, 02:05 UTC, with `a2ee4530` too; verified in the container, phase0 PASS); my verifier also closes it at the agent.
 
 ## 🏁 UPDATE (00:45 UTC) — FIRST REAL COMPLETED RUN
 
@@ -84,7 +84,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Give the crew a builder model that can actually write a unified diff (the only host model, `smollm2`, parrots the prompt), rebuild + swap core to deploy the other session's fixes (`34ba1667`, `a2ee4530`), then re-run `prove-crew.py` phase1→restart→phase2 to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run. (The real verifier is DONE: `8043d355`.)
+Give the crew a builder model that can actually write a unified diff (the only host model, `smollm2`, parrots the prompt) (core already rebuilt with the other session's fixes), then re-run `prove-crew.py` phase1→restart→phase2 to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run. (The real verifier is DONE: `8043d355`.)
 
 ---
 

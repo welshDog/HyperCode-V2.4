@@ -34,7 +34,7 @@
 - **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
   **First real COMPLETED run proven 2026-10-03** (phase 2: COMPLETED + guard verdict BLOCK + evidence hash; the real model answered, ~60 s). **Not proven:** guard ALLOW → settle/XP → Scribe →
   publish. `qa-engineer` now has a real fail-safe verifier (`agents/04-qa-engineer/crew_verifier.py`, `8043d355`: rules + model, never invents a PASS); live the guard fails only on `verifier_verdict: FAIL`
-  because the only host model (`smollm2`) can't write a unified diff. Running core lags the branch (`34ba1667` Guardian fix, `a2ee4530`) — rebuild to deploy. `coder-agent`'s keyword mocks (health/metrics/deploy/docker/"todo list")
+  because the only host model (`smollm2`) can't write a unified diff. Core was rebuilt at `79b5be99` (2026-10-03 02:05 UTC) so it includes the Guardian fix `34ba1667` and `a2ee4530`; after any backend commit, rebuild + swap core (`up -d --no-deps hypercode-core`) before trusting a live proof. `coder-agent`'s keyword mocks (health/metrics/deploy/docker/"todo list")
   are now flagged `mocked` and refused by core, and crew stage tasks skip them. Crew steps also fail closed if Shepherd is down.
 - **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
   not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.

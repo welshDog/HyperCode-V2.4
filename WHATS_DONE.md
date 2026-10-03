@@ -13,7 +13,10 @@
   Build (`smollm2`, 362M) returned the prompt's own instructions parroted back, not a diff; the verifier's rule layer said "the proposal is not a unified diff" → `VERDICT: FAIL`. **Correct outcome.**
 - **Why ALLOW is still unreachable:** the only model on the host runner is `smollm2` (`docker model list`); it cannot write a unified diff. Needs a more capable builder model (bigger DMR model = a download, or a hosted/proxy model).
   settle/XP, Scribe draft, handover gate, publish remain unproven live.
-- **Running core is behind the branch:** it lacks `a2ee4530` (Quest Settler wallet race), `34ba1667` (Guardian fail-open fix) and `d628ea8b`. Rebuild + swap core to deploy them.
+- **Core rebuilt + swapped at branch HEAD `79b5be99` (02:05 UTC, `--no-deps`, one build):** now runs `a2ee4530` (Quest Settler wallet race), `34ba1667` (Guardian fail-open fix) and `d628ea8b` on top of the earlier fixes.
+  Verified INSIDE the running container (grep): Guardian fix, `_wallet_for`, nested `_flagged_mocked`, the `code` key all present. `alembic current` = `023 (head)`. Regression: `PHASE0 PASS` (30 PASS lines;
+  my earlier "29/29" was probably a miscount by one — I did not re-verify), dashboard `/api/crew/morning|panic|tasks|metrics` all 200 (the 30-day JWT still accepted). All 8 key containers healthy, RestartCount 0, OOMKilled false, RAM ~1.86 GB.
+  **Not re-run after this swap:** phase1→restart→phase2 (the last full run was on the previous core build).
 
 ## 2026-10-03 — HyperCrew: Guardian fail-open hole closed (builder could write the verifier's verdict)
 
