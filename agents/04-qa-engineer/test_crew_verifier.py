@@ -429,3 +429,153 @@ def test_the_auth_token_is_never_logged_through_the_real_proxy_path(monkeypatch,
     assert out["result"].endswith("VERDICT: PASS")
     (msg,) = lines(caplog)
     assert "stop_reason=end_turn" in msg and "max_tokens=1500" in msg and S_TOKEN not in caplog.text
+
+
+# -- retry on transient upstream errors (2026-10-03: NVIDIA NIM 'Service temporarily overloaded' -> 529 / bare 500) --------
+GOOD_REPLY = "PROBLEMS: none\nVERDICT: PASS"
+
+
+class Clock:
+    """Fake time: every fake model call advances it by a chosen duration, every sleep by its argument."""
+
+    def __init__(self):
+        self.t = 0.0
+        self.sleeps = []
+        self.timeouts = []
+
+
+@pytest.fixture
+def clock(monkeypatch):
+    c = Clock()
+    monkeypatch.setattr(cv, "_clock", lambda: c.t)
+    monkeypatch.setattr(cv, "_sleep", lambda s: (c.sleeps.append(s), setattr(c, "t", c.t + s)))
+    monkeypatch.setenv("CREW_LLM_BASE_URL", "http://fcc-proxy:8083")
+    return c
+
+
+def script(monkeypatch, clock, steps):
+    """steps: list of (seconds_the_call_takes, outcome) where outcome is a reply string or a VerifierError to raise."""
+    it = iter(steps)
+
+    def fake_post(base, token, model, prompt, timeout, max_tokens):
+        clock.timeouts.append(timeout)
+        took, outcome = next(it)
+        clock.t += took
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(cv, "_post_anthropic", fake_post)
+
+
+def err(status, msg=None):
+    return cv.VerifierError(msg or f"model proxy error: HTTP {status}", status=status)
+
+
+def test_a_529_is_retried_once_and_the_second_answer_is_used(monkeypatch, clock, caplog):
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    script(monkeypatch, clock, [(2, err(529)), (10, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "completed" and out["result"].endswith("VERDICT: PASS")
+    assert clock.sleeps == [3.0] and len(clock.timeouts) == 2
+    msgs = lines(caplog)
+    assert any("verifier=retry" in m and "attempt=1" in m and "status=529" in m for m in msgs)
+    assert any("attempts=2" in m and "final_verdict=PASS" in m for m in msgs)
+
+
+def test_two_transient_failures_then_success_uses_the_backoff_schedule(monkeypatch, clock):
+    script(monkeypatch, clock, [(1, err(500)), (1, err(503)), (5, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "completed" and clock.sleeps == [3.0, 8.0]
+
+
+def test_it_gives_up_after_three_attempts_and_fails_closed_with_the_reason(monkeypatch, clock):
+    script(monkeypatch, clock, [(1, err(529)), (1, err(529)), (1, err(529))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and "HTTP 529" in out["message"] and "gave up after 3 attempts" in out["message"]
+    assert "VERDICT" not in out["message"] and len(clock.timeouts) == 3
+
+
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 410, 422])
+def test_other_client_errors_are_never_retried(monkeypatch, clock, status):
+    script(monkeypatch, clock, [(1, err(status)), (1, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and len(clock.timeouts) == 1 and clock.sleeps == []
+
+
+@pytest.mark.parametrize("took,reason", [(100, "TimeoutError"), (20, "TimeoutError"), (1, "URLError"), (1, "ConnectionRefusedError")])
+def test_a_timeout_or_connection_error_is_never_retried(monkeypatch, clock, took, reason):
+    # (1 s / 20 s cases leave plenty of budget, so ONLY the status rule can be what stops the retry)
+    script(monkeypatch, clock, [(took, cv.VerifierError(f"model proxy unreachable ({reason})")), (1, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and len(clock.timeouts) == 1 and clock.sleeps == []
+
+
+def test_each_retry_gets_only_the_time_that_is_left(monkeypatch, clock):
+    script(monkeypatch, clock, [(20, err(529)), (30, err(500)), (10, model_text(GOOD_REPLY))])
+    asyncio.run(cv.verify(task_for(DIFF)))
+    # budget 105: attempt 1 = 105; after 20 s + 3 s wait => 82; after 30 more + 8 s wait => 105-20-3-30-8 = 44
+    assert clock.timeouts == [cv.MODEL_TIMEOUT_S, 82.0, 44.0]
+
+
+def test_the_whole_thing_never_exceeds_the_single_attempt_budget(monkeypatch, clock):
+    script(monkeypatch, clock, [(30, err(529)), (30, err(529)), (30, err(529))])
+    asyncio.run(cv.verify(task_for(DIFF)))
+    assert clock.t <= cv.MODEL_TIMEOUT_S, f"spent {clock.t}s of a {cv.MODEL_TIMEOUT_S}s budget"
+
+
+def test_it_never_starts_an_attempt_it_cannot_finish(monkeypatch, clock):
+    script(monkeypatch, clock, [(95, err(529)), (1, model_text(GOOD_REPLY))])  # only 10 s left after the first failure
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["status"] == "error" and "no time left to retry" in out["message"]
+    assert len(clock.timeouts) == 1 and clock.sleeps == []
+
+
+def test_the_first_attempt_still_gets_the_whole_budget_and_a_clean_run_has_one_attempt(monkeypatch, clock, caplog):
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    script(monkeypatch, clock, [(4, model_text(GOOD_REPLY))])
+    asyncio.run(cv.verify(task_for(DIFF)))
+    assert clock.timeouts == [cv.MODEL_TIMEOUT_S] and clock.sleeps == []
+    (msg,) = lines(caplog)
+    assert "attempts=1" in msg and "verifier=retry" not in msg
+
+
+def test_a_real_answer_is_never_retried_even_if_it_is_a_FAIL_or_has_no_verdict(monkeypatch, clock):
+    script(monkeypatch, clock, [(5, model_text("- a real problem\nVERDICT: FAIL")), (5, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert out["result"].endswith("VERDICT: FAIL") and len(clock.timeouts) == 1
+    script(monkeypatch, clock, [(5, model_text("rambling", stop="max_tokens")), (5, model_text(GOOD_REPLY))])
+    out = asyncio.run(cv.verify(task_for(DIFF)))
+    assert "VERDICT" not in out["result"] and len(clock.timeouts) == 2  # 1 from before + 1 now: no retry on UNKNOWN
+
+
+def test_the_http_status_is_recorded_on_the_error_by_the_real_proxy_call(monkeypatch):
+    import io
+
+    def boom(status):
+        def _raise(*a, **k):
+            raise cv.urllib.error.HTTPError("http://p", status, "x", {}, io.BytesIO(b"{}"))
+        return _raise
+
+    monkeypatch.setattr(cv.urllib.request, "urlopen", boom(529))
+    with pytest.raises(cv.VerifierError) as e529:
+        cv._post_anthropic("http://p", "tok", "m", "prompt", 5.0, 1500)
+    assert e529.value.status == 529 and "HTTP 529" in str(e529.value)
+    monkeypatch.setattr(cv.urllib.request, "urlopen", boom(404))
+    with pytest.raises(cv.VerifierError) as e404:
+        cv._post_anthropic("http://p", "tok", "m", "prompt", 5.0, 1500)
+    assert e404.value.status == 404
+
+
+def test_a_transport_error_has_no_status_so_it_is_never_retried():
+    assert cv.VerifierError("model proxy unreachable (TimeoutError)").status is None
+    assert cv.RETRYABLE_STATUS == frozenset({429, 500, 502, 503, 504, 529})
+
+
+def test_the_retry_log_line_carries_no_body_or_secret(monkeypatch, clock, caplog):
+    caplog.set_level(logging.INFO, logger=LOGGER)
+    monkeypatch.setenv("CREW_LLM_AUTH_TOKEN", S_TOKEN)
+    script(monkeypatch, clock, [(1, err(529, f"model proxy error: HTTP 529 {S_REPLY}")), (2, model_text(GOOD_REPLY))])
+    asyncio.run(cv.verify(task_for(DIFF.replace("VERSION", S_DIFF), goal=S_GOAL)))
+    for secret in (S_TOKEN, S_DIFF, S_GOAL, S_REPLY):
+        assert secret not in caplog.text, secret

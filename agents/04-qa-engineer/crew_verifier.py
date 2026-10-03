@@ -58,7 +58,14 @@ MODEL_TIMEOUT_S = 105.0
 
 
 class VerifierError(Exception):
-    """The model could not be reached or answered nonsense. Raised, never turned into a verdict."""
+    """The model could not be reached or answered nonsense. Raised, never turned into a verdict.
+
+    ``status`` is the HTTP status when the proxy answered with one (None for timeouts, connection errors, bad shapes): only a
+    transient upstream status (RETRYABLE_STATUS) is ever retried."""
+
+    def __init__(self, message: str, status: Optional[int] = None):
+        super().__init__(message)
+        self.status = status
 
 
 def is_verify_task(task: str) -> bool:
@@ -161,6 +168,7 @@ class _ModelText(str):
     """The model's answer plus call METADATA (numbers/labels only) for the diagnostic log line. Behaves as the plain text."""
 
     stop_reason: Optional[str] = None
+    attempts: Optional[int] = None
     in_tokens: Optional[int] = None
     out_tokens: Optional[int] = None
     thinking_chars: Optional[int] = None
@@ -210,7 +218,7 @@ def _post_anthropic(base: str, token: str, model: str, prompt: str, timeout: flo
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read())
     except urllib.error.HTTPError as exc:
-        raise VerifierError(f"model proxy error: HTTP {exc.code}") from None
+        raise VerifierError(f"model proxy error: HTTP {exc.code}", status=exc.code) from None
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         raise VerifierError(f"model proxy unreachable ({type(exc).__name__})") from None
     text = anthropic_text(data)
@@ -228,6 +236,47 @@ def _post_anthropic(base: str, token: str, model: str, prompt: str, timeout: flo
     out.thinking_chars = sum(len(b.get("thinking", "")) for b in blocks
                              if isinstance(b, dict) and b.get("type") == "thinking" and isinstance(b.get("thinking"), str))
     return out
+
+
+# --- retry on transient upstream errors (2026-10-03) -------------------------------------------------------------------
+# NVIDIA NIM's free tier intermittently answers "Service temporarily overloaded" (upstream 503, proxied as 529) or a bare 500.
+# One quick retry usually gets through, but only inside the SAME time budget: a retry may never push the verifier past
+# MODEL_TIMEOUT_S (core gives up at 120 s). Timeouts and other 4xx are NEVER retried (a timeout already spent the time; a
+# 400/401/403/404 will not change). A model FAIL / UNKNOWN is a real answer and is never retried here.
+RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504, 529})
+RETRY_BACKOFF_S = (3.0, 8.0)  # waits before attempt 2 and 3 => at most 3 attempts
+MIN_ATTEMPT_S = 15.0  # never START an attempt with less than this left of the budget
+_sleep = time.sleep  # module-level so tests can run on a fake clock
+_clock = time.monotonic
+
+
+def _post_with_retry(base: str, token: str, model: str, prompt: str, budget_s: float, max_tokens: int) -> str:
+    """``_post_anthropic`` with bounded retries on transient upstream errors, sharing ONE time budget across all attempts."""
+    deadline = _clock() + budget_s
+    attempt_timeout = budget_s  # the first attempt gets the whole budget, exactly as before
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            out = _post_anthropic(base, token, model, prompt, attempt_timeout, max_tokens)
+        except VerifierError as exc:
+            status = getattr(exc, "status", None)
+            if status not in RETRYABLE_STATUS:
+                raise
+            if attempts > len(RETRY_BACKOFF_S):
+                raise VerifierError(f"{exc} (gave up after {attempts} attempts)", status=status) from None
+            wait = RETRY_BACKOFF_S[attempts - 1]
+            remaining = deadline - _clock()
+            if remaining - wait < MIN_ATTEMPT_S:
+                raise VerifierError(f"{exc} (gave up after {attempts} attempt(s): no time left to retry)", status=status) from None
+            _log(verifier="retry", attempt=attempts, status=status, wait=f"{wait:.0f}s", time_left=f"{remaining:.0f}s")
+            _sleep(wait)
+            attempt_timeout = deadline - _clock()
+            continue
+        if not isinstance(out, _ModelText):
+            out = _ModelText(out)
+        out.attempts = attempts
+        return out
 
 
 async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) -> dict[str, Any]:
@@ -256,7 +305,7 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
     if generate is not None:
         gen = generate
     elif proxy:  # no silent fallback to the small local model: a proxy failure is an error, not a verdict
-        gen = lambda prompt: _post_anthropic(proxy, token, model, prompt, MODEL_TIMEOUT_S, max_tokens)  # noqa: E731
+        gen = lambda prompt: _post_with_retry(proxy, token, model, prompt, MODEL_TIMEOUT_S, max_tokens)  # noqa: E731
     else:
         gen = lambda prompt: _post_generate(url, model, prompt, MODEL_TIMEOUT_S)  # noqa: E731
     started = time.monotonic()
@@ -279,7 +328,8 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
         review = "(the model gave no review text)"
     text = review + (f"\nVERDICT: {verdict}" if verdict else "")
     _log(verifier="rules+model", model=model, elapsed=f"{elapsed:.1f}s",
-         stop_reason=getattr(reply, "stop_reason", None), in_tokens=getattr(reply, "in_tokens", None),
+         stop_reason=getattr(reply, "stop_reason", None), attempts=getattr(reply, "attempts", None),
+         in_tokens=getattr(reply, "in_tokens", None),
          out_tokens=getattr(reply, "out_tokens", None), max_tokens=max_tokens,
          thinking_chars=getattr(reply, "thinking_chars", None), text_chars=len(reply), change_chars=len(clean),
          reply_verdict=reply_verdict or "NONE", final_verdict=verdict or "UNKNOWN", downgraded=downgraded)
