@@ -2,6 +2,25 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (midday) — HyperCrew: capable builder/verifier model WIRED (opt-in, `10c0dac8`); live proof NOT completed — host ran out of RAM (STOP RULE)
+
+- **Found:** `fcc-proxy` (the free-cloud-model proxy) was not running, and its default model `nemotron-3-super-120b-a12b` **reached end of life 2026-10-03T09:00Z** (NIM answers HTTP 410 "Gone"). Probed
+  NIM with a trivial prompt (status only): `nvidia/nemotron-3-ultra-550b-a55b` 200 in 1.5 s ✅; `openai/gpt-oss-20b` 200 0.7 s; `z-ai/glm-5.3` 200 34 s; `kimi-k3` + `deepseek-v4.1-flash` timed out at 60 s;
+  `llama-3.1-nemotron-70b-instruct` + `mistral-large-2-instruct` 404 "not found for account". Chose `nemotron-3-ultra-550b-a55b` (a REASONING model: returns a `thinking` block then a `text` block; needs max_tokens ≈ 1500).
+  A realistic build prompt through the proxy: **9.8 s, a genuine unified diff + one sentence** (316 output tokens) — what `smollm2` could never do.
+- **Shipped (`10c0dac8`, pushed):** `coder-agent` + `qa-engineer` verifier gain an Anthropic-format path (`POST {CREW_LLM_BASE_URL}/v1/messages`): only final `text` blocks are read (thinking dropped), uses ONLY
+  `CREW_LLM_AUTH_TOKEN` (the qa-engineer's real `ANTHROPIC_API_KEY` is never sent — tested), 100 s timeout, **no silent fallback to smollm2** (a proxy failure is an error → run fails closed). `CREW_LLM_BASE_URL`
+  defaults EMPTY in compose = **opt-in**, because enabling it SENDS crew goal/proposal text to NVIDIA NIM. `docker-compose.fcc.yml` default MODEL fixed to the live model. 24 verifier tests (4 new); coder path verified
+  with a fake HTTP client (token, thinking dropped, errors, no fallback, unchanged local path). Enable at launch: `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose --profile agents up -d --no-deps coder-agent qa-engineer`
+  (+ start the proxy: `docker compose -f docker-compose.yml -f docker-compose.fcc.yml up -d --no-deps --no-build fcc-proxy`). Proxy token default is the committed public placeholder `freecc`.
+- **State when I stopped:** `coder-agent` rebuilt + `qa-engineer` restarted with the proxy ON (both were healthy, config verified: BASE_URL/MODEL set, token present, `/v1/models` 200 with the agent's own token); `fcc-proxy` was healthy.
+- **STOP RULE — live proof NOT completed.** Phase 1 printed nothing, then hung >200 s; `docker inspect/logs` hung >60 s. Cause: **the Windows host ran out of RAM** — host free **1 MB** of 7,974 MB, Windows "Memory Compression"
+  **4,511 MB**, WSL swap 1,085/2,048 MB, WSL available fell to ~1,200 MB (floor 1.2 GB). Healthchecks timed out so core/dashboard/orchestrator/agents/postgres/shepherd all read **unhealthy** (they were healthy ~20 min earlier; no
+  unexpected restart seen). `docker stop fcc-proxy` failed ("did not receive an exit event", same as the obs containers) then it exited 137. **Nothing else started.** Not verified: whether the empty phase 1 output was the same thrash;
+  whether containers recover on their own.
+- **Still unproven:** guard ALLOW → settle/XP → Scribe → handover gate → publish, with the capable model. Next: free host RAM first (close heavy Windows apps / restart Docker Desktop is the user's call), wait for healthy,
+  start the proxy, rerun phase1→(restart)→phase2.
+
 ## 2026-10-03 — HyperCrew: qa-engineer now a REAL fail-safe verifier — live: guard fails ONLY on `verifier_verdict: FAIL` (earned); ALLOW still blocked by a too-weak builder model
 
 - **What:** `agents/04-qa-engineer/crew_verifier.py` (+ `agent.py` override, bind-mounted so one `docker restart qa-engineer`, no rebuild). Crew verify tasks get **(1) rules, no model** —

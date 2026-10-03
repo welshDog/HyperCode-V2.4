@@ -43,6 +43,13 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 - Obs stack: restart it, or leave it off? (Needs ~1+ GB; the 4 GB ceiling is tight.)
 - D1–D12 decisions, kill-switch compose wiring, real GitHub token for the Scribe: all still open, untouched.
 
+## ⛔ UPDATE (12:35 UTC) — capable model wired (`10c0dac8`) but the live proof was STOPPED: host out of RAM
+
+Built an opt-in capable builder/verifier path (fcc-proxy → `nemotron-3-ultra-550b-a55b`; the old default `…super-120b` hit end-of-life 2026-10-03 09:00Z → HTTP 410). A realistic build prompt returned a real unified diff in 9.8 s.
+**Then the Windows host ran out of RAM** (1 MB free of 7,974; Memory Compression 4,511 MB; WSL swap ~1.1 GB) — Docker calls hung and every container read *unhealthy* (healthcheck timeouts, no unexpected restart seen). I stopped (stop rule),
+started nothing else, and `fcc-proxy` is down (exit 137). **First thing next session: check `wsl -e free -m` AND Windows free memory, close heavy apps / restart Docker Desktop (your call), wait for the containers to go healthy, then
+start the proxy and re-run phase1→restart→phase2** (commands in `WHATS_DONE.md` 2026-10-03 midday). `coder-agent`/`qa-engineer` were left running with the proxy ON (`CREW_LLM_BASE_URL` is empty by default — opt-in, it sends crew text to NVIDIA).
+
 ## ✅ UPDATE (01:10 UTC) — qa-engineer is now a real verifier (`8043d355`)
 
 Rules (empty / not-a-diff → FAIL) + model review, never invents a PASS, strips smuggled `VERDICT` lines, fails closed. 20 tests (mutation-checked). Live: guard fails ONLY on `verifier_verdict: FAIL`

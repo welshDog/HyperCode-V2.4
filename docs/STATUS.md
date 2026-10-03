@@ -61,6 +61,7 @@
 - Deployed: **yes** — `hypercode-core` + `hypercode-dashboard` rebuilt and running the branch `claude/focused-darwin-ljrs8k`
   (draft PR #547); migration `023` applied (`alembic current` = 023, `quest_settlements` exists); `scripts/prove-crew.py`
   phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
+- ⛔ **2026-10-03 12:35 UTC: host out of RAM (1 MB free, Memory Compression 4.5 GB) — containers read unhealthy (healthcheck timeouts); live proof with the capable model NOT completed; `fcc-proxy` down.** Capable-model path is wired + pushed (`10c0dac8`, opt-in via `CREW_LLM_BASE_URL`).
 - `coder-agent` + `qa-engineer` are **running** (started 2026-10-03). **First real COMPLETED run proven** (phase 2: COMPLETED + guard verdict **BLOCK** + evidence hash): `coder-agent` now
   reaches the model (`ai/smollm2` via the Ollama shim/DMR, ~60 s per call), mocks are refused by name, `code` is accepted as text. The guard BLOCKs because `qa-engineer` is an echo stub (no
   model → verdict UNKNOWN) — correct fail-safe. **UPDATE:** `qa-engineer` now has a real fail-safe verifier (`8043d355`, rules + model); live the guard fails only on `verifier_verdict: FAIL`
