@@ -2,6 +2,12 @@
 
 > Last synced: 2026-10-03 16:05 UTC by Claude (since 14:15: Shepherd real grants for hyphenated agents, JWT signing secret rotated, verifier tightened, Pulse fixed) — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 (16:25 UTC) — DECISION (Lyndz): throttle-agent STAYS in observe mode; no `enforce`
+
+- Lyndz accepted the review's recommendation. **Nothing was changed on the host:** `THROTTLE_MODE=observe` is already what runs (container up since 12:48Z, 0 paused). Docs updated (`CLAUDE.md`, handover).
+- **Not done (not asked, still optional):** take `fcc-proxy` out of tier 6 (so the simulated 'would pause' list stops naming the crew's model path) and add which-threshold-tripped logging. Either needs a throttle-agent recreate, so ask first. **Enforce would need new evidence:** a real unforced pressure episode, the logon/reboot test of the scheduled task, and a lever that actually frees RAM (`pause` does not).
+- **Next:** trim the Pets `.env` passed to `evolve-relay` (see the 16:15 entry; needs a go).
+
 ## 2026-10-03 (16:15 UTC) — evolve-relay compose path FIXED: the combined compose validates again (nothing was started, built or recreated)
 
 - **Root cause:** `docker-compose.bropets.yml` pointed at `../BROskiPets-LLM-dNFT`, written when HyperCode-V2.4 sat next to the Pets repo. After the move under HperCore the repo is at `H:/HYPERFOCUSZONE/BROskiPets-LLM-dNFT` (two levels up from the compose file). A MISSING `env_file` is a hard error, so `docker compose config` failed for the WHOLE project (`env file ...HperCore/BROskiPets-LLM-dNFT/.env not found`), which is why throttle-agent had to be deployed via a temporary single-service compose.
