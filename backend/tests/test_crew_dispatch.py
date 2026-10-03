@@ -307,8 +307,6 @@ def test_a_real_verifier_verdict_after_a_quoted_proposal_still_counts():
 
 
 def test_guard_blocks_a_run_whose_verifier_only_echoed_a_builder_supplied_pass():
-    import asyncio
-
     from app.crew.evidence import sha256_hex
     from app.crew.plan import crew_plan_hash
     from app.crew.tools import crew_guard
