@@ -2,7 +2,35 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
-## 2026-10-03 (midday) — HyperCrew: capable builder/verifier model WIRED (opt-in, `10c0dac8`); live proof NOT completed — host ran out of RAM (STOP RULE)
+## 2026-10-03 (12:50 UTC) — HyperCrew: 🎉 FIRST GUARD ALLOW on Docker — settle/XP, Scribe draft and the handover gate proven live (capable model via fcc-proxy)
+
+Run `b01b22bc-f784-52e7-a636-0806510b29d5`, default goal, after host memory recovered (host 767 MB free, WSL 1,782 MB avail, 8/8 key containers healthy, RestartCount 0). Proxy started
+(`docker compose -f docker-compose.yml -f docker-compose.fcc.yml up -d --no-deps --no-build fcc-proxy`, healthy on the 2nd check), `coder-agent`/`qa-engineer` already ON the proxy. Guarded script: RAM checked before
+the proxy, before phase 1 and before the real core restart (1,545 MB → restarted → healthy on the 2nd check). **`PHASE2 PASS` — 17 PASS lines incl. the NEW ones: handover gate has its own hash · approving the draft with the PLAN's hash is
+refused (409) · the handover was skipped (default: opens nothing) · `COMPLETED: RUN_FINISHED with a guard verdict` · `guard decided ALLOW with an evidence bundle hash`.**
+
+Read from the database (not just the PASS lines):
+- **Guard: ALLOW, failed checks `[]`, all 6 PASS** (plan_sealed, plan_non_mutating, build_present, build_clean, verify_present, verifier_verdict).
+- **Build** (`coder-agent` → `nemotron-3-ultra-550b-a55b` via fcc-proxy): 1,420 chars, a real unified diff (`diff --git`, `---`/`+++`, 2 hunks, `@@ -1,6 +1,10 @@`). The model invented `app/main.py` (this repo has none) — a *proposal*, quality not judged.
+- **Verify** (`qa-engineer`, same model): listed **5 problems** (no dependency checks, unversioned routes, hardcoded version, **no tests**, router without prefix) and then `VERDICT: PASS`.
+- **Quest Settler:** `quest_settlements` row — `quest_id crew_run`, user 9, **status awarded, 20 XP, 10 coins**, bundle hash recorded; achievement **"First Squad Run 🤝"** unlocked.
+- **Scribe:** draft `docs/NEXT_SESSION_HANDOVER_2026-10-03_crew-b01b22bc.md` held in the run (sha256 recorded); handover **skipped**, so no PR, no GitHub call, no file written to the repo.
+
+**Said out loud:**
+- **This proof wrote real data:** 20 XP, 10 coins and an achievement on the owner account (user 9). Harmless but real.
+- **Crew text left the machine:** the goal, the builder's proposal and the verify prompt went to NVIDIA NIM through the proxy (opt-in, approved).
+- **The verifier PASSed with 5 problems listed.** The guard did its job on what it was given, but an LLM verdict is lenient and is not a security boundary (nothing builds/deploys; human gates remain). **Decision for Lyndz:**
+  make the verifier stricter (e.g. require a severity rule, or "any real problem → FAIL")?
+- Not proven: real GitHub PR publish (handover was skipped on purpose), the dashboard approval UI, "Paused (n)" with a running run, kill-switch compose wiring.
+- Earlier "empty phase 1 output" at ~12:20 was most likely the host RAM thrash (a later rerun was clean) — **not independently confirmed**.
+
+**throttle-agent assessment (Lyndz asked "get throttle-agent to fix memory"):** `agents/throttle-agent/main.py` (994 lines) is real but would NOT have prevented today's thrash. Verified in the code: (1) its "RAM %" is the **sum of ~16 hard-coded tier
+containers' RAM ÷ Docker's total** (`_estimate_system_ram_pct`) — blind to the other 30+ agents, page cache, swap and the **Windows host** (host hit 1 MB free while WSL still had 1.3 GB); (2) it uses `container.pause()`, which freezes but does
+**not free RAM**; (3) `DEFAULT_TIERS` omit `coder-agent`, `qa-engineer`, `fcc-proxy`, `hyper-brain`, most of the fleet; (4) `/throttle/{tier}` is **unauthenticated unless `THROTTLE_API_KEY` is set**; (5) it is not running (defined only in
+`agents-full.yml` / `memory-limits.yml`); and `hypervisor-agent` (dry-run resource guardian) overlaps it. The note `throttle-agent HYPER upgrade.md` is stale (its container id does not exist). **Proposed:** (a) a RAM pre-flight script (host free + WSL avail + swap + compression),
+(b) fix throttle-agent's signal + tiers + auth and run it observe-only, (c) then enable pausing for safe tiers.
+
+## 2026-10-03 (midday) — HyperCrew: capable builder/verifier model WIRED (opt-in, `10c0dac8`); live proof stopped by host RAM exhaustion (STOP RULE) — **proof completed later, see the 12:50 entry above**
 
 - **Found:** `fcc-proxy` (the free-cloud-model proxy) was not running, and its default model `nemotron-3-super-120b-a12b` **reached end of life 2026-10-03T09:00Z** (NIM answers HTTP 410 "Gone"). Probed
   NIM with a trivial prompt (status only): `nvidia/nemotron-3-ultra-550b-a55b` 200 in 1.5 s ✅; `openai/gpt-oss-20b` 200 0.7 s; `z-ai/glm-5.3` 200 34 s; `kimi-k3` + `deepseek-v4.1-flash` timed out at 60 s;

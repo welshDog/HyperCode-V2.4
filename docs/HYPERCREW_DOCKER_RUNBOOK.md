@@ -102,6 +102,12 @@ BLOCK is expected today: `qa-engineer` is an echo stub (no model) → verdict UN
 Start the agents with `docker compose --profile agents up -d --no-deps coder-agent qa-engineer` (build each first). `PROVE_GOAL="…"` optionally overrides the goal in **both** phase1 and phase2
 (`docker exec -e PROVE_GOAL=… -i hypercode-core python - phase1 < scripts/prove-crew.py`).
 
+**[2026-10-03 12:50 UTC] Reaching guard ALLOW needs a capable model (opt-in).** `smollm2` (the host model) cannot write a diff. Steps — **check `wsl -e free -m` ≥ 1500 MB AND Windows free memory first** (a host at ~0 MB free thrashes Docker):
+1. Start the proxy: `docker compose -f docker-compose.yml -f docker-compose.fcc.yml up -d --no-deps --no-build fcc-proxy` (healthy in ~1–2 min; ~300 MB). Its default model `nemotron-3-super-120b` is **dead** (EOL 2026-10-03); the file now defaults to `nemotron-3-ultra-550b-a55b`.
+2. Point the agents at it for this launch: `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose --profile agents up -d --no-deps coder-agent qa-engineer` (**this sends crew text to NVIDIA NIM**; empty = local smollm2, the default).
+3. Run phase1 → real core restart → phase2 as above. Expect `guard decided ALLOW`, one `quest_settlements` row (20 XP, 10 coins, real data on the owner account), the Scribe draft held, handover skipped.
+To switch it OFF: recreate the two agents without the variable, then `docker stop fcc-proxy`.
+
 **Handover gate (new):** phase 2 meets the Scribe's gate after the guard. By default it **skips** it
 (`reject`), so it can never open a real PR. To approve it instead: `PROVE_APPROVE_HANDOVER=1` in front of the
 phase-2 command (`docker exec -e PROVE_APPROVE_HANDOVER=1 -i …`). With no `CREW_GITHUB_TOKEN` set, approving

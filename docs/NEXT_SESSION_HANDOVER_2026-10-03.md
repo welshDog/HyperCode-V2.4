@@ -1,6 +1,9 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-03 (HyperCrew: first Docker run)
 
-> Bro, short version: **HyperCrew is deployed and proven on Docker.** Two real bugs found and fixed. The **happy path has not
+> **🎉 UPDATE 12:55 UTC 2026-10-03 — THE HAPPY PATH HAS RUN.** Guard **ALLOW** → Quest Settler (20 XP, 10 coins, achievement) → Scribe draft → handover gate (skipped) all proven live on Docker with a capable model
+> (fcc-proxy → `nemotron-3-ultra-550b-a55b`). Run `b01b22bc-…`; details in `WHATS_DONE.md` (12:50 entry). **Everything below that says "ALLOW unproven" / "needs a builder model" is the earlier snapshot, now superseded.**
+>
+> Bro, short version (earlier snapshot): **HyperCrew is deployed and proven on Docker.** Two real bugs found and fixed. The **happy path had not
 > run yet** because the crew agents aren't running. Live status beats this file; `WHATS_DONE.md` beats everything.
 > Branch `claude/focused-darwin-ljrs8k` · draft PR #547 · HEAD at wrap-up is the docs commit after `9f8b06b7`.
 
@@ -74,7 +77,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ❌ NOT PROVEN
 
-- **Happy path**: `build → verify → guard ALLOW → settle/XP → Scribe`. Agents are up now, but the proof goal is hijacked by a mock and no LLM fits RAM yet.
+- ~~Happy path~~ **PROVEN 2026-10-03 12:50 UTC** (`build → verify → guard ALLOW → settle/XP → Scribe → handover gate (skipped)`). Still unproven: real GitHub publish, the verifier's leniency (PASS with 5 problems listed).
 - Second Shepherd path `safety_client.check_dispatch` (strict, mutation agents like `coder-agent` are unregistered → deny-first MUTATION) — never run live; could fail.
 - Pause everything with a *running* run ("Saved… / Paused (n) · Resume") — only the "nothing running" text seen.
 - Real GitHub PR publisher (never touched). `tests/test_safety_contract.py` (crew-orchestrator) won't collect — not investigated.
@@ -91,7 +94,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Give the crew a builder model that can actually write a unified diff (the only host model, `smollm2`, parrots the prompt) (core already rebuilt with the other session's fixes), then re-run `prove-crew.py` phase1→restart→phase2 to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run. (The real verifier is DONE: `8043d355`.)
+Stop the host from thrashing: build a RAM pre-flight guard (host free + WSL avail + swap + compression), then fix throttle-agent's signal/tiers/auth and run it observe-only (assessment in `WHATS_DONE.md` 12:50). Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
 
 ---
 

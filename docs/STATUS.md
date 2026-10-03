@@ -56,7 +56,10 @@
 > (kept accurate every session; this file's own fleet table below is not — see the
 > banner in that section).
 
-## 🧠 HyperCrew (2026-10-03) — **DEPLOYED on Docker** (core + dashboard), proof PASS; happy path NOT yet run
+## 🧠 HyperCrew (2026-10-03) — **DEPLOYED on Docker**, proof PASS, 🎉 **guard ALLOW → settle/XP → Scribe → handover gate PROVEN live (12:50 UTC)**
+
+- **2026-10-03 12:50 UTC:** run `b01b22bc-…` — guard **ALLOW** (6/6 checks), 20 XP + 10 coins + "First Squad Run" achievement settled for user 9, Scribe draft held, handover skipped (no PR). Builder + verifier = `nemotron-3-ultra-550b-a55b`
+  through `fcc-proxy` (opt-in `CREW_LLM_BASE_URL`; sends crew text to NVIDIA NIM). Verifier PASSed with 5 problems listed → strictness is a decision. The 12:35 memory-exhaustion note below is resolved (host 767 MB free, 8/8 containers healthy).
 
 - Deployed: **yes** — `hypercode-core` + `hypercode-dashboard` rebuilt and running the branch `claude/focused-darwin-ljrs8k`
   (draft PR #547); migration `023` applied (`alembic current` = 023, `quest_settlements` exists); `scripts/prove-crew.py`
@@ -65,7 +68,7 @@
 - `coder-agent` + `qa-engineer` are **running** (started 2026-10-03). **First real COMPLETED run proven** (phase 2: COMPLETED + guard verdict **BLOCK** + evidence hash): `coder-agent` now
   reaches the model (`ai/smollm2` via the Ollama shim/DMR, ~60 s per call), mocks are refused by name, `code` is accepted as text. The guard BLOCKs because `qa-engineer` is an echo stub (no
   model → verdict UNKNOWN) — correct fail-safe. **UPDATE:** `qa-engineer` now has a real fail-safe verifier (`8043d355`, rules + model); live the guard fails only on `verifier_verdict: FAIL`
-  because the builder model (`smollm2`) can't write a diff. **Guard ALLOW → settle/XP → Scribe → publish still unproven** (needs a capable builder model). Core rebuilt 2026-10-03 02:05 UTC at `79b5be99` (includes `34ba1667`, `a2ee4530`); phase0 PASS on it.
+  because the builder model (`smollm2`) can't write a diff. *(superseded: guard ALLOW → settle/XP → Scribe is now PROVEN — see the 12:50 UTC bullet above; real GitHub publish still unproven).* Core rebuilt 2026-10-03 02:05 UTC at `79b5be99` (includes `34ba1667`, `a2ee4530`); phase0 PASS on it.
 - Crew steps **fail closed** if Safety Shepherd is unreachable. Shepherd answers ALLOW (`default_allow`) for crew `build/verify/publish`.
 - Dashboard needs `secrets/dashboard_service_jwt.txt` (30-day human JWT, minted 2026-10-02, **expires ~2026-11-01**) — see runbook §8.
 - Observability stack is **stopped** (stopped to free RAM); restart on request. Full handover: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
