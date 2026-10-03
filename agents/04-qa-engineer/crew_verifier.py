@@ -23,11 +23,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Callable, Optional
+
+_LOG = logging.getLogger("qa-engineer.crew_verifier")
+_LOG.setLevel(logging.INFO)
 
 STAGE_MARK = "[hypercrew stage: verify]"
 _BEGIN = "--- PROPOSED CHANGE"
@@ -152,6 +157,37 @@ def _post_generate(url: str, model: str, prompt: str, timeout: float) -> str:
     return text
 
 
+class _ModelText(str):
+    """The model's answer plus call METADATA (numbers/labels only) for the diagnostic log line. Behaves as the plain text."""
+
+    stop_reason: Optional[str] = None
+    in_tokens: Optional[int] = None
+    out_tokens: Optional[int] = None
+    thinking_chars: Optional[int] = None
+
+
+def _log(**fields: Any) -> None:
+    """ONE key=value diagnostic line per verify call. Numbers, labels and fixed strings ONLY: never the change, the model's
+    text or any credential (tests pin this). Logging must never be able to break a verification."""
+    try:
+        if not _LOG.hasHandlers():  # the base agent normally configures one; make sure the line reaches `docker logs` anyway
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] crew_verifier: %(message)s"))
+            _LOG.addHandler(handler)
+        parts = []
+        for key, value in fields.items():
+            if value is None:
+                continue
+            parts.append(f"{key}={re.sub(r'[^A-Za-z0-9_.:+=;,() /<>-]', '_', str(value))[:120].replace(' ', '_')}")
+        _LOG.info("crew_verify " + " ".join(parts))
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _int_or_none(value: Any) -> Optional[int]:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 def anthropic_text(data: Any) -> str:
     """Only the final ``text`` blocks of an Anthropic-format reply (a reasoning model's ``thinking`` block is not an answer)."""
     blocks = data.get("content") if isinstance(data, dict) else None
@@ -178,9 +214,20 @@ def _post_anthropic(base: str, token: str, model: str, prompt: str, timeout: flo
     except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
         raise VerifierError(f"model proxy unreachable ({type(exc).__name__})") from None
     text = anthropic_text(data)
+    stop = data.get("stop_reason") if isinstance(data, dict) else None
+    stop = stop if isinstance(stop, str) and re.fullmatch(r"[a-z_]{1,30}", stop) else None
     if not text:
-        raise VerifierError("model proxy returned no text")
-    return text
+        # e.g. a reasoning model whose thinking used the whole token budget: say so (stop_reason is a fixed label)
+        raise VerifierError(f"model proxy returned no text (stop_reason={stop})")
+    usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+    blocks = data.get("content") if isinstance(data.get("content"), list) else []
+    out = _ModelText(text)
+    out.stop_reason = stop
+    out.in_tokens = _int_or_none(usage.get("input_tokens"))
+    out.out_tokens = _int_or_none(usage.get("output_tokens"))
+    out.thinking_chars = sum(len(b.get("thinking", "")) for b in blocks
+                             if isinstance(b, dict) and b.get("type") == "thinking" and isinstance(b.get("thinking"), str))
+    return out
 
 
 async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) -> dict[str, Any]:
@@ -188,6 +235,7 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
     model = os.getenv("OLLAMA_MODEL", "ai/smollm2").strip() or "ai/smollm2"
     url = os.getenv("OLLAMA_URL", "http://hypercode-ollama:11434/api/generate")
     proxy = (os.getenv("CREW_LLM_BASE_URL") or "").strip().rstrip("/")
+    token, max_tokens = "", None
     if proxy:
         model = (os.getenv("CREW_LLM_MODEL") or "claude-sonnet-5").strip()
         token = (os.getenv("CREW_LLM_AUTH_TOKEN") or "").strip()
@@ -202,6 +250,7 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
     problems = rule_problems(clean)
     if problems:
         text = "Rule check failed, so the proposal was not sent to a model:\n" + "\n".join(f"- {p}" for p in problems)
+        _log(verifier="rules", final_verdict="FAIL", change_chars=len(clean), rule_problems="; ".join(problems))
         return {"status": "completed", "result": text + "\nVERDICT: FAIL", "verifier": "rules", "model": None}
 
     if generate is not None:
@@ -210,12 +259,17 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
         gen = lambda prompt: _post_anthropic(proxy, token, model, prompt, MODEL_TIMEOUT_S, max_tokens)  # noqa: E731
     else:
         gen = lambda prompt: _post_generate(url, model, prompt, MODEL_TIMEOUT_S)  # noqa: E731
+    started = time.monotonic()
     try:
         reply = await asyncio.to_thread(gen, build_review_prompt(extract_goal(task), clean))
     except VerifierError as exc:
+        _log(verifier="error", model=model, elapsed=f"{time.monotonic() - started:.1f}s", max_tokens=max_tokens,
+             change_chars=len(clean), error=exc)
         return {"status": "error", "message": f"Verifier error: {exc}"}
+    elapsed = time.monotonic() - started
 
     review, verdict = finalize(reply)
+    reply_verdict = verdict
     downgraded = False
     if verdict == "PASS" and not pass_is_clean(strip_verdict_lines(reply)):  # judged on the FULL reply, not the capped copy
         verdict, downgraded = "FAIL", True
@@ -224,6 +278,11 @@ async def verify(task: str, *, generate: Optional[Callable[[str], str]] = None) 
     if not review:
         review = "(the model gave no review text)"
     text = review + (f"\nVERDICT: {verdict}" if verdict else "")
+    _log(verifier="rules+model", model=model, elapsed=f"{elapsed:.1f}s",
+         stop_reason=getattr(reply, "stop_reason", None), in_tokens=getattr(reply, "in_tokens", None),
+         out_tokens=getattr(reply, "out_tokens", None), max_tokens=max_tokens,
+         thinking_chars=getattr(reply, "thinking_chars", None), text_chars=len(reply), change_chars=len(clean),
+         reply_verdict=reply_verdict or "NONE", final_verdict=verdict or "UNKNOWN", downgraded=downgraded)
     out: dict[str, Any] = {"status": "completed", "result": text, "verifier": "rules+model", "model": model}
     if downgraded:
         out["downgraded"] = True
