@@ -56,25 +56,17 @@
 > (kept accurate every session; this file's own fleet table below is not — see the
 > banner in that section).
 
-## 🧠 HyperCrew (2026-10-03) — **DEPLOYED on Docker**, proof PASS, 🎉 **guard ALLOW → settle/XP → Scribe → handover gate PROVEN live (12:50 UTC)**
+## 🧠 HyperCrew + host-RAM safety (2026-10-03, verified 14:14 UTC) — **DEPLOYED on Docker; happy path PROVEN; throttle-agent in OBSERVE mode**
 
-- **2026-10-03 12:50 UTC:** run `b01b22bc-…` — guard **ALLOW** (6/6 checks), 20 XP + 10 coins + "First Squad Run" achievement settled for user 9, Scribe draft held, handover skipped (no PR). Builder + verifier = `nemotron-3-ultra-550b-a55b`
-  through `fcc-proxy` (opt-in `CREW_LLM_BASE_URL`; sends crew text to NVIDIA NIM). Verifier PASSed with 5 problems listed → strictness is a decision. The 12:35 memory-exhaustion note below is resolved (host 767 MB free, 8/8 containers healthy).
-
-- Deployed: **yes** — `hypercode-core` + `hypercode-dashboard` rebuilt and running the branch `claude/focused-darwin-ljrs8k`
-  (draft PR #547); migration `023` applied (`alembic current` = 023, `quest_settlements` exists); `scripts/prove-crew.py`
-  phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
-- ⛔ **2026-10-03 12:35 UTC: host out of RAM (1 MB free, Memory Compression 4.5 GB) — containers read unhealthy (healthcheck timeouts); live proof with the capable model NOT completed; `fcc-proxy` down.** Capable-model path is wired + pushed (`10c0dac8`, opt-in via `CREW_LLM_BASE_URL`).
-- `coder-agent` + `qa-engineer` are **running** (started 2026-10-03). **First real COMPLETED run proven** (phase 2: COMPLETED + guard verdict **BLOCK** + evidence hash): `coder-agent` now
-  reaches the model (`ai/smollm2` via the Ollama shim/DMR, ~60 s per call), mocks are refused by name, `code` is accepted as text. The guard BLOCKs because `qa-engineer` is an echo stub (no
-  model → verdict UNKNOWN) — correct fail-safe. **UPDATE:** `qa-engineer` now has a real fail-safe verifier (`8043d355`, rules + model); live the guard fails only on `verifier_verdict: FAIL`
-  because the builder model (`smollm2`) can't write a diff. *(superseded: guard ALLOW → settle/XP → Scribe is now PROVEN — see the 12:50 UTC bullet above; real GitHub publish still unproven).* Core rebuilt 2026-10-03 02:05 UTC at `79b5be99` (includes `34ba1667`, `a2ee4530`); phase0 PASS on it.
-- Crew steps **fail closed** if Safety Shepherd is unreachable. Shepherd answers ALLOW (`default_allow`) for crew `build/verify/publish`.
-- Dashboard needs `secrets/dashboard_service_jwt.txt` (30-day human JWT, minted 2026-10-02, **expires ~2026-11-01**) — see runbook §8.
-- Observability stack is **stopped** (stopped to free RAM); restart on request. Full handover: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
-
-
----
+- **HyperCrew:** deployed (`hypercode-core` + `hypercode-dashboard` rebuilt from branch `claude/focused-darwin-ljrs8k`, draft PR #547); migration `023` applied; `scripts/prove-crew.py` phases 0/1/2 PASS across a real core restart; dashboard `/ide` checklist 5/5.
+  **Guard ALLOW → settle/XP (20 XP, 10 coins, "First Squad Run") → Scribe draft → handover gate (skipped, no PR) PROVEN live** (run `b01b22bc-…`, 12:50 UTC). Crew steps fail closed if Safety Shepherd is down.
+- **Capable model (opt-in):** `fcc-proxy` → NVIDIA NIM `nemotron-3-ultra-550b-a55b` for builder + verifier via `CREW_LLM_BASE_URL` (**sends crew text to NVIDIA**; empty = local `smollm2`, which cannot write a diff). The old default model hit end-of-life 2026-10-03 (HTTP 410). `coder-agent`/`qa-engineer` are running with the proxy ON.
+  `qa-engineer` has a real fail-safe verifier (rules + model, never invents a PASS). The verifier PASSed with 5 problems listed → strictness is an open decision. Not proven: real GitHub publish.
+- **Host-RAM safety:** `scripts/ram_guard.py` (Windows host + WSL + Docker → GREEN/AMBER/RED; run `python scripts/ram_guard.py --for build` before any build) · Task Scheduler job `\HyperCode\HyperCode RAM Guard Signal` keeps `ram-signal/ram.json` fresh (Running) ·
+  `throttle-agent` runs `THROTTLE_MODE=observe` with a debounce (AMBER ×3 new samples, RED ×1): it logs what it WOULD pause and **pauses nothing** (0 paused). Do not set `enforce` yet — see the handover review checklist. `docker pause` frees no RAM.
+- **State 14:14 UTC:** 36 containers running, 0 paused, key containers healthy; guard GREEN (host 685 MB free, compression 1,666 MB, WSL 1,511 MB). Observability stack STOPPED (restart is a decision). The dashboard needs `secrets/dashboard_service_jwt.txt` (30-day JWT, **expires ~2026-11-01**, runbook §8).
+- **Known problems:** `evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env` breaks the combined compose project (throttle-agent was deployed via a temporary single-service compose); a 10-year admin JWT in `.env` was exposed in a transcript (rotate `JWT_SECRET`); an unexplained clean dashboard restart at 12:50:23 UTC.
+- Full detail: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` and `WHATS_DONE.md`.
 
 ## HyperLabs / Vibe Labs Funnel
 

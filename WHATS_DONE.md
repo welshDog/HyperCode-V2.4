@@ -1,6 +1,6 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
+> Last synced: 2026-10-03 14:15 UTC by Claude — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
 ## 2026-10-03 (14:05 UTC) — host signal writer is now a Windows Task Scheduler job (persistent), with an install/uninstall script
 

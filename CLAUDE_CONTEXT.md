@@ -14,6 +14,7 @@
 - **Found + fixed on the first Docker run:** (1) `crew-orchestrator` `/execute` 500 on every call (relative import, `b44c2505`); (2) dashboard had no credential core accepts (`9f8b06b7`, now a 30-day JWT secret, **expires ~2026-11-01**).
 - **First real COMPLETED run proven** (COMPLETED + guard BLOCK; real model answered). 4 more bugs fixed on the way (mocked results, `code` key, coder-agent keyword shortcuts firing on every crew task).
   **🎉 PROVEN 2026-10-03 12:50 UTC: guard ALLOW → settle/XP (20 XP, 10 coins) → Scribe draft → handover gate** with a capable model (`fcc-proxy` → `nemotron-3-ultra-550b-a55b`, opt-in `CREW_LLM_BASE_URL`). **Not proven:** real GitHub publish. Verifier PASSed with 5 problems listed (strictness = a decision). **Open:** rotate `JWT_SECRET` (a 10-year admin JWT was exposed in a transcript). Next task + gotchas: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+- **Host-RAM safety (2026-10-03):** the Windows HOST ran out of RAM (1 MB free) while `wsl -e free -m` looked fine, hanging Docker. Run `python scripts/ram_guard.py --for build` (host + WSL + Docker, GREEN needed) before any build/start; a Task Scheduler job keeps `ram-signal/ram.json` fresh; `throttle-agent` runs in **OBSERVE** mode with a debounce (it pauses nothing; do not set `enforce` yet; `docker pause` frees no RAM). A read-only review is scheduled for 17:07 local; checklist in the handover.
 
 ---
 

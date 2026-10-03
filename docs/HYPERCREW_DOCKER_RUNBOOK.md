@@ -163,6 +163,13 @@ docker compose up -d --no-deps dashboard       # recreate to remount the secret
 Check it works: `/api/crew/morning` and `/api/crew/panic` on the dashboard (`:8088`) return 200. **Never `cat` the file or
 print `docker compose config`.** Rotating `JWT_SECRET` invalidates this token too — re-mint after.
 
+## 9 · Host RAM safety — [added 2026-10-03]
+
+The Windows **host** can run out of RAM while WSL looks fine (1 MB free on 2026-10-03), which hangs Docker and makes every container read "unhealthy".
+- **Before any build/start/restart:** `python scripts/ram_guard.py --for build` (GREEN required; `--wait 120` polls). Chain heavy steps on its exit code: `python scripts/ram_guard.py --for build && <heavy step>`.
+- **Signal for the throttle-agent:** Task Scheduler job `\HyperCode\HyperCode RAM Guard Signal` (manage with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`).
+- **throttle-agent** runs `THROTTLE_MODE=observe` (logs what it WOULD pause, never touches Docker; debounce 3 AMBER samples / 1 RED). Review checklist: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`. Do not set `enforce` yet.
+
 ## Rollback
 
 ```bash

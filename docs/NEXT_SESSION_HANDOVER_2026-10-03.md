@@ -1,111 +1,86 @@
-# 📋 NEXT_SESSION_HANDOVER — 2026-10-03 (HyperCrew: first Docker run)
+# 📋 NEXT_SESSION_HANDOVER — 2026-10-03 (HyperCrew on Docker + host-RAM safety)
 
-> **🎉 UPDATE 12:55 UTC 2026-10-03 — THE HAPPY PATH HAS RUN.** Guard **ALLOW** → Quest Settler (20 XP, 10 coins, achievement) → Scribe draft → handover gate (skipped) all proven live on Docker with a capable model
-> (fcc-proxy → `nemotron-3-ultra-550b-a55b`). Run `b01b22bc-…`; details in `WHATS_DONE.md` (12:50 entry). **Everything below that says "ALLOW unproven" / "needs a builder model" is the earlier snapshot, now superseded.**
->
-> Bro, short version (earlier snapshot): **HyperCrew is deployed and proven on Docker.** Two real bugs found and fixed. The **happy path had not
-> run yet** because the crew agents aren't running. Live status beats this file; `WHATS_DONE.md` beats everything.
-> Branch `claude/focused-darwin-ljrs8k` · draft PR #547 · HEAD at wrap-up is the docs commit after `9f8b06b7`.
+> Current as of **2026-10-03 ~14:15 UTC**, verified live. Branch `claude/focused-darwin-ljrs8k` · draft PR #547. `WHATS_DONE.md` has the full detail and the exact PASS lines; live status beats this file.
+> This file was rewritten as one clean document: the dated "UPDATE" blocks it had accumulated are folded in (history is in `WHATS_DONE.md` and `git log`).
 
 ---
 
-## 🟢 LIVE STATE RIGHT NOW
+## 🎉 THE SHORT VERSION
+
+- **HyperCrew runs on Docker and the happy path is proven:** guard **ALLOW** → Quest Settler (20 XP, 10 coins, "First Squad Run" achievement) → Scribe draft → handover gate (skipped on purpose, no PR). Run `b01b22bc-…`, with a real core restart in the middle.
+- **Real model:** `fcc-proxy` → NVIDIA NIM `nemotron-3-ultra-550b-a55b`, for both builder and verifier. **Opt-in** (`CREW_LLM_BASE_URL`); it **sends crew text to NVIDIA**. (The old default `nemotron-3-super-120b` hit end-of-life 2026-10-03 09:00Z → HTTP 410.)
+- **Live runs found five real bugs the sandbox could not** (see below). All fixed, tested and pushed.
+- **Host-RAM safety (new today):** `scripts/ram_guard.py` (host + WSL + Docker check) → a Task Scheduler job keeps its signal fresh → **throttle-agent runs in OBSERVE mode with a debounce**. It pauses nothing. A read-only review is scheduled for 17:07 local (session-only) and the checklist is below.
+
+## 🟢 LIVE STATE (verified 14:14 UTC)
 
 | Thing | State |
 |---|---|
-| `hypercode-core` | new HyperCrew build, healthy, RestartCount 0 (restarted once on purpose for the proof, 22:17 UTC) |
-| `hypercode-dashboard` | new build + JWT secret, healthy, RestartCount 0 |
-| `crew-orchestrator` | healthy, RestartCount 0, fixed import (restarted 22:26 UTC) |
-| `safety-shepherd` | healthy; ALLOW for crew build/verify/publish |
-| Migration `023` | applied (`alembic current` = 023 head; `quest_settlements` exists) |
-| `coder-agent`, `qa-engineer` | **RUNNING since 2026-10-03 00:17 UTC** (healthy, RestartCount 0) — started on request after the first handover |
-| Observability stack (12 containers) | **STOPPED** by me to free RAM (was 853 MB free → ~1.9 GB). Restart = your call |
-| RAM | ~1917 MB available (WSL cap 4 GB — never raise it) |
+| Containers | **36 running, 0 paused**, all 13 key ones `healthy` (core, dashboard, orchestrator, coder-agent, qa-engineer, safety-shepherd, fcc-proxy, throttle-agent, healer, memstream, postgres, redis, ollama-shim) |
+| `hypercode-core` | healthy, RestartCount 0; image rebuilt 02:05 UTC at `79b5be99` (has the Guardian fix `34ba1667` + wallet-race fix `a2ee4530`); restarted 12:43 UTC for the live proof. Migration `023` applied |
+| `hypercode-dashboard` | healthy, RestartCount 0; new build + 30-day JWT secret. ⚠️ **Restarted cleanly (exit 0) at 12:50:23 UTC and I do not know by whom** — not the healer (no log lines), no Docker events returned; it was mid-pressure-episode. Works: `/api/crew/morning`, `/panic`, `/tasks`, `/metrics` all 200 |
+| `coder-agent`, `qa-engineer` | healthy; running **with the proxy ON** (`CREW_LLM_BASE_URL` was set at launch; it persists until they are recreated without it). qa-engineer has a real fail-safe verifier |
+| `fcc-proxy` | healthy, model `nemotron-3-ultra-550b-a55b` (~211 MB) |
+| `throttle-agent` | healthy, **`THROTTLE_MODE=observe`**, debounce 3 AMBER samples / 1 RED, **0 containers paused**; reads the host signal |
+| Host signal writer | **Task Scheduler** job `\HyperCode\HyperCode RAM Guard Signal` — Running, one hidden `pythonw`, signal file ~8 s old, GREEN |
+| Observability stack | **STOPPED** (12 containers, stopped by me to free RAM; restart is your call) |
+| Memory (guard, 14:14 UTC) | **GREEN** — host free 685 MB, Windows compression 1,666 MB, WSL available 1,511 MB. (It was RED at 12:51, 13:15 and trending RED at 13:55; much of that pressure was my own builds/tests.) |
+| Git | branch in sync with `origin`; draft PR #547 open |
 
-## ✅ WHAT RAN (exact lines in `WHATS_DONE.md`)
+## 🐛 WHAT THE LIVE RUNS FOUND (all fixed + pushed; none catchable in the sandbox)
 
-Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swap · Step 2 `alembic current` = `023 (head)`, table
-`True` · Step 3 Shepherd ALLOW ×3 · Step 4 `PHASE0 PASS` (29/29), phase1 (3/3), real `docker restart hypercode-core`, **`PHASE2 PASS`**
-(9/9, FAILED CLOSED branch) · Step 5 dashboard `/ide` **5/5**.
+1. `b44c2505` — `crew-orchestrator/main.py` relative import → **every `/execute` returned 500** (pre-dates HyperCrew, also on `main`).
+2. `9f8b06b7` — dashboard sent the master API key; core's `/operator/*` needs a human JWT → Morning Card / Pause / Calm Card all 502. Now a 30-day JWT in gitignored `secrets/dashboard_service_jwt.txt`.
+3. `b13383b9` + `95940dad` — `coder-agent` returned canned mock answers; core now refuses results flagged `mocked` (**my first version only checked the top level; the flag is nested at `result.mocked` — the live run caught it**).
+4. `5fb103c0` — core's `_TEXT_KEYS` lacked `code`, so a genuine model answer was refused as "empty".
+5. `9d9e8e6e` — `coder-agent`'s keyword shortcuts fired on **every** crew task (the orchestrator prepends a skills loadout mentioning "metrics"/"docker").
+Also: the dead default model (NIM 410), and the correction that **my earlier claim "an echo can't fake a PASS" was wrong** when the builder writes its own `VERDICT: PASS` line — fixed in core by the other session (`34ba1667`) and closed again at the agent by `8043d355`.
+The other Claude session also pushes to this branch (`a2ee4530` wallet race, `34ba1667` Guardian, CodeQL tidy-ups): **always `git fetch` first**, and re-run tests after a rebase (a clean textual merge broke two of my tests once).
 
-## 🐛 TWO REAL BUGS (fixed + pushed)
+## 📦 WHAT SHIPPED TODAY
 
-1. `b44c2505` — `crew-orchestrator/main.py` relative import → **every `/execute` was HTTP 500**. Pre-existing since 2026-09-01, on `main` too.
-2. `9f8b06b7` — dashboard sent the master API key; core's `/operator/*` needs a human JWT → Morning Card / Pause / Calm Card all 502.
-   Now a 30-day JWT in `secrets/dashboard_service_jwt.txt` (gitignored). **Expires ~2026-11-01 — rotate (runbook §8).**
+`8043d355` real verifier · `10c0dac8` capable-model path + fixed model default · `2748ffbe` RAM guard · `01b4002a` throttle-agent observe mode / host signal / refreshed tiers · `85da2367` debounce · `be4c70f0` Task Scheduler job + install script. Tests: guard 24, throttle pressure 31 (host), throttle integration 23 (real `main.py` in its image),
+verifier 24, crew suites 224 (earlier run).
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU
 
-- **Exposed 10-year admin JWT.** `.env` line 214 `DASHBOARD_SERVICE_JWT` (user 9, superuser, exp 2036) was printed into the
-  session transcript by my mistake. Also injected into `hypercode-core` and `postgres` containers (accidental?). Fix = rotate
-  `JWT_SECRET` (kills every token incl. the 30-day one → re-mint) and delete that `.env` line. **Not done.**
-- **Earlier leak in git history:** commit `f1edc13e` says `.claude/settings.local.json` "contained a gateway token". Untracking does not
-  remove it from history on the pushed branch. Rotate that token if it was ever real.
-- **Permission rule you added** (`/permissions`) for the mint command `Bash(cd … && docker exec -i hypercode-core python - < * > secrets/dashboard_service_jwt.txt)`.
-  Remove it when you're done minting.
-- Obs stack: restart it, or leave it off? (Needs ~1+ GB; the 4 GB ceiling is tight.)
-- D1–D12 decisions, kill-switch compose wiring, real GitHub token for the Scribe: all still open, untouched.
-
-## ⛔ UPDATE (12:35 UTC) — capable model wired (`10c0dac8`) but the live proof was STOPPED: host out of RAM
-
-Built an opt-in capable builder/verifier path (fcc-proxy → `nemotron-3-ultra-550b-a55b`; the old default `…super-120b` hit end-of-life 2026-10-03 09:00Z → HTTP 410). A realistic build prompt returned a real unified diff in 9.8 s.
-**Then the Windows host ran out of RAM** (1 MB free of 7,974; Memory Compression 4,511 MB; WSL swap ~1.1 GB) — Docker calls hung and every container read *unhealthy* (healthcheck timeouts, no unexpected restart seen). I stopped (stop rule),
-started nothing else, and `fcc-proxy` is down (exit 137). **First thing next session: check `wsl -e free -m` AND Windows free memory, close heavy apps / restart Docker Desktop (your call), wait for the containers to go healthy, then
-start the proxy and re-run phase1→restart→phase2** (commands in `WHATS_DONE.md` 2026-10-03 midday). `coder-agent`/`qa-engineer` were left running with the proxy ON (`CREW_LLM_BASE_URL` is empty by default — opt-in, it sends crew text to NVIDIA).
-
-## ✅ UPDATE (01:10 UTC) — qa-engineer is now a real verifier (`8043d355`)
-
-Rules (empty / not-a-diff → FAIL) + model review, never invents a PASS, strips smuggled `VERDICT` lines, fails closed. 20 tests (mutation-checked). Live: guard fails ONLY on `verifier_verdict: FAIL`
-(5/6 checks PASS) — the builder's output is the prompt parroted back, not a diff. **Blocker for ALLOW is now the builder model**, not the verifier. **Correction to my earlier claim:** "an echo can't fake a PASS" was
-wrong when the builder writes its own `VERDICT: PASS` line — fixed in core by the other session (`34ba1667`) and **now deployed** (core rebuilt at `79b5be99`, 02:05 UTC, with `a2ee4530` too; verified in the container, phase0 PASS); my verifier also closes it at the agent.
-
-## 🏁 UPDATE (00:45 UTC) — FIRST REAL COMPLETED RUN
-
-`PHASE2 PASS`: **COMPLETED with a guard verdict = BLOCK** (evidence bundle hash present). Four more bugs found + fixed on the way (orchestrator import; mocked results incl. the nested-flag miss;
-`code` key; coder-agent keyword shortcuts firing on every crew task) — see `WHATS_DONE.md`. **BLOCK is correct:** `qa-engineer` has no model (echo stub), so the verify verdict is `UNKNOWN`.
-**Unproven:** guard ALLOW → settle/XP → Scribe → handover gate → publish. **Next:** a real verifier for the verify stage. The text below this section is the earlier 00:30 snapshot, kept for the trail.
-
-## 🔁 (00:30 UTC) — agents started, phase 2 re-run
-
-`PHASE2 PASS` (9/9) again, still **FAILED CLOSED**, now "agent returned an empty result". Cause: the proof goal contains the word **"health"**, which
-`coder-agent`'s keyword router turns into a **hard-coded mock** (`analyze_system_health()`); core refused it only because the mock's keys aren't text keys.
-**Fixed + deployed + live-proven** (`b13383b9`, `95940dad`): the agent flags its mocks, core refuses them; live reason is now "agent result was mocked, not real". (My first version only checked the
-top level — the live proof caught it; the flag is nested at `result.mocked`.) **A SECOND bug blocks the happy path:** `coder-agent`'s real Ollama reply is `{status, code, model}` and `code` isn't in
-core's `_TEXT_KEYS`, so a genuine answer is refused as "empty" (strict-xfail test documents it) — **decision needed: add `"code"` to `_TEXT_KEYS`**.
-To reach COMPLETED you also need: a goal without trigger words (health/metrics/deploy/docker/todo list) and a model that fits RAM (`tinyllama` ≈ 640 MB vs `qwen2.5:3b` ≈ 2 GB; the 4 GB
-WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHATS_DONE.md` 2026-10-03.
+1. **Exposed 10-year admin JWT** — `.env` line 214 `DASHBOARD_SERVICE_JWT` (user 9, superuser, exp 2036) was printed into a session transcript by my mistake; compose also injects it into `hypercode-core` and `postgres` (accidental?). Fix = rotate `JWT_SECRET` (invalidates every token incl. the 30-day dashboard one → re-mint, runbook §8) and delete that `.env` line. **Not done.**
+2. **Earlier leak in history:** `f1edc13e` says `.claude/settings.local.json` "contained a gateway token"; untracking does not remove it from the pushed history. Rotate it if it was ever real.
+3. **Verifier strictness** — it said `PASS` with 5 problems listed. Tighten it?
+4. **throttle-agent `enforce`** — not yet. Needs: a quiet baseline, a logon/reboot test of the scheduled task, and a decision between `docker pause` (frees **no RAM**, only CPU) and `stop` (frees RAM, but the healer fights it).
+5. **`evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`** breaks the combined compose project (`docker-compose.yml` + `agents-full.yml`); I deployed throttle-agent via a temporary single-service compose. `evolve-relay` itself could not be recreated today.
+6. **Observability stack:** restart it or leave it off (needs ~1+ GB; the 4 GB WSL cap is tight).
+7. The **`/permissions` rule** you added for the dashboard-token mint command — remove it now that the token exists. The dashboard JWT **expires ~2026-11-01**.
+8. D1–D12 original decisions, kill-switch compose wiring, a real GitHub token for the Scribe: all still open and untouched.
+9. The **unexplained dashboard restart** at 12:50:23 UTC (above) — worth a look if it recurs.
 
 ## ❌ NOT PROVEN
 
-- ~~Happy path~~ **PROVEN 2026-10-03 12:50 UTC** (`build → verify → guard ALLOW → settle/XP → Scribe → handover gate (skipped)`). Still unproven: real GitHub publish, the verifier's leniency (PASS with 5 problems listed).
-- Second Shepherd path `safety_client.check_dispatch` (strict, mutation agents like `coder-agent` are unregistered → deny-first MUTATION) — never run live; could fail.
-- Pause everything with a *running* run ("Saved… / Paused (n) · Resume") — only the "nothing running" text seen.
-- Real GitHub PR publisher (never touched). `tests/test_safety_contract.py` (crew-orchestrator) won't collect — not investigated.
+Real GitHub PR publish (the handover gate was skipped on purpose) · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe-mode would-pauses were right (review pending).
 
-## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check was also scheduled for 17:07 local, job `d5a747ee`)
+## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check is scheduled for 17:07 local, job `d5a747ee`)
 
-Observe has run since 12:48 UTC 2026-10-03. Nothing is paused (observe never touches Docker). Before ever setting `THROTTLE_MODE=enforce`, review it. All read-only:
-
-1. `python scripts/ram_guard.py --for check` — memory now (if RED, only do the cheap steps).
-2. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status` — writer `Running`, signal file age well under 120 s.
+Observe has run since 12:48 UTC. Nothing is paused (observe never touches Docker).
+1. `python scripts/ram_guard.py --for check` — memory now.
+2. `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status` — writer `Running`, signal age well under 120 s.
 3. `docker inspect -f '{{.State.Health.Status}} r={{.RestartCount}}' throttle-agent` and `docker ps --filter status=paused -q | wc -l` (**must be 0**).
-4. `docker logs throttle-agent 2>&1 | grep observe_decision` — the whole timeline (AMBER/RED episodes, `would pause=[…]`, `would resume=[…]`, `effective=PENDING` = blips the debounce absorbed). `GET /signal` (agent key, from inside the container) shows the last 50 + current state.
-5. Judge: were the would-pauses right (real pressure) or wrong (blips)? Any flapping (pause/resume within minutes)? Any UNKNOWN periods (writer down)? Remember `docker pause` frees no RAM (CPU only), so enforce on tiers 4/5/6 may not help a RAM squeeze; a real "free memory" action needs `stop`, which the healer fights.
-Evidence still missing for enforce: a quiet baseline (the first episode at 12:48-12:54 UTC was partly caused by my own docker builds/tests), a logon/reboot test of the Task Scheduler job, and a decision on pause vs stop.
+4. `docker logs throttle-agent 2>&1 | grep observe_decision` — the whole timeline (`would pause=[…]`, `would resume=[…]`, `effective=PENDING` = blips the debounce absorbed). `GET /signal` (agent key, from inside the container) shows the last 50.
+5. Judge: right (real pressure) or wrong (blips)? Flapping? UNKNOWN periods (writer down)? First episode so far (12:48–12:54 UTC): AMBER→RED→AMBER→RED→AMBER→GREEN, partly caused by my own builds.
 
-## 🧠 GOTCHAS LEARNED
+## 🧠 GOTCHAS LEARNED (cost real time)
 
-- `!` in this Claude Code prompt runs **Git Bash**, not PowerShell. `free -m` → `wsl -e free -m`. Git Bash mangles `/app` → use `MSYS_NO_PATHCONV=1`.
-- **Never** show `docker compose config` output — it expands `.env` secrets. Use `-q`.
-- `docker stop` on obs containers can say "zombie, can not be killed" yet free the RAM. Don't use `compose down` (can take core).
-- Core runs `alembic upgrade head` before uvicorn: a bad migration = restart loop. First boot after the old stack can take minutes under RAM pressure.
-- `crew-orchestrator` source is bind-mounted: edit + `docker restart crew-orchestrator`, no rebuild.
-- The auto-mode classifier blocks writing to `secrets/`; the user runs it or adds a narrow permission rule.
-- `serviceAuthHeader()` reads `DASHBOARD_SERVICE_JWT` **before** `DASHBOARD_SERVICE_JWT_FILE`.
+- **Gate heavy steps on the guard's exit code, in the same command:** `python scripts/ram_guard.py --for build && <heavy step>`. I once ran a test container beside a RED guard without gating it. The **Windows host** running out of RAM (1 MB free, compression 4.5 GB) hung Docker while `wsl -e free -m` looked fine.
+- `!` in the Claude Code prompt runs **Git Bash**, not PowerShell; `free -m` → `wsl -e free -m`; Git Bash mangles `/app` → `MSYS_NO_PATHCONV=1` (and `export` it). The Windows console is cp1252: keep script output ASCII.
+- **Never** show `docker compose config` — it expands `.env` secrets (use `-q`, or name-only filters). A token must never be printed; scan files for `eyJ…`/`nvapi-`/`sk-` before every commit.
+- Don't use `compose down` to stop things (it can take core); stop by name. `docker stop` can say "zombie" yet still free RAM. `docker pause` frees no RAM.
+- Core runs `alembic upgrade head` before uvicorn (a bad migration = restart loop). `crew-orchestrator` and `qa-engineer` source is **bind-mounted** (restart, no rebuild); `coder-agent` and core are baked into images (rebuild).
+- The auto-mode classifier blocks writing into `secrets/` (you run it, or add a narrow `/permissions` rule — I must not add it myself). `serviceAuthHeader()` reads `DASHBOARD_SERVICE_JWT` **before** `DASHBOARD_SERVICE_JWT_FILE`.
+- A scheduled job in this Claude session only fires while the session is open and idle; the Task Scheduler job is the durable one.
+- A reasoning model returns a `thinking` block before the `text` block: read only `text` blocks and allow `max_tokens` ≈ 1500.
 
 ## ▶️ NEXT TASK (one sentence)
 
-**UPDATE 13:55 UTC: throttle-agent is DEPLOYED in observe mode WITH the debounce (`85da2367`; seen working live: 1st AMBER = PENDING, 3rd consecutive = would-pause tier 6; nothing actually paused).** Next: let observe run and review `GET /signal` / the log (the machine was trending toward RED at 13:55: compression 3,382 MB), and only then consider `enforce`; also decide on fixing `evolve-relay`'s missing `env_file`. (Older text follows.) Deploy the fixed throttle-agent in OBSERVE mode once `python scripts/ram_guard.py --for build` is GREEN (the guard went RED again at 13:15 UTC: host 66 MB free, compression 4.2 GB, while WSL looked fine): start the host writer (`python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`), rebuild + start `throttle-agent` (steps in `WHATS_DONE.md` 13:20), then review `GET /signal` for a while before ever setting `THROTTLE_MODE=enforce`. The RAM guard (13:05) and the throttle-agent code + 57 tests (13:20) are DONE. Runner-up decision: should the verifier be stricter (it PASSed with 5 problems listed)? (The happy path is PROVEN; the real builder/verifier model is wired, opt-in via `CREW_LLM_BASE_URL`.)
+Let throttle-agent observe through your normal use, then review its timeline (checklist above) together and decide on `enforce` and pause-vs-stop — and fix the `evolve-relay` compose path so the real compose works again.
 
 ---
 
