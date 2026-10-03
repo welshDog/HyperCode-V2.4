@@ -151,7 +151,7 @@ before/after, `RestartCount`. Then write `docs/NEXT_SESSION_HANDOVER_<date>.md`.
 Core's operator endpoints accept only a **human JWT (Bearer)** or a **registered agent key (X-Agent-Key)**. The master
 `HYPERCODE_API_KEY` is neither. The dashboard reads a JWT from `secrets/dashboard_service_jwt.txt` (gitignored) via
 `DASHBOARD_SERVICE_JWT_FILE`; the env var `DASHBOARD_SERVICE_JWT` must stay **unset** (code reads env before file).
-Mint/rotate **inside core** (token never printed; owner superuser; 30 days) — current one **expires ~2026-11-01**:
+Mint/rotate **inside core** (token never printed; owner superuser; 30 days) — current one was re-minted 2026-10-03 15:13Z by `scripts/rotate_jwt_secret.py` and **expires ~2026-11-02** (re-run that script before then):
 
 ```bash
 # mint_dashboard_jwt.py (no secret in it) — run INSIDE core, stdout straight into the secret file:
@@ -170,8 +170,32 @@ print `docker compose config`.** Rotating `JWT_SECRET` invalidates this token to
 The Windows **host** can run out of RAM while WSL looks fine (1 MB free on 2026-10-03), which hangs Docker and makes every container read "unhealthy".
 - **Before any build/start/restart:** `python scripts/ram_guard.py --for build` (GREEN required; `--wait 120` polls). Chain heavy steps on its exit code: `python scripts/ram_guard.py --for build && <heavy step>`.
 - **Signal for the throttle-agent:** Task Scheduler job `\HyperCode\HyperCode RAM Guard Signal` (manage with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`).
-- **throttle-agent** runs `THROTTLE_MODE=observe` (logs what it WOULD pause, never touches Docker; debounce 3 AMBER samples / 1 RED). Review checklist: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`. Do not set `enforce` yet.
+- **throttle-agent** runs `THROTTLE_MODE=observe` (logs what it WOULD pause, never touches Docker; debounce 3 AMBER samples / 1 RED). Review checklist: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`. **Decided 2026-10-03 (Lyndz): stay in OBSERVE, do not set `enforce`** (reasoning: `WHATS_DONE.md`, 16:10 UTC review).
 
+## 10 · Reading what the crew is doing — [added 2026-10-03]
+
+Each stage logs ONE key=value line per model call. Numbers and labels only: **never** the diff, the model's text, the goal or a token (each pinned by a test).
+
+- **Verifier:** `docker logs qa-engineer 2>&1 | grep crew_verify` — `elapsed`, `stop_reason`, `attempts`, `in_tokens`/`out_tokens`, `max_tokens`, `thinking_chars`, `text_chars`, `reply_verdict` (what the model wrote; `NONE` = no valid `VERDICT:` line), `final_verdict` (`UNKNOWN` = none), `downgraded`. `verifier=retry ...` = a 5xx retry; `verifier=error ...` / `verifier=rules ...` = the other paths.
+- **Builder:** `docker logs coder-agent 2>&1 | grep -E "crew_build|LLM proxy"` — `crew_build model=... elapsed=... attempts=... stop_reason=... out_tokens=... text_chars=...`; `crew_build retry attempt=N status=529 wait=3s`; `LLM proxy HTTP 529 (attempt N)` / `LLM proxy request failed: ReadTimeout` (the task then returns an ERROR status and core fails the run with "agent reported an error").
+- **Diagnosing a BLOCK:** `verifier_verdict: FAIL` + `reply_verdict=FAIL` = a genuine model verdict. `verifier verdict: UNKNOWN` + `stop_reason=max_tokens` + `out_tokens` = `max_tokens` = the reasoning model's hidden thinking used the whole 1,500-token budget (do NOT just raise `max_tokens`: output is only ~20-30 tokens/s against a 105 s timeout). `verifier=rules ... not a unified diff` with `change_chars` tiny = the BUILDER failed (check `crew_build` / `LLM proxy` lines). `verifier=error` = the model call failed after its retries.
+
+## 11 · Measuring the crew success rate — [added 2026-10-03]
+
+```
+MSYS_NO_PATHCONV=1 bash scripts/measure-crew-rate.sh                     # 5 default goals
+MSYS_NO_PATHCONV=1 bash scripts/measure-crew-rate.sh "goal 1" "goal 2"   # your own
+docker exec -e MEASURE_GOAL="add a helper that ..." -i hypercode-core python - < scripts/measure-crew-run.py   # ONE run
+```
+
+One run at a time; the loop checks `scripts/ram_guard.py --for check` and core health before each and aborts on RED. Each run is ~25-130 s. It prints `RESULT {json}` per run (`ALLOW` | `BLOCK` + failed checks + the verifier's detail | `FAILED` | `STUCK`, a stuck run is cancelled) and a summary. It **always rejects the handover gate** (no draft PR can open) and needs no GitHub token. Each ALLOW run settles XP/coins to the owner account, as any run does. It uses the real model (`fcc-proxy` -> NVIDIA NIM: crew text leaves the machine). Avoid the words health/metrics/deploy/docker/"todo list" in goals (the builder's old keyword shortcuts). `scripts/prove-crew.py` phase 2 prints PASS for BOTH ALLOW and BLOCK: read the verdict line. Latest numbers: 9 of 15 ALLOW (60 %) before the builder/verifier hardening; re-measure after.
+
+## 12 · Upstream flakiness, retries, and recreating the agents — [added 2026-10-03]
+
+- NVIDIA NIM's free tier intermittently answers `Service temporarily overloaded` (upstream 503, proxied as **529**) or a bare **500**. The reason is only in the response BODY (the proxy log prints the bare status). Latency swings from 3 s to 100+ s.
+- **Both crew model calls retry transient 5xx** (429/500/502/503/504/529): at most 3 attempts, waits 3 s then 8 s, ALL inside ONE budget (verifier 105 s, builder 100 s; core gives up at 120 s), never starting an attempt with < 15 s left. **Timeouts, connection errors and every other 4xx are never retried**; a model FAIL/UNKNOWN is a real answer, never retried. Exhaustion fails closed with the reason (`... (gave up after 3 attempts)`).
+- **Recreating `coder-agent` or `qa-engineer` drops the opt-in proxy** (compose default is empty). Always: `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose --profile agents -f docker-compose.yml up -d --no-deps --no-build coder-agent`, then check `docker inspect` env shows the URL (never print `CREW_LLM_AUTH_TOKEN`). `coder-agent` is baked into an image (rebuild first, guard GREEN, >= 1.5 GB WSL available); `qa-engineer` and `crew-orchestrator` source is bind-mounted (`docker restart` is enough).
+- Agents wrap every result as `status="completed"`; only a TOP-LEVEL `status: error` is rejected by core's dispatch. (Open: make core also reject a nested `result.status == "error"`, which would fix the verifier's error path label; needs a core rebuild.)
 ## Rollback
 
 ```bash
