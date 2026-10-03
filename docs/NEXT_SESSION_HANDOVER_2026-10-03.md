@@ -34,7 +34,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-**Give the verifier more latency headroom (or measure it properly): live calls took 24-90 s against `MODEL_TIMEOUT_S = 90` inside the dispatch's 120 s limit, and a timeout fails the run closed. Decide the new limit with Lyndz, change it, re-probe.** Done today: the FULL end-to-end crew run (guard ALLOW across a core restart), throttle-agent stays in OBSERVE (Lyndz), `evolve-relay` compose path fixed + env trimmed, older leak audited (dead).
+**Measure the crew's success RATE, not a sample: run ~5 full crew runs (no core restart needed; `prove-crew.py` phase1+phase2 with `PROVE_GOAL` set in BOTH phases, guard GREEN, one at a time) and count ALLOW / BLOCK / error, reading each verdict line (phase2 prints PASS for both ALLOW and BLOCK).** Done today: FULL end-to-end run (guard ALLOW across a core restart), verifier latency headroom (105 s, measured 8-46 s), throttle-agent stays in OBSERVE (Lyndz), `evolve-relay` fixed + trimmed, older leak audited (dead).
 
 ## ⚠️ OPEN — NEEDS A DECISION FROM YOU (nothing here is started)
 
@@ -50,7 +50,7 @@
 
 ## ❌ NOT PROVEN
 
-Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · verifier reliability as a RATE (one ALLOW run + one blocked-by-my-regression run so far; latency headroom untested) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
+Real GitHub PR publish · dashboard-side approval UI · "Paused (n)" with a *running* run · kill-switch compose wiring · the Task Scheduler job across a logon/reboot · `THROTTLE_MODE=enforce` (never run) · whether the observe would-pauses were right (review pending) · verifier/crew reliability as a RATE (one ALLOW run + one run blocked by my since-fixed regression so far; latency now measured on 6 quiet-period calls only) · `hyper-mission-api` / `ai-backend` with the new JWT secret (not running).
 
 ## 🔭 HOW TO REVIEW THROTTLE-AGENT OBSERVE MODE (read-only; a session-only check was scheduled for 17:07 local, job `d5a747ee`)
 
