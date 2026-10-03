@@ -43,7 +43,13 @@ Step 0 pre-flight (stop rule hit, fixed by stopping obs) · Step 1 rebuild + swa
 - Obs stack: restart it, or leave it off? (Needs ~1+ GB; the 4 GB ceiling is tight.)
 - D1–D12 decisions, kill-switch compose wiring, real GitHub token for the Scribe: all still open, untouched.
 
-## 🔁 UPDATE (00:30 UTC) — agents started, phase 2 re-run
+## 🏁 UPDATE (00:45 UTC) — FIRST REAL COMPLETED RUN
+
+`PHASE2 PASS`: **COMPLETED with a guard verdict = BLOCK** (evidence bundle hash present). Four more bugs found + fixed on the way (orchestrator import; mocked results incl. the nested-flag miss;
+`code` key; coder-agent keyword shortcuts firing on every crew task) — see `WHATS_DONE.md`. **BLOCK is correct:** `qa-engineer` has no model (echo stub), so the verify verdict is `UNKNOWN`.
+**Unproven:** guard ALLOW → settle/XP → Scribe → handover gate → publish. **Next:** a real verifier for the verify stage. The text below this section is the earlier 00:30 snapshot, kept for the trail.
+
+## 🔁 (00:30 UTC) — agents started, phase 2 re-run
 
 `PHASE2 PASS` (9/9) again, still **FAILED CLOSED**, now "agent returned an empty result". Cause: the proof goal contains the word **"health"**, which
 `coder-agent`'s keyword router turns into a **hard-coded mock** (`analyze_system_health()`); core refused it only because the mock's keys aren't text keys.
@@ -72,7 +78,7 @@ WSL cap + ~1.9 GB free is tight — check RAM first, stop rule 1.2 GB). See `WHA
 
 ## ▶️ NEXT TASK (one sentence)
 
-Decide on adding `"code"` to core's `_TEXT_KEYS`, then re-run `prove-crew.py` phase0→phase2 with a goal that avoids the mock trigger words and a RAM-safe model for `coder-agent`, to see whether the crew COMPLETES (guard verdict, XP, handover draft) — the happy path that has never run.
+Give the crew's `verify` stage a real verifier (`qa-engineer` is an echo stub, so every run ends guard BLOCK), then re-run `prove-crew.py` phase1→restart→phase2 (with `PROVE_GOAL` optional) to reach guard ALLOW and exercise settle/XP, the Scribe draft and the handover gate — the part that has never run.
 
 ---
 

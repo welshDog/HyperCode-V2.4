@@ -2,6 +2,32 @@
 
 > Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
+## 2026-10-03 — HyperCrew: FIRST REAL COMPLETED RUN (guard BLOCK, as designed) — 4 more bugs found + fixed on the way
+
+**Phase 2 outcome: `COMPLETED: RUN_FINISHED with a guard verdict` → `guard decided BLOCK with an evidence bundle hash` → `Calm Card reflects the verdict` → `PHASE2 PASS` (EXIT 0).**
+Run `ab32c170-…`, goal `add a version endpoint to the API` (via new optional `PROVE_GOAL`; default unchanged), real core restart in between. All 4 containers
+healthy / RestartCount 0 / OOMKilled false; RAM ~1.93 GB. Real evidence the model ran: `coder-agent` build call took **60.6 s** (canned mock = 39 ms).
+
+Chain of live-found bugs, each hidden behind the previous (all committed + pushed on `claude/focused-darwin-ljrs8k`):
+1. `b44c2505` orchestrator relative import → `/execute` 500 on every call.
+2. `b13383b9` + `95940dad` canned (mocked) coder-agent answers: agent flags `mocked: true`; core refuses it. **My first version only checked the top level** — the orchestrator returns the
+   whole TaskResponse so the flag is at `result.mocked`; the live proof caught it (my flat-shaped unit test hid it). `_flagged_mocked()` now searches nested dicts.
+3. `5fb103c0` core's `_TEXT_KEYS` lacked `"code"` — coder-agent's real reply is `{status, code, model}`, so a genuine answer was refused as "empty". Added last in the tuple; text still
+   redacted, capped at 4000 chars, sha256-pinned and `scan_forbidden`-scanned. 224 crew tests pass.
+4. `9d9e8e6e` **coder-agent's keyword shortcuts fired on EVERY crew task**: the orchestrator prepends a skills loadout (mentions "metrics", "docker", …) so `metrics/health/deploy/docker/todo list`
+   always matched and canned data came back in 39 ms — **no goal wording could ever reach the model.** A task containing `[HyperCrew stage:` now goes straight to the model; non-crew shortcuts unchanged
+   and still flagged mocked. Verified in the coder image (crew task → 1 model call, not mocked; 3 shortcuts → 0 calls, mocked).
+
+**Why BLOCK, and why that is the right outcome:** `qa-engineer` has **no model** — the base agent's `process_task` just echoes "Task received by qa-engineer: …". Its reply has no whole-line
+`VERDICT: PASS|FAIL` (the regex needs the entire line; the echoed prompt embeds it mid-sentence), so the verdict is `UNKNOWN` and the guard BLOCKs. Checked: an echo can NOT produce a fake PASS.
+The model is `ai/smollm2` (tiny; via the `hypercode-ollama` shim → Docker Model Runner on the host; ~30 MB WSL RAM per call), so build output is low quality.
+
+**Still unproven (needs a real verifier):** guard **ALLOW** → settle (XP, `quest_settlements` row) → Scribe draft → handover approval gate → publish. A BLOCKed run never reaches them.
+Also unproven: real GitHub, kill-switch wiring, "Paused (n)" with a running run, dashboard-side approvals.
+
+**Next task:** give the `verify` stage a real verifier (qa-engineer with a model, or route verify to an agent that has one) so a run can reach guard ALLOW and exercise settle/Scribe.
+
+
 ## 2026-10-03 — HyperCrew: CI found a real Quest Settler race (first-wallet creation) — fixed
 
 - **Found by:** the Day 10 burst chaos test failing on CI (5 settlements instead of 6; passed on a faster machine). Not flaky: a real race.
@@ -12,6 +38,7 @@
   Regression test fails without the fix (verified), burst + quest tests stable x5. Backend 1099 pass + the same 4 pre-existing failures.
 - **Still true / not fixed:** `broski_service._get_or_create_wallet` has the same race for every other caller; the daily-XP-cap
   check-then-insert can overshoot the cap by at most one run's XP under extreme concurrency (bounded, not exploitable for farming).
+
 
 ## 2026-10-03 — HyperCrew: agents started, phase 2 re-run → PASS but STILL FAILED CLOSED; coder-agent mock hazard found
 

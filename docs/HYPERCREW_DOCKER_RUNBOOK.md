@@ -97,6 +97,10 @@ docker exec -i hypercode-core python - phase2 <PARKED_TASK> <PARKED_KEY> <PARKED
 **FAILED CLOSED is the weaker proof.** To reach COMPLETED the crew agents must be running (`coder-agent`, `qa-engineer`) and
 `crew-orchestrator` must be healthy; with them down the orchestrator logs `HEALTH ALERT: N agents down`. First run ended FAILED
 CLOSED with `orchestrator returned HTTP 500` — that was a real bug (relative-import in `crew-orchestrator/main.py`), fixed in `b44c2505`.
+**[2026-10-03] COMPLETED reached** after 4 more fixes (see `WHATS_DONE.md`): phase 2 prints `COMPLETED: RUN_FINISHED with a guard verdict` + `guard decided BLOCK …`.
+BLOCK is expected today: `qa-engineer` is an echo stub (no model) → verdict UNKNOWN. It takes ~2–10 min (the real model call is ~60 s); run long commands in the background.
+Start the agents with `docker compose --profile agents up -d --no-deps coder-agent qa-engineer` (build each first). `PROVE_GOAL="…"` optionally overrides the goal in **both** phase1 and phase2
+(`docker exec -e PROVE_GOAL=… -i hypercode-core python - phase1 < scripts/prove-crew.py`).
 
 **Handover gate (new):** phase 2 meets the Scribe's gate after the guard. By default it **skips** it
 (`reject`), so it can never open a real PR. To approve it instead: `PROVE_APPROVE_HANDOVER=1` in front of the

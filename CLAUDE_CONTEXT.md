@@ -12,7 +12,8 @@
 ## 🏗️ LATEST — HyperCrew deployed on Docker (2026-10-03)
 - Multi-agent crew + Calm Mode/Panic/Focus/Quest Settler/Scribe/Morning Card, branch `claude/focused-darwin-ljrs8k` (draft PR #547). Migration **`023`** applied; `prove-crew.py` phases 0/1/2 PASS; dashboard `/ide` 5/5.
 - **Found + fixed on the first Docker run:** (1) `crew-orchestrator` `/execute` 500 on every call (relative import, `b44c2505`); (2) dashboard had no credential core accepts (`9f8b06b7`, now a 30-day JWT secret, **expires ~2026-11-01**).
-- **Not proven:** the happy path (agents now running, but the proof goal hits `coder-agent`'s mock keyword branch and no LLM fits RAM). **Open:** rotate `JWT_SECRET` (a 10-year admin JWT was exposed in a transcript). Next task + gotchas: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+- **First real COMPLETED run proven** (COMPLETED + guard BLOCK; real model answered). 4 more bugs fixed on the way (mocked results, `code` key, coder-agent keyword shortcuts firing on every crew task).
+  **Not proven:** guard ALLOW → settle/XP → Scribe → publish (`qa-engineer` is an echo stub → verdict UNKNOWN → BLOCK). **Open:** rotate `JWT_SECRET` (a 10-year admin JWT was exposed in a transcript). Next task + gotchas: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
 
 ---
 
