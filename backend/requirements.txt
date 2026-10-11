@@ -9,7 +9,7 @@ amqp==5.3.1
 annotated-doc==0.0.4
 annotated-types==0.7.0
 # audioop-lts==0.2.1 <- removed: requires Python >=3.13, we use 3.11
-anyio==4.9.0
+anyio==4.14.2
 APScheduler==3.11.2
 argon2-cffi==25.1.0
 argon2-cffi-bindings==25.1.0
@@ -86,7 +86,7 @@ Flask-SocketIO==5.5.1
 flatbuffers==25.2.10
 fonttools==4.60.2
 frozenlist==1.7.0
-fsspec==2026.3.0
+fsspec==2026.6.0
 geographiclib==2.0
 geopy==2.4.1
 gitdb==4.0.12
@@ -203,7 +203,7 @@ psycopg2-binary==2.9.10
 py-cord==2.6.1
 py-serializable==1.1.2
 pyarrow==21.0.0
-pyasn1==0.6.3
+pyasn1==0.6.4
 pyasn1_modules==0.4.2
 pybase64==1.4.2
 pycodestyle==2.14.0
@@ -217,7 +217,7 @@ pyflakes==3.4.0
 pygame==2.6.1
 PyGithub==2.9.0
 Pygments==2.20.0
-PyJWT==2.12.0
+PyJWT==2.14.0
 pylint==4.0.5
 PyNaCl==1.6.2
 pyparsing==3.2.3
@@ -234,7 +234,7 @@ python-engineio==4.12.2
 python-jose==3.5.0
 python-Levenshtein==0.27.3
 python-memcached==1.62
-python-multipart==0.0.27
+python-multipart==0.0.30
 python-socketio==5.14.0
 pytz==2025.2
 # pywin32==311 <- REMOVED: Windows-only, not available in Linux Docker containers
@@ -296,7 +296,7 @@ typing-inspection==0.4.2
 typing_extensions==4.14.1
 tzdata==2025.3
 tzlocal==5.3.1
-urllib3==2.7.0
+urllib3==2.8.0
 uuid_utils==0.14.1
 uvicorn==0.35.0
 vine==5.1.0

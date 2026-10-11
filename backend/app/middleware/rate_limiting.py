@@ -1,16 +1,20 @@
 """Rate limiting and security middleware for HyperCode API."""
 
+import logging
 import os
+import time
+import warnings
+
 from fastapi import FastAPI, Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from starlette.responses import JSONResponse
-import time
-import logging
-
 
 from app.core.config import settings
+
+# Starlette reads dotenv files using the process locale; force UTF-8 on Windows.
+os.environ.setdefault("PYTHONUTF8", "1")
 
 logger = logging.getLogger(__name__)
 
@@ -46,40 +50,49 @@ def _rate_limit_storage_uri() -> str:
     return _with_redis_db(redis_url, 2)
 
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["100/minute"],
-    storage_uri=_rate_limit_storage_uri(),
-)
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"Config file .* not found\.",
+        category=UserWarning,
+        module="starlette.config",
+    )
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=["100/minute"],
+        storage_uri=_rate_limit_storage_uri(),
+        # Use the platform null device so slowapi does not auto-read repository .env.
+        config_filename=os.devnull,
+    )
 
 
 class RateLimitConfig:
     """Configuration for rate limiting per endpoint."""
-    
+
     # Endpoint-specific limits (requests per minute)
     LIMITS = {
         # Public endpoints
         "/health": "1000/minute",
         "/docs": "100/minute",
         "/openapi.json": "100/minute",
-        
+
         # Authentication
         "/api/auth/login": "5/minute",  # Prevent brute force
         "/api/auth/register": "3/minute",
         "/api/auth/logout": "100/minute",
         "/api/auth/refresh": "30/minute",
-        
+
         # API endpoints
         "/api/agents": "100/minute",
         "/api/agents/{agent_id}": "100/minute",
         "/api/tasks": "50/minute",
         "/api/tasks/{task_id}": "100/minute",
         "/api/tasks/*/submit": "30/minute",
-        
+
         # WebSocket (excluded from rate limiting in decorator)
         "/ws": "unlimited",
     }
-    
+
     # Custom rate limit per authenticated user
     AUTHENTICATED_LIMITS = {
         "default": "500/minute",  # Increase for authenticated users
@@ -104,13 +117,13 @@ def rate_limit_error_handler(request: Request, exc: RateLimitExceeded):
 
 def setup_rate_limiting(app: FastAPI):
     """Setup rate limiting for FastAPI application."""
-    
+
     # Add rate limiter to app state
     app.state.limiter = limiter
-    
+
     # Add exception handler
     app.add_exception_handler(RateLimitExceeded, rate_limit_error_handler)
-    
+
     logger.info("Rate limiting configured")
 
 
@@ -118,7 +131,7 @@ def get_rate_limit_key(request: Request, user_role: str | None = None) -> str:
     """Get rate limit key based on user/IP."""
     if user_role and user_role in RateLimitConfig.AUTHENTICATED_LIMITS:
         return f"user:{user_role}"
-    
+
     return get_remote_address(request)
 
 
@@ -135,27 +148,27 @@ def rate_limit(limit: str | None = None):
 # Example: Async rate limiter for high-throughput endpoints
 class AsyncRateLimiter:
     """Async-safe rate limiter for background tasks."""
-    
+
     def __init__(self, redis_url: str | None = None):
         env_url = (os.getenv("HYPERCODE_REDIS_URL") or os.getenv("REDIS_URL") or "").strip()
         self.redis_url = (redis_url or env_url or "").strip() or None
         self.redis = None
-    
+
     async def connect(self):
         """Connect to Redis."""
         if not self.redis_url:
             return
         import redis.asyncio as aio_redis
         self.redis = await aio_redis.from_url(self.redis_url)
-    
+
     async def is_allowed(self, key: str, limit: int, window: int) -> bool:
         """Check if request is allowed within rate limit.
-        
+
         Args:
             key: Rate limit key (IP, user ID, etc)
             limit: Max requests allowed
             window: Time window in seconds
-        
+
         Returns:
             True if allowed, False if rate limited
         """
@@ -166,19 +179,19 @@ class AsyncRateLimiter:
                 return True
         if not self.redis:
             return True
-        
+
         current_time = int(time.time())
         window_key = f"rate_limit:{key}:{current_time // window}"
-        
+
         # Increment counter
         count = await self.redis.incr(window_key)
-        
+
         # Set expiry on first increment
         if count == 1:
             await self.redis.expire(window_key, window)
-        
+
         return count <= limit
-    
+
     async def close(self):
         """Close Redis connection."""
         if self.redis:

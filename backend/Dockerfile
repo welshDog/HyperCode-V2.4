@@ -1,5 +1,14 @@
-# ── Stage 1: Builder ──────────────────────────────────────────────────────────
-FROM python:3.12-slim AS builder
+# syntax=docker/dockerfile:1.7
+
+# Dependency set baked into the runtime image (selects the `deps-*` stage below):
+#   full (default) -> requirements.txt            (current broad image, unchanged behaviour)
+#   core           -> requirements.core.txt       (slim API runtime; see requirements.core.in)
+# Slim build:  docker build -f backend/Dockerfile --build-arg DEPS_VARIANT=core \
+#                -t hypercode-core:slim-check ./backend
+ARG DEPS_VARIANT=full
+
+# ── Stage 1a: Shared build base (OS + pip tooling hardening) ──────────────────
+FROM python:3.12-slim AS build-base
 
 WORKDIR /app
 
@@ -7,7 +16,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/cache/huggingface
 ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
-ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + install build deps
 RUN apt-get update --allow-releaseinfo-change && \
@@ -27,10 +35,32 @@ RUN pip install --upgrade --no-cache-dir \
     "jaraco.functools>=4.1.0" \
     "jaraco.text>=4.0.0"
 
+
+# ── Stage 1b: Full dependency set (default) ───────────────────────────────────
+FROM build-base AS builder
+ARG INSTALL_AI_DEPS=false
+
 # Install dependencies FIRST (before code) for better layer caching
 COPY requirements.txt requirements-ai.txt ./
-RUN pip install --no-cache-dir -r requirements.txt && \
-    if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install --no-cache-dir -r requirements-ai.txt; fi
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt && \
+    if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install -r requirements-ai.txt; fi
+
+FROM builder AS deps-full
+
+
+# ── Stage 1c: Slim core dependency set (opt-in: DEPS_VARIANT=core) ────────────
+# No scientific stack, agent frameworks, dev/security tooling or model-serving
+# libs. INSTALL_AI_DEPS is intentionally ignored here.
+FROM build-base AS deps-core
+
+COPY requirements.core.txt ./
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.core.txt
+
+
+# ── Stage 1d: Selected dependency set ─────────────────────────────────────────
+FROM deps-${DEPS_VARIANT} AS deps
 
 
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
@@ -55,24 +85,17 @@ RUN apt-get update --allow-releaseinfo-change && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Pip tool hardening — pin safe versions
-RUN pip install --upgrade --no-cache-dir \
-    "pip==26.0.1" \
-    "setuptools>=80.0.0" \
-    "wheel==0.46.2" \
-    "jaraco.context>=6.0.0" \
-    "jaraco.functools>=4.1.0" \
-    "jaraco.text>=4.0.0"
+# The builder owns dependency installation; copying its site-packages keeps the
+# runtime image free of compilers and avoids reinstalling the full dependency set.
 
-# Non-root user — security hardening
 RUN addgroup --system appuser && adduser --system --group appuser
 
 # Create cache directories
 RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
     chown -R appuser:appuser /app/cache
 
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=deps /usr/local/bin /usr/local/bin
 
 # Copy application code LAST (most frequently changed layer)
 COPY . .

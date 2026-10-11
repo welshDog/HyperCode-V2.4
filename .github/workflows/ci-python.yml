@@ -5,13 +5,13 @@ on:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'requirements*.txt'
+      - 'backend/requirements*.txt'
       - '.github/workflows/ci-python.yml'
   pull_request:
     branches: [main]
     paths:
       - 'backend/**'
-      - 'requirements*.txt'
+      - 'backend/requirements*.txt'
 
 permissions:
   contents: read
@@ -28,9 +28,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.12'
           cache: pip
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
+      - name: Compile backend modules
+        run: python -m compileall -q backend/app
+      - name: Import application
+        working-directory: backend
+        env:
+          ENVIRONMENT: test
+        run: python -c "from app.main import app; assert app is not None; print('backend-import-ok')"
       - name: Run tests
         run: pytest backend/tests -v --tb=short

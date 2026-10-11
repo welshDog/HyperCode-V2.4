@@ -3,8 +3,6 @@ name: Docker Build & Test
 permissions:
   contents: read
 on:
-  read
-on:
   push:
     branches: [ main, develop ]
   pull_request:
