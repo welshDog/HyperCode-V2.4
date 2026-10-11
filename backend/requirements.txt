@@ -314,3 +314,13 @@ yarl==1.20.1
 zipp==3.23.0
 zstandard==0.25.0
 stripe>=10.0.0
+
+# RAG chunking (app/core/rag.py). Previously only in requirements-ai.txt, so the default
+# image and CI had no splitter and RecursiveCharacterTextSplitter silently fell back to None.
+langchain-text-splitters==1.1.3
+langchain-core==1.6.9
+langchain-protocol==0.0.19
+langsmith==0.14.7
+httpx2==2.13.1      # CVE-2026-84382 fixed in >=2.12
+httpcore2==2.13.1   # CVE-2026-84381 fixed in >=2.10
+truststore==0.10.4

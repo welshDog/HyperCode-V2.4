@@ -585,6 +585,31 @@ regressions the suite can see, and no test that passed before fails now.
   pre-existing Dockerfile changes in `memstream`, `services/hypercode-mcp-server`
   and `services/skillweaver` noted in section 6.
 
+### CI findings on the first PR run
+
+CI built the backend image from this Dockerfile (`build-backend`) and passed
+`security-scan`, `Trivy`, `lint`, `CodeQL` and `GitGuardian`. `Python Tests` ran 625
+tests (621 passed, 4 failed). In CI the 40 `mcp` tests and the `crew_pause` timing
+test pass, so the local failure counts earlier in section 11 reflect that local
+test environment (no `mcp` installed; slow host), not the code.
+
+- **`test_core_rag.py::test_rag_ingest_document_chunks_and_adds` (real bug, fixed
+  here):** `app/core/rag.py` falls back to `RecursiveCharacterTextSplitter = None`
+  when `langchain_text_splitters` is missing, and it was listed only in
+  `requirements-ai.txt`. The default `requirements.txt`, and therefore CI and the
+  default image (`INSTALL_AI_DEPS=false`), had no splitter, so RAG ingest chunking
+  was broken there. `requirements.txt` now pins it with its closure
+  (`langchain-text-splitters`, `langchain-core`, `langchain-protocol`, `langsmith`,
+  `truststore`, plus the `httpx2` / `httpcore2` CVE floors). The slim image already
+  had it. The core lockfile pins did not change.
+- **3 `test_agent_pulse.py` tests:** stale, `pulse.py` moved to `httpx`
+  (commit `f635dbc1`); not fixed here.
+- **`build-agents` (4 jobs):** the workflow still uses `./agents/frontend-specialist`
+  style paths, but the directories are `agents/01-frontend-specialist` and so on.
+  Pre-existing; not fixed here.
+- **`test-compose`:** the runner has no `docker-compose` v1 binary (exit 127).
+  Pre-existing; not fixed here.
+
 ### Operational lesson
 
 During the smoke test the smoke container, a Trivy scan and a debug container were
