@@ -59,6 +59,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # coder's Dockerfile does `FROM agent-base:latest`, a shared base image that is
+      # not published anywhere and is not built by compose, so a clean runner gets
+      # "pull access denied". Build it first (same approach as docker-push.yml).
+      # `load: true` makes it visible to the next step's FROM; it is never pushed.
+      - name: Build agent-base (local dependency for coder)
+        if: matrix.agent == 'coder'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./agents
+          file: ./agents/Dockerfile.base
+          push: false
+          load: true
+          tags: agent-base:latest
+          cache-from: type=gha,scope=agent-base
+          cache-to: type=gha,mode=max,scope=agent-base
+
       - name: Build ${{ matrix.agent }} image
         uses: docker/build-push-action@v5
         with:
@@ -118,18 +134,37 @@ jobs:
       # The files need a .env (core uses `env_file: .env`) and two required
       # variables; CI uses non-secret placeholders. --quiet: never print the
       # expanded config.
-      - name: Validate compose files
+      - name: Prepare .env and show Compose version
+        run: |
+          cp .env.example .env
+          docker compose version
+
+      - name: Validate core
         env:
           POSTGRES_PASSWORD: ci-placeholder
           API_KEY: ci-placeholder
-        run: |
-          cp .env.example .env
-          docker compose -f docker-compose.core.yml config --quiet
-          # agents.yml is an overlay (depends on services defined in core), so
-          # it is only valid together with core.
-          docker compose -f docker-compose.core.yml -f docker-compose.agents.yml config --quiet
-          docker compose -f docker-compose.observability.yml config --quiet
-          docker compose config --quiet
+        run: docker compose -f docker-compose.core.yml config --quiet
+
+      # agents.yml is an overlay (depends on services defined in core), so it is
+      # only valid together with core.
+      - name: Validate core + agents
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose -f docker-compose.core.yml -f docker-compose.agents.yml config --quiet
+
+      - name: Validate observability
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose -f docker-compose.observability.yml config --quiet
+
+      # The default file `include:`s every other compose file.
+      - name: Validate default (include everything)
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose config --quiet
 
   security-scan:
     runs-on: ubuntu-latest
