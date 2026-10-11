@@ -632,3 +632,55 @@ a time** and gate each on the guard.
    `numpy` / `onnxruntime` weight (Priority 1 follow-up).
 5. Fix the stale "3.11" comment in `requirements.txt`, and Priority 5
    (consolidate dependency ownership).
+
+---
+
+## 13. Startup Time: Cause and Bytecode Precompile (slim image)
+
+### Cause
+
+The 80 s to 230 s (and sometimes longer) the slim image took to answer `/health`
+was **Python import time, not database or Redis waits**. `python -X importtime -c
+"import app.main"` took about 88 s of cumulative import time (111 s with container
+start) on the test host. No single import dominates (`chromadb` ~11 s; `fastapi`,
+`sqlalchemy`, `redis.asyncio` 6-8 s each). The code that runs after import is
+bounded: the Redis ping is capped at 2 s and HyperFlow recovery at 15 s (its
+database work runs in threads, so the cap holds).
+
+The Dockerfile sets `PYTHONDONTWRITEBYTECODE=1` and never precompiled anything, so
+every cold start recompiled all of `site-packages` from source.
+
+### Change
+
+The `core` variant now precompiles bytecode: `site-packages` in the `deps-core`
+stage (`--invalidation-mode unchecked-hash`, safe because the image is immutable)
+and the app's own `app/` and `alembic/` in the runtime stage (default timestamp
+mode, so a bind-mounted newer source is still picked up). The `full` variant is
+unchanged.
+
+### Measured results
+
+| Measurement | Without `.pyc` | With `.pyc` |
+|---|---|---|
+| `import app.main` (same container, compiled in place) | 109 s cold / 101 s warm | 63 s / 55 s |
+| `import app.main` (baked into the image) | n/a | 46 s / 55 s |
+| Container start to `/health` HTTP 200 | 102 s to >233 s across runs | 84 s |
+
+Roughly a 2x import speed-up. Timings on this host move a lot with machine load
+(one run during heavy Docker load took 287 s for a single import, which is why that
+run was discarded), so treat the exact seconds as indicative, not guaranteed.
+
+Cost: 10,155 `.pyc` files, **148 MB** in `site-packages` (exact bytes), and about
++80 s of build time. The listed image size of `pyc-check` (1.06 GB) is lower than
+`slim-check4` (1.18 GB) only because the earlier build also copied untracked local
+artifacts (`htmlcov`, `coverage.xml`, ...) from the working directory; the new build
+came from a clean checkout. A like-for-like size comparison against a clean
+no-bytecode build was not made.
+
+### Still open
+
+- Even with bytecode the import takes ~50 s on this host; the import graph is heavy.
+  Lazy-loading `chromadb` in `app/core/rag.py` would save about 11 s more, but the
+  tests patch it at module level, so it needs a matching test change.
+- Readiness probes and smoke tests should still allow several minutes on slow hosts.
+- The `full` image was not changed.
