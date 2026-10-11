@@ -10,5 +10,5 @@ pydantic-settings==2.5.2
 prometheus-client==0.21.0
 slowapi==0.1.9
 structlog==24.4.0
-pyOpenSSL==24.2.1
+pyOpenSSL==26.4.0
 python-multipart==0.0.24
