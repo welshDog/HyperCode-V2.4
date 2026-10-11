@@ -452,6 +452,25 @@ These carry real break risk (FastAPI, `python-jose`, `slowapi`) and should be
 changed in a separate pass with the full test suite, not bundled with the safe
 bumps above.
 
+### 10.3 Follow-up: `cryptography` and `starlette` upgrades (applied, tested, not yet rescanned)
+
+| Package | From | To | Note |
+|---|---|---|---|
+| `cryptography` | 46.0.7 | 50.0.2 | At or above the fix version for all 3 findings (not yet rescanned). Resolved cleanly alongside `python-jose`, `PyJWT`, `rsa`, `ecdsa`. |
+| `starlette` | 0.49.1 | 1.7.0 | At or above the fix version for both findings (1.3.1 or newer; not yet rescanned). |
+| `prometheus-fastapi-instrumentator` | 7.1.0 | 8.1.0 | Required: 7.1.0 declares `starlette<1.0.0`. Also bumped in `pyproject.toml`. |
+
+- `fastapi` stays at 0.135.3. It already allows `starlette` 1.x, so no change was
+  needed. `fastapi` 0.143.0 was **avoided** on purpose: it requires
+  `opentelemetry-api>=1.44.0`, which would have forced the whole OpenTelemetry
+  family up.
+- `slowapi` stays at 0.1.9; `sse-starlette` 1.6.1 and `mcp` (full set) accepted
+  the new `starlette` in the resolver.
+- Both `requirements.txt` and the compiled `requirements.core.txt` resolve. The
+  core lockfile diff is exactly these three lines.
+- `pyproject.toml` still pins `FastAPI==0.141.0` against `requirements.txt`'s
+  0.135.3. That drift predates this work and was not changed.
+
 ---
 
 ## 11. Test Suite on the Bumped Pins
@@ -482,6 +501,14 @@ bumps above.
   rate-limit areas, pass on the bumped pins. This does not cover the 40 `mcp`
   tests (they need `mcp` installed) or the `e2e` tests (they need live services).
 
+**Second run, with the `cryptography` / `starlette` / instrumentator upgrades
+(section 10.3):** a fresh venv on the full new stack (`starlette` 1.7.0,
+`cryptography` 50.0.2, `prometheus-fastapi-instrumentator` 8.1.0) gave
+**44 failed, 1,060 passed, 6 skipped** in 20m05s, and the set of failing test IDs is
+**identical** to the first run (compared by sorted test ID). `from app.main import
+app` also imports cleanly with 137 routes. So the upgrades introduced no
+regressions the suite can see, and no test that passed before fails now.
+
 ---
 
 ## 12. Current Status and Open Items
@@ -499,7 +526,10 @@ bumps above.
 - The smoke test ran with `ENVIRONMENT=test` and no database or Redis, so
   `alembic upgrade head` and the real Postgres, Redis and Chroma paths are
   unexercised on the slim image.
-- The full image has **not** been rebuilt or rescanned since the pin bumps.
+- Neither image has been rebuilt or rescanned since the `cryptography` /
+  `starlette` upgrades (section 10.3). The expectation is that only the
+  `httpcore2` / `httpx2` HIGH findings remain, but that is not yet measured. The
+  full image has also not been rebuilt or rescanned since any of the pin bumps.
 - Behaviour of the RAG path (`chromadb`) at runtime; the app imports it, but no
   live query was made.
 - The 7 remaining HIGH findings are open (section 10.2).
