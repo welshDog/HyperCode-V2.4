@@ -16,7 +16,7 @@ async def test_pulse_process_success_builds_metrics_and_calls_brain(monkeypatch)
     import app.agents.pulse as pulse_mod
     from app.agents.pulse import PulseAgent
 
-    def fake_get(url: str, params: dict, timeout: int):
+    async def fake_get(url: str, params: dict):
         return _Response(
             200,
             {
@@ -29,7 +29,7 @@ async def test_pulse_process_success_builds_metrics_and_calls_brain(monkeypatch)
             },
         )
 
-    monkeypatch.setattr(pulse_mod.requests, "get", fake_get)
+    monkeypatch.setattr(pulse_mod._http, "get", fake_get)
 
     captured: dict = {}
 
@@ -54,10 +54,10 @@ async def test_pulse_process_non_200_includes_error(monkeypatch):
     import app.agents.pulse as pulse_mod
     from app.agents.pulse import PulseAgent
 
-    def fake_get(url: str, params: dict, timeout: int):
+    async def fake_get(url: str, params: dict):
         return _Response(500, {}, "boom")
 
-    monkeypatch.setattr(pulse_mod.requests, "get", fake_get)
+    monkeypatch.setattr(pulse_mod._http, "get", fake_get)
 
     captured: dict = {}
 
@@ -79,10 +79,10 @@ async def test_pulse_process_exception_includes_critical(monkeypatch):
     import app.agents.pulse as pulse_mod
     from app.agents.pulse import PulseAgent
 
-    def fake_get(url: str, params: dict, timeout: int):
+    async def fake_get(url: str, params: dict):
         raise RuntimeError("no network")
 
-    monkeypatch.setattr(pulse_mod.requests, "get", fake_get)
+    monkeypatch.setattr(pulse_mod._http, "get", fake_get)
 
     captured: dict = {}
 

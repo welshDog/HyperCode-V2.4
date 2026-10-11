@@ -1,0 +1,74 @@
+# Core API runtime — DIRECT dependencies only (Python 3.12).
+# Source of truth for requirements.core.txt; do not hand-edit the .txt.
+# Regenerate (versions held to the known-good pins in requirements.txt):
+#   uv pip compile requirements.core.in -c requirements.txt \
+#     --python-version 3.12 --python-platform linux -o requirements.core.txt
+#
+# Derived from a static import scan of backend/app + backend/alembic (2026-10-11).
+# Deliberately excluded: scientific stack (numpy/pandas/scipy/matplotlib/sklearn/qiskit),
+# agent frameworks (langgraph/langchain/openai/crewai/autogen), dev + security tooling,
+# GUI/bot libs (pygame/discord/flask). Dev tools live in requirements-dev.txt;
+# model-serving libs live in requirements-ai.txt.
+
+# Web
+fastapi
+uvicorn[standard]
+starlette
+python-multipart       # fastapi OAuth2PasswordRequestForm
+httpx
+slowapi
+prometheus-client
+prometheus-fastapi-instrumentator
+
+# Config / validation
+pydantic
+pydantic-settings
+email-validator        # pydantic EmailStr in app/schemas/schemas.py
+PyYAML
+ruamel.yaml
+python-json-logger
+tenacity
+cachetools
+
+# Database (sync engine + alembic use postgresql:// -> psycopg2; async path uses asyncpg)
+SQLAlchemy
+alembic
+asyncpg
+psycopg2-binary
+
+# Cache / queue
+redis
+celery
+kombu
+
+# Auth / crypto
+python-jose
+cryptography
+bcrypt
+
+# Integrations
+stripe
+boto3
+botocore
+
+# Observability (only the modules imported under app/)
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-logging
+opentelemetry-instrumentation-redis
+opentelemetry-instrumentation-sqlalchemy
+
+# RAG — app/core/rag.py is imported at startup by api/v1/endpoints/memory.py.
+# Full chromadb kept for now: DefaultEmbeddingFunction() fallback needs onnxruntime+numpy.
+# Biggest remaining weight; see UPGRADE_REPORT follow-up.
+chromadb
+langchain-text-splitters
+
+# Transitive floors (not imported by app/): langsmith -> httpx2/httpcore2 via
+# langchain-text-splitters. Raised to the fixed releases for HIGH CVEs
+# CVE-2026-84381 (httpcore2) and CVE-2026-84382 (httpx2).
+httpx2>=2.12.0
+httpcore2>=2.10.0
