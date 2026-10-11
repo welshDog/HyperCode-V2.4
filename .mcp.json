@@ -1,9 +1,40 @@
 {
   "mcpServers": {
-    "hypercode": {
-      "type": "sse",
-      "url": "http://localhost:8823/sse",
-      "description": "HyperCode AI agent stack — manage agents, tasks, plans, logs and BROski$ economy"
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github@2025.4.8"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "filesystem-hypercode": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem@2026.8.31",
+        "."
+      ]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres@0.6.2",
+        "${SUPABASE_DB_URL}"
+      ],
+      "env": {
+        "SUPABASE_DB_URL": "${SUPABASE_DB_URL}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@executeautomation/playwright-mcp-server@1.0.12"
+      ]
     }
   }
 }
