@@ -564,12 +564,17 @@ regressions the suite can see, and no test that passed before fails now.
   CRITICAL remaining.
 - Trivy completes on both images.
 - The six pin bumps resolve cleanly for both the full and the core sets.
+- The slim image runs against a real Postgres and Redis: migrations to head `022`,
+  seeding, a full auth flow and a wallet write all work (section 14.1).
+- All work is merged to `main` (PRs #552, #553, #557, #556, #558; section 14.3) and
+  the four agent images, `build-backend` and `test-compose` pass in CI on `main`.
 
 ### Not yet confirmed
 
-- The smoke test ran with `ENVIRONMENT=test` and no database or Redis, so
-  `alembic upgrade head` and the real Postgres, Redis and Chroma paths are
-  unexercised on the slim image.
+- The Chroma server path. Section 14.1 covered Postgres and Redis only; a throwaway
+  Chroma server would have pushed the machine under its RAM floor, so the embedding
+  function was tested on its own (section 14.2) but ingest/query against a Chroma
+  server was not. The rate limiter was also not triggered.
 - The slim image was rebuilt and rescanned on the final pins (0 fixable
   HIGH/CRITICAL, section 10.4). The **full image was rebuilt on the same pins**
   (`hypercode-core:full-check`, 2.5 GB; it builds and exports, but no container
@@ -578,12 +583,15 @@ regressions the suite can see, and no test that passed before fails now.
   (the orphaned scanner container was then stopped by hand). There is therefore no
   post-bump vulnerability number for the full image; the last measured figure is the
   pre-bump 57 (section 10). Rerun it only when the RAM guard is GREEN, on its own.
-- Behaviour of the RAG path (`chromadb`) at runtime; the app imports it, but no
-  live query was made.
-- The 7 remaining HIGH findings are open (section 10.2).
-- Nothing from this session is committed. The working tree also still holds the
-  pre-existing Dockerfile changes in `memstream`, `services/hypercode-mcp-server`
-  and `services/skillweaver` noted in section 6.
+- The 7 HIGH findings listed in section 10.2 were resolved by the section 10.3 /
+  10.4 upgrades; the slim image rescans at 0. They are not re-measured on the full
+  image (see the item above).
+- The **running stack** has not been rebuilt: the live `hypercode-core` predates the
+  `langchain-text-splitters` pin and the writable-`HOME` fix, so RAG there is very
+  likely still affected until it is rebuilt from `main` (section 14.2).
+- The pre-existing, uncommitted Dockerfile changes in `memstream`,
+  `services/hypercode-mcp-server` and `services/skillweaver` noted in section 6 are
+  still unreviewed and were deliberately not part of any of these PRs.
 
 ### CI findings on the first PR run
 
@@ -607,11 +615,13 @@ test environment (no `mcp` installed; slow host), not the code.
   fake. They now patch the shared `pulse_mod._http.get` with an async fake
   (`async def fake_get(url, params)`). Assertions are unchanged. These 3 plus the 4
   `test_core_rag.py` tests pass locally (7 passed).
-- **`build-agents` (4 jobs):** the workflow still uses `./agents/frontend-specialist`
-  style paths, but the directories are `agents/01-frontend-specialist` and so on.
-  Pre-existing; not fixed here.
-- **`test-compose`:** the runner has no `docker-compose` v1 binary (exit 127).
-  Pre-existing; not fixed here.
+- **`build-agents` (4 jobs) and `test-compose`:** pre-existing workflow defects,
+  fixed afterwards in #553 (section 14.3). The workflow used `./agents/<name>`
+  paths but the folders are `agents/01-frontend-specialist` and so on; `coder` needs
+  a locally built `agent-base` image; `test-compose` needed a `.env`, two required
+  variables, `agents.yml` validated together with core, and Compose v5.5.1 (the
+  runner's v2.38.2 rejects the repo's `include:` of several files that each declare
+  `agents-net`).
 
 ### Operational lesson
 
@@ -624,14 +634,20 @@ a time** and gate each on the guard.
 
 ### Suggested next steps
 
-1. Review the remaining 7 HIGH findings: find what pulls in `httpcore2` and
-   `httpx2`, then trial `starlette` and `cryptography` upgrades with the full suite.
-2. Rebuild and rescan the full image on the bumped pins.
-3. Run the slim image against real Postgres and Redis (migrations plus a RAG call).
+1. Rebuild the running `hypercode-core` from `main` (with the RAM guard GREEN and
+   the stack owner's go-ahead) to pick up the splitter pin and the `HOME` fix.
+2. Rerun the full image's Trivy scan on its own when the machine has headroom;
+   there is still no post-bump number for it.
+3. Test RAG ingest/query against a Chroma server, and decide whether to bake the
+   79 MB embedding model into the image (about +167 MB) instead of downloading it on
+   first use (section 14.2).
 4. Consider `chromadb-client` or server-side embeddings to remove most of the
-   `numpy` / `onnxruntime` weight (Priority 1 follow-up).
+   `numpy` / `onnxruntime` weight, and lazy-load `chromadb` (about 11 s of import).
 5. Fix the stale "3.11" comment in `requirements.txt`, and Priority 5
    (consolidate dependency ownership).
+6. Several other workflows (`trivy-weekly`, `hyper-agents-gate2-e2e`,
+   `promote-dashboards`, ...) fail instantly with "workflow file issue" (invalid
+   YAML). Not touched here.
 
 ---
 
@@ -684,3 +700,83 @@ no-bytecode build was not made.
   tests patch it at module level, so it needs a matching test change.
 - Readiness probes and smoke tests should still allow several minutes on slow hosts.
 - The `full` image was not changed.
+
+
+---
+
+## 14. Integration Test, RAG Fix and Merge Outcome
+
+### 14.1 Slim image against a real Postgres and Redis
+
+Method: throwaway `postgres:16-alpine` (data on tmpfs) and `redis:8-alpine`
+containers on a private network, no volumes, nothing touching the live stack. The
+slim image ran its **real default command** (`alembic upgrade head`, then uvicorn)
+with `ENVIRONMENT=development` and throwaway credentials. All test containers, the
+network and the credentials were removed afterwards.
+
+| Check | Result |
+|---|---|
+| Migrations from an empty database | Applied cleanly to head `022`; 28 tables |
+| `/health` | HTTP 200 after 85 s |
+| Redis | Metrics client and cache connected; metrics, heartbeat and log keys present |
+| Startup seeding | 5 achievements seeded by the app |
+| HyperFlow recovery | Ran against the database (`resume/complete/fail/skip` all 0 on an empty DB) |
+| Create user | Row stored with a hashed (not plaintext) password |
+| Login, `/users/me` with token | 200 |
+| Wrong password / no token / duplicate email | 400 / 401 / 400 |
+| Daily login | Created 1 wallet and 1 transaction |
+| Errors in the core log | 0 tracebacks, 0 ERROR lines |
+
+This ran on `starlette` 1.7.0, `cryptography` 50.0.2 and `PyJWT` 2.14.0. A first
+user-creation attempt returned 422 because the test used a reserved `.invalid`
+address; `email-validator` rejected it correctly, and a normal address then worked.
+
+Not exercised: the rate limiter (nothing tripped it), a Chroma server, and anything
+needing Stripe, MinIO or other services.
+
+### 14.2 RAG embedding crash and fix (PR #557)
+
+`app/core/rag.py` tries `SentenceTransformerEmbeddingFunction` and falls back to
+chromadb's `DefaultEmbeddingFunction()` (a local ONNX model), which caches under
+`$HOME/.cache/chroma`. `appuser` is created with `adduser --system`, so
+`HOME=/nonexistent`, and the first embedding call raised
+`PermissionError: [Errno 13] ... '/nonexistent'`. `sentence-transformers` is only
+installed with `INSTALL_AI_DEPS=true`, so in the default image this fallback is the
+only embedding path.
+
+Fix: `ENV HOME=/app/cache` just before `USER appuser` (that directory is already
+created and owned by `appuser`). Verified on a freshly built image with no override:
+`appuser`, `HOME=/app/cache` writable, and 2 x 384-dimension embeddings returned.
+The first call downloads the 79 MB model (167 MB cached), so it needs outbound
+internet.
+
+The live `hypercode-core` container and the default full image were checked read-only
+and have the same conditions (`HOME=/nonexistent`, no `sentence_transformers`). RAG
+there very likely fails until rebuilt from `main`, but no data was written to the
+live stack, so the end-to-end failure there is inferred, not proven.
+
+### 14.3 What was merged, and CI on `main`
+
+| PR | Change | Merge commit on `main` |
+|---|---|---|
+| #552 | Slim core image, pin bumps, earlier CI/rate-limit fixes, this report | `e2dfe4ef` |
+| #553 | `docker-build.yml`: agent paths, `agent-base` for `coder`, compose validation | `85fc7680` |
+| #557 | Writable `HOME` for RAG embeddings | `c1b59d01` |
+| #556 | Bytecode precompile for the slim image | `7baa4fd2` |
+| #558 | Trivy SARIF upload: `upload-sarif@v3` and `security-events: write` | `6ecd4801` |
+
+On the first run of `Docker Build & Test` on `main` (`7baa4fd2`), the four agent
+builds, `build-backend`, `build-spawner`, `lint` and `test-compose` all passed;
+`security-scan` failed in its upload step only (deprecated `upload-sarif@v2` and no
+`security-events` permission), which #558 fixed.
+
+After #558 (`6ecd4801`), `Docker Build & Test` on `main` passes in full: all four
+`build-agents`, `build-backend`, `build-spawner`, `lint`, `security-scan` and
+`test-compose` succeed, and `CI — Python`, `Security — CodeQL` and the health check
+pass too.
+
+Other workflows (for example `tests.yml`, `health.yml`, `swarm-pipeline.yml`,
+`no-legacy-paths.yml`, `sse-tests.yml`) still show an instant `failure` on `main`.
+GitHub lists a workflow by its file path instead of its name when it cannot parse
+the file; for `no-legacy-paths.yml` the run page confirms "This run likely failed
+because of a workflow file issue". Those were not touched by this work.
