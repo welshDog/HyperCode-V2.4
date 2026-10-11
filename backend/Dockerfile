@@ -108,6 +108,13 @@ RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
 
+# `adduser --system` gives appuser HOME=/nonexistent. chromadb's default embedding
+# function (the fallback in app/core/rag.py when sentence-transformers is not
+# installed, which is the case unless INSTALL_AI_DEPS=true) caches its ONNX model
+# under $HOME/.cache/chroma and crashed with `PermissionError: /nonexistent`.
+# /app/cache is created above and owned by appuser, so use it as HOME.
+ENV HOME=/app/cache
+
 USER appuser
 
 EXPOSE 8000
