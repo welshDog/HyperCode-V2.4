@@ -390,7 +390,7 @@ runs. The runtime stage is still last, so it remains the default target.
 | Image size | 2.49 GB | **1.18 GB** (about 53% smaller) |
 | Runtime user | `appuser` | `appuser` |
 | `/health` | HTTP 200 | HTTP 200, `{"status":"ok","service":"hypercode-core","version":"2.4.2","environment":"test"}` |
-| Time to ready | n/a | about 80 s on first start |
+| Time to ready | n/a | 80 s to 233 s depending on the run (see 10.4) |
 | Idle memory | n/a | about 183 MiB |
 
 - First slim build: 8m29s. Docker Desktop's image store reports a partial size
@@ -399,7 +399,7 @@ runs. The runtime stage is still last, so it remains the default target.
 - Inside the slim image `scipy`, `pandas`, `matplotlib`, `sklearn`, `qiskit`,
   `pygame`, `torch`, `langgraph`, `openai`, `black` and `pytest` are absent;
   `alembic`, `psycopg2`, `asyncpg` and `chromadb` import fine.
-- Readiness probes should allow about 90 s or more on first start.
+- Readiness probes should allow 5 minutes or more on first start (see 10.4).
 - A pre-existing pip warning appears in both images: the Dockerfile's hardening
   step installs `jaraco.text>=4.0.0`, which pulls in `typer-slim` (needs
   `typer>=0.24`), and the pinned `typer==0.16.0` is then installed over it. It
@@ -471,6 +471,50 @@ bumps above.
 - `pyproject.toml` still pins `FastAPI==0.141.0` against `requirements.txt`'s
   0.135.3. That drift predates this work and was not changed.
 
+### 10.4 Last two findings, and the rescan result
+
+The final 2 HIGH findings after the upgrades above were `httpx2` 2.3.0
+(CVE-2026-84382) and `httpcore2` 2.3.0 (CVE-2026-84381). Neither is pinned in any of
+your files and the app does not import them: they arrive via
+`langchain-text-splitters` -> `langchain-core` -> `langsmith` -> `httpx2` ->
+`httpcore2`. Fix:
+
+- `requirements.core.in` gained floors `httpx2>=2.12.0` and `httpcore2>=2.10.0`
+  (with a comment explaining why).
+- `httpx2` 2.12.0 or newer needs `idna>=3.18`, which conflicted with the
+  `idna==3.10` pin in `requirements.txt`; `idna` was bumped to **3.20**.
+- The core lockfile diff is exactly three lines: `httpx2` 2.13.1, `httpcore2`
+  2.13.1, `idna` 3.20. The full `requirements.txt` set also resolves.
+
+**Rescan of `hypercode-core:slim-check4` (slim image, final pins): 0 fixable
+HIGH/CRITICAL findings** (Debian 0, Python 0), using the same Trivy settings as
+before. Installed versions in the image were confirmed directly: `starlette`
+1.7.0, `cryptography` 50.0.2, `idna` 3.20, `httpx2` 2.13.1, `httpcore2` 2.13.1,
+`anyio` 4.14.2, `PyJWT` 2.14.0. `app.main`, `alembic`, `psycopg2`, `asyncpg`,
+`chromadb` and `langchain_text_splitters` all import.
+
+| Image | Fixable HIGH + CRITICAL |
+|---|---|
+| `upgrade-check` (original, full set) | 57 (3 critical) |
+| `slim-check` (slim, old pins) | 19 (2 critical) |
+| `slim-check2` (slim, safe bumps) | 7 (0 critical) |
+| `slim-check3` (slim, + cryptography / starlette) | 2 |
+| **`slim-check4` (slim, final pins)** | **0** |
+
+Scope of that "0": HIGH and CRITICAL only, vulnerabilities only, and
+`--ignore-unfixed` (findings with no upstream fix are excluded by design). It is
+not a claim that the image has no vulnerabilities, and it covers only the slim
+image; see section 12 for the full image.
+
+**Startup time is slow and highly variable.** On the same code, `/health` took from
+about 80 s up to 233 s to answer in the test environment (one run passed only after
+102 s, another had not answered at 270 s, while the previous image took 233 s on
+the same harness). The log goes quiet after `DBPoolCollector registered`. This
+looks like startup work waiting on unreachable Postgres/Redis hosts in the
+isolated smoke setup (consistent with section 6, "Runtime startup"), but the exact
+wait was not diagnosed. Readiness probes and smoke tests should allow 5 minutes or
+more, not 90 s.
+
 ---
 
 ## 11. Test Suite on the Bumped Pins
@@ -526,10 +570,14 @@ regressions the suite can see, and no test that passed before fails now.
 - The smoke test ran with `ENVIRONMENT=test` and no database or Redis, so
   `alembic upgrade head` and the real Postgres, Redis and Chroma paths are
   unexercised on the slim image.
-- Neither image has been rebuilt or rescanned since the `cryptography` /
-  `starlette` upgrades (section 10.3). The expectation is that only the
-  `httpcore2` / `httpx2` HIGH findings remain, but that is not yet measured. The
-  full image has also not been rebuilt or rescanned since any of the pin bumps.
+- The slim image was rebuilt and rescanned on the final pins (0 fixable
+  HIGH/CRITICAL, section 10.4). The **full image was rebuilt on the same pins**
+  (`hypercode-core:full-check`, 2.5 GB; it builds and exports, but no container
+  smoke test was run on it). Its Trivy rescan was **started but not completed**: the
+  scan was stopped by Claude Code because the machine ran critically low on memory
+  (the orphaned scanner container was then stopped by hand). There is therefore no
+  post-bump vulnerability number for the full image; the last measured figure is the
+  pre-bump 57 (section 10). Rerun it only when the RAM guard is GREEN, on its own.
 - Behaviour of the RAG path (`chromadb`) at runtime; the app imports it, but no
   live query was made.
 - The 7 remaining HIGH findings are open (section 10.2).
