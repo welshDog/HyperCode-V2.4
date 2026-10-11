@@ -37,8 +37,19 @@ jobs:
   build-agents:
     runs-on: ubuntu-latest
     strategy:
+      # One broken agent must not cancel the others' builds.
+      fail-fast: false
       matrix:
-        agent: [coder, frontend-specialist, backend-specialist, database-architect]
+        # `dir` is the folder under agents/ (matches the build contexts in docker-compose.agents.yml).
+        include:
+          - agent: coder
+            dir: coder
+          - agent: frontend-specialist
+            dir: 01-frontend-specialist
+          - agent: backend-specialist
+            dir: 02-backend-specialist
+          - agent: database-architect
+            dir: 03-database-architect
     permissions:
       contents: read
       packages: write
@@ -48,11 +59,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # coder's Dockerfile does `FROM agent-base:latest`, a shared base image that is
+      # not published anywhere and is not built by compose. The buildx
+      # docker-container builder cannot see images in the runner's local daemon (a
+      # `load: true` build is not visible to the next buildx step's FROM), so coder
+      # is built with plain `docker build`, which uses the daemon and sees the
+      # base image. Nothing is pushed.
+      - name: Build agent-base and coder (plain docker build)
+        if: matrix.agent == 'coder'
+        run: |
+          docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+          docker build -t hypercode-coder:${{ github.sha }} agents/coder
+
       - name: Build ${{ matrix.agent }} image
+        if: matrix.agent != 'coder'
         uses: docker/build-push-action@v5
         with:
-          context: ./agents/${{ matrix.agent }}
-          file: ./agents/${{ matrix.agent }}/Dockerfile
+          context: ./agents/${{ matrix.dir }}
+          file: ./agents/${{ matrix.dir }}/Dockerfile
           push: false
           tags: hypercode-${{ matrix.agent }}:${{ github.sha }}
           cache-from: type=gha
@@ -103,12 +127,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate docker-compose files
+      # Compose v2 only: the hosted runner has no `docker-compose` v1 binary.
+      # The files need a .env (core uses `env_file: .env`) and two required
+      # variables; CI uses non-secret placeholders. --quiet: never print the
+      # expanded config.
+      # The default file `include:`s many files that each declare the shared
+      # networks. Compose v2.38.2 (the runner's) rejects that with
+      # "networks.agents-net conflicts with imported resource"; the Compose this
+      # repo is developed with (v5.x) accepts it. Validate with the same Compose.
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+        with:
+          version: v5.5.1
+
+      - name: Prepare .env and show Compose version
         run: |
-          docker-compose -f docker-compose.core.yml config --quiet
-          docker-compose -f docker-compose.agents.yml config --quiet
-          docker-compose -f docker-compose.observability.yml config --quiet
-          docker-compose config --quiet
+          cp .env.example .env
+          docker compose version
+
+      - name: Validate core
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose -f docker-compose.core.yml config --quiet
+
+      # agents.yml is an overlay (depends on services defined in core), so it is
+      # only valid together with core.
+      - name: Validate core + agents
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose -f docker-compose.core.yml -f docker-compose.agents.yml config --quiet
+
+      - name: Validate observability
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose -f docker-compose.observability.yml config --quiet
+
+      # The default file `include:`s every other compose file.
+      - name: Validate default (include everything)
+        env:
+          POSTGRES_PASSWORD: ci-placeholder
+          API_KEY: ci-placeholder
+        run: docker compose config --quiet
 
   security-scan:
     runs-on: ubuntu-latest
