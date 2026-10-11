@@ -602,8 +602,11 @@ test environment (no `mcp` installed; slow host), not the code.
   (`langchain-text-splitters`, `langchain-core`, `langchain-protocol`, `langsmith`,
   `truststore`, plus the `httpx2` / `httpcore2` CVE floors). The slim image already
   had it. The core lockfile pins did not change.
-- **3 `test_agent_pulse.py` tests:** stale, `pulse.py` moved to `httpx`
-  (commit `f635dbc1`); not fixed here.
+- **3 `test_agent_pulse.py` tests (fixed here):** stale since `pulse.py` moved to
+  `httpx` (commit `f635dbc1`); they patched `pulse_mod.requests.get` with a sync
+  fake. They now patch the shared `pulse_mod._http.get` with an async fake
+  (`async def fake_get(url, params)`). Assertions are unchanged. These 3 plus the 4
+  `test_core_rag.py` tests pass locally (7 passed).
 - **`build-agents` (4 jobs):** the workflow still uses `./agents/frontend-specialist`
   style paths, but the directories are `agents/01-frontend-specialist` and so on.
   Pre-existing; not fixed here.
