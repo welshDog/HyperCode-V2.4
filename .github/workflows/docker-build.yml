@@ -60,22 +60,19 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       # coder's Dockerfile does `FROM agent-base:latest`, a shared base image that is
-      # not published anywhere and is not built by compose, so a clean runner gets
-      # "pull access denied". Build it first (same approach as docker-push.yml).
-      # `load: true` makes it visible to the next step's FROM; it is never pushed.
-      - name: Build agent-base (local dependency for coder)
+      # not published anywhere and is not built by compose. The buildx
+      # docker-container builder cannot see images in the runner's local daemon (a
+      # `load: true` build is not visible to the next buildx step's FROM), so coder
+      # is built with plain `docker build`, which uses the daemon and sees the
+      # base image. Nothing is pushed.
+      - name: Build agent-base and coder (plain docker build)
         if: matrix.agent == 'coder'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./agents
-          file: ./agents/Dockerfile.base
-          push: false
-          load: true
-          tags: agent-base:latest
-          cache-from: type=gha,scope=agent-base
-          cache-to: type=gha,mode=max,scope=agent-base
+        run: |
+          docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+          docker build -t hypercode-coder:${{ github.sha }} agents/coder
 
       - name: Build ${{ matrix.agent }} image
+        if: matrix.agent != 'coder'
         uses: docker/build-push-action@v5
         with:
           context: ./agents/${{ matrix.dir }}
@@ -134,6 +131,15 @@ jobs:
       # The files need a .env (core uses `env_file: .env`) and two required
       # variables; CI uses non-secret placeholders. --quiet: never print the
       # expanded config.
+      # The default file `include:`s many files that each declare the shared
+      # networks. Compose v2.38.2 (the runner's) rejects that with
+      # "networks.agents-net conflicts with imported resource"; the Compose this
+      # repo is developed with (v5.x) accepts it. Validate with the same Compose.
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+        with:
+          version: v5.5.1
+
       - name: Prepare .env and show Compose version
         run: |
           cp .env.example .env
