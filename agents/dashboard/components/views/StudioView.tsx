@@ -117,6 +117,7 @@ export function StudioView(): React.JSX.Element {
           )}
 
           <textarea
+            aria-label="Task description"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -151,7 +152,7 @@ export function StudioView(): React.JSX.Element {
               {running ? 'Building…' : 'Build it'}
             </button>
             {(s.status !== 'idle' && !running) && (
-              <button className="btn" type="button" onClick={s.reset}>New task</button>
+              <button className="btn" type="button" onClick={() => { s.reset(); setPrompt('') }}>New task</button>
             )}
             {s.status === 'idle' && prompt.trim().length === 0 && (
               <button
