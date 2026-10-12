@@ -571,10 +571,9 @@ regressions the suite can see, and no test that passed before fails now.
 
 ### Not yet confirmed
 
-- The Chroma server path. Section 14.1 covered Postgres and Redis only; a throwaway
-  Chroma server would have pushed the machine under its RAM floor, so the embedding
-  function was tested on its own (section 14.2) but ingest/query against a Chroma
-  server was not. The rate limiter was also not triggered.
+- The rate limiter was not triggered in any test, and nothing exercised Stripe, MinIO
+  or other external services. RAG against a real Chroma server is now covered (see
+  section 16), including the full login-to-RAG chain.
 - The slim image was rebuilt and rescanned on the final pins (0 fixable
   HIGH/CRITICAL, section 10.4). The **full image was rebuilt on the same pins**
   (`hypercode-core:full-check`, 2.5 GB; it builds and exports, but no container
@@ -638,9 +637,9 @@ a time** and gate each on the guard.
    the stack owner's go-ahead) to pick up the splitter pin and the `HOME` fix.
 2. Rerun the full image's Trivy scan on its own when the machine has headroom;
    there is still no post-bump number for it.
-3. Test RAG ingest/query against a Chroma server, and decide whether to bake the
-   79 MB embedding model into the image (about +167 MB) instead of downloading it on
-   first use (section 14.2).
+3. Decide whether to bake the 79 MB embedding model into the image (about +167 MB)
+   instead of downloading it on first use, and whether normal (non-superuser) users
+   should be able to retrieve memory at all (section 16.3).
 4. Consider `chromadb-client` or server-side embeddings to remove most of the
    `numpy` / `onnxruntime` weight, and lazy-load `chromadb` (about 11 s of import).
 5. Fix the stale "3.11" comment in `requirements.txt`, and Priority 5
@@ -835,3 +834,91 @@ Not done: the test suite was not run locally against the full set (installing 31
 packages on the Windows host is heavy and not representative); the PR's CI installs
 the real `requirements.txt` on Linux and builds the default image, which is the
 check that matters. The OS layer of the full image was not re-scanned.
+
+
+---
+
+## 16. RAG End-to-End Tests (2026-10-12)
+
+Both tests ran against a **throwaway Chroma server** (never the live one, so no test
+data or `reset` could touch real memories), using the live slim core image
+(`hypercode-core:latest`, running as `appuser` with `HOME=/app/cache`). The Chroma
+container used the same image as the live stack (`chromadb/chroma:latest`, server
+`chromadb` 1.4.4) and its configuration (`ALLOW_RESET=FALSE`, `IS_PERSISTENT=TRUE`,
+a tmpfs instead of a volume). Every container, network and credential was removed
+afterwards.
+
+### 16.1 The RAG module against a real Chroma server: 19 of 19 checks
+
+The real `app.core.rag.RAGService` was driven directly. Because `query()` swallows
+every exception and returns `[]`, results were cross-checked with an independent raw
+`chromadb` client.
+
+| Area | Result |
+|---|---|
+| Client/server versions | Core's client is `chromadb` **1.0.15**; the server is **1.4.4**. They work together for every operation below |
+| Connect, create the collection | Works; the collection is visible to an independent client |
+| Embeddings | 384-dimensional vectors as non-root with a writable `HOME` |
+| Ingest and chunking | 3 short documents (1 chunk each); a 4,400-character document became 6 chunks; chunk metadata (`source`, `chunk_index`, `total_chunks`, custom keys) correct |
+| Server-side truth | The server holds exactly the 9 chunks ingested |
+| Semantic search | Three differently-themed questions each returned the right document first |
+| `n_results` and metadata filters | Respected; a filter with no match returns nothing |
+| Persistence | A second, fresh client sees the same data |
+| `reset()` | Raises `ChromaError: Reset is disabled by config`; the data stays intact |
+
+### 16.2 The full chain over HTTP: 24 of 24 checks
+
+A throwaway Postgres 16, Redis 8 and Chroma plus the live slim core image, driven
+over real HTTP. Two users were created through the API; one was promoted to
+superuser directly in the throwaway database (the code says a superuser needs a
+manual update). Two checks first looked like failures: a non-superuser calling
+ingest or reset gets HTTP **400** ("The user doesn't have enough privileges") from
+`get_current_active_superuser`, not the 403 the test assumed. The access control
+works, so with the expectation corrected all 24 checks pass.
+
+| Area | Result |
+|---|---|
+| Login | Both users log in and get JWTs; `/users/me` accepts them |
+| Without a token | Ingest and query return 401 |
+| Normal user | Ingest and reset are refused (400) |
+| Input validation | Empty content, a query over 500 characters and `limit=0` return 422 |
+| Superuser ingest | Works; a long document is chunked; the first call took 41 s (model download) |
+| Superuser query | Correct document first for both questions; `limit` respected |
+| Server-side truth | 7 chunks stored, all stamped `visibility=private` with the admin's user id |
+| Reset | 503 `Memory service unavailable`; data survived; the core logged the real reason |
+| Core log | The only error was that refused reset |
+
+On a calm host the core was ready in 29 s (precompiled bytecode, section 13). Free
+VM memory dipped to 1,190 MB at its lowest, about 10 MB under the 1,200 MB stop line;
+the test's abort threshold (1,150 MB) never fired.
+
+### 16.3 Findings
+
+1. **Normal users cannot retrieve any memory.** `POST /memory/query` scopes a
+   non-superuser to documents whose `user_id` equals their own, but `POST
+   /memory/ingest` is superuser-only and always stamps the *ingesting superuser's*
+   id (it overwrites any `user_id` in the request metadata). A normal user's query
+   returned 0 results. Nothing leaks, but nothing is retrievable either. If normal
+   users are meant to read shared memory, this needs a design change; this report
+   records the behaviour, not the intent.
+2. **`POST /memory/reset` can never succeed on the live stack.** The live Chroma runs
+   with `ALLOW_RESET=FALSE`, so `client.reset()` always raises, and the endpoint
+   reports a generic 503 "Memory service unavailable" that does not say reset is
+   disabled. It may be deliberate protection.
+3. **`query()` hides failures.** Any exception becomes an empty result list, so a
+   broken Chroma connection looks like "no results". Check the server directly
+   (`chromadb.HttpClient(...).get_collection("hypercode_memory").count()`) when
+   diagnosing.
+4. **The embedding model downloads at runtime** (79 MB, about 167 MB cached) and is
+   cached only inside the container, so every core recreate downloads it again and
+   needs outbound internet. Baking it into the image would cost about 167 MB.
+5. **Minor:** every new `RAGService` logs a harmless "sentence_transformers not
+   installed, falling back" warning, and a non-superuser gets 400 rather than the
+   conventional 403.
+
+### 16.4 Not covered
+
+The rate limiter (nothing tripped it), concurrent access, documents near the
+20,000-character ingest limit, more than one superuser, Stripe, MinIO and other
+external services, and the live stack's own Chroma contents (deliberately never
+touched; the live core was healthy throughout).
