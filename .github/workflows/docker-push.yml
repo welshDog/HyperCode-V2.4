@@ -301,7 +301,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Advisory CVE scan of the images that were just pushed (HIGH/CRITICAL, fixable only).
+  # Advisory CVE scan of EVERY image this workflow just pushed (HIGH/CRITICAL, fixable only).
   # This replaced Docker Scout, which needs a Docker Hub login with a Scout entitlement
   # this job never had ("could not authenticate: user githubactions not entitled to
   # use Docker Scout"). Trivy needs no Docker Hub account and is what the rest of this
@@ -317,8 +317,40 @@ jobs:
       packages: read
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix:
-        image: [hypercode-core, hypercode-crew-orchestrator]
+        # every image this workflow pushes (keep in step with the push-* jobs above)
+        image:
+          - hypercode-core
+          - hypercode-crew-orchestrator
+          - celery-worker
+          - agent-spawner
+          - hypercode-brain-agent
+          - hypercode-coder
+          - hypercode-frontend-specialist
+          - hypercode-backend-specialist
+          - hypercode-database-architect
+          - hypercode-qa-engineer
+          - hypercode-devops-engineer
+          - hypercode-security-engineer
+          - hypercode-system-architect
+          - hypercode-project-strategist
+          - hypercode-tips-tricks-writer
+          - hypercode-hyper-architect
+          - hypercode-hyper-observer
+          - hypercode-hyper-worker
+          - hypercode-agent-x
+          - hypercode-hyper-split-agent
+          - hypercode-session-snapshot
+          - hypercode-throttle-agent
+          - hypercode-super-hyper-broski-agent
+          - hypercode-test-agent
+          - hypercode-goal-keeper
+          - hypercode-business-agent
+          - hypercode-coderabbit-webhook
+          - hypercode-fleet-controller
+          - hypercode-governor
+          - hypercode-hypercode-mcp-server
     steps:
       - name: Log in to Container Registry
         uses: docker/login-action@v3
