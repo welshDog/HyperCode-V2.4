@@ -65,7 +65,7 @@ dependencies = [
     "langgraph==1.5.0",
     "langgraph-prebuilt==1.1.0",
     "langgraph-checkpoint==4.0.1",
-    "langgraph-sdk==0.3.13",
+    "langgraph-sdk==0.4.4",
     "LangChain==0.3.5",
     "langchain-core==0.3.5",
     "langchain-community==0.3.5",
@@ -150,7 +150,7 @@ dependencies = [
     "scikit-learn==1.7.1",
 
     # ───── GraphQL & Data Interchange ─────
-    "strawberry-graphql==0.312.3",
+    "strawberry-graphql==0.326.1",
     "graphql-core==3.2.8",
 
     # ───── Optional Scientific & Advanced ─────
