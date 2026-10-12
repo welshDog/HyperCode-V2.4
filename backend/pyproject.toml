@@ -26,7 +26,7 @@ dependencies = [
     "psycopg2-binary==2.9.10",
 
     # ───── Security & Compliance ─────
-    "GitPython==3.1.50",
+    "GitPython==3.1.60",
     "cryptography==50.0.2",
     "PyJWT==2.14.0",
     "python-jose==3.5.0",
@@ -65,7 +65,7 @@ dependencies = [
     "langgraph==1.5.0",
     "langgraph-prebuilt==1.1.0",
     "langgraph-checkpoint==4.0.1",
-    "langgraph-sdk==0.3.13",
+    "langgraph-sdk==0.4.4",
     "LangChain==0.3.5",
     "langchain-core==0.3.5",
     "langchain-community==0.3.5",
@@ -100,15 +100,15 @@ dependencies = [
     "eth-rlp==0.3.0",
 
     # ───── HTTP & Networking ─────
-    "aiohttp==3.13.4",
+    "aiohttp==3.14.3",
     "httpx==0.28.1",
     "httpx-retry==0.6.0",
     "httpx-sse==0.4.3",
     "requests==2.33.0",
     "requests-oauthlib==2.0.0",
     "websockets==15.0.1",
-    "python-socketio==5.15.0",
-    "python-engineio==4.12.2",
+    "python-socketio==5.16.2",
+    "python-engineio==4.13.2",
     "python-multipart==0.0.30",
 
     # ───── Discord & Bot Framework ─────
@@ -150,7 +150,7 @@ dependencies = [
     "scikit-learn==1.7.1",
 
     # ───── GraphQL & Data Interchange ─────
-    "strawberry-graphql==0.312.3",
+    "strawberry-graphql==0.326.1",
     "graphql-core==3.2.8",
 
     # ───── Optional Scientific & Advanced ─────

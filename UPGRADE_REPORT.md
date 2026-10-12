@@ -780,3 +780,58 @@ Other workflows (for example `tests.yml`, `health.yml`, `swarm-pipeline.yml`,
 GitHub lists a workflow by its file path instead of its name when it cannot parse
 the file; for `no-legacy-paths.yml` the run page confirms "This run likely failed
 because of a workflow file issue". Those were not touched by this work.
+
+
+---
+
+## 15. Full Pin Set: Remaining Vulnerable Packages Bumped
+
+The slim image scans at 0, but the default (full) image installs the whole
+`backend/requirements.txt`, which still carried vulnerable pins. The full image was
+**not rebuilt** for this (it needs a cold 2.5 GB build, which previously pushed the
+VM to its memory stop line); instead Trivy scanned the fully pinned file directly
+(`trivy fs`, `--severity HIGH,CRITICAL --ignore-unfixed`). All earlier findings were
+pinned Python packages (the Debian base had none), so this covers the layer that
+matters, but not OS packages.
+
+**Method check:** on the pre-bump pins the file scan found **55** fixable
+findings, against **57** from the real image scan earlier. The packages match; the
+2-finding gap is packages the Dockerfile installs outside `requirements.txt`.
+
+| Pins | Fixable HIGH + CRITICAL |
+|---|---|
+| Before the bumps (crew tip `93b6dd15`) | 55 (3 critical) |
+| `main` after #552-#559 | 38 (1 critical), in 11 packages |
+| This change | **0** |
+
+Bumped to the newest fix version Trivy reported, in three commits:
+
+| Package | From | To | Findings |
+|---|---|---|---|
+| `GitPython` | 3.1.50 | 3.1.60 | 20 (incl. the only CRITICAL) |
+| `tornado` | 6.5.5 | 6.5.9 | 5 |
+| `mcp` | 1.26.0 | 1.28.1 | 3 |
+| `python-engineio` | 4.12.2 | 4.13.2 | 2 |
+| `soupsieve` | 2.7 | 2.8.4 | 2 |
+| `aiohttp` | 3.13.4 | 3.14.3 | 1 |
+| `msgpack` | 1.1.2 | 1.2.1 | 1 |
+| `pyarrow` | 21.0.0 | 23.0.1 | 1 |
+| `python-socketio` | 5.14.0 | 5.16.2 | 1 |
+| `langgraph-sdk` | 0.3.13 | 0.4.4 | 1 |
+| `strawberry-graphql` | 0.312.3 | 0.326.1 | 1 |
+
+Two of those needed a small, measured cascade (found by resolving the whole pinned
+set): `langgraph-sdk` 0.4.4 requires `langgraph` 1.2.13, `langgraph-checkpoint`
+4.2.0 and `langgraph-prebuilt` 1.1.0 (`langgraph` 1.1.0 capped the SDK below 0.4);
+`strawberry-graphql` 0.326.1 requires `cross-web` 0.7.0.
+
+Verified: the full pinned set resolves (315 pins, none resolved to a different
+version), none of the bumps introduces a new unpinned package (the 12 existing
+unpinned extras are identical to `main`'s), and `pyproject.toml` was updated where it
+pinned the same packages. None of these 11 packages is imported by `backend/app` or
+is in the slim core set, so the live core image is unaffected.
+
+Not done: the test suite was not run locally against the full set (installing 315
+packages on the Windows host is heavy and not representative); the PR's CI installs
+the real `requirements.txt` on Linux and builds the default image, which is the
+check that matters. The OS layer of the full image was not re-scanned.
