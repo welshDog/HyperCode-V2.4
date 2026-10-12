@@ -1,0 +1,42 @@
+# PR check for agents/architect (the hyper-architect image pushed by docker-push.yml).
+# docker-push only runs after merge and docker-build.yml does not cover this image, so
+# without this a broken Dockerfile / lockfile would first be seen on main.
+name: Architect image check
+
+on:
+  pull_request:
+    paths:
+      - "agents/architect/**"
+      - ".github/workflows/architect-image-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t architect-check:ci agents/architect
+
+      - name: Runtime sanity (app deps load, npm stripped, non-root)
+        run: |
+          set -e
+          docker run --rm --entrypoint node architect-check:ci -e \
+            "require('@nestjs/core');require('@nestjs/platform-express');require('multer');require('ioredis');console.log('imports ok')"
+          docker run --rm --entrypoint sh architect-check:ci -c '! command -v npm && echo "npm absent"'
+          test "$(docker run --rm --entrypoint id architect-check:ci -u)" != "0"
+
+      - name: Trivy scan (fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: architect-check:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+          timeout: 30m
