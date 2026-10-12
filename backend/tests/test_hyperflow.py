@@ -101,6 +101,13 @@ def test_schema_rejects_dangling_edge():
         )
 
 
+def test_agent_dispatch_requires_agent():
+    with pytest.raises(Exception):
+        FlowDefinition.model_validate(
+            {"name": "x", "entry": "a", "nodes": [{"id": "a", "type": "agent_dispatch"}]}
+        )
+
+
 def test_agent_role_requires_agent():
     with pytest.raises(Exception):
         FlowDefinition.model_validate(

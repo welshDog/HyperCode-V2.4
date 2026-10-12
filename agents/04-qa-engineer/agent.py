@@ -5,8 +5,15 @@ Specializes in testing, validation, and quality assurance
 import sys
 sys.path.append('/app')
 from base_agent import BaseAgent, AgentConfig
+import crew_verifier
 
 class QAEngineer(BaseAgent):
+    async def process_task(self, task, context, requires_approval=True):
+        # HyperCrew's verify stage gets a real (rules + model) review; every other task keeps the base behaviour.
+        if crew_verifier.is_verify_task(task):
+            return await crew_verifier.verify(task)
+        return await super().process_task(task, context, requires_approval)
+
     def build_system_prompt(self) -> str:
         base_prompt = super().build_system_prompt()
         return f"""{base_prompt}

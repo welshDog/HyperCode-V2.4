@@ -26,7 +26,10 @@ services:
       PORT: "8083"
       FCC_OPEN_BROWSER: "0"
       OLLAMA_BASE_URL: "http://hypercode-ollama:11434"
-      MODEL: "${MODEL:-nvidia_nim/nvidia/nemotron-3-super-120b-a12b}"
+      # nemotron-3-super-120b-a12b reached end of life 2026-10-03T09:00Z (NIM answers HTTP 410 "Gone").
+      # nemotron-3-ultra-550b-a55b answered 200 in 1.5 s on 2026-10-03. It is a REASONING model: clients need a
+      # generous max_tokens and must read only the final "text" blocks (thinking is returned separately).
+      MODEL: "${MODEL:-nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b}"
       NVIDIA_NIM_API_KEY: "${NVIDIA_NIM_API_KEY:-}"
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"

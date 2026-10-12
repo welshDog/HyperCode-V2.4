@@ -95,3 +95,38 @@ def finish_run_row(
     run.current_node = None
     run.completed_at = datetime.now(timezone.utc)
     db.commit()
+
+
+def pause_info(run: HyperFlowRun) -> Optional[dict[str, Any]]:
+    """The pause record stored with the run (who, when, and a snapshot of where it was), or None."""
+    info = ((run.state or {}).get("context") or {}).get("paused")
+    return info if isinstance(info, dict) else None
+
+
+def set_paused(
+    db: Session, run: HyperFlowRun, *, by: str, reason: str, snapshot: dict[str, Any]
+) -> bool:
+    """Durably mark the run paused. False if it already was (the first snapshot is kept)."""
+    if pause_info(run) is not None:
+        return False
+    state = dict(run.state or {})
+    ctx = dict(state.get("context") or {})
+    ctx["paused"] = {"at": _now(), "by": by, "reason": reason, "snapshot": snapshot}
+    state["context"] = ctx
+    run.state = state
+    db.commit()
+    return True
+
+
+def clear_paused(db: Session, run: HyperFlowRun) -> Optional[dict[str, Any]]:
+    """Remove the pause record and return it (None if the run was not paused)."""
+    old = pause_info(run)
+    if old is None:
+        return None
+    state = dict(run.state or {})
+    ctx = dict(state.get("context") or {})
+    ctx.pop("paused", None)
+    state["context"] = ctx
+    run.state = state
+    db.commit()
+    return old

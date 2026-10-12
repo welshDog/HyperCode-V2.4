@@ -136,6 +136,15 @@ jobs:
         run: pip install pyyaml pytest
       - name: Unit-test the checker
         run: python -m pytest .github/scripts/tests/test_check_fleet_manifest_containment.py -q
+      # docker-compose.yml `include:`s several files that each declare the shared
+      # networks (e.g. agents-net). The runner's Compose (v2.38.2) rejects that with
+      # "networks.agents-net conflicts with imported resource" and this job failed on
+      # every commit; the Compose this repo is developed with (v5.x) accepts it, so
+      # render with the same Compose (same fix as docker-build.yml's test-compose).
+      - name: Set up Docker Compose
+        uses: docker/setup-compose-action@v1
+        with:
+          version: v5.5.1
       - name: Render + check the fleet manifest
         env:
           POSTGRES_PASSWORD: ci-throwaway

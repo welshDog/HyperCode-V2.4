@@ -40,6 +40,7 @@ async def test_execute_todo_app(client):
     assert "result" in data
     assert data["result"]["status"] == "completed"
     assert "api/routes/todos.py" in data["result"]["files_created"]
+    assert data["result"]["mocked"] is True
 
 @pytest.mark.asyncio
 async def test_execute_health_metrics(client):
@@ -52,6 +53,7 @@ async def test_execute_health_metrics(client):
     data = response.json()
     assert data["status"] == "completed"
     assert "cpu_usage" in data["result"]["metrics"]
+    assert data["result"]["mocked"] is True
 
 @pytest.mark.asyncio
 async def test_execute_deploy(client):
@@ -64,6 +66,7 @@ async def test_execute_deploy(client):
     data = response.json()
     assert data["status"] == "completed"
     assert "analysis" in data["result"]
+    assert data["result"]["mocked"] is True
 
 @pytest.mark.asyncio
 async def test_execute_ollama_success(client):

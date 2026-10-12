@@ -1,7 +1,7 @@
 # 🧠 CLAUDE.md — HyperCode-V2.4 Constitution
 > **For ANY AI, agent, or human working on HyperCode-V2.4.**
 > Read this file FIRST. Every session. No exceptions.
-> Built by @welshDog — **Updated 2026-08-19**
+> Built by @welshDog — **Updated 2026-10-03 20:15 UTC** (HyperCrew + host-RAM-safety sections are current; the fleet roster lives in `docs/STATUS.md`)
 
 ---
 
@@ -27,105 +27,39 @@
 
 ---
 
-## 🚀 CURRENT STATE — 27-Agent Fleet (August 2026)
+## 🧠 HyperCrew — DEPLOYED 2026-10-03 (read `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` first)
 
-> 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening.** The full fleet below was composed
-> up as one system for the first time ever this session (`docker compose --profile
-> agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up
-> -d`) — previously every "Live" row in this table meant "already running under
-> `agents.yml` independently of this file," never a real joint launch. Full writeup:
-> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10) entry.
+- Flow `hypercode.crew` (plan → approve → seal → build → verify → guard → settle → scribe → approve → publish) + Calm Mode,
+  Panic/Focus, Quest Settler, Scribe, Morning Card. Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Runbook: `docs/HYPERCREW_DOCKER_RUNBOOK.md`.
+- **Proven on Docker:** migration `023`, `scripts/prove-crew.py` phases 0/1/2 across a real core restart, dashboard `/ide` 5/5.
+  **🎉 Guard ALLOW → Quest Settler (20 XP/10 coins/achievement) → Scribe draft → handover gate PROVEN live 2026-10-03 12:50 UTC** (run `b01b22bc-…`; builder + verifier = `nemotron-3-ultra-550b-a55b` via `fcc-proxy`, opt-in
+  `CREW_LLM_BASE_URL`, sends crew text to NVIDIA NIM). **Still unproven:** real GitHub publish (no GitHub token is configured, by design; every test run rejects the handover gate). **Proven since:** a FULL end-to-end run (guard ALLOW across a core restart, ~17:12 UTC); the verifier downgrades a PASS that lists problems (`d78fa0e3`) and uses one unambiguous two-format prompt (`29f20038`, fixing a live regression that made it return UNKNOWN). Earlier: first COMPLETED run (guard BLOCK) with the weak model.
+  `qa-engineer` has a real fail-safe verifier (`agents/04-qa-engineer/crew_verifier.py`, `8043d355`: rules + model, never invents a PASS); live the guard fails only on `verifier_verdict: FAIL`
+  because the only host model (`smollm2`) can't write a unified diff. Core was rebuilt at `79b5be99` (2026-10-03 02:05 UTC) so it includes the Guardian fix `34ba1667` and `a2ee4530`; after any backend commit, rebuild + swap core (`up -d --no-deps hypercode-core`) before trusting a live proof. `coder-agent`'s keyword mocks (health/metrics/deploy/docker/"todo list")
+  are now flagged `mocked` and refused by core, and crew stage tasks skip them. Crew steps also fail closed if Shepherd is down.
+- **Crew reliability (measured 2026-10-03, real model):** success rate **9 of 15 live runs ALLOW (60 %)** (first 3/5, then 6/10 with logging); every BLOCK explained from logs: 1 genuine verifier FAIL, 1 builder ReadTimeout reported as a build, 2 verifier reasoning-budget exhaustions (UNKNOWN). NVIDIA NIM's free tier is intermittently overloaded (503 -> 529 / bare 500) and its latency swings 3 s - 100+ s. **Hardened since (all deployed + live-verified):** verifier = two-format prompt, 105 s budget, one `crew_verify` log line per call, bounded 5xx retry (`b04b081c`); builder = a failed model call is now an ERROR status (it used to be a nested 'completed' build that core read as the diff), bounded 5xx retry, one `crew_build` log line (`1edf14c5`). Tools: `scripts/measure-crew-run.py`, `scripts/measure-crew-rate.sh` (always reject the handover gate: no PR can open). **Not yet measured after the hardening** (one ALLOW run since). **Recreating coder-agent/qa-engineer drops the opt-in proxy unless `CREW_LLM_BASE_URL=http://fcc-proxy:8083` is in the shell env.** Read the logs with `docker logs qa-engineer 2>&1 | grep crew_verify` / `docker logs coder-agent 2>&1 | grep crew_build`.
+- **Stack launch reality:** the running stack comes from plain `docker-compose.yml` (it `include:`s core/observability/agents/registry/…),
+  not the long `agents-full.yml` command below. Obs services are `profiles: ["observability"]`.
+- **Dashboard → core auth:** `/operator/*` needs a human JWT (Bearer) or agent key (X-Agent-Key), **never** the master API key. The dashboard
+  reads a 30-day JWT from `secrets/dashboard_service_jwt.txt` (`DASHBOARD_SERVICE_JWT_FILE`; env var must stay unset). **Re-minted 2026-10-03 15:13 UTC; expires ~2026-11-02.**
+- **throttle-agent (fixed 2026-10-03, DEPLOYED observe-only 13:30 UTC; debounce added 13:55 (AMBER must repeat in 3 consecutive NEW samples; RED acts at once) — DECIDED 2026-10-03 (Lyndz): stay in OBSERVE, do NOT set `enforce` (review: `WHATS_DONE.md` 16:10 UTC); the combined compose was broken by a wrong Pets-repo path until 2026-10-03 (now fixed via `BROSKIPETS_DIR`, see `WHATS_DONE.md`), so it was deployed via a temp single-service compose):** `THROTTLE_MODE=off|observe|enforce` (default off; a typo → observe, never enforce); signal = the host guard's JSON (`ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, mounted read-only); an UNKNOWN (missing/stale) signal never acts; `GET /signal` shows what it WOULD do. `docker pause` frees no RAM. Details: `WHATS_DONE.md` 13:20.
+- **The host signal writer is a Task Scheduler job** (`\HyperCode\HyperCode RAM Guard Signal`, as you, at logon, hidden, no elevation, measure-only): `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action status|start|stop|uninstall`. If it stops, the signal goes stale → throttle-agent reads UNKNOWN → does nothing.
+- **Before any build / start / restart run `python scripts/ram_guard.py --for build`** (host + WSL + Docker; GREEN needed for a build; `--wait 120` to poll). The Windows HOST running out of RAM (1 MB free, 2026-10-03) hung Docker while `wsl -e free -m` looked fine.
+- **End of day 2026-10-03:** memory is tight (WSL available ~1.2 GB with `grafana` + `grafana-agent` running, 440 MiB, not started by the assistant: Lyndz decides). The healer (`docker logs healer-agent | grep docker_restart`) restarts the dashboard/core on latency anomalies: check it before calling a restart unexplained. Tomorrow's routine + next task: top of `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+- **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
+  (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
+  `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.
+- **JWT signing secret ROTATED 2026-10-03 15:13 UTC** (the exposed 10-year admin JWT is dead: 403). Core signs with `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`; the `.env` `JWT_SECRET` line is a different, unused value). Rotate again with `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight) then `--yes`; prints only hashes. New 30-day dashboard token **expires ~2026-11-02** (re-run the script before then). All logins/tokens issued before the rotation need re-issuing.
 
-### ✅ Core Crew + Specialist Squad (13)
+---
 
-| Agent | Port | Status |
-|---|---|---|
-| `crew-orchestrator` | :8081 | ✅ Live |
-| `brain-agent` | :8082 | ✅ Live — real code shipped 2026-08-20 (was a missing directory) |
-| `coder` | — | 🟡 not running under this name (`coder-agent` live, likely same code) |
-| `agent-x` | :8084 | ✅ Live — agents-full.yml's duplicate (:8083) deleted 2026-08-20, agents.yml's :8084 is the sole definition |
-| `frontend-specialist` | :8012 | ✅ Live |
-| `backend-specialist` | :8003 | ✅ Live |
-| `database-architect` | :8004 | ✅ Live |
-| `qa-engineer` | :8005 | ✅ Live |
-| `devops-engineer` | :8006 | ✅ Live |
-| `security-engineer` | :8007 | ✅ Live |
-| `system-architect` | :8010 | ✅ Live — moved off :8008 2026-08-20 (was colliding with `healer-agent`) |
-| `project-strategist` | :8001 | ✅ Live — context fixed 2026-08-20 (was pointing at a deleted directory), also missing `base_agent.py` (fixed); a stale cached image from before the fix crash-looped it once, `docker compose build project-strategist` fixed that too |
-| `tips-tricks-writer` | :8018 | ✅ Live — moved off :8009 2026-08-20 (was colliding with `chroma`) |
+## 🚀 CURRENT STATE — fleet roster
 
-### 🔨 12 Ghost Agents
-
-| Agent | Port | Status |
-|---|---|---|
-| `hyper-architect` | :8091 | ✅ Live — needed a `.dockerignore` carve-out (found during launch) |
-| `hyper-observer` | :8092 | ✅ Live — build-context path bug fixed 2026-08-20 |
-| `hyper-worker` | :8093 | ✅ Live — build-context path bug fixed 2026-08-20 |
-| `hyper-split-agent` | :8013 | ✅ Live — moved off :8096 2026-08-20 (was colliding with `safety-shepherd`) |
-| `session-snapshot` | :8017 | ✅ Live — moved off :8097 2026-08-20 (was colliding with `evolve-relay`, `--profile pets`) |
-| `throttle-agent` | :8014 | ✅ Live — Docker socket access fixed 2026-08-20 via `docker-socket-proxy-healer` (`"docker":"ok"` now); still logs `MemStream unreachable` — a separate, unbuilt dependency, see `NEXT_TASKS.md` item #2b |
-| `super-hyper-broski-agent` | :8015 | ✅ Live |
-| `test-agent` | :8019 (not :8080/:8100) | ✅ Live — moved off :8100 2026-08-20; build context also needed broadening to `./agents` (found during launch, `shared/` was unreachable) |
-| `goal-keeper` | :8050 | ✅ Live |
-| `business-agent` | :8020 | ✅ Live — real code built 2026-08-20 (was a mislabeled project-strategist clone) |
-| `coderabbit-webhook` | :8024 | ✅ Live |
-
-### 🛡️ Phase 0-2: Fleet Controller + Mission Director + Governor (3, behind `--profile fleet`)
-
-| Agent | Port | Status |
-|---|---|---|
-| `fleet-controller` | :8094 | ✅ Live — new 2026-08-20 late night. First piece of a multi-phase mission-director/fleet-controller architecture (see `docs/superpowers/specs/2026-08-20-fleet-controller-phase0-design.md`). Structurally incapable of executing anything: no Docker socket, no `DOCKER_HOST`, no crew-orchestrator credential, no LLM client. Fails **closed** (not open, unlike `safety_gate.py`) if Safety Shepherd is unreachable. Behind its own `--profile fleet`, not `agents`/`hyper` — never launches with the standard fleet command above until that flag is added explicitly. ⚠️ **Correction (2026-09-04, Task 18 of the Governor/Capability-Tokens plan):** despite the "Live" claims above, this service had **no compose wiring at all** until this session — `docker-compose.fleet.yml` did not exist. Every earlier "Live" note here was true of the built image/tests, never of a real `docker compose up` including this service. That gap is now closed: `docker-compose.fleet.yml` defines both `fleet-controller` and `governor`, verified with a real `docker compose config`/`up` (see `WHATS_DONE.md`'s 2026-09-04 entry). As of this session it also **requires a governor-minted capability token** to report `capability_check.valid: true` on `/v1/plans/preview` — `execution.performed` stays hard-`false` either way. |
-| `mission-director` | :8086 | ✅ Live — Phase 1, 2026-08-21. Turns a human goal into a previewed, human-reviewable plan via an Anthropic tool-use call + a real (unmodified) `fleet-controller` preview. Fully stateless — no DB, no user-auth of its own; the human-facing `propose`/`review` endpoints live in `hypercode-core` (`backend/app/api/v1/endpoints/missions.py`), the only sanctioned caller of this agent's unauthenticated `/v1/plan` route (same containment-via-capability-absence precedent as fleet-controller's own zero-auth route). Live-verified: real ESCALATE round-trip through the real Safety Shepherd, real 401/404/409 contract behavior, and — as of 2026-08-23 — a real successful `propose` → `previewed` call now that `ANTHROPIC_API_KEY` is valid (was dead 2026-08-20 through 2026-08-22, rotated and confirmed live 2026-08-23, see `WHATS_DONE.md`). **2026-08-22**: `review_mission`'s BLOCK-approval gap closed (commit `378b336d`) — a human could previously approve a mission whose own Safety Shepherd verdict was `BLOCK`; now hard-rejected (`409`), and `ESCALATE` requires an explicit `escalation_reason` (`422` without one), audited in the Governance Ledger. **Phase 2, 2026-08-24**: every `MissionProposal` now also carries a purely-advisory `impact` list (upstream dependencies + already-running downstream services for the requested profile, computed from a real dependency graph over `depends_on` + curated shared-resource env vars — see `fleet_registry.build_edges()`/`impact_set()`). Doesn't touch Safety Shepherd's policy or `fleet-controller`'s shared types. Live-verified end-to-end after a real rebuild — see `WHATS_DONE.md`'s 2026-08-24 entries (both the feature and the SDD process-incident writeup — worth reading, a subagent overstepped its brief getting this live). See `docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md` + `docs/superpowers/plans/2026-08-21-mission-director-phase1-plan.md` + `docs/superpowers/specs/2026-08-24-fleet-dependency-graph-design.md`. |
-| `governor` | :8089 | ✅ Live — new 2026-09-04, Phase 2 of the same architecture (see `docs/superpowers/specs/2026-09-04-autonomous-control-plane-north-star-design.md`). The fleet's sole capability-signing authority: mints/verifies short-lived PASETO v4.public (Ed25519) capability tokens bound to a plan hash, action, target and mode; every mint runs through Safety Shepherd first and fails **closed** if Shepherd is unreachable. Holds the ONLY private key (Docker secret, gitignored) — every other service gets only the public key. Ships a Redis-backed (dedicated DB 3) single-use replay guard, a kill-switch that's both a Redis flag AND an off-box sentinel file (`governance-control/KILL`, wins even if Redis is cleared), a renewing system lease (dies if Shepherd or the kill-switch says no), and a two-person approval rule for dangerous action classes. `execution.performed` is still structurally `false` everywhere — this phase only decides *whether a capability can be minted*, never executes anything. 125/125 tests pass across governor+fleet-controller+safety-shepherd+the CI containment check as of this session's smoke test. Compose-wired via `docker-compose.fleet.yml` alongside `fleet-controller`, same `--profile fleet` gate. |
-
-> `fleet-controller` deliberately has no `crew-orchestrator: condition: service_healthy`
-> dependency, unlike every other agent — a named, confirmed exception to the Sacred
-> Rules table below (it holds no crew-orchestrator credential and has no dispatch
-> path through it in Phase 0). Full smoke-test proof (valid plan → real Shepherd
-> `ESCALATE` for the `docker` category, Shepherd killed mid-request → `BLOCK`
-> fail-closed, denied profile → `422` before Shepherd is ever contacted, confirmed via
-> Shepherd's own logs) in `WHATS_DONE.md`.
-
-> `hypercode-mcp-server` removed from this roster 2026-08-20 — it was a phantom: the
-> `agents-full.yml` block pointed at `./agents/hypercode-mcp-server`, which doesn't
-> exist. It's not a distinct 25th agent — it's the already-live MCP gateway defined
-> in `docker-compose.agents.yml` (`:8823`). The ghost duplicate was deleted, not
-> renamed. See `docs/NEXT_TASKS.md`.
-
-### 🧭 Registry Services (`docker-compose.registry.yml`, separate launch, not counted in the totals below)
-
-Launched via `docker compose -f docker-compose.yml -f docker-compose.registry.yml
---profile agents up -d`, alongside (not instead of) the standard fleet command.
-
-| Agent | Port | Status |
-|---|---|---|
-| `agent-registry` | :8077 | ✅ Live — always-on fleet tracker, `GET /agents/status` (unauthenticated, `agents-net`+`data-net`), auto-restart. Confirmed live 2026-08-22, tracking 42 agents (35 healthy). Also exposes unauthenticated `POST /agents/{name}/restart`/`/reset` on the same service — pre-existing, unrelated to `broski-coo` below, not fixed this session. |
-| `broski-coo` | :8025 | ✅ Live — new 2026-08-22, `agents/broski-coo/`. Strictly read-only COO/observer, HyperCode-V2.4 scope only. `POST /brief` aggregates `agent-registry`'s live status + `WHATS_DONE.md`/`docs/NEXT_TASKS.md`/newest `NEXT_SESSION_HANDOVER_*.md` into a plain-English brief, tagging each source `ok`/`degraded`/`unavailable`, raw numbers returned alongside the prose so it's checkable not just trusted. New Anthropic → OpenRouter(free) → Ollama LLM fallback chain (extends the existing `_build_llm_client()` pattern). No Docker socket, no `DOCKER_HOST`, never calls `agent-registry`'s mutation routes above. Two real bugs caught by live testing (not just mocks): reasoning-capable free models can return `content: null` (fixed, rotates to next model) or burn the whole token budget on visible chain-of-thought (fixed, `reasoning: {exclude: true}`). An OpenRouter dashboard preset was tried as a server-side cost/training-data safety net and reverted after live testing proved it silently bypassable by a request-time `model` field — replaced with a client-side `_DENIED_PROVIDERS` filter (Poolside, LiquidAI) that can't be. Full writeup: `agents/broski-coo/HYPER-AGENT-BIBLE.md` §6, `WHATS_DONE.md`'s 2026-08-22 entry. 20/20 tests pass. |
-| `agent-factory` | :9000 | 🟡 Not verified this session — present in the same compose file, `--profile agents`, REST spawn/wake for profile-gated agents. Not touched or tested by any of today's work. |
-| `hyper-auto-assistant` | :8016 | 🟡 Not verified this session — `--profile hyper`, intent router → `super-hyper-broski-agent` (:8015, a separate, unrelated novelty vibe/party-mode service — not to be confused with `broski-coo` above, which is a new and different agent). Not touched or tested by any of today's work. |
-
-**Total:** 25 distinct agents in this roster (the real `hypercode-mcp-server` makes 26
-counting it once, not as a ghost) — **25 live** (the 26th, `hypercode-mcp-server`,
-also live), 0 not running except the intentionally-nonexistent `coder` alias. This
-total is scoped to the standard `--profile agents --profile hyper` launch only —
-`fleet-controller` and `mission-director` (see "Phase 0-1" below) sit behind a
-separate `--profile fleet`, opt-in, never part of this count. `AGENT-START.md`'s
-"27 agents in this roster" total is the wider figure that includes both. Item #9
-(all 24 pre-existing agents build + bind `8080`) and item #0 (the
-agents-full.yml/agents.yml same-name merge) are both fully closed. **The launch
-itself surfaced 3 more real bugs** that no amount of `docker compose
-config`/standalone `docker build` could have caught — see `docs/NEXT_TASKS.md` item
-#0b (`.dockerignore` gaps for `agent-x`/`hyper-architect`, `test-agent`'s build
-context, and — the big one — all 11 ghost agents referencing phantom networks
-`app-net`/`agent-net` that were never created anywhere in the real stack). Swept the
-whole box after launch: **zero unhealthy containers across all 67 running.**
-`throttle-agent`'s Docker-socket gap is also now fixed (wired to the already-built
-`docker-socket-proxy-healer`, which its own comment says was meant for exactly
-this) — its separate, unbuilt `MemStream` dependency (`docs/NEXT_TASKS.md` item
-#2b) remains the one loose end from the launch. `fleet-controller` (Phase 0, the
-25th agent, built + smoke-tested 2026-08-20 late night) added zero risk to any of
-this — it was verified in isolation and the rest of the fleet stayed at zero
-unhealthy throughout.
+The agent roster (ports, profiles, which agents are live) changes often and is **not** kept in this file.
+Read `docs/STATUS.md` (live fleet status) and the compose files (`docker-compose.agents.yml`,
+`docker-compose.registry.yml`, `docker-compose.fleet.yml`) for ports and profiles. `fleet-controller`,
+`mission-director` and `governor` run only behind `--profile fleet`; see the crew-orchestrator health-gate
+exception below. Full history of the Aug 2026 27-agent launch: `WHATS_DONE.md`.
 
 ---
 
@@ -155,23 +89,6 @@ unhealthy throughout.
 - `.github/workflows/docker-push.yml` — Pushes **all 25 pre-existing agents + `fleet-controller`** to GHCR in parallel matrix (3 jobs, `fail-fast: false`)
 - `.github/workflows/ghost-agents-build.yml` — Port validation + parallel ghost-agent builds on push to `main`
 - `.github/workflows/health-check.yml` — All 25 agent ports + Sacred Rules lint on every PR
-
-> ⚠️ **`health-check.yml` was never valid, executable GitHub Actions YAML until
-> 2026-08-21 — confirmed via run history, not just inferred.** It embedded multi-line
-> Python via `python -c "<heredoc>"` blocks whose code was indented *less* than the
-> literal block scalar's established floor, terminating the `run:` block early and
-> breaking the file's YAML parse from that point on (repro'd with a minimal
-> `pyyaml.safe_load` test, then confirmed against the real file). `gh run list
-> --workflow=health-check.yml` shows every run completing in **0s**, and `gh run view`
-> on one reads **"This run likely failed because of a workflow file issue"** — every
-> run since this file existed was rejected at parse time, zero checks ever actually
-> ran. Fixed by extracting the embedded Python to real files under
-> `.github/scripts/`; the file now parses cleanly and every extracted script was
-> executed directly against the live repo state. **`ghost-agents-build.yml` did NOT
-> have this problem** — its jobs register correctly (`gh run view` shows real job
-> names); its actual, separate blocker is the known GitHub Actions billing lock
-> (`docs/NEXT_TASKS.md` "This Week" list). See `docs/NEXT_TASKS.md` items
-> #6/#7/#8/#8a for the full write-up.
 
 ### ⚠️ Port Validation (Mandatory)
 
@@ -224,45 +141,7 @@ depends_on:
 
 ### 🚀 Full Stack Launch Command
 
-> 🎉 **LAUNCHED FOR REAL, 2026-08-20 late evening — this is now a proven command, not
-> just a verified-safe one.** Item #0 (13 duplicate agent names between
-> `agents-full.yml` and `agents.yml`) was resolved earlier the same session — `agents.yml`'s
-> versions (real, live, hardened: volume-mounted code, HYPER-SILLs loadout,
-> `security_opt`) stayed canonical, `agents-full.yml`'s 13 duplicate blocks were
-> deleted for good. `docker compose config` came back clean — but **actually running
-> it surfaced 3 more bugs that config validation can't catch**, because they only
-> matter once containers try to start together, not while parsing YAML:
->
-> 1. `agent-x`/`hyper-architect` (both `context: .`) hit the same `.dockerignore` gap
->    `hyper-observer`/`hyper-worker` needed earlier — added `architect/`/`agent-x/`
->    carve-outs.
-> 2. `agents-full.yml`'s `test-agent` used too narrow a build context
->    (`./agents/test-agent`) to reach the sibling `agents/shared/agent_utils.py` its
->    code directly imports — broadened to `context: ./agents`.
-> 3. **The big one**: all 11 of `agents-full.yml`'s own ghost agents referenced
->    networks `app-net`/`agent-net` that were never created *anywhere* in the real
->    stack — only `agents-net`/`data-net` (defined for real in `docker-compose.core.yml`)
->    actually exist. Every one of these 11 could build a perfectly good image but
->    could never start a container. Fixed via `replace_all`:
->    `[app-net, agent-net, agents-net]` → `[agents-net, data-net]` across all 11.
->
-> Also hit mid-launch: one transient `hypercode-core` restart under the heavy
-> concurrent build/startup load (confirmed not OOM — `OOMKilled=false` — just a
-> blip) cascaded a batch of "dependency failed to start" errors; re-ran `up -d` once
-> it stabilized. `project-strategist` came up crash-looping on a **stale cached
-> image** left from before the item #0 context repoint — `up -d` doesn't rebuild on
-> a changed `build.context` automatically, needed an explicit `docker compose build
-> project-strategist` first.
->
-> **Final state, verified not claimed**: polled every previously-blocked agent until
-> none reported `health: starting` — all 16 came back `healthy`. Swept the *entire*
-> box: zero unhealthy containers across all 67 running. `throttle-agent`'s Docker
-> socket gap (found right after launch) is fixed too — wired to
-> `docker-socket-proxy-healer`, an already-built proxy whose own comment names
-> throttle-agent as an intended consumer that was just never wired up; `curl /health`
-> now shows `"docker":"ok"`. Its separate `MemStream` dependency is still unbuilt —
-> `docs/NEXT_TASKS.md` item #2b, needs a decision not a wiring fix. Full writeup:
-> `WHATS_DONE.md`'s 2026-08-20 (late evening, part 10/11) entries.
+> Proven live 2026-08-20 (history: `WHATS_DONE.md`, 2026-08-20 parts 10-11).
 
 ```bash
 cd HyperCode-V2.4

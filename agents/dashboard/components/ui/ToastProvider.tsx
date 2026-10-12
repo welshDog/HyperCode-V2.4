@@ -2,6 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { isFocusActive } from '@/lib/focus/store'
 
 export type ToastVariant = 'info' | 'success' | 'error'
 
@@ -86,8 +87,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
       ...item,
       createdAt: Date.now(),
     }
-    setToasts((prev) => [item, ...prev].slice(0, 4))
     setHistory((prev) => [historyItem, ...prev].slice(0, 100))
+    // Focus session: only errors may interrupt. Everything else waits quietly in the bell history.
+    if (isFocusActive() && item.variant !== 'error') return
+    setToasts((prev) => [item, ...prev].slice(0, 4))
     const duration = typeof input.durationMs === 'number' ? input.durationMs : 3500
     const timeoutId = window.setTimeout(() => removeActive(id), duration)
     timeoutsRef.current.set(id, timeoutId)

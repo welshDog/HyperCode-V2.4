@@ -4,7 +4,22 @@
 
 ---
 
-## 🏗️ LATEST — HyperStudio: the agent write path (2026-07-10)
+## ⚠️ STALENESS NOTICE (2026-10-03)
+> The "Last synced May 5, 2026" header above and the sections below it are **old**. Known stale: "Alembic up to 009" (now **`023`**), "48 containers",
+> the `H:\HyperStation zone\...` path (now `H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`), "Phase 10U" as next, and the `-f docker-compose.secrets.yml`
+> start command (the running stack uses plain `docker-compose.yml`, which `include:`s the rest). **`WHATS_DONE.md` and the newest `docs/NEXT_SESSION_HANDOVER_*.md` win.**
+
+## 🏗️ LATEST — HyperCrew deployed on Docker (2026-10-03)
+- Multi-agent crew + Calm Mode/Panic/Focus/Quest Settler/Scribe/Morning Card, branch `claude/focused-darwin-ljrs8k` (draft PR #547). Migration **`023`** applied; `prove-crew.py` phases 0/1/2 PASS; dashboard `/ide` 5/5.
+- **Found + fixed on the first Docker run:** (1) `crew-orchestrator` `/execute` 500 on every call (relative import, `b44c2505`); (2) dashboard had no credential core accepts (`9f8b06b7`, now a 30-day JWT secret; **re-minted 2026-10-03 15:13 UTC after the signing-secret rotation, expires ~2026-11-02** - re-run `scripts/rotate_jwt_secret.py` before then).
+- **First real COMPLETED run proven** (COMPLETED + guard BLOCK; real model answered). 4 more bugs fixed on the way (mocked results, `code` key, coder-agent keyword shortcuts firing on every crew task).
+  **🎉 PROVEN 2026-10-03 12:50 UTC: guard ALLOW → settle/XP (20 XP, 10 coins) → Scribe draft → handover gate** with a capable model (`fcc-proxy` → `nemotron-3-ultra-550b-a55b`, opt-in `CREW_LLM_BASE_URL`). **Not proven:** real GitHub publish. **Since then (all deployed + live-verified, 2026-10-03):** JWT signing secret ROTATED (exposed 10-year token now 403; core uses `HYPERCODE_JWT_SECRET`); qa-engineer verifier tightened (`d78fa0e3`: a PASS must say `none` for problems, oversize/no-op/`.env`/`secrets/` diffs are rule FAILs); Safety Shepherd now applies real grants to hyphenated agent names (`55aea70a`, `coder_studio` stays `exact_name_only`); Pulse panel shows real XP (`63f5edd2`). Core + orchestrator are still `SAFETY_SHEPHERD_MODE=monitor`. Next task + gotchas: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
+- **Crew reliability (measured 2026-10-03, real model):** success rate **9 of 15 live runs ALLOW (60 %)** (first 3/5, then 6/10 with logging); every BLOCK explained from logs: 1 genuine verifier FAIL, 1 builder ReadTimeout reported as a build, 2 verifier reasoning-budget exhaustions (UNKNOWN). NVIDIA NIM's free tier is intermittently overloaded (503 -> 529 / bare 500) and its latency swings 3 s - 100+ s. **Hardened since (all deployed + live-verified):** verifier = two-format prompt, 105 s budget, one `crew_verify` log line per call, bounded 5xx retry (`b04b081c`); builder = a failed model call is now an ERROR status (it used to be a nested 'completed' build that core read as the diff), bounded 5xx retry, one `crew_build` log line (`1edf14c5`). Tools: `scripts/measure-crew-run.py`, `scripts/measure-crew-rate.sh` (always reject the handover gate: no PR can open). **Not yet measured after the hardening** (one ALLOW run since). **Recreating coder-agent/qa-engineer drops the opt-in proxy unless `CREW_LLM_BASE_URL=http://fcc-proxy:8083` is in the shell env.** Read the logs with `docker logs qa-engineer 2>&1 | grep crew_verify` / `docker logs coder-agent 2>&1 | grep crew_build`.
+- **Host-RAM safety (2026-10-03):** the Windows HOST ran out of RAM (1 MB free) while `wsl -e free -m` looked fine, hanging Docker. Run `python scripts/ram_guard.py --for build` (host + WSL + Docker, GREEN needed) before any build/start; a Task Scheduler job keeps `ram-signal/ram.json` fresh; `throttle-agent` runs in **OBSERVE** mode with a debounce (it pauses nothing; do not set `enforce` yet; `docker pause` frees no RAM). A read-only review is scheduled for 17:07 local; checklist in the handover.
+
+---
+
+## 🏗️ HyperStudio: the agent write path (2026-07-10)
 > The newest thing built. Full detail in `WHATS_DONE.md` + memory `[[hyperstudio-worktree-sandbox]]`.
 
 - **What it is:** a place in the dashboard (`/ide`) where you hand an AI agent a coding task, it works in a **throwaway git worktree**, every action is gated by **Safety Shepherd** (fail-CLOSED), you review a **diff**, and **nothing lands until you click merge**. Closes the gap that agents could *talk about* code but never *write* it.

@@ -543,8 +543,12 @@ async def _safety_check_dispatch(
         return None
 
     # Import dispatch capability locally to avoid circular imports
-    from . import dispatch_capability
-    from . import safety_client
+    try:
+        from . import dispatch_capability
+        from . import safety_client
+    except ImportError:
+        import dispatch_capability
+        import safety_client
 
     # Normalise agent_name to hyphenated ONCE at the boundary
     # settings.agents carries both underscore keys (backend_specialist) and hyphen keys (coder-agent)

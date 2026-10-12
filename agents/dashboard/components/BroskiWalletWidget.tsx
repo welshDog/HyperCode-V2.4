@@ -71,7 +71,7 @@ export function BroskiWalletWidget() {
 
   if (loading && !wallet) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
+      <div data-gamify className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
         <div className="flex items-center gap-2 mb-4">
           <Coins className="w-5 h-5 text-zinc-400" />
           <h3 className="font-semibold text-zinc-200">BROski$ Wallet</h3>
@@ -87,7 +87,7 @@ export function BroskiWalletWidget() {
 
   if (!wallet) {
     return (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
+      <div data-gamify className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Coins className="w-5 h-5 text-yellow-400" />
@@ -109,7 +109,7 @@ export function BroskiWalletWidget() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
+    <div data-gamify className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 w-full">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Coins className="w-5 h-5 text-yellow-400" />

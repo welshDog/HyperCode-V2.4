@@ -87,13 +87,22 @@ def _match_any(value: str, patterns: list[str]) -> bool:
 
 
 def _agent_caps(manifest: dict[str, Any], agent: str) -> Optional[dict[str, Any]]:
-    """Look up an agent's capability grant, falling back to the `*` wildcard.
+    """Look up an agent's capability grant: exact name, then the hyphen/underscore variant, then the `*` wildcard.
 
-    Returns None only if neither the named agent nor a wildcard entry exists.
+    The manifest's per-agent entries are underscored (`backend_specialist`) but the orchestrator and registry speak
+    hyphenated names (`backend-specialist`); with an exact-key lookup alone those agents never matched their own entry
+    and silently ran on the wildcard (found 2026-10-03). An EXACT match always wins over a variant, and an entry with
+    ``"exact_name_only": true`` is never reached through a variant (used for `coder_studio`, whose broad `**` path grant
+    relies on Studio's own client-side worktree boundary and must not spread to another spelling).
+
+    Returns None only if neither the named agent, a variant, nor a wildcard entry exists.
     """
     agents = manifest.get("agents", {}) or {}
     if agent in agents:
         return agents[agent]
+    for variant in (agent.replace("-", "_"), agent.replace("_", "-")):
+        if variant != agent and variant in agents and not (agents[variant] or {}).get("exact_name_only"):
+            return agents[variant]
     return agents.get("*")
 
 

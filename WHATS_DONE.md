@@ -1,6 +1,716 @@
 # ✅ WHATS_DONE — HyperCode-V2.4
 
-> Last synced: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
+> Last synced: 2026-10-03 16:05 UTC by Claude (since 14:15: Shepherd real grants for hyphenated agents, JWT signing secret rotated, verifier tightened, Pulse fixed) — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
+
+## 2026-10-03 (20:15 UTC) — END OF DAY: state re-verified, two mysteries solved, one resource warning for tomorrow (docs only; changed nothing on the host)
+
+- **Solved: the 'unexplained' dashboard restarts.** `healer-agent` logs `Healing Mission Control via docker_restart` (Mission Control = the dashboard) at 12:50:04Z (19 s before the 12:50:23Z restart I could not explain this morning), 13:55Z, 14:33Z, 19:13Z and 19:21Z, and `Healing HyperCode Backend via docker_restart` (core) at 12:11Z, 12:43Z, 13:46Z, 14:19Z, on latency z-score anomalies (threshold 3.0) and after my deliberate restarts. My earlier 'not the healer (no log lines)' was WRONG: I searched for the wrong lines. The dashboard's 19:21:57Z start also matched my first coder-agent recreate time by coincidence.
+- **New this evening, not by me:** `grafana` (313 MiB) and `grafana-agent` (127 MiB) were STARTED at 19:57Z / 20:01Z (created weeks ago, no restarts). The rest of the obs stack is still stopped, so Grafana has no datasources. **Memory is at the edge:** `wsl -e free -m` available **1,207 MB** (stop rule 1.2 GB), containers total 1,802 MiB, guard AMBER; `wsl -e` timed out once (`Wsl/Service/0x8007274c`) before answering. I did not start or stop anything (rule: do not stop services I did not start); the decision is written into the handover (open item 11).
+- **Healer noise recorded:** it logs `alert_only ... CRITICAL: ~6,500 consecutive failures` about once a minute for the stopped Prometheus/HyperHealth/Grafana, and restarts the dashboard/core on anomalies (open item 12).
+- **Re-verified at 20:06Z:** 38 running / 0 paused / 0 unhealthy; all 10 key services healthy with RestartCount 0; proxy ON in coder-agent and qa-engineer; no crew run in flight; throttle observe 139 decisions, 11 would-pause events, 0 stale, 0 errors, 0 paused, Task Scheduler writer running (signal 11 s old); branch in sync with origin (only the other process's `results/*` modified).
+- **Handover for tomorrow:** added a 5-minute 'START HERE' block (memory first, health, proxy-still-ON check, healer check), refreshed the live-state table, renumbered open items (new: 11 Grafana/memory, 12 healer noise/restarts, 13 WSL responsiveness; 8 now explained), added the healer gotcha. Next task unchanged (re-measure the crew rate) but explicitly GATED on memory being comfortably above 1.5 GB.
+
+## 2026-10-03 (19:40 UTC) — DOCS PASS: handover rewritten clean (live state verified 19:30 UTC), runbook §10-12 added (logs, rate measurement, retries/recreate trap), STATUS / CLAUDE.md / CLAUDE_CONTEXT refreshed
+
+- Rewrote `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` as one clean document (what shipped today as a table with commits + proofs, live state, next task, open decisions renumbered, NOT-PROVEN list, how to read the new log lines, gotchas). Added runbook §10 (reading `crew_verify` / `crew_build` lines and diagnosing a BLOCK), §11 (measuring the success rate), §12 (NIM flakiness, retry rules, the proxy-drop trap on recreate). Refreshed the HyperCrew blocks in `STATUS.md`, `CLAUDE.md`, `CLAUDE_CONTEXT.md` (new 'Crew reliability' bullet; stale 14:14 state and the fixed 10-year-JWT 'known problem' replaced). Throttle observe numbers updated: 136 decisions, 10 would-pause events, 0 stale, 0 errors, 0 paused.
+
+
+## 2026-10-03 (19:30 UTC) — BUILDER HARDENED (coder-agent): a failed crew model call is now an ERROR; bounded 5xx retry; diagnostic log line — deployed + live-verified
+
+- **The real mechanism (my first assumption was wrong):** `generate_with_anthropic_compat` already returned `{status: error, message: 'LLM proxy unreachable (ReadTimeout)'}` (exactly 35 chars = the 'non-diff' seen twice), but `execute()` wrapped it as `TaskResponse(status='completed', result=<error dict>)`. Core's `dispatch_to_agent` only rejects a TOP-LEVEL `status: error`, so the nested message was extracted as the proposal. **Reproduced with core's REAL `dispatch_to_agent`:** old shape -> ACCEPTED as a real build (summary = the error text); new shape -> REJECTED 'agent reported an error'; a real build -> accepted.
+- **Changes (`1edf14c5`, `agents/coder/main.py`):** (1) for crew-stage tasks, a model failure returns a TOP-LEVEL error `TaskResponse` (+ a core 'failed' event), so core fails the run with the real reason (scope pinned: non-crew paths keep their old shape); (2) the same bounded retry as the verifier: only 429/500/502/503/504/529, max 3 attempts (3 s, 8 s waits), ONE 100 s budget shared by all attempts (first attempt gets all of it, retries get what is left, never start one with < 15 s left), never retry timeouts/other 4xx/real answers, exhaustion = error with the reason; (3) one `crew_build model=... elapsed=... attempts=... stop_reason=... in_tokens=... out_tokens=... max_tokens=... text_chars=...` log line (numbers/labels only; hostile stop_reason sanitised); an all-thinking answer fails with `no text (stop_reason=...)`.
+- **Tests:** new `agents/coder/test_crew_build.py` = 25 tests (nested-error regression, retry rules on a fake clock/client, log safety: no prompt/proposal/token ever logged); **12 mutations all caught, original restored identical.** My first 'never exceeds the budget' test measured my fake (a fake call that ignored its timeout), not the guarantee: fixed to assert no attempt is ALLOWED past the deadline, and the same weakness fixed in the verifier test (2 red when broken, was 1). The older `agents/coder/test_coder.py` has 5 PRE-EXISTING failures (they predate the auth middleware: 503/401), unrelated and untouched.
+- **Deploy:** guard checked, agent idle, image built 19:20Z (`82839e91d008`, was `7038663b170f`) with `docker compose --profile agents -f docker-compose.yml build coder-agent`, recreated with `up -d --no-deps --no-build coder-agent`. **MISTAKE CAUGHT BY VERIFYING:** the first recreate dropped `CREW_LLM_BASE_URL` (compose default is empty = opt-in), so the builder would have used the weak local model; nothing was running, I saw `proxy ON? False`, compared with qa-engineer's non-secret settings and recreated again with `CREW_LLM_BASE_URL=http://fcc-proxy:8083` (19:26Z). Final: new image, proxy ON, token set, healthy, RestartCount 0; core + qa-engineer untouched.
+- **Live proof:** run `9aa47b8c` ('add a helper that counts the words in a string') **ALLOW in 66 s**: `crew_build model=claude-sonnet-5 elapsed=17.5s attempts=1 stop_reason=end_turn in_tokens=584 out_tokens=440 text_chars=602` then `crew_verify ... elapsed=32.3s attempts=1 ... reply_verdict=PASS final_verdict=PASS`.
+- **Found, NOT fixed (needs a go, backend rebuild):** every agent's base wrapper returns `status='completed'` with the real result nested, so the VERIFIER's error path (timeout / 5xx after retries) still arrives nested, is read as text and surfaces as `verifier verdict: UNKNOWN` (still blocks, misleading label). A defence in core's `dispatch.py` (also treat `result.status == 'error'` as an error) would fix it for every agent.
+- **Honest limits:** the builder's retry is proven with a fake clock/client, not yet against a real NIM 5xx; one live ALLOW run is n=1, no new success rate yet; a retry cannot help when NIM is slow rather than erroring (a timeout is not retried by design).
+
+## 2026-10-03 (19:05 UTC) — VERIFIER RETRY on transient upstream errors (NIM overload): bounded, inside the same time budget — deployed + proven on the real code path
+
+- **Why:** NVIDIA NIM's free tier intermittently answers 'Service temporarily overloaded' (upstream 503 -> proxy 529) or a bare 500; one quick retry usually gets through.
+- **Rules (`b04b081c`, `agents/04-qa-engineer/crew_verifier.py`):** retry ONLY statuses 429/500/502/503/504/529 (`VerifierError` now carries the HTTP `status`; timeouts, connection errors and every other 4xx have status None/other and are NEVER retried; a model FAIL or an UNKNOWN is a real answer and is never retried). At most 3 attempts with waits of 3 s then 8 s. ALL attempts share ONE budget of `MODEL_TIMEOUT_S` = 105 s: the first attempt gets the whole budget exactly as before, each retry gets only what is left, and an attempt is never started with < 15 s left, so the verifier can never exceed what it took before (core gives up at 120 s). Exhaustion fails CLOSED with the reason ('HTTP 529 (gave up after 3 attempts)' or '(... no time left to retry)'). Each retry logs one line (`verifier=retry attempt=N status=529 wait=3s time_left=105s`); the final line carries `attempts=N`. No body, goal, diff or token is ever logged (pinned by a test).
+- **Tests 66 -> 87; mutation-checked, 9 mutations all caught** (never retry 6 red; retry every status 9; retry timeouts 3; no time-left check 1; first attempt short of the budget 3; timeouts not shrinking 1; 4 attempts 2; status not recorded 1; attempts not recorded 2). **The first mutation run exposed a weak test of mine** (my 'timeouts are never retried' case used a 100 s duration, which tripped the separate no-time-left guard, so the status rule was untested: 0 red); fixed with fast-failing cases (1 s URLError / ConnectionRefused, 20 s Timeout) and re-checked.
+- **Live proof on the REAL code path (separate process in qa-engineer, fake local Anthropic-format proxy so NVIDIA's behaviour does not matter):** 529 then OK -> 2 requests 3.0 s apart, PASS, `attempts=2`; HTTP 400 -> 1 request, no retry, error; 529 x3 -> 3 requests 3.0 s and 8.0 s apart, gave up after 11 s total, error 'gave up after 3 attempts'. qa-engineer restarted (bind-mounted source; guard GREEN, idle first), healthy, code loaded.
+- **A real crew run afterwards ('capitalizes every word', `b764bb15`) BLOCKED, and not in the verifier:** `coder-agent` logged `LLM proxy request failed: ReadTimeout` at exactly 100 s and then `build completed successfully`; the 35-char error text was rejected by the verifier's diff rule (no model call, so the retry was never involved). Second time today (also the 'celsius' run). **The BUILDER is now the weakest link**: its single 100 s model call has no retry and reports a timeout as a successful build.
+- **Honest limits:** the retry cannot help when NIM is slow rather than erroring (a long call that times out is not retried by design); it was proven with a fake proxy, not yet observed against a real NIM 5xx in a crew run (no run has hit one since deployment); one retry cannot fix a sustained outage.
+- **Next (needs a go):** harden the BUILDER (`agents/coder/main.py`, `generate_crew_text`): return an ERROR status (not a 'completed' error string) when the model call fails, and add the same bounded 5xx retry inside the 100 s budget. coder-agent is baked into an image (rebuild + recreate, guard GREEN first) unlike qa-engineer.
+
+## 2026-10-03 (18:45 UTC) — REASONING-LIMIT PROBE: inconclusive (upstream NVIDIA overload, then killed by memory pressure); one encouraging data point; the QUALITY question is still unanswered
+
+- **What I tried:** probes inside qa-engineer on the REAL verifier prompt comparing baseline vs `thinking: {type: disabled}` vs `thinking: {enabled, budget_tokens: 512}` vs `output_config.effort: low`. fcc-proxy DOES forward these (read from its source: `application/reasoning.py` + `providers/nvidia_nim/request_options.py` map them to NIM `chat_template_kwargs` `enable_thinking` / `reasoning_budget`).
+- **Round 1 (32 calls, back-to-back):** only 2 answered; the rest HTTP 529 instantly. **Round 2 (paced 5 s, retry 529/503/429):** mostly HTTP 500, and baseline/budget/effort almost never answered. A direct request showed the real reason in the response BODY (the proxy log only prints the status): `Upstream provider NIM returned an error ... Service temporarily overloaded (code 503)`, mapped to 529. **NVIDIA NIM's free tier is intermittently overloaded**, which also explains the slow/erratic latencies (a 2-token reply took 20 s) and very likely the builder's 100 s `ReadTimeout` earlier. Short requests (1-5 s) mostly got through; long reasoning requests mostly did not.
+- **Round 3 (focused: A/B/C x 2 clean + 3 broken diffs incl. a subtle unit bug and an SQL injection, with retries on all 5xx):** **killed by the system (host memory critically low) before printing anything** (its output was buffered through a pipe, so nothing was saved either). Not restarted (the harness says not to without being asked). I then found my probe process still running INSIDE the container (killing the shell does not kill a `docker exec` child) and stopped exactly that PID (SIGTERM after checking its command line); qa-engineer stayed healthy, RestartCount 0. LESSON: write long probe output to a file inside the run, not through a pipe; check for orphaned `docker exec` children after a kill.
+- **The few valid data points:** `thinking: disabled`: 5 answered calls on CLEAN diffs, all `PROBLEMS: none` / `VERDICT: PASS` in **13 output tokens, 0.9-5 s** (vs baseline 336-820 tokens, 14-22 s; one baseline call on the same clean diff nitpicked a FAIL, one passed). `budget_512` and `effort_low`: ZERO valid answers (all 5xx). **Broken diffs under ANY variant: ZERO valid answers.** 13 tokens means the model answered instantly with no analysis: whether it still catches real bugs is UNKNOWN, and that is exactly the risk (a verifier that rubber-stamps). Do NOT switch the verifier to thinking-off on this evidence.
+- **State:** guard GREEN when checked (host free 492 MB, a bit lower than the ~750 MB seen earlier; compression 1,636 MB; WSL available 1,521 MB), 36 running / 0 unhealthy. Leftover probe files in qa-engineer `/tmp` (removal not permitted; harmless; gone on recreate).
+- **Candidate next steps (each needs a go):** (a) when memory is comfortable, re-run ONLY the quality question: variants A and B, the 5 diffs, 1 rep (10 calls), output written to a file, retries on 5xx; (b) independent of the probe, harden the verifier AND the builder against upstream flakes: one short retry on 503/529/500 (only if the time budget allows) and make coder-agent return an ERROR status on timeout instead of a 'completed' error string.
+
+## 2026-10-03 (18:05 UTC) — CREW RATE re-measured WITH logging: 6 of 10 ALLOW (60 %); every BLOCK now explained — and 3 of the 4 are model-latency/budget problems, not bad code
+
+- **Result (10 live runs, UTC 17:51-18:04, `scripts/measure-crew-rate.sh`, 5 repeats of earlier goals + 5 new):** ALLOW 6, BLOCK 4, **0 FAILED, 0 STUCK**; per run 25-131 s (mean 69 s). Combined with the earlier 5 runs: **9 of 15 ALLOW (60 %)**. A rough 95 % interval for 6/10 is ~31-83 %; 10 runs still cannot say more.
+- **The 4 BLOCKs, explained from the new `crew_verify` log lines (+ coder-agent log):** (1) 'version endpoint' — a GENUINE verifier FAIL (reviewed a 2,306-char change for 54 s, `stop_reason=end_turn`, replied FAIL): fail-safe working as designed. (2) 'celsius to fahrenheit' — a BUILDER problem: coder-agent logged `LLM proxy request failed: ReadTimeout` after 100 s and returned that 35-char error text as its 'completed' build; the verifier's RULE check rejected it ('not a unified diff', model never asked). (3)+(4) 'url slug' and 'bytes as human readable size' — `verifier verdict: UNKNOWN`: **both logged `stop_reason=max_tokens out_tokens=1500` with `thinking_chars` = `text_chars` (5,911 / 4,638) and `reply_verdict=NONE`**: the reasoning model's hidden thinking used the WHOLE 1,500-token budget (49 s and 77 s) and it never wrote an answer. Not related to diff size (976 and 1,385 chars). Every call that DID finish used the format correctly (`text_chars=28` = `PROBLEMS: none` + `VERDICT: PASS`), so the prompt is fine; the budget is the issue.
+- **What the passing runs show:** thinking is small for simple changes (out_tokens 96-706, 3-45 s) and balloons unpredictably for others, so latency swings 3 s to 100+ s. Output speed is only ~20-30 tokens/s, which is why raising `max_tokens` (3000 = up to ~150 s) would hit the 105 s verifier timeout and core's 120 s: NOT the fix.
+- **NEW finding, not fixed:** coder-agent returns a `ReadTimeout` error message as a 'completed' build (status success, the text is the error). The guard's `build_present`/`build_clean` pass on it; only the verifier's diff rule saved the run. A builder that fails should return an ERROR status so the run fails closed with the real reason instead of looking like a (bad) proposal. The builder's own proxy timeout is 100 s.
+- **If the 2 UNKNOWNs were fixed the observed rate would have been 8/10; if the builder flake too, 9/10** (arithmetic on this sample only, not a forecast).
+- **Next experiment (needs Lyndz's go):** try to limit the model's reasoning for the VERIFIER (and maybe the builder) through fcc-proxy (e.g. a `thinking` budget/disabled request parameter or a 'brief reasoning' instruction), probe ~10 verify calls, and compare out_tokens, latency and verdict quality before changing anything for real. Alternative levers: one retry on UNKNOWN only (time budget is tight), or a faster non-reasoning model for the verifier.
+- **State after:** guard AMBER-to-GREEN during the loop (never RED; the script gates every run), 36 running / 0 unhealthy, qa-engineer + coder-agent + core RestartCount 0. The ALLOW runs settled XP/coins to the owner as any run does (not re-checked).
+
+## 2026-10-03 (17:40 UTC) — verifier DIAGNOSTIC LOGGING added and live-proven (so the next UNKNOWN can be explained)
+
+- **Why:** 1 of 5 live runs ended `verifier verdict: UNKNOWN` and nothing recorded why: the guard keeps only hashes and qa-engineer logged nothing about a review.
+- **What (`96c3a27d`, rebased as `d192dcec`; `agents/04-qa-engineer/crew_verifier.py`):** ONE key=value line per verify call in `docker logs qa-engineer`, e.g. `crew_verify verifier=rules+model model=… elapsed=3.2s stop_reason=end_turn in_tokens=305 out_tokens=92 max_tokens=1500 thinking_chars=350 text_chars=28 change_chars=495 reply_verdict=PASS final_verdict=PASS downgraded=False`. Error path: `verifier=error … error=<fixed reason>`; rules path: `verifier=rules … rule_problems=…`. `reply_verdict` = what the model wrote (`NONE` if no valid line), `final_verdict` = what the verifier decided (`UNKNOWN` when there is none), so a truncation (`stop_reason=max_tokens`, `out_tokens` = `max_tokens`, big `thinking_chars`, `reply_verdict=NONE`) is distinguishable from a format slip. An all-thinking answer now fails with `no text (stop_reason=…)`.
+- **Safety (each pinned by a test):** the line carries numbers, labels and fixed strings ONLY: never the diff, the model's text, the goal or the auth token; a hostile `stop_reason` is rejected (cannot inject a fake verdict line); values are sanitised; a logging failure can never break a verification (swallowed). A fallback handler guarantees the line reaches `docker logs` even if the base agent configured none.
+- **Tests 54 -> 66, mutation-checked (7 mutations, each verified applied):** model-path log removed 6 red; review text leaked into the log 1; token leaked 1; stop_reason unvalidated 1; logging errors not swallowed 1; error path unlogged 2; rules path unlogged 1; restored identical.
+- **Live proof:** qa-engineer restarted (bind-mounted source; guard GREEN, idle first), then ONE real crew run ('add a helper that reverses a string', `45589ea7`): **ALLOW in 23 s**, and the line above appeared in `docker logs qa-engineer`. NOTE the model's speed varies hugely (this verify took 3.2 s; others took 40-90 s).
+- **Push note:** the push was rejected once (the other Claude session pushed a CodeQL comment tidy in `scripts/measure-crew-run.py`); rebased cleanly, 66 tests re-run green, pushed.
+- **Where to look:** `docker logs qa-engineer 2>&1 | grep crew_verify`. **Next:** re-run `scripts/measure-crew-rate.sh` and, for every non-ALLOW, read its `crew_verify` line before deciding the UNKNOWN fix.
+
+## 2026-10-03 (17:32 UTC) — CREW SUCCESS RATE measured: 3 of 5 live runs ALLOW (60 %), 2 BLOCK, 0 failed/stuck — and the UNKNOWN-verdict failure mode is NOT fully gone
+
+- **Method:** `scripts/measure-crew-run.py` (one live run inside core: start, approve the exact plan hash, ALWAYS reject the handover gate so no PR can open, read the guard verdict + failed checks from the run) driven by `scripts/measure-crew-rate.sh` (5 different plain goals, one at a time, RAM-guard + core-health check before each, aborts on RED). Real model via fcc-proxy; everything deployed today in the path (rotated JWT, tightened verifier at 105 s with the two-format prompt, new Shepherd lookup in monitor mode).
+- **Results (UTC 17:22-17:31):** (1) 'add a version endpoint to the API' **BLOCK** — verifier said FAIL (a proper verdict; the same goal had ALLOWed an hour earlier, so the model is not deterministic); (2) '/ping endpoint that returns pong' **ALLOW** 93 s; (3) 'celsius to fahrenheit' **ALLOW** 93 s; (4) 'url slug helper' **BLOCK** — `verifier verdict: UNKNOWN` (NO valid VERDICT line); (5) 'README section on running the tests' **ALLOW** 78 s. Per-run time 78-106 s. **0 FAILED, 0 STUCK, nothing left parked.** Side effect: the 3 ALLOW runs settled XP/coins to the owner as any run does (amounts not re-checked).
+- **Rate:** ALLOW 3/5 = 60 % (a rough 95 % interval for 3/5 is ~23-88 %; five runs cannot say more). Of the 2 BLOCKs, 1 is a genuine model FAIL (fail-safe working as designed) and **1 is the UNKNOWN problem again** (run 4): so the prompt fix `29f20038` reduced it (it was 2 of 3 direct calls before) but did not eliminate it. Best current explanation, NOT proven: the reasoning model's hidden thinking sometimes eats the 1500-token budget (`stop_reason: max_tokens`) or it deviates from the format.
+- **Observability gap that blocks diagnosis:** a run's verifier text, the builder's diff and the model's stop reason/usage are NOT retrievable after the run (the guard stores only sha256 hashes; qa-engineer logs nothing about the review). Next: log, per verify call, `stop_reason`, output tokens, text length and the verdict (never the diff), so an UNKNOWN can be told apart from a truncation.
+- **Do not 'fix' UNKNOWN by raising max_tokens blindly:** output speed is roughly 20-40 tokens/s, so 3000 tokens would run into the 105 s timeout (and core's 120 s). The better levers are a smaller thinking budget (if fcc-proxy can pass one) or one retry on UNKNOWN only (watch the time budget).
+- **State after:** guard GREEN, 36 running / 0 unhealthy, core + qa-engineer + coder-agent RestartCount 0.
+
+## 2026-10-03 (17:25 UTC) — verifier LATENCY HEADROOM: model timeout 90 -> 105 s, pinned by tests, measured live
+
+- **Timeout chain (read from the code, not assumed):** core waits `_DISPATCH_TIMEOUT_S = 120 s` for the orchestrator's `/execute` (`backend/app/crew/dispatch.py`); the orchestrator waits 120 s for the agent but first spends a few seconds (Shepherd check, skills routing), so core gives up first; the verifier's model call had 90 s. Live calls earlier today took 24-90 s (one at ~90 s), so there was no headroom, and a timeout is an ERROR (the run fails closed).
+- **Change (`28f88c99`, `agents/04-qa-engineer/crew_verifier.py`):** `MODEL_TIMEOUT_S` 90 -> **105 s** (~15 s margin under core's 120 s; a higher value would be useless because core gives up first). Deliberately NOT 120.
+- **Tests (51 -> 54):** the timeout must be >= 100 s (headroom) AND <= core's dispatch limit - 10 s (the test reads `dispatch.py`, so raising core's limit or the verifier's cannot silently drift apart); the configured timeout is what the model call receives; a real socket `TimeoutError` becomes an error, never a verdict. Mutation-checked both sides: old 90 s -> 1 red; 125 s -> 1 red; restored identical.
+- **Live measurement (inside qa-engineer, real model via fcc-proxy, real `verify()` path, clean diff, 6 sequential calls):** 6/6 completed and PASSed, none downgraded, **8-46 s (mean 17 s)**, nothing near the limit. qa-engineer restarted (bind-mounted source), loaded `MODEL_TIMEOUT_S = 105.0`, healthy.
+- **Honest limits:** 6 calls in a quiet period is a sample, not a distribution; latency is clearly variable (24-90 s earlier today, 8-46 s now), so a rare >105 s call can still error (fail closed, costs a re-run). `CREW_LLM_MAX_TOKENS` (1500) is shared with the coder and was not changed. A probe file remains in qa-engineer's `/tmp` (removal not permitted; harmless, gone on recreate).
+
+## 2026-10-03 (17:15 UTC) — FULL END-TO-END CREW RUN: guard ALLOW across a real core restart, with every change of today in the path (and it caught a regression I had introduced)
+
+- **Final result:** run `756625dd-decf-597c-a9d5-85eb1874e522` (goal 'add a version endpoint to the API'): `prove-crew.py` phase0 PASS (30 checks), phase1 (parked at the plan gate), **`docker restart hypercode-core` with the run parked**, phase2 PASS: recovered at the gate with the same events, the retried start returned the SAME task, the exact plan hash was accepted, the plan was sealed, every stage finished (plan, approve, seal, build, verify, guard, settle, scribe, approve_scribe), the handover was skipped (opens nothing), **guard ALLOW with all 6 checks passing incl. `verifier_verdict`**, evidence bundle hash present. In the path: the rotated JWT secret (the proof mints its tokens inside core), the new Shepherd name lookup (monitor mode), the tightened verifier (real model via fcc-proxy), the least-privilege relay env untouched. No GitHub token, no PR opened.
+- **The first attempt was BLOCKED, and that was MY regression** (run `555cd95c…`, goal 'add a health endpoint', phase2 still printed PASS because the script accepts ALLOW or BLOCK): the guard's only failed check was `verifier_verdict: UNKNOWN`. Cause, reproduced from inside qa-engineer with the real prompt: my tightened prompt contained contradictory wording ('write exactly PROBLEMS: none' AND 'finish with exactly one VERDICT line'); the reasoning model sometimes dithered over it, spilled its reasoning into the answer and hit `stop_reason: max_tokens` (1500) with 6,000+ chars of rambling and NO `VERDICT:` line -> UNKNOWN -> BLOCK (fail-safe worked, but it would have blocked many good runs). 2 of 3 calls did it. **Unit tests could not see this; only the live model could.**
+- **Fix (`29f20038`):** one unambiguous prompt with two literal formats (A: `PROBLEMS: none` / `VERDICT: PASS`; B: bullets / `VERDICT: FAIL`), no second instruction. Live probe afterwards: 4/4 calls ended `end_turn` with a valid verdict line (the model FAILed my deliberately flawed probe diff each time with legitimate findings: leaked DB session, 200 when DB down). Tests 51 pass; the 'smuggled verdict' security test was adapted to look only at the untrusted CHANGE section (the prompt's own format examples legitimately contain verdict lines) and re-mutation-checked (not stripping the change's verdict lines -> red). qa-engineer restarted (bind-mounted source), healthy.
+- **Honest limits:** (1) latency: verifier calls took 24-90 s against `MODEL_TIMEOUT_S = 90` inside the dispatch's 120 s limit; one probe call took 90 s. A timeout is an ERROR (run fails closed), so this is the likeliest next cause of a blocked good run; consider more headroom. (2) the model is not deterministic: a clean diff can still FAIL on nitpicks (costs a re-run, never a bad PASS). (3) I did not look at the settlement row for this run (my lookup guessed columns and failed); the settle STEP finished, and XP/coins were proven on the earlier ALLOW run. (4) One ALLOW run is one sample, not a rate. (5) A synthetic probe file remains in qa-engineer's `/tmp` (removal not permitted; no secrets; gone on recreate).
+- **State after:** guard GREEN, 36 running / 0 unhealthy / 0 paused, core + qa-engineer + coder-agent + orchestrator + shepherd + fcc-proxy healthy with RestartCount 0 (the two core restarts were my deliberate `docker restart`s, which do not count). No run is left parked (`555cd95c` ended COMPLETED/BLOCK, `756625dd` COMPLETED/ALLOW).
+
+## 2026-10-03 (17:05 UTC) — AUDIT of the older leak (`f1edc13e`, `.claude/settings.local.json`): token is DEAD, no rotation needed (read-only; changed nothing)
+
+- **What was in it:** across all 40 commits that touched the file, exactly ONE token-shaped secret: `env.ANTHROPIC_AUTH_TOKEN`. 2026-08-26 (`d7c3a3ff`) it was the placeholder `freecc`; 2026-08-27 (`86d947b3`, 'update anthropic auth token') it became a 32-char hex value; untracked 2026-10-02 (`f1edc13e`). So it sat in PUBLIC history ~36 days. The other long strings (8-9 per version since April) are command words/paths (entropy <= 3.88 bits/char; random tokens ~4.5+), not credentials.
+- **What it authenticated to:** the same file's `ANTHROPIC_BASE_URL` was `http://localhost:8083` = the local `fcc-proxy` (bound to `127.0.0.1` only), so it was never an external gateway or an Anthropic account key.
+- **Spread:** `git log --all -S<value>` finds it in exactly 2 commits (added `86d947b3`, removed `f1edc13e`), in that one file only; not at HEAD. 105 remote branches (incl. `main`) contain the add commit; the repo is public (2 forks, 4 stars).
+- **Still live?** Lyndz ran a local comparison (names + match/no-match only): the leaked value matches NONE of 295 local values (`.env`, `secrets/*`, env of fcc-proxy/coder-agent/qa-engineer/dashboard/orchestrator). It is no longer the proxy token, so it authenticates to nothing.
+- **GitHub secret scanning:** 1 alert, unrelated (a Stripe webhook signing secret in `RUNBOOK_BLOCKERS.md`, already `resolved`/revoked); it never flagged this token.
+- **Decision:** no rotation (nothing live to rotate), no history rewrite (public repo with forks; a rewrite needs a force-push and cannot recall copies). Residual risk: none for this token. Method note: values were never printed; the scripts showed key names, lengths, shapes, 8-char hashes and match/no-match only.
+
+## 2026-10-03 (16:45 UTC) — evolve-relay env TRIMMED (least privilege): 38 of 45 variables no longer reach the relay — live-verified
+
+- **Allowlist (from the relay's own source, not its comment):** required `SEPOLIA_RPC`, `CONTRACT_ADDRESS`, `DEPLOYER_KEY`, `PINATA_JWT` (`_require_env` in `scripts/evolve_token.py`); optional with code defaults `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `IPFS_GATEWAY`, `IMAGES_ROOT_CID` (the evolve path reads Redis for XP/happiness). Dropped: Groq/LLM (chat code it never runs), `AGENT_API_KEY` (compose's `HYPERCODE_API_KEY` always wins) and every unrelated secret (CDP, GitHub, Supabase, Anthropic, Etherscan, Pinata API key/secret, sync secrets). My first guess (4 vars) was too tight; reading the code caught it.
+- **Tool:** `scripts/make_relay_env.py` (10 tests, mutation-checked: allow-everything -> 2 red; print-values -> 2 red) copies ONLY those lines byte-for-byte from the Pets `.env` into the gitignored `secrets/evolve_relay.env`; prints names/counts only; aborts if a required var is missing. Lyndz ran it (`--write`: 7 kept, `REDIS_PORT`/`IMAGES_ROOT_CID` absent so code defaults apply, 38 dropped); `docker-compose.bropets.yml` points the relay's `env_file` at it (optional, so validation can't break).
+- **Deployed:** guard GREEN, relay idle for 30 min first, `docker compose --profile agents -f docker-compose.yml up -d --no-deps --no-build evolve-relay` -> new container `36bad83bc485` on the SAME image (`01b6cc42636c`, no rebuild), healthy on check 2, RestartCount 0. The 'orphan containers' warning only names throttle-agent/fcc-proxy/governor (started from other compose files); `--remove-orphans` was NOT used and all 36 containers are still up, 0 unhealthy.
+- **Verified (variable NAMES only, no values):** the relay's environment has the 7 allowed vars + `PORT` + `HYPERCODE_API_KEY`, 0 of the 15 forbidden secret names I checked, nothing missing; logs show only `/health` 200s, no errors.
+- **Not verified (honest limit):** a real evolution (the on-chain transaction) was NOT exercised, only startup + `/health`. If a future evolve fails with 'missing env', a variable read outside the five source files I audited is the suspect: add it to `OPTIONAL` in `make_relay_env.py`, re-run it, recreate the relay. Re-run the script after rotating any of its keys.
+
+## 2026-10-03 (16:25 UTC) — DECISION (Lyndz): throttle-agent STAYS in observe mode; no `enforce`
+
+- Lyndz accepted the review's recommendation. **Nothing was changed on the host:** `THROTTLE_MODE=observe` is already what runs (container up since 12:48Z, 0 paused). Docs updated (`CLAUDE.md`, handover).
+- **Not done (not asked, still optional):** take `fcc-proxy` out of tier 6 (so the simulated 'would pause' list stops naming the crew's model path) and add which-threshold-tripped logging. Either needs a throttle-agent recreate, so ask first. **Enforce would need new evidence:** a real unforced pressure episode, the logon/reboot test of the scheduled task, and a lever that actually frees RAM (`pause` does not).
+- **Next:** trim the Pets `.env` passed to `evolve-relay` (see the 16:15 entry; needs a go).
+
+## 2026-10-03 (16:15 UTC) — evolve-relay compose path FIXED: the combined compose validates again (nothing was started, built or recreated)
+
+- **Root cause:** `docker-compose.bropets.yml` pointed at `../BROskiPets-LLM-dNFT`, written when HyperCode-V2.4 sat next to the Pets repo. After the move under HperCore the repo is at `H:/HYPERFOCUSZONE/BROskiPets-LLM-dNFT` (two levels up from the compose file). A MISSING `env_file` is a hard error, so `docker compose config` failed for the WHOLE project (`env file ...HperCore/BROskiPets-LLM-dNFT/.env not found`), which is why throttle-agent had to be deployed via a temporary single-service compose.
+- **Fix (`docker-compose.bropets.yml`, `.env.example`):** new `BROSKIPETS_DIR` (default `../../BROskiPets-LLM-dNFT`) used for both build contexts and the relay's `env_file`; the relay's `env_file` is now `required: false` (same pattern `bropets-api` already used), so a wrong path can no longer break validation of the whole project. `.env.example` documents the variable (commented out).
+- **Verified (quiet validation only, `config -q` / selected fields, no values printed):** combined project (`docker-compose.yml` + `agents-full.yml`, profiles agents+hyper) now validates (it failed before; reproduced first); plain stack validates; `evolve-relay` + `bropets-api` build context = `H:/HYPERFOCUSZONE/BROskiPets-LLM-dNFT`, the dir exists and has `Dockerfile` / `Dockerfile.relay`; the Pets `.env` is picked up (variable NAMES checked: SEPOLIA_RPC, CONTRACT_ADDRESS, DEPLOYER_KEY, PINATA_JWT present); a wrong `BROSKIPETS_DIR` still validates and the override is honoured. `fleet_registry` consumer: mission-director tests identical before and after (19 passed; the same 6 errors + 1 collection error exist on the original file too: those tests import the core's `app` package, which is not importable from the host shell).
+- **Not touched:** the RUNNING `evolve-relay` (created Aug 24, up since 2026-10-02 20:47Z, healthy) was neither recreated nor rebuilt; no service was started. It now CAN be recreated through the normal compose, but there was no reason to.
+- **NEW finding (not fixed, your call):** `evolve-relay`'s `env_file` is the Pets repo's WHOLE `.env` (~50 variables including `DEPLOYER_KEY`, `CDP_API_KEY_SECRET`, `GITHUB_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`, `ANTHROPIC_API_KEY`), but its own comment says it only needs `SEPOLIA_RPC`, `CONTRACT_ADDRESS`, `DEPLOYER_KEY`, `PINATA_JWT`. Least privilege would pass just those four via `environment:`; that needs a recreate of the relay (deployer key handling: ask first).
+
+## 2026-10-03 (16:08 UTC) — throttle-agent observe review, SCHEDULED check (read-only; changed nothing) — confirms the 16:10 review below
+
+- **Now:** guard GREEN (host free 801 MB, compression 1,446 MB, WSL available 1,616 MB); Task Scheduler writer running, signal file 7 s old; throttle-agent healthy, RestartCount 0, OOMKilled false, up since 12:48:21Z; **0 containers paused**.
+- **Timeline unchanged:** still 60 `observe_decision` lines (they are logged on change only); none after 15:05:25Z, i.e. an hour+ of quiet GREEN. Totals as in the review below: 6 would-pause events, 21 blips absorbed, 0 UNKNOWN/stale, 0 errors, no flapping.
+- **`GET /signal` read from inside the container (key not printed) — closes the limit I noted in the review below:** level GREEN, `reason: fresh`, `age_s` 7.5, effective GREEN, streaks 0, `paused_tiers: []`, `paused_tiers_are_simulated: true`, protect tiers `[1,2,3]`; the agent IS evaluating live, and it still lists `fcc-proxy` in tier 6. Worst reading over the period is NOT recorded anywhere (the log carries levels, not values; `/signal` shows only the latest) — a small observability gap.
+- **Verdict (same as the review below):** keep OBSERVE; enforce NOT yet (no baseline of a real, unforced pressure episode, no reboot test of the scheduled task, `pause` frees no RAM, tier 6 holds `fcc-proxy`).
+
+## 2026-10-03 (16:10 UTC) — throttle-agent OBSERVE review done (read-only): recommendation = keep observing, do NOT enforce; move fcc-proxy out of tier 6
+
+- **Data (12:48-16:06 UTC, ~3 h 18 min):** 60 decisions; effective AMBER/RED for ~27 min total (~14 %) in 8 clusters; 21 one-sample AMBER blips absorbed by the debounce (the debounce works: without it these would have been 21 would-pauses); 6 would-pause events (tier 6 x4 at AMBER, tiers 5+4 x2 at RED); **0 UNKNOWN/stale periods, 0 errors, 0 containers ever paused**, RestartCount 0. Since 14:38 only ONE blip (15:04) and an hour of GREEN.
+- **Cause (inference, not measured):** all clusters but one line up with my own heavy work (deploys, builds, test containers, browser) or the healer's 14:19:55 core restart; the 14:36-14:38 cluster has no known cause. The agent's logs do not record WHICH guard threshold (host free / compression / WSL) tripped — a small observability gap worth adding before any enforce.
+- **Why enforce looks like the wrong tool:** (1) all 36 containers together use only ~1,430 MiB; tiers 4+5+6 hold ~563 MiB, and tier 5 is empty while obs is off — the host pressure is mostly Windows-side (browser/IDE/Docker VM/compression); (2) `docker pause` frees NO RAM; (3) `stop` could free at most ~305 MiB at AMBER / ~258 MiB more at RED vs ~800 MB host-free, and the healer fights stopped containers; (4) **tier 6 contains `fcc-proxy` (241 MiB) = the crew's model path: an AMBER pause/stop would break a running crew build/verify**, and tier 4 contains `coder-studio`.
+- **Recommendation (needs Lyndz's go; nothing changed):** keep `THROTTLE_MODE=observe` as a free early-warning; do not set `enforce`. Optional small fix: remove `fcc-proxy` from tier 6 (via `THROTTLE_TIERS_JSON`, recreate throttle-agent) so the "would pause" list is truthful, and log which threshold tripped. The real defence stays the pre-flight guard gating heavy steps.
+- **Limits:** I did not read `/signal` (needs the agent key); "still evaluating" after 15:05 is inferred from a healthy container, no errors, and a fresh GREEN signal file, not proven. The logon/reboot test of the scheduled task is still not done.
+
+## 2026-10-03 (16:05 UTC) — DOCS PASS: handover rewritten clean, UTC labels corrected, ready for the next task
+
+- Rewrote `docs/NEXT_SESSION_HANDOVER_2026-10-03.md` as one clean document (live state verified 16:01 UTC: 36 running / 0 paused / 0 unhealthy, guard GREEN, all key services healthy with RestartCount 0; throttle observe: 60 decisions, 6 would-pause lines all in the two early episodes). Updated `CLAUDE.md`, `CLAUDE_CONTEXT.md`, `docs/STATUS.md`, the runbook and the memory notes.
+- **Correction (my mistake):** the machine runs BST (UTC+1) and I had labelled several entries from 14:05 UTC onward with the LOCAL clock time as "UTC" (e.g. the JWT rotation was 15:13 UTC, not 16:13). Fixed every label I could prove from commit times / container timestamps; older labels (before ~14:15) mix docker-UTC and local times and are flagged as such in the handover. Git `%z` and `docker inspect` are authoritative; true UTC = local - 1 h.
+- **Next task:** review throttle-agent's observe timeline and decide on `enforce` / pause-vs-stop; then fix the `evolve-relay` compose path.
+
+## 2026-10-03 (15:36 UTC) — qa-engineer verifier tightened (it PASSed a run with 5 problems listed) — deployed + live-probed
+
+- **Gap (found in the first happy-path run):** the model's `VERDICT: PASS` was passed straight through even beside a list of problems; and a change over 3000 chars was silently CUT before review, so a PASS covered only a prefix.
+- **Fix (`d78fa0e3`, `agents/04-qa-engineer/crew_verifier.py`):** (1) a PASS stands ONLY if the review has an explicit `none` for problems AND lists no problem items (judged on the FULL reply, not the 1500-char display copy), otherwise it is downgraded to FAIL and flagged `downgraded: true`; (2) new deterministic rule FAILs, model never asked: change over `MAX_CHANGE_CHARS` (now 8000, never truncated), a diff that adds/removes no lines, a diff touching `.env` / `secrets/` paths (look-alikes such as `environment.py`, `secrets-policy.md`, `.envrc` are not flagged); (3) the prompt now asks for bullets or the exact line `PROBLEMS: none`. A model FAIL is never upgraded. Everything else (verdict-line stripping, no silent local fallback, error = no verdict) unchanged.
+- **Tests:** 24 -> 51 passing. Mutation-checked, each revert verified: downgrade removed -> 7 red; size rule -> 1; secret-path rule -> 5; no-changed-lines rule -> 1; list-item check -> 2; missing-`none` check -> 2.
+- **Live probe (real model via fcc-proxy, run inside qa-engineer, synthetic diffs, nothing credential-related printed):** diff with a NameError -> FAIL (model-found); diff with an unused import/bad names -> FAIL; a clean diff -> PASS with `PROBLEMS: none` once, and FAIL (model listed nits) the next time; one clean run hit the 90 s model timeout (free NIM tier cold start) and correctly produced an ERROR, not a verdict. **Honest limit:** the model is not deterministic even at temperature 0, so expect occasional false FAILs on clean diffs; the cost is a re-run, never a bad PASS. I did not run a full end-to-end crew run for this (it needs a core restart in the proof script).
+- **Deployed:** qa-engineer source is bind-mounted -> `docker restart qa-engineer` only (guard GREEN, agent idle first); healthy after 3 checks, RestartCount 0, core untouched. A synthetic probe file is left in qa-engineer's `/tmp` (removal not permitted; no secrets in it; it is gone on a recreate).
+
+## 2026-10-03 (15:16 UTC) — JWT signing secret ROTATED; the exposed 10-year admin token is dead — verified live
+
+- **Why:** the 10-year admin JWT (`.env` `DASHBOARD_SERVICE_JWT`, user 9) was exposed in a transcript earlier today; a JWT can't be revoked singly, so the signing secret was rotated (Lyndz's go; Lyndz ran the script themself, because secret writes are blocked for me by design).
+- **Correction found while mapping it:** core's live secret is `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`, hash-checked equal to the live container), NOT the 65-char `.env` `JWT_SECRET` line (different, unused value). Both in-use copies were rotated together.
+- **Tool:** `scripts/rotate_jwt_secret.py` (+ 9 tests, mutation-checked: removing the line anchor fails 1). Preflight is the default; `--yes` rotates. It aborts unless `.env`, the secrets file and live core agree on the old secret, backs up three files (`*.bak-jwt-rotation-<ts>`, gitignored), writes the new secret, removes the `.env` token line, restarts only the real consumer (`hypercode-core`; `postgres` merely receives `.env` via `env_file:` and was deliberately left running), re-mints the 30-day dashboard JWT (same subject, in place) and restarts the dashboard (it caches the token). Prints only hash prefixes and HTTP codes.
+- **Result (script, then my independent check):** new token → 200; old 30-day token → 403; old 10-year token → 403; no restarted container holds the old secret; core RestartCount 0, dashboard 0, all healthy; dashboard `/api/pulse` 200 without `degraded`, `/api/orchestrator` 200, `/ide` 200. Backups confirmed git-ignored.
+- **Consequences / still true:** every token issued before 15:13 UTC is invalid (re-login); the new dashboard token **expires ~2026-11-02 — re-run the script before then**; `postgres` still carries a copy of the OLD (now dead) secret until its next recreate; I did not verify `hyper-mission-api` / `ai-backend` (not running; they read the same variable, so they pick up the new value when started).
+- **Not rotated (separate decision):** the earlier note about `f1edc13e` (a `.claude/settings.local.json` gateway token in pushed history).
+
+## 2026-10-03 (14:25 UTC) — Shepherd now applies REAL grants to hyphenated agents (approved follow-on) — deployed + live-verified
+
+- **Change (`55aea70a`):** `policy._agent_caps` resolves exact name → hyphen/underscore variant → `*` (it was exact-key → `*`, so every hyphenated agent ran on the `*` wildcard). Exact match always wins (the `coder-agent`/`qa-engineer` crew entries keep precedence). **Guard:** an entry flagged `"exact_name_only": true` is never reached through a variant — set on `coder_studio` (its `**` path grant relies on Studio's own client-side worktree boundary; Studio sends `coder_studio`), so you approved four agents and exactly four changed.
+- **Effect, simulated BEFORE editing (15 decision cells moved):** backend-specialist: write `backend/**` ALLOW, git ALLOW, http github.com ALLOW; frontend-specialist: git + http (github.com / registry.npmjs.org) ALLOW; devops-engineer: git + **docker ALLOW**; database-architect: write inside `/workspace`, `backend/alembic`, `supabase` only. `.env` writes and system paths stay BLOCK for all four; unknown agents still get the wildcard.
+- **Tests:** 124 shepherd tests pass (20 → 28 policy test functions; a battery proves each hyphenated name decides identically to its own entry; exact-beats-variant; unknown → wildcard; odd names never crash; the only name collisions are the two intentional crew pairs). **Mutation-checked with each revert verified:** reverting the lookup → 16 red; removing the `exact_name_only` guard → 1 red.
+- **Deployed:** guard-gated (GREEN ×2), 0 active crew runs checked first, image rebuilt, Shepherd recreated, healthy on the 2nd check. **Live `/evaluate` results:** 0 mismatches across 4 agents × 6 requests (hyphenated vs underscored); `coder-studio` BLOCK for `/etc/passwd` (wildcard) while `coder_studio` keeps its entry (relative path ALLOW, `.env` BLOCK); unknown agent → wildcard; the 7 crew decisions from the previous deploy unchanged.
+- **Process:** this time I appended the tests with an ABSOLUTE path plus a before/after test-count assertion and verified each mutation's revert (after last time's silent wrong-directory append). One test of mine had a wrong expectation (BLOCK `path_not_allowed` fires before ESCALATE `tool_not_granted`) — the code was right; fixed the test.
+- **Still true:** core + orchestrator run `SAFETY_SHEPHERD_MODE=monitor` (not enforcing). The four agents are not running right now, so no live traffic exercised this beyond the probes.
+
+## 2026-10-03 (14:10 UTC) — IDE health-check fixes DONE: stale run cancelled, Pulse fixed, Shepherd grants fixed (root cause found), 9 strays removed
+
+- **Stale run:** `01908424-8c21…` cancelled via `POST /operator/tasks/{id}/cancel` (200; 5-minute token minted in core, never printed): runs 17 completed / 9 failed / 8 cancelled / **0 parked**; **Morning Card green**.
+- **Pulse (`63f5edd2`):** `/api/pulse` maps core's `{coins,xp}` + sends the service JWT + reports `degraded`; now 25 coins / 6,705 XP / 11 agents. **Correction to my diagnosis:** the panel never used that route; it summed per-agent XP (0) and ignored the user's `xp` from `/api/broski` — the panel now shows the real XP (fallback: agent sum). 12 tests (5 red on the old code). `healthy_agents` is honestly 0/11 (core's roster is static, all `idle`).
+- **Shepherd grants (`f83c8321`) — root cause found:** `policy._agent_caps` is an exact-key lookup; the manifest's per-agent entries are underscored but the orchestrator sends hyphenated names (`coder-agent` ×21, `qa-engineer` ×9), so they ran on the `*` wildcard (`file_read` only) and every crew dispatch ESCALATEd (hidden by `monitor` mode). Data-only least-privilege fix: hyphenated entries = wildcard rights + one crew tool each. My first attempt (granting the underscored entries) would have done NOTHING live — caught when a test with the hyphenated name still ESCALATEd. Safety-shepherd rebuilt + recreated; **live 7/7 decisions as designed**. 41 policy tests; 3 red without the entries; a battery test proves equivalence to the wildcard apart from the crew tool.
+  **Still open (decision):** other hyphenated agents (backend-specialist, frontend-specialist, devops-engineer, database-architect) also run on `*`; normalising in `_agent_caps` would apply their real grants (a policy change across several agents). Core + orchestrator remain `monitor`.
+- **Strays:** inspected (exited, 0 mounts, no data) then removed exactly 9 names (no `-f`/`-v`); stopped 21 → 12 (the obs stack); 36 running unchanged.
+- **Process:** the deploy was guard-gated and **correctly stopped at the first gate (AMBER)**; it proceeded after the browser closed and I stopped my own optional `fcc-proxy` (restarted after, healthy, crew agents still on it). Two mistakes of mine, both caught: a heredoc append that silently landed in the wrong directory (stray root `test_policy.py`, deleted) made my first mutation check meaningless — I noticed because it PASSED when it should have failed; and I first granted the wrong (underscored) entries.
+
+## 2026-10-03 (14:40 UTC) — Dashboard IDE full health check (read-only): healthy, 8 real findings — report in `docs/IDE_HEALTH_REPORT_2026-10-03.md`
+
+- **Method:** probed all 10 pages + 21 safe API routes (status, latency, response bodies), dashboard/core logs, and a real Chrome walkthrough of every panel (console + network). Nothing changed/restarted/paused; guard stayed GREEN.
+- **Healthy:** all pages 200 (≤0.17 s); 19/21 routes 200 (the 2 × 405 are POST-only by design); `/ide` loads 18 requests all 200 with **no console errors**; dashboard container healthy, 43 MiB, **0 errors/hr**; SSE + live logs work; core/orchestrator/healer HEALTHY; MCP ok; DLQ empty.
+- **Findings:** (1) **Pulse panel wrong** — field-name mismatch (`coins/xp` vs `broski_coins/total_xp` → 0 XP, real 6,705) + no JWT to `/orchestrator/agents` (401 → 0 agents; with JWT core returns 11); (2) **Shepherd ESCALATEs for `crew_build`/`crew_verify`** (20 in the Safety Feed) because the tools aren't granted in `capabilities.json` — hidden by `monitor` mode; **this corrects my earlier "Shepherd answers ALLOW for crew steps"** (true only for the runner's generic check; runbook step 3 corrected);
+  (3) one **stale parked crew run** `01908424-8c21…` (the Morning Card's amber "1 run waiting"); (4) Services panel CRITICAL: roster 42 = 17 up / 15 not_deployed / 10 missing, + **9 stray stopped auto-named containers**; (5) Agents panel shows only 3 (registry heartbeats); (6) Grafana panel refused to connect (obs stack stopped — expected); (7) orchestrator health cache empty; (8) `/api/metrics` 2.7 s, `/api/mcp/health` 3.7 s.
+- **FYI:** Docker Zone is a static page with a 26-day-old Scout baseline (24 critical / 224 high); 3 × 404 `POST /economy/award-from-course` at core (not the dashboard); the unexplained 12:50:23 UTC dashboard restart stays unexplained. **Not tested:** a real Studio task, Plan Generator, Panic with a running run, POST proxies, accessibility, wide layout.
+
+## 2026-10-03 (14:05 UTC) — host signal writer is now a Windows Task Scheduler job (persistent), with an install/uninstall script
+
+- **What:** task `\HyperCode\HyperCode RAM Guard Signal` runs `pythonw.exe scripts\ram_guard.py --loop 30 --skip-docker --out ram-signal\ram.json` **as the current user (Lyndz), at logon, hidden, NO elevation (RunLevel Limited)**; `MultipleInstances=IgnoreNew` (never two copies), restart up to 3× 1 min apart on failure,
+  no time limit, allowed on battery. The script only MEASURES memory (host free, Windows compression, WSL available) — it never stops/starts anything; if it ever dies the file goes stale → the throttle-agent reads UNKNOWN → does nothing.
+- **Manage it:** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\ram-guard-task.ps1 -Action install|status|start|stop|uninstall` (`-IntervalSeconds N`; install is idempotent; `uninstall` stops and removes it). Or Task Scheduler → `HyperCode` folder. The execution-policy bypass is process-scoped (nothing system-wide changed).
+- **Also:** `ram_guard._run` now passes `CREATE_NO_WINDOW` (a hidden task would otherwise flash a console window on every PowerShell/`wsl` call); 24 guard tests pass (2 new).
+- **Verified:** installed without admin; started it; state `Running`; ONE hidden `pythonw.exe` (pid 12024), no stray `python.exe ram_guard`; I had stopped my old ad-hoc background writer first so the write was provably the task's: file age 20 s, `overall GREEN`; the throttle-agent then read it (`age_s 0.1`, GREEN, observe, **0 containers paused**, healthy, 0 restarts).
+  Not tested: a reboot/logon cycle (the logon trigger itself), and I cannot see whether a window flashes — `CREATE_NO_WINDOW` + `pythonw` is the standard way to prevent it.
+- **Observe-mode timeline so far (UTC, from `GET /signal`):** 12:48:37 AMBER PENDING 1/3 → 12:50:17 AMBER 3/3 **would pause tier 6** → 12:51:17 RED **would pause 5, 4** → 12:51:47 AMBER → 12:52:48 RED → 12:53:18 AMBER → 12:54:18 GREEN → 12:58:48 AMBER PENDING (a blip; restarts the resume clock) → 12:59:18 GREEN.
+  A genuine ~5-minute pressure episode, **partly self-inflicted (my docker build + test runs at that moment)**. Simulated paused set at 14:03 local: `[4,5,6]`; real paused containers: 0. Resume is simulated only after 5 min of continuous GREEN.
+
+## 2026-10-03 (13:55 UTC) — throttle-agent DEBOUNCE built, deployed (observe) and seen working live
+
+- **Why:** the 13:30 observe review found two false AMBERs (a timed-out WSL read → `wsl_avail=None` → AMBER; compression flickering around 2,500 MB). In enforce mode the first blip would have paused tier 6.
+- **Rule (`pressure.step`, pure):** AMBER-or-worse must be seen in **N consecutive NEW signal samples** (`THROTTLE_AMBER_CYCLES`, default 3) before it acts; RED acts after `THROTTLE_RED_CYCLES` (default 1 — RED only comes from real bad numbers; unreadable = AMBER). **Samples are identified by the signal file's mtime** because the agent polls every 30 s
+  but the host writes every 30-60 s: re-reading the same file does not count. GREEN or UNKNOWN resets the streaks; the resume hysteresis (continuous GREEN for the hold) is unchanged; `step`'s defaults (1/1) keep the old behaviour. `/signal` + the decision log show `effective` (RED/AMBER/PENDING/GREEN/UNKNOWN) and the streaks.
+  `ram_guard`: WSL read timeout 25 → 40 s. Compose (`agents-full.yml`, throttle-agent block): `THROTTLE_AMBER_CYCLES` / `THROTTLE_RED_CYCLES` exposed. Commit `85da2367`.
+- **Tests: 54 (31 pure + 23 integration with the real main.py in the throttle image), all pass.** Includes a **replay of the real 13:24-13:28 readings** (G, A, G, G, A, A → never pauses; the old policy would have paused at the first A), "same sample re-read does not count", GREEN/UNKNOWN reset, RED acts at once,
+  enforce mode ignores blips and never connects to Docker, and the config floor (min 1, invalid → default). **Mutation-checked:** counting a re-read as new → 1 red; UNKNOWN not resetting → 1; threshold ignored → 9; PENDING still pausing → 8.
+- **Deployed:** guard gated the build (GREEN, exit 0) and the start (GREEN, exit 0); temp single-service compose regenerated; `throttle-agent` recreated in observe mode. Its own healthcheck read `unhealthy` twice during startup under load, then **healthy, RestartCount 0, no OOM**.
+- **Seen working live:** 12:48:37 `signal=AMBER effective=PENDING amber=1/3 → would pause=[]` (correctly did NOT act); 12:50:17 `amber=3/3 → effective=AMBER would pause=[6]`. **That AMBER was REAL** (host free 198 MB, compression 2,923 MB, WSL 1,412 MB — the machine really was under pressure right after my rebuild), so the debounce
+  passed a genuine signal after 3 consecutive samples (~100 s) and held back the first one. `GET /signal`: mode observe, simulated paused tiers `[6]`, protect tiers `[1,2,3]`. **`docker ps --filter status=paused` = 0.** At 13:55 the guard read AMBER with compression **3,382 MB (RED at 3,500)** — the host is trending toward the thrash zone again; no heavy work after this.
+- **Still true / not done:** enforce has NOT been tried and should not be until observe has run for a while and the would-pause list (tier 6: minio, cadvisor, node-exporter, security-scanner, fcc-proxy; on RED also tiers 5 and 4) has been reviewed; `docker pause` frees no RAM (it only stops CPU; a real "free memory" action needs `stop`, which the healer fights); the temp compose workaround
+  stands (`evolve-relay`'s missing `../BROskiPets-LLM-dNFT/.env`); the host signal writer is a background process (if reaped → stale → UNKNOWN → no action) — Task Scheduler is the user's call.
+
+## 2026-10-03 (13:30 UTC) — throttle-agent DEPLOYED in OBSERVE mode — healthy, reads the host signal, pauses nothing; observe already found 2 flaky-signal issues
+
+- **Gated every heavy step on the RAM guard** (`ram_guard.py --for build` exit 0, then `--for start` exit 0; host 827 MB free, WSL 1,631 MB). Started the **host signal writer** (`python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json`, a background process I
+  started; the file is valid, no docker finding = not permanently AMBER). Rebuilt `hypercode-throttle-agent:latest` (image predated the change) and started `throttle-agent` observe-only.
+- **Deploy workaround (pre-existing breakage, NOT caused by me):** the combined compose project (`docker-compose.yml` + `agents-full.yml`) does not validate, with or without my change, because `evolve-relay` in `docker-compose.bropets.yml` needs `../BROskiPets-LLM-dNFT/.env` and that sibling repo is
+  not at that path. I extracted the throttle-agent block (programmatically, minus `depends_on`, whose services are already running) into a TEMPORARY compose file in scratch (not committed) and ran it under the same project name/networks:
+  `docker compose -p hypercode-v24 --project-directory . -f <tmp>.yml up -d --no-deps throttle-agent`. **Decision for Lyndz:** fix the `evolve-relay` `env_file` path (or mark it `required: false`) so the real compose works — I did not touch other people's compose. Note `evolve-relay` itself would fail to be recreated today.
+- **Verified:** container `healthy`, RestartCount 0, no OOM, 0 error lines; log `THROTTLE_MODE=observe signal_file=set`; `GET /signal` (via the container's own key, never printed): mode observe, signal read from the host file (age ~20 s), simulated paused tiers `[6]`, protect tiers `[1,2,3]`, tier sizes 11/5/2/15/10/5,
+  and the decision it logged: *would pause tier 6 = minio, cadvisor, node-exporter, security-scanner, fcc-proxy*. **`docker ps --filter status=paused` = 0** — observe never touched Docker. RAM after: 1,622 MB.
+- **What observe mode just taught us (the point of observing):**
+  1. **A flaky WSL read becomes a false AMBER.** From 13:27 the writer's `wsl -e free -m` timed out (25 s cap; cycles stretched to ~58 s) while I was building/starting containers, so `wsl_avail=None` → AMBER ("unreadable = AMBER" is right for a human pre-flight, wrong as an instant auto-pause trigger).
+  2. **Compression flaps around the 2,500 MB AMBER line** (2,542 → 2,167 → 2,040 …), producing AMBER/GREEN flicker.
+  → In **enforce** mode the agent would pause tier 6 on the first such blip. **Proposed (not done):** debounce — pause on AMBER only after N consecutive AMBER cycles (e.g. 3 ≈ 90 s); RED (only produced by real bad numbers) may act at once; raise the guard's WSL read timeout / read WSL memory inside the agent. **Do not set `enforce` until this is fixed.**
+- **Also true:** the agent's older MemStream loop is NOT gated by observe mode — it POSTs `delay_ms` (0/200/500 by MemStream's own pressure) to MemStream every 10 s; harmless today (🟢 LOW → delay 0ms ×8). The host writer is a background process: if the machine reaps it, the signal goes stale → UNKNOWN → the agent does nothing (fail-safe).
+  For a persistent writer use Task Scheduler (your call; I did not create one).
+
+## 2026-10-03 (13:20 UTC) — throttle-agent FIXED (step 2): host-aware signal, current tiers, OBSERVE mode — code + 57 tests done (deployed at 13:30, see above)
+
+- **Corrections to my own audit first:** (a) auth was FINE — an app-wide middleware requires the agent key on everything except /health and /metrics and fails closed (503) if unset; my "unauthenticated" claim was wrong. (b) The autopilot was already OFF by
+  default (`AUTO_THROTTLE_ENABLED=false`). What was missing was an *observe* mode and a real signal.
+- **`agents/throttle-agent/pressure.py` (new, pure, stdlib):** reads the HOST guard's JSON (`overall` GREEN/AMBER/RED) using the file's mtime for age. **Missing / stale / corrupt / invalid = UNKNOWN, and UNKNOWN never pauses or resumes anything.** AMBER → pause tier 6; RED → tiers 6, 5, 4;
+  tiers in the protect set (default 1-3) are never paused; resume only after **continuous GREEN for the hold time (default 5 min)**, any other level restarts the clock. `parse_tiers` validates `THROTTLE_TIERS_JSON` and falls back to the defaults on anything invalid.
+- **`main.py`:** `THROTTLE_MODE` = `off` (default; nothing automatic) | `observe` | `enforce` (unset keeps the old meaning: `AUTO_THROTTLE_ENABLED=true` → enforce). **A typo can never arm enforcement** (unknown value → observe).
+  **observe** computes decisions, logs "would pause/resume", tracks a simulated paused set, keeps a 50-entry decision log and **never calls Docker**. New `GET /signal` (auth by the existing middleware) shows mode, the signal, simulated/real paused tiers, tiers,
+  protect set and recent decisions; new gauge `throttle_signal_level`. `THROTTLE_SIGNAL_FILE` unset = the old container-RAM-% path (blind to the host). Tiers refreshed from `docker ps`/`docker stats` (35 containers; sum of all their RAM was only ~1.4 GB — the
+  pressure is the Windows host): protected 1-3 now include safety-shepherd, healer, memstream, governor, the docker proxies, orchestrator, dashboard, coder-agent, qa-engineer, registry, celery, mcp-server; tier 4 = background agents; 5 = observability; 6 = minio/cadvisor/node-exporter/security-scanner/fcc-proxy.
+  Also `compare_digest` for `THROTTLE_API_KEY`, and the Dockerfile now `COPY main.py pressure.py ./` (**without this the image would have crashed on `import pressure`**).
+- **`scripts/ram_guard.py`:** added `--loop SECONDS --out FILE` (the host-side signal writer; atomic rewrite every cycle; Ctrl+C stops it) and fixed `--skip-docker` so a deliberate skip is not judged AMBER (it would have made the signal permanently AMBER).
+- **Compose (`docker-compose.agents-full.yml`, throttle-agent block only, +8 lines):** `THROTTLE_MODE=${THROTTLE_MODE:-observe}`, `THROTTLE_SIGNAL_FILE=/signal/ram.json`, max age 120 s, volume `./ram-signal:/signal:ro`; `ram-signal/` gitignored. YAML parses; the combined project does not validate in this repo with or without my change (needs another repo's `.env`; pre-existing).
+- **Tests (57, all passing):** `scripts/test_ram_guard.py` 22 · `agents/throttle-agent/test_pressure.py` 20 (stdlib, host) · `agents/throttle-agent/test_main_signal.py` 15 (the REAL main.py inside the throttle image with Docker faked: observe never touches Docker; UNKNOWN never acts, not even to connect;
+  protected tiers never paused; resume needs continuous green; typo-in-mode → observe; tiers override + bad override fall back; no container in two tiers; must-never-pause names are protected). Not mutation-checked this time.
+- **⛔ NOT deployed — the guard went RED at 13:15 UTC:** host free **66 MB**, Windows compression **4,166 MB**, while WSL showed 1,670 MB available (the exact case a WSL-only check misses). I had run the test container in the same command as the guard without gating it on the result — **my process slip**
+  (the tests had ~85 s runtime under the squeeze). Nothing built or started since. Deploy steps (when the guard is GREEN): `python scripts/ram_guard.py --loop 30 --skip-docker --json --out ram-signal/ram.json` in a terminal; rebuild `hypercode-throttle-agent` (image predates the change); start it observe-only with
+  `docker compose --profile agents --profile hyper -f docker-compose.yml -f docker-compose.agents-full.yml up -d --no-deps throttle-agent`; read `GET /signal` (needs the agent key) and the logs.
+- **Still true:** `docker pause` frees no RAM (it freezes CPU; cold pages may be swapped); a real "turn off to free RAM" needs `stop`, which collides with the healer. `hypervisor-agent` (dry-run guardian) still overlaps. `enforce` has NOT been tried live and should not be until observe has been reviewed.
+
+## 2026-10-03 (13:05 UTC) — RAM pre-flight guard `scripts/ram_guard.py` (step 1 of the throttle plan) — read-only, host-aware, tested
+
+- **Why:** the 12:30 thrash was the **Windows host** (1 MB free, "Memory Compression" 4.5 GB) while `wsl -e free -m` still said 1.3 GB — a WSL-only check could not see it. The guard measures **host + WSL + Docker** in ~5 s and says GREEN / AMBER / RED.
+- **Use:** `python scripts/ram_guard.py --for build` (a build needs GREEN: exit 0 ok / 1 AMBER / 2 RED); `--for restart|start|check` are blocked only by RED; `--wait 120` polls every 10 s; `--json --out ram.json` writes machine-readable
+  output (the intended signal for a fixed throttle-agent). Prints the biggest Windows processes + safe-to-stop-BY-NAME containers when not GREEN. **It never stops or starts anything.** ASCII-only output (cp1252 console).
+- **Thresholds (flags override), calibrated on ONE machine on ONE day:** host free RED<100 / AMBER<300 MB · host compression RED>3500 / AMBER>2500 MB · WSL available RED<1200 (the stop rule) / AMBER<1500 (the build floor) MB · swap used
+  RED>1900 / AMBER>1500 (informational: ~1.08 GB in BOTH the thrash and the good state) · Docker unresponsive = RED, unhealthy containers = AMBER · an unreadable number = AMBER, never GREEN.
+- **Tests:** 17 stdlib `unittest` tests (`python -m unittest discover -s scripts -p "test_ram_guard.py"`), pinned to the REAL readings of 2026-10-03 (thrash must be RED; the good state must be GREEN). **Mutation-checked:** a host-blind guard → 4 tests fail;
+  unreadable-as-GREEN → 1; "build no longer needs GREEN" → 2; Docker-unresponsive-not-RED → 1.
+- **Live, 13:01 UTC:** `python scripts/ram_guard.py --for build` → **AMBER, exit 1, 5.6 s** (host free 821 MB, compression 2,155 MB, WSL available **1,485 MB = 15 MB under the build floor**, swap 1,074 MB, Docker responsive, 0 unhealthy). Correct per the rule.
+- **Not done (next):** step 2 — fix throttle-agent (real signal from `--json --out`, current tiers, auth on) and run it observe-only; step 3 — enable pausing for safe tiers. The guard is NOT yet wired into any script/CI.
+
+## 2026-10-03 (12:50 UTC) — HyperCrew: 🎉 FIRST GUARD ALLOW on Docker — settle/XP, Scribe draft and the handover gate proven live (capable model via fcc-proxy)
+
+Run `b01b22bc-f784-52e7-a636-0806510b29d5`, default goal, after host memory recovered (host 767 MB free, WSL 1,782 MB avail, 8/8 key containers healthy, RestartCount 0). Proxy started
+(`docker compose -f docker-compose.yml -f docker-compose.fcc.yml up -d --no-deps --no-build fcc-proxy`, healthy on the 2nd check), `coder-agent`/`qa-engineer` already ON the proxy. Guarded script: RAM checked before
+the proxy, before phase 1 and before the real core restart (1,545 MB → restarted → healthy on the 2nd check). **`PHASE2 PASS` — 17 PASS lines incl. the NEW ones: handover gate has its own hash · approving the draft with the PLAN's hash is
+refused (409) · the handover was skipped (default: opens nothing) · `COMPLETED: RUN_FINISHED with a guard verdict` · `guard decided ALLOW with an evidence bundle hash`.**
+
+Read from the database (not just the PASS lines):
+- **Guard: ALLOW, failed checks `[]`, all 6 PASS** (plan_sealed, plan_non_mutating, build_present, build_clean, verify_present, verifier_verdict).
+- **Build** (`coder-agent` → `nemotron-3-ultra-550b-a55b` via fcc-proxy): 1,420 chars, a real unified diff (`diff --git`, `---`/`+++`, 2 hunks, `@@ -1,6 +1,10 @@`). The model invented `app/main.py` (this repo has none) — a *proposal*, quality not judged.
+- **Verify** (`qa-engineer`, same model): listed **5 problems** (no dependency checks, unversioned routes, hardcoded version, **no tests**, router without prefix) and then `VERDICT: PASS`.
+- **Quest Settler:** `quest_settlements` row — `quest_id crew_run`, user 9, **status awarded, 20 XP, 10 coins**, bundle hash recorded; achievement **"First Squad Run 🤝"** unlocked.
+- **Scribe:** draft `docs/NEXT_SESSION_HANDOVER_2026-10-03_crew-b01b22bc.md` held in the run (sha256 recorded); handover **skipped**, so no PR, no GitHub call, no file written to the repo.
+
+**Said out loud:**
+- **This proof wrote real data:** 20 XP, 10 coins and an achievement on the owner account (user 9). Harmless but real.
+- **Crew text left the machine:** the goal, the builder's proposal and the verify prompt went to NVIDIA NIM through the proxy (opt-in, approved).
+- **The verifier PASSed with 5 problems listed.** The guard did its job on what it was given, but an LLM verdict is lenient and is not a security boundary (nothing builds/deploys; human gates remain). **Decision for Lyndz:**
+  make the verifier stricter (e.g. require a severity rule, or "any real problem → FAIL")?
+- Not proven: real GitHub PR publish (handover was skipped on purpose), the dashboard approval UI, "Paused (n)" with a running run, kill-switch compose wiring.
+- Earlier "empty phase 1 output" at ~12:20 was most likely the host RAM thrash (a later rerun was clean) — **not independently confirmed**.
+
+**throttle-agent assessment (Lyndz asked "get throttle-agent to fix memory"):** `agents/throttle-agent/main.py` (994 lines) is real but would NOT have prevented today's thrash. Verified in the code: (1) its "RAM %" is the **sum of ~16 hard-coded tier
+containers' RAM ÷ Docker's total** (`_estimate_system_ram_pct`) — blind to the other 30+ agents, page cache, swap and the **Windows host** (host hit 1 MB free while WSL still had 1.3 GB); (2) it uses `container.pause()`, which freezes but does
+**not free RAM**; (3) `DEFAULT_TIERS` omit `coder-agent`, `qa-engineer`, `fcc-proxy`, `hyper-brain`, most of the fleet; (4) ~~`/throttle/{tier}` is unauthenticated unless `THROTTLE_API_KEY` is set~~ **[CORRECTED 13:20 UTC — I was wrong: an app-wide middleware already requires the agent key on every path except /health and /metrics, failing closed with 503 if no key is configured; `THROTTLE_API_KEY` is only a second layer]**; (5) it is not running (defined only in
+`agents-full.yml` / `memory-limits.yml`); and `hypervisor-agent` (dry-run resource guardian) overlaps it. The note `throttle-agent HYPER upgrade.md` is stale (its container id does not exist). **Proposed:** (a) a RAM pre-flight script (host free + WSL avail + swap + compression),
+(b) fix throttle-agent's signal + tiers + auth and run it observe-only, (c) then enable pausing for safe tiers.
+
+## 2026-10-03 (midday) — HyperCrew: capable builder/verifier model WIRED (opt-in, `10c0dac8`); live proof stopped by host RAM exhaustion (STOP RULE) — **proof completed later, see the 12:50 entry above**
+
+- **Found:** `fcc-proxy` (the free-cloud-model proxy) was not running, and its default model `nemotron-3-super-120b-a12b` **reached end of life 2026-10-03T09:00Z** (NIM answers HTTP 410 "Gone"). Probed
+  NIM with a trivial prompt (status only): `nvidia/nemotron-3-ultra-550b-a55b` 200 in 1.5 s ✅; `openai/gpt-oss-20b` 200 0.7 s; `z-ai/glm-5.3` 200 34 s; `kimi-k3` + `deepseek-v4.1-flash` timed out at 60 s;
+  `llama-3.1-nemotron-70b-instruct` + `mistral-large-2-instruct` 404 "not found for account". Chose `nemotron-3-ultra-550b-a55b` (a REASONING model: returns a `thinking` block then a `text` block; needs max_tokens ≈ 1500).
+  A realistic build prompt through the proxy: **9.8 s, a genuine unified diff + one sentence** (316 output tokens) — what `smollm2` could never do.
+- **Shipped (`10c0dac8`, pushed):** `coder-agent` + `qa-engineer` verifier gain an Anthropic-format path (`POST {CREW_LLM_BASE_URL}/v1/messages`): only final `text` blocks are read (thinking dropped), uses ONLY
+  `CREW_LLM_AUTH_TOKEN` (the qa-engineer's real `ANTHROPIC_API_KEY` is never sent — tested), 100 s timeout, **no silent fallback to smollm2** (a proxy failure is an error → run fails closed). `CREW_LLM_BASE_URL`
+  defaults EMPTY in compose = **opt-in**, because enabling it SENDS crew goal/proposal text to NVIDIA NIM. `docker-compose.fcc.yml` default MODEL fixed to the live model. 24 verifier tests (4 new); coder path verified
+  with a fake HTTP client (token, thinking dropped, errors, no fallback, unchanged local path). Enable at launch: `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose --profile agents up -d --no-deps coder-agent qa-engineer`
+  (+ start the proxy: `docker compose -f docker-compose.yml -f docker-compose.fcc.yml up -d --no-deps --no-build fcc-proxy`). Proxy token default is the committed public placeholder `freecc`.
+- **State when I stopped:** `coder-agent` rebuilt + `qa-engineer` restarted with the proxy ON (both were healthy, config verified: BASE_URL/MODEL set, token present, `/v1/models` 200 with the agent's own token); `fcc-proxy` was healthy.
+- **STOP RULE — live proof NOT completed.** Phase 1 printed nothing, then hung >200 s; `docker inspect/logs` hung >60 s. Cause: **the Windows host ran out of RAM** — host free **1 MB** of 7,974 MB, Windows "Memory Compression"
+  **4,511 MB**, WSL swap 1,085/2,048 MB, WSL available fell to ~1,200 MB (floor 1.2 GB). Healthchecks timed out so core/dashboard/orchestrator/agents/postgres/shepherd all read **unhealthy** (they were healthy ~20 min earlier; no
+  unexpected restart seen). `docker stop fcc-proxy` failed ("did not receive an exit event", same as the obs containers) then it exited 137. **Nothing else started.** Not verified: whether the empty phase 1 output was the same thrash;
+  whether containers recover on their own.
+- **Still unproven:** guard ALLOW → settle/XP → Scribe → handover gate → publish, with the capable model. Next: free host RAM first (close heavy Windows apps / restart Docker Desktop is the user's call), wait for healthy,
+  start the proxy, rerun phase1→(restart)→phase2.
+
+## 2026-10-03 — HyperCrew: qa-engineer now a REAL fail-safe verifier — live: guard fails ONLY on `verifier_verdict: FAIL` (earned); ALLOW still blocked by a too-weak builder model
+
+- **What:** `agents/04-qa-engineer/crew_verifier.py` (+ `agent.py` override, bind-mounted so one `docker restart qa-engineer`, no rebuild). Crew verify tasks get **(1) rules, no model** —
+  empty / not-a-unified-diff proposal → `VERDICT: FAIL`; **(2) a model review** (only if the rules pass) whose own `VERDICT: PASS|FAIL` is passed through. **Never invents a PASS**: no usable model verdict →
+  no verdict line → guard UNKNOWN → BLOCK. The proposal is untrusted: `VERDICT` lines are stripped before the model sees it and every verdict line in the reply is collapsed to ONE final line. Model
+  unreachable → `status: error` → run fails closed. Stdlib only (image has no httpx). Non-crew tasks keep the base behaviour. **An LLM verdict is not a security boundary** — guard checks + human gates remain.
+- **Tests:** 20 unit tests (`agents/04-qa-engineer/test_crew_verifier.py`), run in the qa image. **Mutation-checked:** stripping disabled → 5 red; inventing PASS on no verdict → 6 red; rule floor skipped → 5 red.
+- **Live (run `cff2b14c-…`, real core restart between phases):** `PHASE2 PASS`, `COMPLETED … guard decided BLOCK`. Read from the run record: **5 of 6 guard checks PASS; only `verifier_verdict` fails, with `FAIL`** (was `UNKNOWN`).
+  Build (`smollm2`, 362M) returned the prompt's own instructions parroted back, not a diff; the verifier's rule layer said "the proposal is not a unified diff" → `VERDICT: FAIL`. **Correct outcome.**
+- **Why ALLOW is still unreachable:** the only model on the host runner is `smollm2` (`docker model list`); it cannot write a unified diff. Needs a more capable builder model (bigger DMR model = a download, or a hosted/proxy model).
+  settle/XP, Scribe draft, handover gate, publish remain unproven live.
+- **Core rebuilt + swapped at branch HEAD `79b5be99` (02:05 UTC, `--no-deps`, one build):** now runs `a2ee4530` (Quest Settler wallet race), `34ba1667` (Guardian fail-open fix) and `d628ea8b` on top of the earlier fixes.
+  Verified INSIDE the running container (grep): Guardian fix, `_wallet_for`, nested `_flagged_mocked`, the `code` key all present. `alembic current` = `023 (head)`. Regression: `PHASE0 PASS` (30 PASS lines;
+  my earlier "29/29" was probably a miscount by one — I did not re-verify), dashboard `/api/crew/morning|panic|tasks|metrics` all 200 (the 30-day JWT still accepted). All 8 key containers healthy, RestartCount 0, OOMKilled false, RAM ~1.86 GB.
+  **Not re-run after this swap:** phase1→restart→phase2 (the last full run was on the previous core build).
+
+## 2026-10-03 — HyperCrew: Guardian fail-open hole closed (builder could write the verifier's verdict)
+
+- **Found by:** reading the "echo stub can't fake a PASS" claim against `parse_verdict`. It held only when the builder's text had no
+  standalone `VERDICT:` line. The proposal is embedded in the verify prompt, so a verifier that echoes/quotes its prompt (today's `qa-engineer`
+  stub, or a model talked into it) returned the BUILDER's own `VERDICT: PASS` line, "last whole-line verdict wins" read it as PASS, and the
+  guard would **ALLOW an unreviewed run** (then settle XP + Scribe). Reproduced before the fix.
+- **Fix:** `build_task("verify")` defangs any line starting `VERDICT` in the untrusted proposal (`VERDICT-IN-PROPOSAL:`), so only the verifier's
+  own reply can carry a verdict. 4 tests: 3 fail without the fix (verified), plus "a real verifier's own last-line verdict still counts".
+  Crew tests 487 pass.
+- **Still true:** a real verifier model is needed to reach guard ALLOW at all (`qa-engineer` is an echo stub: every run is BLOCK, correctly).
+
+## 2026-10-03 — HyperCrew: FIRST REAL COMPLETED RUN (guard BLOCK, as designed) — 4 more bugs found + fixed on the way
+
+**Phase 2 outcome: `COMPLETED: RUN_FINISHED with a guard verdict` → `guard decided BLOCK with an evidence bundle hash` → `Calm Card reflects the verdict` → `PHASE2 PASS` (EXIT 0).**
+Run `ab32c170-…`, goal `add a version endpoint to the API` (via new optional `PROVE_GOAL`; default unchanged), real core restart in between. All 4 containers
+healthy / RestartCount 0 / OOMKilled false; RAM ~1.93 GB. Real evidence the model ran: `coder-agent` build call took **60.6 s** (canned mock = 39 ms).
+
+Chain of live-found bugs, each hidden behind the previous (all committed + pushed on `claude/focused-darwin-ljrs8k`):
+1. `b44c2505` orchestrator relative import → `/execute` 500 on every call.
+2. `b13383b9` + `95940dad` canned (mocked) coder-agent answers: agent flags `mocked: true`; core refuses it. **My first version only checked the top level** — the orchestrator returns the
+   whole TaskResponse so the flag is at `result.mocked`; the live proof caught it (my flat-shaped unit test hid it). `_flagged_mocked()` now searches nested dicts.
+3. `5fb103c0` core's `_TEXT_KEYS` lacked `"code"` — coder-agent's real reply is `{status, code, model}`, so a genuine answer was refused as "empty". Added last in the tuple; text still
+   redacted, capped at 4000 chars, sha256-pinned and `scan_forbidden`-scanned. 224 crew tests pass.
+4. `9d9e8e6e` **coder-agent's keyword shortcuts fired on EVERY crew task**: the orchestrator prepends a skills loadout (mentions "metrics", "docker", …) so `metrics/health/deploy/docker/todo list`
+   always matched and canned data came back in 39 ms — **no goal wording could ever reach the model.** A task containing `[HyperCrew stage:` now goes straight to the model; non-crew shortcuts unchanged
+   and still flagged mocked. Verified in the coder image (crew task → 1 model call, not mocked; 3 shortcuts → 0 calls, mocked).
+
+**Why BLOCK, and why that is the right outcome:** `qa-engineer` has **no model** — the base agent's `process_task` just echoes "Task received by qa-engineer: …". Its reply has no whole-line
+`VERDICT: PASS|FAIL` (the regex needs the entire line; the echoed prompt embeds it mid-sentence), so the verdict is `UNKNOWN` and the guard BLOCKs. **CORRECTION (2026-10-03, found by the parallel session, `34ba1667`):** my earlier claim "an echo can NOT produce a fake PASS" was
+only true for the normal prompt. If the builder's own text contains a standalone `VERDICT: PASS` line, an echoing verifier returned it and the guard would ALLOW an unreviewed run. Core fix
+`34ba1667` (defang `VERDICT` lines in the proposal) is pushed but **not deployed**; the new qa-engineer verifier (`8043d355`) closes it at the agent (strips + never echoes).
+The model is `ai/smollm2` (tiny; via the `hypercode-ollama` shim → Docker Model Runner on the host; ~30 MB WSL RAM per call), so build output is low quality.
+
+**Still unproven (needs a real verifier):** guard **ALLOW** → settle (XP, `quest_settlements` row) → Scribe draft → handover approval gate → publish. A BLOCKed run never reaches them.
+Also unproven: real GitHub, kill-switch wiring, "Paused (n)" with a running run, dashboard-side approvals.
+
+**Next task:** give the `verify` stage a real verifier (qa-engineer with a model, or route verify to an agent that has one) so a run can reach guard ALLOW and exercise settle/Scribe.
+
+
+## 2026-10-03 — HyperCrew: CI found a real Quest Settler race (first-wallet creation) — fixed
+
+- **Found by:** the Day 10 burst chaos test failing on CI (5 settlements instead of 6; passed on a faster machine). Not flaky: a real race.
+- **Bug:** when several crew runs finish at once for a human who has no BROski$ wallet yet, each settle INSERTs the wallet;
+  the loser hit `UNIQUE constraint failed: broski_wallets.user_id`, `crew_settle` swallowed it (by design: a reward error must not fail the run),
+  and **that run's XP was silently lost** until a replay.
+- **Fix:** `quests._wallet_for()` rolls back and reads the winner's wallet on `IntegrityError` (used by `settle_run` and `settle_handover`).
+  Regression test fails without the fix (verified), burst + quest tests stable x5. Backend 1099 pass + the same 4 pre-existing failures.
+- **Still true / not fixed:** `broski_service._get_or_create_wallet` has the same race for every other caller; the daily-XP-cap
+  check-then-insert can overshoot the cap by at most one run's XP under extreme concurrency (bounded, not exploitable for farming).
+
+
+## 2026-10-03 — HyperCrew: agents started, phase 2 re-run → PASS but STILL FAILED CLOSED; coder-agent mock hazard found
+
+- Built + started **only** `coder-agent` and `qa-engineer` (`docker compose --profile agents up -d --no-deps`): both **healthy, RestartCount 0**,
+  RAM 1921 → ~1855 MB. Orchestrator "agents down" 11 → 8 (neither of ours listed). `docker restart crew-orchestrator` not needed again.
+- Re-ran phase1 (parked `3dce2552-…`), real `docker restart hypercode-core` (healthy on the 3rd check), phase2: **`PHASE2 PASS` (9/9)** —
+  but the run ended **FAILED CLOSED**, reason now **"agent returned an empty result"** (was "orchestrator returned HTTP 500", fixed `b44c2505`).
+  Chain proven live: core → orchestrator → Shepherd (ALLOW ×2) → `coder-agent /execute` 200 "completed successfully". **Happy path still NOT reached.**
+- **Root cause (confirmed from code + logs):** the proof goal is "add a **health** endpoint to the API". `agents/coder/main.py` `execute()` routes by keyword —
+  `"metrics"/"health"` → `analyze_system_health()`, `"deploy"/"docker"` → `analyze_and_deploy()`, `"todo list"` → `implement_todo_app()` — all **hard-coded mocks**
+  (e.g. fake cpu 45%, "System is running within normal parameters"). Their keys (`status/metrics/analysis/files_created`) are not in core's `_TEXT_KEYS`, so core read
+  them as empty and refused. The crew behaved correctly (fail closed on canned data) — but only by accident of key names. Core's existing `mocked` guard checks the
+  orchestrator **body**, not the agent's own result.
+- **Hazard:** any crew goal containing health/metrics/deploy/docker/"todo list" gets canned output from `coder-agent`; a mock that happened to include a `message`/`result` key would pass as real work.
+- **FIXED + DEPLOYED + live-proven (`b13383b9`, corrected by `95940dad`):** `coder-agent` marks its 3 mock branches `"mocked": True`; core `dispatch.py` refuses a flagged agent result
+  (`DispatchError("agent result was mocked, not real")`). **My first version was wrong:** it checked only the top level of the agent's reply, but the orchestrator returns the agent's
+  whole `TaskResponse`, so the flag is at `results[agent]["result"]["mocked"]` — the live proof still said "empty result" and my flat-shaped unit test had hidden it. `_flagged_mocked()`
+  now looks into nested dicts (depth 3); tests use the real shape. Re-run live: phase1 3/3 PASS, real core restart, **`PHASE2 PASS` 9/9, reason now "agent result was mocked, not real"**.
+  106 crew tests pass (dispatch + chaos + guard) + 1 documented xfail. Both images rebuilt + swapped (`--no-deps`): all containers healthy, RestartCount 0, RAM ~1.89 GB.
+- **SECOND LATENT BUG on the happy path (NOT fixed — needs a decision):** `coder-agent`'s real Ollama reply is `{status, code, model}`; core's `_TEXT_KEYS` has no `code`, so a genuine answer
+  would also be refused as "agent returned an empty result". Documented by a strict-xfail test `test_a_real_nested_result_is_not_mistaken_for_a_mock`. Fix = add `"code"` to `_TEXT_KEYS`
+  (changes what core trusts as agent text; output is still forbidden-pattern scanned + redacted + guarded).
+- **Real LLM path still blocked by RAM:** without a keyword hit `coder-agent` calls Ollama (`qwen2.5:3b` ≈ 2 GB; fallback `tinyllama`) — too big for the 4 GB WSL cap with ~1.9 GB free
+  (stop rule 1.2 GB). Needs a decision: tiny model, hosted model, or more headroom.
+- Side findings (not investigated): `qa-engineer` logs "Shared modules not found, running in limited mode"; `agents/coder/test_coder.py` can't run in the image (starlette TestClient vs newer
+  httpx: `Client.__init__() got an unexpected keyword argument 'app'`); orchestrator `rag_query_failed: No module named 'rag_memory'` (limited mode).
+
+## 2026-10-02 (late) → 2026-10-03 — HyperCrew FIRST DOCKER RUN: deployed, proven, 2 real bugs found + fixed (happy path NOT yet run)
+
+Branch `claude/focused-darwin-ljrs8k` (draft PR #547). Run live, in front of Lyndz, one step at a time. **Shell was Git Bash**
+(runbook commands worked as written; only path-mangling needed `MSYS_NO_PATHCONV=1`).
+
+- **Step 0 — pre-flight:** STOP RULE HIT. `free -m` in WSL showed **853 MB available** (< 1.2 GB), 12 observability containers up,
+  core/dashboard had been recreated minutes earlier. Stopped the 12 obs containers by name (`docker stop`, **not** `compose down`);
+  9 threw "zombie, can not be killed" errors yet RAM rose to **1575 → ~2050 MB**. Core was slow-booting (alembic first), not stuck.
+- **Step 1 — rebuild + swap:** `docker compose build hypercode-core` (238 s) then `dashboard`, `up -d --no-deps hypercode-core dashboard`.
+  Both **healthy, RestartCount 0, OOMKilled false**; new image `971e97bb…` running; `app/crew/` present in core; `/sensory` 404 → 200.
+- **Step 2 — migration:** `alembic current` = **`023 (head)`**, single head, `quest_settlements` = **True**. Applied on boot
+  (`backend/Dockerfile` runs `alembic upgrade head && uvicorn`).
+- **Step 3 — Safety Shepherd:** healthy. Replayed what core sends for `build` (coder-agent), `verify` (qa-engineer), `publish`:
+  all three **ALLOW**, rule `default_allow`. (Thin default — Shepherd is not checking anything crew-specific. Note: core's env also has a
+  harmless misspelt duplicate `SAFTY_SHEPHERD_MODE=monitor`.)
+- **Step 4 — `scripts/prove-crew.py`:** `PHASE0 PASS` (29/29) · phase1 3/3 PASS, parked `8423ec95-…` · real `docker restart hypercode-core`
+  (healthy < 60 s, RestartCount 0) · **`PHASE2 PASS`** (9/9): recovered at the plan gate, same events, no duplicate approval, same task on
+  retried start, plan sealed, then **FAILED CLOSED** (`orchestrator returned HTTP 500`) — the FAILED-CLOSED branch, not COMPLETED.
+- **Step 5 — dashboard `/ide` (browser): 5/5 pass** after the auth fix below. Where was I? = "Done", green, one Next; Pause everything
+  = "Nothing was running. You are all clear." (the "Saved… / Paused (n)" text needs a running run — **not proven live**); Start focus =
+  "Focus: 24:58 left" + End focus, More tools folds away; `/sensory` presets Calm/Focus/Energise, Calm default; Crew run Calm Card =
+  "Blocked… Stopped: orchestrator returned HTTP 500" (the pre-fix run, rendered plainly).
+
+**Real bugs found on this first Docker run (both fixed + pushed):**
+1. **`crew-orchestrator` `/execute` returned HTTP 500 on EVERY dispatch** — `main.py:546-547` used `from . import dispatch_capability` /
+   `safety_client`, but the container runs `uvicorn main:app` (no parent package) → `ImportError`. Pre-dates HyperCrew (commit
+   `e814c41f`, 2026-09-01, also on `main`). Fix `b44c2505`: same try/except fallback the rest of the file uses + regression test that
+   fails with the exact production error without the fix. 26 related tests pass. Source is bind-mounted so one `docker restart
+   crew-orchestrator` sufficed (no rebuild).
+2. **Dashboard had no credential core accepts.** Compose set `DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY}` (an opaque key). Core's
+   `operator_principal` takes only a human JWT (Bearer) or a registered agent key (X-Agent-Key); the master key is neither (401/403),
+   so Morning Card, Pause everything and the crew Calm Card all 502'd. Sandbox tests mocked auth. Fix `9f8b06b7`: a **30-day JWT** for the
+   owner superuser (user 9), minted inside core into gitignored `secrets/dashboard_service_jwt.txt`, mounted as a Docker secret,
+   `DASHBOARD_SERVICE_JWT_FILE=/run/secrets/dashboard_service_jwt`, env var removed (code reads env before file). Verified live:
+   morning/panic 502 → 200, `ops/dlq` + `dlq/stats` 403 → 200, tasks/agents/metrics/ws-token unchanged. **Expires ~2026-11-01 — rotate.**
+
+**Differences from the runbook:** `free -m` must be `wsl -e free -m` on this host · obs stack was running by default and had to be
+stopped first · service names `hypercode-core`/`dashboard` are correct, no profile needed (`docker-compose.yml` `include:`s the others;
+obs services are `profiles: ["observability"]`) · core boots fast (< 30 s) when RAM is free · Pause text differs when nothing runs ·
+the dashboard needs the JWT secret (new runbook §8).
+
+**RAM:** 853 MB (start, obs up) → ~2050 MB after stopping obs → 1917 MB at wrap-up. **RestartCount 0 and OOMKilled false** for
+hypercode-core, hypercode-dashboard, crew-orchestrator, safety-shepherd.
+
+**⚠️ Security incident (disclosed live):** a `docker compose config | grep` printed the `.env` `DASHBOARD_SERVICE_JWT` value into this
+session's transcript. It is a **10-year (exp 2036) admin JWT for user 9** (superuser). Compose also injects it into `hypercode-core` and
+**`postgres`** (looks accidental). A JWT cannot be revoked singly; the fix is rotating the signing secret (invalidates every token incl. the new
+30-day one). **DONE 2026-10-03 15:13 UTC — see the newest entry at the top of this file.** Always use `docker compose config -q` or name-only filters.
+
+**Not done / not proven:**
+- **The happy path** (`build` → `verify` → guard ALLOW → settle/XP → Scribe) has **never run**: no `coder-agent`/`qa-engineer` containers;
+  orchestrator reports 11 agents down. Not started (not asked).
+- Second Shepherd path `safety_client.check_dispatch` (strict, for mutation agents like `coder-agent`) never run live.
+- Real GitHub, kill-switch compose wiring, dashboard-side approval, D1–D12 decisions: unchanged, still open.
+- `tests/test_safety_contract.py` in crew-orchestrator can't be collected (`No module named 'safety_contract'`) — not investigated.
+- Obs stack (12 containers) left **stopped** — restart is Lyndz's call (RAM).
+
+## 2026-10-02 — HyperCrew Day 10: chaos + hardening, runbook, handover (sandbox + local-process PASS; Docker NOT run)
+
+- **Contradiction surfaced and fixed — Safety Shepherd down:** the design says fail-closed, but the HyperFlow runner
+  **failed OPEN** (it logged "failing open" and carried on). Crew `build`, `verify` and `publish` now carry
+  `safety_unreachable: block`: an unreachable (or erroring) Shepherd blocks the step with a plain reason, in
+  `monitor` mode as well as `enforce`; `off` still skips. Other flows keep their old behaviour. Flow is now **v5**.
+- **Gap found and fixed — kill-switch:** nothing in core looked at the fleet kill-switch. New opt-in
+  `CREW_KILL_FILE` (off-box sentinel, same semantics as the Governor's `GOVERNOR_KILL_FILE`; unreadable directory
+  counts as killed). Checked before every step of any HyperFlow run when set; a run in flight finishes its current
+  step (propose-only) and stops before the next. **Not wired in compose**; core does **not** read the Governor's
+  Redis flag (unverified cross-service contract).
+- **Chaos, `backend/tests/test_crew_chaos.py` (25, stable over repeats):** Shepherd down (monitor + enforce) · Shepherd
+  ALLOW/BLOCK · verifier dies mid-run · real strict dispatch vs 7 kinds of junk orchestrator reply · 8 concurrent starts
+  with one key = 1 run · same key different args = 409 · cancel during a dispatch (in-flight call cancelled, slot
+  released) · restart at the handover gate · decision made while core is down · replayed settle pays once · kill-switch
+  unit states + before start + mid-build + while parked at a gate · burst of 6 runs vs the 3-slot cap (peak ≤ 3,
+  all finish, 6 settlements).
+- **Real-process chaos:** `scripts/prove-crew-local.py` now also restarts a live core with an unreachable Shepherd
+  and with a pulled kill-switch: both fail closed and no agent is ever asked. ALL PASS.
+- Also fixed two mypy errors in `hyperflow_runner.py` (Day 3 code). Backend 1091 pass + the same 4 pre-existing
+  failures; dashboard 251 pass.
+- **Docs:** `docs/HYPERCREW_DOCKER_RUNBOOK.md` (the terminal steps for the Docker work, with stop rules and what to
+  expect), `docs/NEXT_SESSION_HANDOVER_2026-10-02.md`, `docs/STATUS.md`.
+- **Not done / not proven:** everything Docker (rebuild `hypercode-core` + `dashboard`, migration `023`,
+  `scripts/prove-crew.py`); Safety Shepherd's real verdict on a crew dispatch; real GitHub; kill-switch compose
+  wiring; dashboard-side approval; decisions D1–D12.
+
+## 2026-10-02 — HyperCrew Day 9: Scribe + Morning Card (tests + local proof PASS; Docker/real-GitHub NOT run)
+
+- **Flow `hypercode-crew` v4:** `... guard → settle → scribe → approve_scribe → publish`. **A run now ends at a handover
+  gate**, so it is not "completed" until a human answers it (approve, or skip). Skip ends the run cleanly (new
+  `on_reject: end` gate option); it does not fail finished work.
+- **Scribe = a proposal, never a write.** Deterministic (no LLM, no network): from the run's own redacted,
+  hash-pinned history it drafts a handover in the repo's format (`# 📋 NEXT_SESSION_HANDOVER — DATE`, LIVE STATE,
+  PROOF, NOT DONE, ONE next task) plus a WHATS_DONE entry. Only for a guard-ALLOWed run. It says plainly nothing was
+  applied.
+- **Contradiction surfaced:** the design says a "WHATS_DONE draft". `WHATS_DONE.md` is edited in parallel by other
+  sessions, so editing it from core could clobber their work. The entry is a **new file** under
+  `docs/crew-proposals/`; you paste it in when you apply the change. Handover file name carries `_crew-<run8>` so it
+  can never collide with a human handover on the same day.
+- **Human gate bound to the draft's hash** (same rule as the plan gate, reusing the same API check): approving needs
+  the draft's own hash; the plan's hash is refused (409); missing is refused (422). Publish re-verifies the hash and
+  every file's sha256 and path, so a draft edited after you saw it, or a smuggled path, fails closed.
+- **Publisher (`app/crew/github_pr.py`) is the only GitHub touch:** needs `CREW_GITHUB_TOKEN` (or
+  `CREW_GITHUB_TOKEN_FILE`) — **not set anywhere, not wired into compose, so by default nothing is ever sent** and the
+  card says "Handover draft kept in this run". When configured: new `crew/...` branch from base, docs-only
+  markdown allow-list, create-only files (never overwrites), **always draft**, never merges, one-repo
+  (`CREW_GITHUB_REPO`, default this repo), idempotent retry, token never logged/returned.
+  **Tested only against a fake GitHub (`httpx.MockTransport`), never the real API.**
+- **Handover Written** now unlocks (achievement, once per run, for the human who approved the draft, guard-ALLOW only);
+  every publish is also written to the Governance Ledger (`crew_handover_published`, with approver and PR status).
+- **Morning Card (W3):** `GET /api/v1/operator/morning` + dashboard "Where was I?" on `/ide`: last-24h wins (the
+  human's own, an agent key sees none), runs waiting/paused, ONE traffic light from free RAM (unreadable = amber), ONE
+  next action. No streaks, nothing shaming. Uses core's own data only — **does not call `broski-coo`/`session-snapshot`**
+  (unverified contract; card is useful without it).
+- Tests: backend 1066 pass, same 4 pre-existing failures on `main`; `mypy app/crew` clean apart from the 2 old
+  `db/session.py` errors; dashboard 251 pass, tsc clean, eslint 0 errors, `next build` OK.
+  `scripts/prove-crew-local.py` ALL PASS incl. real restart, gate hash rules, no-token publish, achievement,
+  ledger row, Morning Card. `scripts/prove-crew.py` phase2 now answers the handover gate and **skips it by default**
+  (set `PROVE_APPROVE_HANDOVER=1` to approve; a configured token would open a real draft PR).
+- **Not done / not proven:** Docker live proof unrun; real GitHub never touched; migration `023` still to apply;
+  `dashboard` + `hypercode-core` rebuild needed; the dashboard cannot approve the handover (still human-via-API/CLI);
+  `hyper-split-agent` chunking still deferred.
+
+## 2026-10-02 — HyperCrew Day 8: Quest Settler + first 5 achievements (tests + local proof PASS; Docker live proof NOT yet run)
+
+- **Contradiction surfaced:** the design said "call `broski-economy-mcp award_tokens`". Core already has its
+  own BROski$ wallet/XP/achievements (`broski_service`), so the settler pays through that, in one DB
+  transaction, instead of adding a network hop. The MCP economy server is untouched.
+- **Flow `hypercode-crew` v3:** new `settle` node after `guard` (only on ALLOW). Runs inside core: **no
+  endpoint, no MCP tool, no agent path** (tests assert it). A settle error never fails a finished run.
+- **Pays only on evidence:** sealed plan + guard ALLOW + an evidence bundle whose hash verifies and matches this
+  run and plan. Pays only the **human who approved the plan** (active superuser account). Agents can't be paid.
+- **Idempotent in the database:** new `quest_settlements` table (migration `023`), `source_id = run_id:crew_run`
+  is UNIQUE. Replay, restart and a lost race all settle at most once. No-award and capped runs are recorded too,
+  so replaying them later can't pay.
+- **Small defaults (decision D1 — Lyndz tunes in `app/crew/quests.py`):** 20 XP per verified run, 10 if a step
+  was re-run (still positive, no shaming), +0.5 coin per XP, **100 XP/day ceiling** per human. Nothing ever
+  subtracts XP (a test checks the source).
+- **5 achievements** (10 XP + 5 coins each, one-off per wallet): First Squad Run, Zero-Retry Run, Green on First
+  Verify, Panic Used Well (pause + resume same UTC day in the run). **Handover Written is seeded but only the
+  Day 9 Scribe can unlock it.**
+- **Quiet by design:** one `hypercode.quest.settled` event and one Calm Card line ("+20 XP for a verified run"),
+  only on a real award. Nothing is shown for no-award/capped/error.
+- Tests: `backend/tests/test_crew_quests.py` (31). Backend 996 pass, same 4 pre-existing failures on `main`.
+  `scripts/prove-crew-local.py` ALL PASS incl. real settle: one row, user 1, 20 XP, one wallet transaction.
+- **Not done / not proven:** Docker live proof unrun; `dashboard` + `hypercode-core` rebuild needed, and
+  migration `023` must be applied; streaks not built (design says gentle auto-freeze — Day 10 or later);
+  dashboard has no dedicated XP chip yet (the card line shows it).
+
+## 2026-10-02 — HyperCrew Day 6: Panic + Focus Session (tests/local proof PASS; Docker live proof NOT yet run)
+
+- **Panic = one click, no confirmation.** Header button "Pause everything" -> `POST /api/v1/operator/panic`
+  pauses every open run. It never claims "Saved" unless core says `saved: true`; if core is
+  unreachable it says nothing was changed. Becomes "Paused (n) · Resume" with "Where you were".
+- **Durable pause.** `state.context.paused` flag on the run; survives a core restart. The step in
+  progress finishes, then the runner parks. Approvals are refused (409) while paused.
+  Per-task `pause` / `resume` endpoints too. **Resume is human-only** (agents get `hypercode_crew_pause`
+  on MCP, deliberately no resume/approve tool). Panic writes a ledger note.
+- **Calm Card + AG-UI** show "paused" (`hypercode.run.paused/resumed` events, replay-safe;
+  `plan_recovery` ignores control entries).
+- **Focus session** (dashboard, local): 10/25/45 min chunk, `data-focus="on"` hides gamification
+  and extra Calm sections, non-error toasts wait quietly in the bell (count shown), errors still
+  show. Timer is a suggestion: time up changes one line, never ends the session.
+- Fixed on the way: a just-started focus timer briefly showed 25:01.
+- Tests: backend `test_crew_pause.py` (31); dashboard panic/focus/api/runStore/css tests.
+  Full dashboard 242 pass, tsc clean, eslint 0 errors, `next build` OK. Backend 966 pass, same 4
+  pre-existing failures on `main` (`test_agent_pulse` x3, `test_core_rag` x1).
+  `scripts/prove-crew-local.py` ALL PASS incl. real SIGTERM restart + Panic section.
+- **Not done / not proven:** Docker live proof (`scripts/prove-crew.py`) unrun; nothing deployed
+  (needs `dashboard` + `hypercode-core` rebuild); `hyper-split-agent` "Make it smaller?" chunking
+  deferred (needs an LLM agent); mypy shows 2 pre-existing errors in `app/db/session.py`.
+
+## 2026-10-02 — HyperCrew Day 5: MCP crew tools + proofs (local proof PASS; Docker live proof NOT yet run)
+
+- **MCP tools** on `hypercode-mcp-server`: `hypercode_crew_start(goal, idempotency_key="")` and
+  `hypercode_crew_status(task_id, after=-1)` (events + Calm Card; pass the previous `nextAfter` to receive only what you missed).
+  The tool name is fixed to `hypercode.crew` and only `goal` can be sent; task ids must be real UUIDs and `after` an integer in
+  range, validated before any HTTP call. **No MCP tool can approve a plan** (asserted by tests, and again over the real protocol).
+- **Three layers of proof, honestly labelled:**
+  1. **Sandbox tests** (`tests/test_crew_restart_proof.py`): real DB rows, real runner, real `recover_runs()`; restart = runner task
+     cancelled like an event-loop shutdown. Covers restart-while-parked, replay, idempotent retry across a restart, cancel, fail-closed
+     after a restart, and a restart *mid-proposal* (re-run safely, slot released).
+  2. **Local multi-process proof** (`scripts/prove-crew-local.py`, 30+ PASS lines, run 4×, stable): real core process + real
+     `hypercode-mcp-server` process + a real MCP client over SSE, and a **real SIGTERM restart of core** on the same database file
+     with the boot-time recovery log checked. Human auth is the real JWT/superuser path; only the agent-key lookup (needs Postgres)
+     is replaced. Orchestrator is a stub (`scripts/crew_proof_stub_orchestrator.py`), sqlite replaces Postgres, no Redis, no LLMs.
+     Harness: `scripts/crew_proof_harness.py` — **proof-only, never deploy**.
+  3. **Docker live proof** (`scripts/prove-crew.py`, phases `phase0` / `phase1` / restart / `phase2`): written, **rehearsed locally
+     against the harness (both the completed and the fail-closed branch), NOT run against the real stack** — the build session had
+     no Docker. Commands are in the file's docstring. Needs `hypercode-core` (+ `hypercode-mcp-server` for the MCP tools) rebuilt.
+- **Real bug the proof found:** after a core restart the recovered runner re-parks at the gate and records the wait again, which the
+  AG-UI mapper turned into a duplicate `approval.required` (and a second STEP_STARTED). The mapper now treats a re-park of an
+  already-parked gate as the same wait (replay stays exact and append-only; unit-tested, and proved across a real restart).
+- **Tests:** backend 928 passed + the same 4 pre-existing failures (`test_agent_pulse` x3, `test_core_rag` x1); `mypy app/crew` clean.
+- **Not done / limits:** the Docker live proof above; Safety Shepherd `enforce` behaviour on `agent_dispatch` nodes still unverified;
+  agents (coder-agent / qa-engineer) were never exercised for real — the stub answers for them; the "RAM >= 1.2 GB throughout" gate
+  from the plan is not measured by any proof; no human review gate after the guard yet (Day 8).
+
+## 2026-10-02 — HyperCrew Day 4: Calm Mode + Sensory Settings (dashboard)
+
+One settings model drives everything that changes how heavy the UI feels; the Day 5 Calm Card now sits inside a real Calm layout.
+
+- **Model (`lib/sensory/`)**: six settings, each with a literal label — Motion (off/reduced/full), Spacing (roomy/normal/compact),
+  Contrast (normal/high), Reading font (standard/dyslexia-friendly), Progress and rewards (hidden/quiet/full), Layout (calm/full) — and
+  three presets (Calm/Focus/Energise). Per-field validation (`sanitize`), storage that never throws, an external store
+  (`useSyncExternalStore`, syncs across tabs). **Calm is the default for new people** (spec D10, still awaiting your confirmation).
+  Only settings that actually do something are offered; notification batching, sound and playful labels are *not* modelled until wired.
+- **How it applies**: `data-*` attributes on `<html>` (`data-motion`, `data-layout`, …) set by a tiny **pre-paint boot script** in
+  `<head>` (no flash; built from the same model and tested against it) and by the store. `app/sensory.css` has a rule for every option;
+  a test fails if an option exists without one. Motion "off" kills animation/transition/glows; "hidden" progress hides anything marked
+  `data-gamify` (XP bar, wallet) — it still counts underneath.
+- **UI**: header **Calm mode: On/Off** switch (state in words, pressed state stays visible in Calm; turning it on remembers your
+  previous settings and turning it off restores them), `/sensory` settings page (presets + one radio group per setting), nav item
+  "Sensory settings". **`/ide` in Calm**: Calm Card first, "More tools: find a skill" tucked behind one click, then Studio. Full layout
+  is unchanged apart from the Calm Card panel.
+- **Legacy ND toggle** (Default/Dyslexia/High-C/Focus) now reads/writes the same settings, so there is one source of truth and
+  `data-nd-mode` keeps working. The old `useSensoryProfile` hook and `app/themes/SensoryTheme*` are **dormant dead code** (never mounted);
+  left untouched, worth deleting later. `HyperShellLayout` has its own separate ND state and was not touched.
+- **Verified**: 79 new vitest tests (204 total pass), `tsc`/`eslint`/`next build` clean, and a **real Chromium run** of the built app:
+  Calm is the default, toggle flips layout and attributes, settings persist across reload and navigation, dyslexia font applies,
+  legacy High-C button changes contrast. Two mutation checks (change the default; remove the motion-off rule) were caught by the tests.
+  A flaw found by looking at the screenshot — Calm's quiet-button rule hid the pressed state — is fixed and tested.
+- **Not done / honest limits**: axe accessibility audit not run; settings are per-device (localStorage), no per-user server sync;
+  no fixed three-region shell — Calm layout applies to `/ide` only so far; "one primary button" is a convention, not enforced;
+  not deployed (needs a `dashboard` rebuild, see N20); `layout.tsx` still carries a pre-existing Next warning about
+  `viewport` in `metadata`.
+
+## 2026-10-02 — AG-UI at the edge: run events + Calm Card endpoint + `/ide` Calm Card panel (Day 5, first half)
+
+AG-UI is used as the **output format only** — no new gateway, table or approval path (the research doc proposed all three; HyperFlow
+already has the persisted, ordered run history, and the operator approve API with `plan_hash` is stronger than the doc's).
+
+- **Backend:** `GET /api/v1/operator/tasks/{id}/events?after=N` → `{events:[{seq,event}], nextAfter, done, status, now, calmCard,
+  pollInterval}`. `backend/app/crew/agui.py` is a pure function of the run history (RUN_STARTED, STEP_*, TOOL_CALL_* for
+  `agent_dispatch`, `CUSTOM hypercode.{plan.created, approval.required/resolved, plan.sealed, guard.verdict, step.failed,
+  step.unsuccessful, safety.decision}`, RUN_FINISHED / RUN_ERROR). **Replay is exact:** the sequence is the event's index in a
+  deterministic walk, history is append-only, so more history never changes an event already sent (property-tested over every
+  prefix of a real run). In-flight state is a separate snapshot, never a sequenced event. All values redacted and capped.
+  `backend/app/crew/cards.py` builds the Calm Card (≤5 lines, one next action) from the same history.
+- **Dashboard:** `lib/agui/runStore.ts` (pure reducer, dedupes by seq, switching task starts clean), `hooks/useCrewRun.ts` (polls
+  with `after=lastSeq`, honours `pollInterval`, backs off, stops when done), `components/crew/CalmCardPanel.tsx` on `/ide`
+  (icon + word status, one "Next:" action, details collapsed, "Read it to me"), and a **GET-only** proxy
+  `app/api/crew/[taskId]/events/route.ts` (strict task-id and `after` validation, upstream errors never echoed).
+- **Bug caught by tests:** the proxy's `parseInt` accepted `after=1.5x` as 1; now a strict regex.
+- **Tests:** backend 32 new (`test_crew_agui.py`; crew total 283; full `backend/tests` 905 passed, same 4 pre-existing failures);
+  dashboard 37 new (`crewRunStore`, `api.crew`, `CalmCardPanel`; full suite 125 passed); `tsc`, `eslint` and `next build` clean.
+  Shared crew fixtures moved to `tests/conftest.py`.
+- **Not done / honest limits:** nothing deployed or live-proven (needs a `hypercode-core` **and** `dashboard` rebuild — they are not
+  coupled, see N20); AG-UI event/field names are from the research doc and **not** checked against the current spec; the panel takes a
+  pasted task id (no "start a crew run" box yet) and has **no approve button** — approving stays a human, `plan_hash`-bound API call;
+  polling, not SSE; no Panic/Focus yet (Day 6); Calm Mode / Sensory Settings (Day 4) not started.
+
+## 2026-10-02 — HyperCrew Day 3: `agent_dispatch`, build/verify/guard, evidence bundle, RAM slot gate
+
+`hypercode-crew` is now v2: `plan → approve → seal → build → verify → guard`. Agents only **propose text** — nothing is
+written, run, built or deployed. Files: `backend/app/crew/{dispatch,slots,evidence,redaction}.py`, `crew_guard` in
+`crew/tools.py`, new HyperFlow node type `agent_dispatch` (schema + runner), `flows/operator_crew.yml`.
+
+- **`agent_dispatch` is strict on purpose.** The generic `_dispatch` mocks a green result when the orchestrator is
+  unreachable and treats `blocked`/`rejected`/`timeout` as success (it only raises on `error`). A crew stage that "passes"
+  because nothing ran would let verify/guard approve nothing, so the new path raises on anything but a real
+  `status: completed` result for the requested agent (mocked, empty, wrong shape, HTTP error, unreachable = run fails).
+  Agents come from a static registry (`builder → coder-agent`, `verifier → qa-engineer`); the model never picks one.
+- **Slot gate (`slots.py`)**: max 3 awake (hard ceiling), plus a free-RAM floor (`MemAvailable` ≥ 1200 MB, matching the
+  documented rule). A 4th agent waits, then fails closed (`CREW_SLOT_TIMEOUT_S`, default 120). Unreadable RAM falls back to
+  the cap alone. Env: `CREW_MAX_AWAKE`, `CREW_MIN_AVAILABLE_MB` (0 disables the RAM check), `CREW_SLOT_TIMEOUT_S`. Slots are
+  released on error and on cancel. In-process only (core runs flows in one asyncio loop).
+- **Guard (`crew_guard`)**: deterministic ALLOW/BLOCK from six checks (plan sealed, plan non-mutating, build present, no
+  forbidden command in the proposal, verify present, verifier `VERDICT: PASS`). A missing/unreadable verdict is a BLOCK, never
+  assumed PASS. BLOCK is reported (`allowed: false`), not raised. The forbidden-command list is a tripwire over text, not a
+  sandbox. Output includes an evidence bundle (sha256 pointers to the build/verify outputs + the plan hash, with its own hash).
+- **Redaction (`redaction.py`)** applied to every agent result before it enters history/evidence (key shapes from the AG-UI
+  adapter research + the repo's `scrub_text`). Stored summaries are capped at 4000 chars; legacy unauthenticated flow GETs
+  still strip `result.data`.
+- **Found while testing:** the `--force` tripwire matched `--force-color`; tightened.
+- **Not done / honest limits:** nothing live-proven (needs a `hypercode-core` rebuild); the Safety Shepherd's behaviour on
+  `agent_dispatch` nodes in `enforce` mode is unverified (they use the generic category); the 1200 MB default floor may
+  block dispatch on this box if free RAM sits below it — tune `CREW_MIN_AVAILABLE_MB`; the verifier's PASS/FAIL is the model's
+  word until the Day 8 Reviewer gate; no human *review* gate yet (Day 5+).
+- **Doc drift spotted:** `NEXT_TASKS.md` N13 ("wire dispatch-seam card (c)") says next-up, but `crew-orchestrator/main.py`
+  already calls `needs_strict_path()` + `check_dispatch()` (record-only). Not touched; worth reconciling.
+- **Tests:** 135 new (`test_crew_{redaction,slots,dispatch,guard}.py` + extended flow/API/e2e). Full `backend/tests`: 873
+  passed, 4 failed — the same 4 pre-existing failures as `main`. `mypy app/crew` clean.
+
+## 2026-10-02 — HyperCrew Day 2: `hypercode.crew` plan gate + operator `idempotency_key`
+
+New operator tool `hypercode.crew` (flow `hypercode-crew`: `plan → approve(gate) → seal`). Takes `{"goal": "..."}`,
+builds a **deterministic, LLM-free** plan (goal + fixed crew stages + constraints + limits), shows it with a `plan_hash`,
+and on approval re-verifies and seals it (Governance Ledger `crew_plan_approved`, fail-soft). **Nothing is built or
+mutated** — build/verify/guard stages arrive Day 3+. Files: `backend/app/crew/{plan,tools}.py`,
+`backend/app/agents/hyperflow/flows/operator_crew.yml`.
+
+- **Operator API:** `POST /tasks` now accepts per-tool arguments (`TOOL_ARGUMENTS` in `catalog.py`; every other tool
+  still rejects any arguments) and an optional `idempotency_key` for *all* tools. Same caller + tool + key → same task
+  (`deduplicated: true`), same key + different arguments → `409 idempotency_key_reused`. No migration: the run id is a
+  deterministic uuid5 of caller|tool|key, so the primary key makes a concurrent twin collide instead of starting twice.
+  The row is created *before* the runner starts and holds the (secret-scrubbed) arguments in `state.context`.
+- **Runner:** a local tool node with `params.with_arguments: true` reads `state.context.arguments` from Postgres, so a
+  run resumed after a core restart still has its goal.
+- **Fail closed:** no/invalid goal → `has_proposal: false`, the flow never reaches the gate. Approve needs the exact
+  `plan_hash`; agent keys can't approve (unchanged operator rules).
+- **Correction to the plan:** `mission-director` plans *fleet* changes (compose profiles), not code work, so Day 2 does
+  not call it. Design docs amended.
+- **Found while testing:** the 422 echoed a caller-chosen field name; now only model-defined field names are echoed.
+- **Tests:** 71 new (`test_crew_plan.py`, `test_crew_operator_api.py`) incl. real-runner e2e for approve / reject /
+  wrong-hash / no-goal. Full `backend/tests`: 739 passed, 4 failed — the same 4 pre-existing failures as `main`
+  (`test_agent_pulse` ×3, `test_core_rag` ×1). **Not deployed, not live-proven** (needs a `hypercode-core` rebuild).
+
+## 2026-10-02 — HyperCrew Day 1: Baton + Calm Card models (pure contracts, no runtime wiring)
+
+`backend/app/crew/` — `Baton` (typed handoff, hard length caps, sha256 evidence pointers, from!=to role) and
+`CalmCard` (1-5 TL;DR lines, exactly one next action, never-"unknown" status, markdown-free `plain_text`,
+`from_baton()`). Spec: `docs/superpowers/specs/2026-10-02-hypercrew-next-level-design.md` (PR #547). 47 unit tests in
+`backend/tests/test_crew_models.py` pass (run with `--noconftest` against pydantic 2.11 in a bare venv, matching the
+`<2.12` prod pin; **not yet run under the repo's full conftest/CI**). Nothing deployed, nothing imported by core yet.
+Next: Day 2 — `hypercode.crew` flow skeleton + plan gate.
 
 ## 2026-09-27 — BROski recover Phase 2b: authorize (fail-closed DRY_RUN, live-proven)
 
