@@ -637,9 +637,8 @@ a time** and gate each on the guard.
    the stack owner's go-ahead) to pick up the splitter pin and the `HOME` fix.
 2. Rerun the full image's Trivy scan on its own when the machine has headroom;
    there is still no post-bump number for it.
-3. Decide whether to bake the 79 MB embedding model into the image (about +167 MB)
-   instead of downloading it on first use, and whether normal (non-superuser) users
-   should be able to retrieve memory at all (section 16.3).
+3. Decide whether normal (non-superuser) users should be able to retrieve memory at
+   all (section 16.3). The embedding model is now baked into the image (section 17).
 4. Consider `chromadb-client` or server-side embeddings to remove most of the
    `numpy` / `onnxruntime` weight, and lazy-load `chromadb` (about 11 s of import).
 5. Fix the stale "3.11" comment in `requirements.txt`, and Priority 5
@@ -909,9 +908,9 @@ the test's abort threshold (1,150 MB) never fired.
    broken Chroma connection looks like "no results". Check the server directly
    (`chromadb.HttpClient(...).get_collection("hypercode_memory").count()`) when
    diagnosing.
-4. **The embedding model downloads at runtime** (79 MB, about 167 MB cached) and is
-   cached only inside the container, so every core recreate downloads it again and
-   needs outbound internet. Baking it into the image would cost about 167 MB.
+4. **The embedding model downloaded at runtime** (79 MB) and was cached only inside
+   the container, so every core recreate downloaded it again and needed outbound
+   internet. Fixed by baking it into the image; see section 17.
 5. **Minor:** every new `RAGService` logs a harmless "sentence_transformers not
    installed, falling back" warning, and a non-superuser gets 400 rather than the
    conventional 403.
@@ -922,3 +921,70 @@ The rate limiter (nothing tripped it), concurrent access, documents near the
 20,000-character ingest limit, more than one superuser, Stripe, MinIO and other
 external services, and the live stack's own Chroma contents (deliberately never
 touched; the live core was healthy throughout).
+
+
+---
+
+## 17. Embedding Model Baked Into the Image
+
+### Problem
+
+`app/core/rag.py` falls back to chromadb's `DefaultEmbeddingFunction`
+(`all-MiniLM-L6-v2`, ONNX) unless `sentence-transformers` is installed (only with
+`INSTALL_AI_DEPS=true`). That fallback downloaded its model (79 MB) from Chroma's S3
+bucket on the first RAG call after every container recreate. It needed outbound
+internet, depended on that bucket being up, and made the first call slow.
+
+### Change (`backend/Dockerfile`)
+
+- New stage `model` (`FROM deps`, so both the `full` and `core` variants get it) runs
+  the real embedding function once with `HOME=/app/cache`, asserts it returns a
+  384-dimension vector, deletes the redundant `onnx.tar.gz` archive, and checks that
+  `model.onnx` exists. `HOME` must be set before Python starts because chromadb reads
+  `Path.home()` at import time. **The build fails** if the model cannot be fetched or
+  loaded, instead of silently shipping an image that still downloads at runtime.
+  chromadb verifies the archive's SHA-256 when it downloads it.
+- The runtime stage copies the result with
+  `COPY --chown=appuser:appuser --from=model /app/cache/.cache /app/cache/.cache`.
+  chromadb treats the model as present when its six extracted files exist, so the
+  archive is not needed at runtime.
+- The existing final `chown -R appuser:appuser /app` now skips `/app/cache`
+  (`find /app -path /app/cache -prune -o -exec chown appuser:appuser {} +`). That
+  directory is already owned by `appuser`, and a recursive chown would have stored the
+  ~90 MB model a second time in its own layer.
+
+### Measured
+
+A first draft with a recursive `chown -R` added **two** 91.4 MB layers (the copy and
+the chown). With `--chown` on the copy and the pruned `find`, the model adds one
+91.4 MB layer and the ownership step adds 4 kB. Docker's top-line image "Size" figure
+for this image store counts extra bookkeeping and over-states the cost, so the
+per-layer sizes are the number to trust.
+
+Verified on a test image layered on the live core image with the same steps, running
+with **no network at all** (`--network none`), as `appuser`:
+
+| Check | Result |
+|---|---|
+| Embeddings with the network disabled | Works: 2 vectors x 384 dimensions |
+| Archive still present / re-downloaded | No / no |
+| `model.onnx` owner and readability | `appuser` (uid 100), readable |
+| Cost of the first embedding call, offline | 13 s to load the model; 1.5 s for later calls; plus about 11 s to import `chromadb` |
+
+An earlier single-call timing of 121 s was the host under heavy load (load average
+about 14), not the model.
+
+### What this does and does not buy
+
+The first RAG call no longer needs internet, no longer depends on the S3 bucket, and
+no longer downloads 79 MB after each recreate. Loading the model still takes about
+13 s on this host, and importing `chromadb` still takes about 11 s. The size cost is
+about 91 MB per image.
+
+### Not verified
+
+The real Dockerfile was checked for structure (`docker buildx build --print` parses
+both variants) but a full cold build of the `core` variant was not run locally (the
+build cache had been cleared and a cold build is heavy on this VM). CI's `build-backend`
+builds the default `full` variant, which runs the `model` stage for real. The test
+above used the same commands layered on the live image.
