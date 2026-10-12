@@ -31,6 +31,8 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # OS package hardening — upgrade all + docker-ce-cli (official) + kubectl
+# docker-compose-plugin is intentionally NOT installed: agent.py never calls `docker compose`,
+# and the published plugin (5.6.0) is built with Go 1.26.8 / x/net 0.58 (HIGH CVEs, no fixed release yet).
 # Using docker-ce-cli (not docker.io) avoids Debian-packaged moby HIGH CVEs
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get upgrade -y && \
@@ -46,7 +48,7 @@ RUN apt-get update --allow-releaseinfo-change && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
         | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

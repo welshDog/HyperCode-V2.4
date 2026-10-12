@@ -1,4 +1,4 @@
-fastapi>=0.109.0
+fastapi>=0.135.0
 uvicorn[standard]>=0.27.0
 pydantic>=2.5.3
 redis>=4.2.0,<8.0.0
@@ -12,3 +12,7 @@ prometheus-api-client>=0.5.0
 
 anthropic
 openai
+
+# floors for CVE fixes (transitive: requests/chromadb pull these in)
+urllib3>=2.8.0
+msgpack>=1.2.1
