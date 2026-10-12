@@ -77,11 +77,7 @@ jobs:
       - name: Locate flagged packages (coder diagnostics)
         if: matrix.base
         run: |
-          docker run --rm --user root --entrypoint sh check:ci -c '
-            find / -xdev \( -name METADATA -o -name PKG-INFO \) 2>/dev/null | while read f; do
-              n=$(sed -n "s/^Name: //p" "$f" | head -1); v=$(sed -n "s/^Version: //p" "$f" | head -1)
-              case "$n" in urllib3|msgpack|setuptools) echo "$n $v  $f";; esac
-            done | sort -u'
+          docker run --rm --user root --entrypoint sh check:ci -c 'find / -xdev \( -name "*.whl" -o -name "*.egg" -o -name "*.egg-info" -o -name "uv.lock" -o -name "poetry.lock" -o -name "Pipfile.lock" -o -name "requirements*.txt" -o -name "pylock.toml" \) 2>/dev/null | grep -vE "^/proc" | sort -u | head -40'
 
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
