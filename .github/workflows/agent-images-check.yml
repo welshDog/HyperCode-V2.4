@@ -77,7 +77,15 @@ jobs:
       - name: Locate flagged packages (coder diagnostics)
         if: matrix.base
         run: |
-          docker run --rm --user root --entrypoint sh check:ci -c 'find / -xdev \( -name "*.whl" -o -name "*.egg" -o -name "*.egg-info" -o -name "uv.lock" -o -name "poetry.lock" -o -name "Pipfile.lock" -o -name "requirements*.txt" -o -name "pylock.toml" \) 2>/dev/null | grep -vE "^/proc" | sort -u | head -40'
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0 image             --scanners vuln --list-all-pkgs --format json -q check:ci > /tmp/t.json
+          python3 - <<'PY'
+          import json
+          d = json.load(open('/tmp/t.json'))
+          for r in d.get('Results', []):
+              for p in r.get('Packages', []) or []:
+                  if p['Name'] in ('urllib3', 'msgpack', 'setuptools'):
+                      print('PKG', p['Name'], p['Version'], p.get('FilePath', '(no path)'), '| target:', r['Target'])
+          PY
 
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
