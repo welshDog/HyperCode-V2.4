@@ -1,3 +1,15 @@
+# Docker's published docker-compose-plugin 5.6.0 (latest) is built with Go 1.26.8 and
+# golang.org/x/net v0.58.0, which carry HIGH CVEs (fixed in Go 1.26.9 / x/net 0.60.0).
+# Build the same Compose release ourselves on a patched toolchain until upstream ships one.
+FROM golang:1.26.9-bookworm AS compose
+ARG COMPOSE_VERSION=v5.6.0
+RUN git clone --depth 1 --branch "${COMPOSE_VERSION}" https://github.com/docker/compose.git /src
+WORKDIR /src
+RUN go get golang.org/x/net@v0.60.0 && \
+    CGO_ENABLED=0 go build -trimpath \
+        -ldflags "-w -X github.com/docker/compose/v5/internal.Version=${COMPOSE_VERSION}" \
+        -o /out/docker-compose ./cmd
+
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -16,9 +28,11 @@ RUN apt-get update && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
         | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
-    apt-get install -y --no-install-recommends docker-ce-cli docker-compose-plugin && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+COPY --from=compose /out/docker-compose /usr/libexec/docker/cli-plugins/docker-compose
 
 # Install Python dependencies
 RUN pip install --no-cache-dir \

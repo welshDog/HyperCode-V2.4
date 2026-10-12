@@ -1,0 +1,86 @@
+# PR check for agent/service images that docker-push.yml publishes but docker-build.yml
+# does not cover. Builds each image, runs a small sanity command, then gates on Trivy
+# (fixable HIGH/CRITICAL fails the job). Mirrors architect-image-check.yml.
+name: Agent images check
+
+on:
+  pull_request:
+    paths:
+      - "agents/test-agent/**"
+      - "agents/goal_keeper/**"
+      - "agents/session-snapshot/**"
+      - "agents/05-devops-engineer/**"
+      - "agents/coder/**"
+      - "agents/Dockerfile.base"
+      - "services/hypercode-mcp-server/**"
+      - "services/agent-spawner/**"
+      - ".github/workflows/agent-images-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: test-agent
+            context: agents
+            file: agents/test-agent/Dockerfile
+            check: "python -c 'import fastapi, opentelemetry.sdk.trace, google.protobuf; print(google.protobuf.__version__)'"
+          - name: goal-keeper
+            context: agents/goal_keeper
+            file: agents/goal_keeper/Dockerfile
+            check: "python -c 'import fastapi, uvicorn; print(fastapi.__version__)'"
+          - name: session-snapshot
+            context: agents/session-snapshot
+            file: agents/session-snapshot/Dockerfile
+            check: "python -c 'import fastapi, starlette; print(fastapi.__version__, starlette.__version__)'"
+          - name: devops-engineer
+            context: agents/05-devops-engineer
+            file: agents/05-devops-engineer/Dockerfile
+            check: "sh -c 'docker --version && ! command -v kubectl && ! test -e /usr/libexec/docker/cli-plugins/docker-compose'"
+          - name: hypercode-mcp-server
+            context: services/hypercode-mcp-server
+            file: services/hypercode-mcp-server/Dockerfile
+            check: |
+              python -c "import server; from starlette.testclient import TestClient; c=TestClient(server.mcp.sse_app(), base_url='http://hypercode-mcp-server:8823'); r=c.get('/health'); assert r.status_code==200, r.status_code; print('health ok', r.json())"
+          - name: agent-spawner
+            context: services/agent-spawner
+            file: services/agent-spawner/Dockerfile
+            check: "sh -c 'docker --version && docker compose version'"
+          - name: coder
+            context: agents/coder
+            file: agents/coder/Dockerfile
+            base: true
+            check: "sh -c \"python -c 'import fastapi, starlette, urllib3, msgpack; print(starlette.__version__, urllib3.__version__, msgpack.version)' && /opt/pipx/venvs/docker-mcp/bin/python -c 'from importlib.metadata import version; print(\\\"docker-mcp\\\", version(\\\"docker-mcp\\\"))' && test ! -d /opt/pipx/shared/lib/python3.12/site-packages/pip\""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build agent-base (coder only)
+        if: matrix.base
+        run: docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+
+      - name: Build ${{ matrix.name }}
+        run: docker build -t check:ci -f "${{ matrix.file }}" "${{ matrix.context }}"
+
+      - name: Sanity check
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          set -e
+          docker run --rm --entrypoint "" check:ci sh -c "$CHECK"
+
+      - name: Trivy scan (fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: check:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: '1'
+          timeout: 30m
