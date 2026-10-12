@@ -1,0 +1,77 @@
+# One-off / on-demand Trivy scan of every image docker-push.yml publishes that the
+# per-push security-scan job does not cover (it only scans core + crew-orchestrator).
+# Advisory: HIGH/CRITICAL, fixable only, exit-code 0. Runs on manual dispatch and on
+# a PR that edits this file, so it can be exercised without merging.
+name: Scan pushed images
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/scan-pushed-images.yml
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        image:
+          - celery-worker
+          - agent-spawner
+          - hypercode-brain-agent
+          - hypercode-coder
+          - hypercode-frontend-specialist
+          - hypercode-backend-specialist
+          - hypercode-database-architect
+          - hypercode-qa-engineer
+          - hypercode-devops-engineer
+          - hypercode-security-engineer
+          - hypercode-system-architect
+          - hypercode-project-strategist
+          - hypercode-tips-tricks-writer
+          - hypercode-hyper-architect
+          - hypercode-hyper-observer
+          - hypercode-hyper-worker
+          - hypercode-agent-x
+          - hypercode-hyper-split-agent
+          - hypercode-session-snapshot
+          - hypercode-throttle-agent
+          - hypercode-super-hyper-broski-agent
+          - hypercode-test-agent
+          - hypercode-goal-keeper
+          - hypercode-business-agent
+          - hypercode-coderabbit-webhook
+          - hypercode-fleet-controller
+          - hypercode-governor
+          - hypercode-hypercode-mcp-server
+    steps:
+      - name: Lowercase repo name
+        id: lc
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trivy scan ${{ matrix.image }}
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ steps.lc.outputs.name }}/${{ matrix.image }}:latest
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: '0'
+          timeout: 30m
