@@ -74,6 +74,11 @@ jobs:
           set -e
           docker run --rm --entrypoint "" check:ci sh -c "$CHECK"
 
+      - name: Locate flagged packages (coder diagnostics)
+        if: matrix.base
+        run: |
+          docker run --rm --user root --entrypoint sh check:ci -c 'find / -xdev \( -iname "urllib3-*" -o -iname "msgpack-*" -o -iname "setuptools-*" \) 2>/dev/null | grep -E "dist-info|egg-info" | sort -u; echo ---; pipx runpip docker-mcp list 2>/dev/null | grep -iE "urllib3|msgpack|setuptools" || echo "(none in docker-mcp venv)"'
+
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
