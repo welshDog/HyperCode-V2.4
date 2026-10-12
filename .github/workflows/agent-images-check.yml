@@ -79,12 +79,18 @@ jobs:
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:0.70.0 image             --scanners vuln --list-all-pkgs --format json -q check:ci > /tmp/t.json
           python3 - <<'PY'
-          import json
+          import json, subprocess
           d = json.load(open('/tmp/t.json'))
+          layers = json.loads(subprocess.check_output(['docker', 'inspect', 'check:ci', '--format', '{{json .RootFS.Layers}}']))
+          hist = [h for h in subprocess.check_output(['docker', 'history', '--no-trunc', '--format', '{{.Size}}|{{.CreatedBy}}', 'check:ci'], text=True).splitlines()][::-1]
+          nz = [h for h in hist if not h.startswith('0B|')]
           for r in d.get('Results', []):
               for p in r.get('Packages', []) or []:
-                  if p['Name'] in ('urllib3', 'msgpack', 'setuptools'):
-                      print('PKG', p['Name'], p['Version'], p.get('FilePath', '(no path)'), '| target:', r['Target'])
+                  if p['Name'] in ('urllib3', 'msgpack', 'setuptools') and not p.get('FilePath'):
+                      did = (p.get('Layer') or {}).get('DiffID')
+                      idx = layers.index(did) if did in layers else -1
+                      print('PKG', json.dumps(p)[:400])
+                      print('LAYERIDX', idx, 'of', len(layers), '=>', nz[idx][:200] if 0 <= idx < len(nz) else '?')
           PY
 
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
