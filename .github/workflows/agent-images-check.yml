@@ -56,7 +56,7 @@ jobs:
             context: agents/coder
             file: agents/coder/Dockerfile
             base: true
-            check: "python -c 'import fastapi, starlette, urllib3, msgpack; print(starlette.__version__, urllib3.__version__, msgpack.version)'"
+            check: "sh -c \"python -c 'import fastapi, starlette, urllib3, msgpack; print(starlette.__version__, urllib3.__version__, msgpack.version)' && /opt/pipx/venvs/docker-mcp/bin/python -c 'from importlib.metadata import version; print(\\\"docker-mcp\\\", version(\\\"docker-mcp\\\"))' && test ! -d /opt/pipx/shared/lib/python3.12/site-packages/pip\""
     steps:
       - uses: actions/checkout@v4
 
@@ -73,12 +73,6 @@ jobs:
         run: |
           set -e
           docker run --rm --entrypoint "" check:ci sh -c "$CHECK"
-
-      - name: Locate embedded SBOMs (coder diagnostics)
-        if: matrix.base
-        run: |
-          docker run --rm --user root --entrypoint sh check:ci -c 'find / -xdev \( -name "*.cdx.json" -o -name "*.spdx.json" -o -name "bom.json" -o -name "*.cdx.xml" -o -path "*/sboms/*" \) 2>/dev/null | head -20; echo SBOMDONE'
-          docker run --rm --user root --entrypoint sh check:ci -c 'f=$(find / -xdev \( -name "*.cdx.json" -o -path "*/sboms/*.json" \) 2>/dev/null | head -1); [ -n "$f" ] && grep -cE "setuptools|msgpack|urllib3" "$f" && grep -oE "\"name\": *\"(setuptools|msgpack|urllib3)\"[^}]{0,80}" "$f" | head -5'
 
       - name: Trivy scan (fail on fixable HIGH/CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
