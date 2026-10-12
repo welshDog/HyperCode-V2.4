@@ -73,6 +73,26 @@ RUN python -m compileall -q -j 0 --invalidation-mode unchecked-hash \
 FROM deps-${DEPS_VARIANT} AS deps
 
 
+# ── Stage 1e: Bake the default embedding model into the image ─────────────────
+# app/core/rag.py falls back to chromadb's DefaultEmbeddingFunction (all-MiniLM-L6-v2,
+# ONNX) when sentence-transformers is not installed, which is the case unless
+# INSTALL_AI_DEPS=true. That model used to be downloaded (79 MB, SHA-256 verified by
+# chromadb) on the first RAG call after every container recreate, which needed outbound
+# internet and made that first call slow (~40-90 s). Download it once here instead.
+# HOME must be set before python starts: chromadb reads Path.home() at import time.
+# The build FAILS if the model cannot be fetched or loaded, rather than silently
+# shipping an image that still downloads at runtime. The archive is deleted after
+# extraction: chromadb only checks the six extracted files, so it is not needed.
+FROM deps AS model
+RUN mkdir -p /app/cache \
+    && HOME=/app/cache python -c "\
+from chromadb.utils.embedding_functions import DefaultEmbeddingFunction as E; \
+v = E()(['bake the model']); \
+assert len(v) == 1 and len(v[0]) == 384, 'unexpected embedding shape'" \
+    && rm -f /app/cache/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx.tar.gz \
+    && test -s /app/cache/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx/model.onnx
+
+
 # ── Stage 2: Runtime ──────────────────────────────────────────────────────────
 FROM python:3.12-slim
 
@@ -107,6 +127,10 @@ RUN mkdir -p /app/cache/huggingface /app/cache/sentence_transformers && \
 COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=deps /usr/local/bin /usr/local/bin
 
+# Pre-downloaded embedding model (stage `model`), owned by appuser from the start so
+# no later chown layer duplicates it; HOME=/app/cache is set below.
+COPY --chown=appuser:appuser --from=model /app/cache/.cache /app/cache/.cache
+
 # Copy application code LAST (most frequently changed layer)
 COPY . .
 
@@ -124,8 +148,10 @@ RUN if [ "$DEPS_VARIANT" = "core" ]; then \
 #  install is pinned to 6.1.0 in requirements.txt; this strips the vendored phantom)
 RUN python -c "import glob, os, shutil, setuptools; vendor=os.path.join(os.path.dirname(setuptools.__file__), '_vendor'); [shutil.rmtree(p, ignore_errors=True) for pat in ('wheel-*.dist-info', 'jaraco.*-*.dist-info') for p in glob.glob(os.path.join(vendor, pat))]; shutil.rmtree(os.path.join(vendor, 'bin'), ignore_errors=True)"
 
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /app
+# Change ownership to non-root user. /app/cache is skipped on purpose: it is already
+# owned by appuser (created above; the baked model is copied with --chown), and a
+# recursive chown over the ~90 MB model would store it a second time in this layer.
+RUN find /app -path /app/cache -prune -o -exec chown appuser:appuser {} +
 
 # `adduser --system` gives appuser HOME=/nonexistent. chromadb's default embedding
 # function (the fallback in app/core/rag.py when sentence-transformers is not
