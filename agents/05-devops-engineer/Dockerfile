@@ -30,7 +30,7 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# OS package hardening — upgrade all + docker-ce-cli (official) + kubectl
+# OS package hardening — upgrade all + docker-ce-cli (official)
 # docker-compose-plugin is intentionally NOT installed: agent.py never calls `docker compose`,
 # and the published plugin (5.6.0) is built with Go 1.26.8 / x/net 0.58 (HIGH CVEs, no fixed release yet).
 # Using docker-ce-cli (not docker.io) avoids Debian-packaged moby HIGH CVEs
@@ -52,10 +52,9 @@ RUN apt-get update --allow-releaseinfo-change && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install kubectl (pinned version for reproducibility)
-RUN curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
-    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
-    rm kubectl
+# kubectl is intentionally NOT installed: nothing in agent.py/config.json calls it, and the
+# latest published kubectl (v1.37.1) is built with Go 1.26.8 / x/net 0.57 (HIGH CVEs, no fixed release).
+# Re-add it (ideally built from source on Go >= 1.26.9) if kubectl support is actually needed.
 
 # Pip tool hardening — pin safe versions
 RUN pip install --upgrade --no-cache-dir \

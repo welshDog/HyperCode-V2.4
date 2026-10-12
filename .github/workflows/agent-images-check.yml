@@ -42,11 +42,12 @@ jobs:
           - name: devops-engineer
             context: agents/05-devops-engineer
             file: agents/05-devops-engineer/Dockerfile
-            check: "sh -c 'docker --version && kubectl version --client'"
+            check: "sh -c 'docker --version && ! command -v kubectl && ! test -e /usr/libexec/docker/cli-plugins/docker-compose'"
           - name: hypercode-mcp-server
             context: services/hypercode-mcp-server
             file: services/hypercode-mcp-server/Dockerfile
-            check: "python -c 'import mcp; from importlib.metadata import version; print(version(\"mcp\"))'"
+            check: |
+              python -c "import server; from starlette.testclient import TestClient; c=TestClient(server.mcp.sse_app(), base_url='http://hypercode-mcp-server:8823'); r=c.get('/health'); assert r.status_code==200, r.status_code; print('health ok', r.json())"
           - name: agent-spawner
             context: services/agent-spawner
             file: services/agent-spawner/Dockerfile
