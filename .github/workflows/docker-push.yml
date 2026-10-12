@@ -135,23 +135,26 @@ jobs:
       # must be rebuilt manually (`docker build -t agent-base:latest -f
       # agents/Dockerfile.base agents/`). That never happened in CI, so `coder` always
       # got "pull access denied" here -- it only ever worked on boxes where someone had
-      # built agent-base locally at some point. `load: true` puts it in this job's own
-      # buildx builder (set up above) so the very next step's `FROM agent-base:latest`
-      # resolves without a registry pull. Never pushed -- it's a local build dependency,
-      # not a published image.
-      - name: Build agent-base (local dependency for coder)
+      # built agent-base locally at some point. A buildx `load: true` build does NOT fix
+      # this: the buildx docker-container builder cannot see images in the runner's
+      # local Docker daemon, so the next buildx step still tried to pull
+      # docker.io/library/agent-base:latest (pull access denied) -- the same failure,
+      # verified in CI, that docker-build.yml hit. Plain `docker build` uses the daemon,
+      # so coder is built and pushed with plain docker commands instead. agent-base is
+      # never pushed -- it's a local build dependency, not a published image.
+      - name: Build agent-base, then build and push coder (plain docker build)
         if: matrix.agent == 'coder'
-        uses: docker/build-push-action@v5
-        with:
-          context: ./agents
-          file: ./agents/Dockerfile.base
-          push: false
-          load: true
-          tags: agent-base:latest
-          cache-from: type=gha,scope=agent-base
-          cache-to: type=gha,mode=max,scope=agent-base
+        env:
+          IMG: ${{ env.REGISTRY }}/${{ needs.prepare.outputs.image_name }}/hypercode-coder
+          SHA: ${{ github.sha }}
+        run: |
+          docker build -t agent-base:latest -f agents/Dockerfile.base agents/
+          docker build -t "$IMG:latest" -t "$IMG:$SHA" agents/coder
+          docker push "$IMG:latest"
+          docker push "$IMG:$SHA"
 
       - name: Build and push ${{ matrix.agent }}
+        if: matrix.agent != 'coder'
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.context }}
