@@ -8,6 +8,6 @@
 # server.py is validated against 1.27.1 and 1.28.1 (CI agent-images-check loads it and hits /health);
 # 1.28.1 fixes CVE-2026-52869/59950 (custom_route + the
 # TransportSecuritySettings kwarg). Bump deliberately + re-test, never with `>=`.
-mcp[cli]==1.28.1
+mcp[cli]==2.3.0
 httpx>=0.28.0,<1
 uvicorn>=0.35.0,<1
