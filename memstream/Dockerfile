@@ -14,6 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY app.py .
 
+# Run as non-root (uid 1000), same pattern as agents/*
+RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
 # Expose ports
 EXPOSE 8009
 

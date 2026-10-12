@@ -20,8 +20,9 @@ RUN pip install --no-cache-dir \
 COPY services/__init__.py /app/services/__init__.py
 COPY services/skillweaver/ /app/services/skillweaver/
 
-# Create necessary directories
-RUN mkdir -p /app/logs
+# Create necessary directories + run as non-root (uid 1000), same pattern as agents/*
+RUN mkdir -p /app/logs     && useradd --create-home --uid 1000 appuser     && chown -R appuser:appuser /app
+USER appuser
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \

@@ -19,6 +19,10 @@ RUN python -c "from mcp.server.fastmcp import FastMCP; FastMCP('build-check').ss
 
 COPY server.py .
 
+# Run as non-root (uid 1000), same pattern as agents/*
+RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8823
 
 CMD ["python", "server.py"]
