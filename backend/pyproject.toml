@@ -26,7 +26,7 @@ dependencies = [
     "psycopg2-binary==2.9.10",
 
     # ───── Security & Compliance ─────
-    "GitPython==3.1.50",
+    "GitPython==3.1.60",
     "cryptography==50.0.2",
     "PyJWT==2.14.0",
     "python-jose==3.5.0",
