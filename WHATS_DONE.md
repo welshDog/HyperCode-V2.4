@@ -9,7 +9,8 @@
 - **Fixes behind that:** `hyper-architect` ~34→0 incl. 2 CRITICAL (#568); Python tooling/otel/starlette/mcp pins, devops compose+kubectl dropped, spawner builds Compose from source on Go 1.26.9, coder pipx shared pip removed (#569); non-root for memstream/mcp-server/skillweaver + their CVE fixes (#571, #576).
 - **New PR checks:** `architect-image-check.yml`, `agent-images-check.yml` (build + sanity + Trivy gate, exit 1) — nothing covered these images before.
 - **Runtime integration test** (#579): `gh workflow run images-integration.yml` — 35 checks incl. a real MCP SSE session on mcp 1.28.1 and Compose spawning a container through the docker socket. First run found a real bug: **`docker-mcp` in coder crashed on launch** (unpinned `mcp` → 2.3.0 removed `Server.list_prompts`; also broken in the 2026-10-03 image). Fixed in #580 (`mcp==1.28.1` in its venv); re-run 35/35.
-- **Honest limits:** the live local stack still runs its old images (nothing rolled out); scans ignore unfixed/below-HIGH CVEs; the integration test is startup + basic requests only. Handover: `docs/NEXT_SESSION_HANDOVER_2026-10-13.md`.
+- **Local rollout (08:35 BST):** `coder-agent` recreated on the CI image `5a4e9b7a8049` (no local build; rollback tag `hypercode-v24-coder-agent:pre-rollout-20261013`); healthy, proxy kept; 5 live crew runs = 3 ALLOW / 2 BLOCK (60 %, as before).
+- **Honest limits:** other fixed images are not rolled into the local stack; scans ignore unfixed/below-HIGH CVEs; the integration test is startup + basic requests only; `hypercode-dashboard` is unhealthy (Docker overlayfs probe error, untouched). Handover: `docs/NEXT_SESSION_HANDOVER_2026-10-13.md`.
 
 ## 2026-10-03 (20:15 UTC) — END OF DAY: state re-verified, two mysteries solved, one resource warning for tomorrow (docs only; changed nothing on the host)
 
