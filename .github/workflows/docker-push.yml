@@ -114,6 +114,12 @@ jobs:
             context: ./agents/08-project-strategist
           - agent: tips-tricks-writer
             context: ./agents/09-tips-tricks-writer
+          # --- Dashboard (Next.js; local stack serves it on 127.0.0.1:8088) ---
+          # Built with NO build args, exactly like the local compose build (NEXT_PUBLIC_HYPER_BRAIN_URL defaults to
+          # empty there and the UI falls back to its built-in URLs). Published so the live stack can pull it instead of
+          # running a local `next build`, which dipped WSL available RAM to 976 MB on 2026-10-13.
+          - agent: dashboard
+            context: ./agents/dashboard
     permissions:
       contents: read
       packages: write
@@ -351,6 +357,7 @@ jobs:
           - hypercode-fleet-controller
           - hypercode-governor
           - hypercode-hypercode-mcp-server
+          - hypercode-dashboard
     steps:
       - name: Log in to Container Registry
         uses: docker/login-action@v3

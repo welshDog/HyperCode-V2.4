@@ -40,6 +40,16 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# apk upgrade pulls patched Alpine libs (openssl/libcrypto3/libssl3) newer than the base tag.
+RUN apk upgrade --no-cache
+
+# The runtime only executes `node server.js`. npm/npx/corepack/yarn ship their own bundled copies of
+# tar, glob, minimatch, brace-expansion, sigstore, pacote... that are not our dependencies but show up as
+# HIGH/CRITICAL CVEs in image scans. Remove them from the final image.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+           /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs

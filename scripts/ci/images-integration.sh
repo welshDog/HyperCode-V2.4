@@ -49,10 +49,22 @@ CONTAINERS+=(itest-redis)
 docker run -d --name itest-redis --network "$NET" redis:7-alpine >/dev/null
 
 echo "== pulling images"
-for img in hypercode-hyper-architect hypercode-devops-engineer hypercode-coder hypercode-test-agent \
+for img in hypercode-dashboard hypercode-hyper-architect hypercode-devops-engineer hypercode-coder hypercode-test-agent \
            hypercode-goal-keeper hypercode-session-snapshot hypercode-hypercode-mcp-server agent-spawner; do
   docker pull -q "$REG/$img:latest" >/dev/null 2>&1 || echo "pull failed: $img"
 done
+
+# ---- dashboard (Next.js, built in CI instead of locally) -------------------------------------------
+n=dashboard
+start itest-dashboard hypercode-dashboard 18088 3000
+if wait_http http://127.0.0.1:18088/health 45; then
+  ok "$n /health"
+  curl -fsS -o /dev/null -m 10 http://127.0.0.1:18088/ && ok "$n /" || bad "$n /" "non-200"
+  curl -fsS -m 10 http://127.0.0.1:18088/ide | grep -qi "HyperCode" && ok "$n /ide renders" || bad "$n /ide renders" "no HyperCode in page"
+  running_nonroot itest-dashboard && ok "$n runs non-root" || bad "$n runs non-root" "uid 0"
+  # its own health probe is a docker exec of node: a container whose rootfs mount is broken fails exactly here
+  docker exec itest-dashboard node -e "process.exit(0)" >/dev/null 2>&1 && ok "$n docker exec works" || bad "$n docker exec works" "exec failed"
+else bad "$n starts" "no /health in 90s"; logs_of itest-dashboard; fi
 
 # ---- hyper-architect (NestJS, npm removed from runtime) ------------------------------------------
 n=hyper-architect
