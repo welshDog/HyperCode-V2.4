@@ -1,7 +1,7 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-13 (CI image scanning + runtime tests)
 
-> Scope of this session: **CI / published images only.** The live local stack was **not** touched or health-checked this session
-> (the last live-stack work was the slim `hypercode-core` swap on 2026-10-11/12, see `WHATS_DONE.md`). `main` at the time of writing: `b71634e6`.
+> Scope of this session: **CI / published images, then one live rollout.** Late in the session `coder-agent` was rolled onto the CI-built image (see "Local rollout" below);
+> nothing else in the live stack was changed. `main` at the time of writing: `cbfacc7e` (+ this docs update).
 > Older handover for the HyperCrew / live-stack side: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
 
 ## 🌅 START HERE (2 minutes, read-only)
@@ -29,9 +29,17 @@
 | #579 | `images-integration.yml` + `scripts/ci/images-integration.sh` |
 | closed | #567 (one-off scan workflow, superseded) |
 
+## 🚀 Local rollout (done 2026-10-13 ~08:35 BST)
+
+- **Only `coder-agent`** was rolled (`devops-engineer` is not part of the local stack). No local build (RAM guard AMBER): pulled the CI image `ghcr.io/welshdog/hypercode-v2.4/hypercode-coder:latest` (`5a4e9b7a8049`, includes the #580 `docker-mcp` fix), kept the old one as **`hypercode-v24-coder-agent:pre-rollout-20261013`** (`82839e91d008`, rollback), retagged the new one `hypercode-v24-coder-agent:latest`, then `CREW_LLM_BASE_URL=http://fcc-proxy:8083 docker compose <4-file set> --profile agents up -d --no-deps --no-build coder-agent`.
+- **Verified:** healthy, 0 restarts, proxy var kept, `docker_mcp` imports, agent port 8002. Memory dipped to ~1139 MB during the swap (stop rule 1200) and recovered.
+- **Crew test through it (5 runs, real model via fcc-proxy):** 3 ALLOW / 2 BLOCK = 60 %, same as the earlier 9/15; both BLOCKs were verifier FAILs on model output (no timeouts, no 5xx). n=5 cannot show a regression. The ALLOWs settled XP/coins to the owner; handover gate always rejected (no PR).
+- **End-of-session checks (09:00-09:10 BST):** `images-integration.yml` 35/35 on main; latest push run green; stack: 35 running, 0 paused, all 9 key services healthy with 0 restarts; core `/health` 200. Only unhealthy container: **`hypercode-dashboard`** (its health probe fails with a Docker-level `open /var/lib/docker/rootfs/overlayfs/...: no such file or directory`, restarts=0; not diagnosed or touched).
+- `results/latest-*.md|json` show as modified in the working tree: they are `qa-engineer`'s latest-run report, rewritten by the crew test (left uncommitted).
+
 ## ⚠️ What this does NOT mean
 
-- **The live local stack is still running the images it had before**; nothing was rolled out. The fixed images exist on GHCR (`:latest`) and in PR checks, not in your running containers. Rebuild/recreate deliberately (RAM guard first; recreating `coder-agent`/`qa-engineer` drops `CREW_LLM_BASE_URL` unless it is in the shell env).
+- Beyond `coder-agent`, **the live local stack still runs the images it had before**; the other fixed images exist on GHCR (`:latest`) and in PR checks only. Rebuild/recreate deliberately (RAM guard first; recreating `coder-agent`/`qa-engineer` drops `CREW_LLM_BASE_URL` unless it is in the shell env).
 - Scans ignore unfixed CVEs and anything below HIGH. Moderate `npm audit` items remain (e.g. `uuid` in `agents/architect`).
 - The integration test checks startup + basic requests only (no core, Postgres or LLM): it is not proof of real agent work. It is manual, not a gate.
 
@@ -53,7 +61,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-Roll the fixed images into the local stack: rebuild and recreate `coder-agent` and `devops-engineer` (RAM guard GREEN first), then run `gh workflow run images-integration.yml` and a quick `/health` sweep to confirm.
+Look at why `hypercode-dashboard` fails its health probe with a Docker overlayfs "no such file" error (restarts=0, so the healer isn't fixing it): inspect it, and recreate the container if the rootfs is genuinely broken (RAM guard first).
 
 ## Gotchas learned (also in memory `hypercode-ci-image-scanning-trivy-2026-10-13`)
 
