@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import statistics
 import time
 from collections import defaultdict, deque
@@ -36,6 +37,19 @@ HEALER_VERIFY_POLL_SECONDS: float = float(os.getenv("HEALER_VERIFY_POLL_SECONDS"
 # so a service that recovered on its own is not stuck at the maximum backoff forever.
 HEALER_RESET_AFTER_HEALTHY: int = int(os.getenv("HEALER_RESET_AFTER_HEALTHY", "6"))
 HEALER_COOLDOWN_SECONDS: int = int(os.getenv("HEALER_COOLDOWN_SECONDS", "60"))
+
+# Host-load guard -- tuneable via env vars. Restarting a service while the VM is starved makes things worse (core costs
+# ~90 s of downtime per restart; the dashboard's last restart under build load broke its rootfs), and probe failures
+# during a spike are usually the load, not the service. While the guard is active, docker/http restarts are HELD
+# (alert-only actions are never held). It fails open: if the load cannot be read, nothing is held.
+HEALER_LOAD_GUARD_ENABLED: bool = os.getenv("HEALER_LOAD_GUARD_ENABLED", "true").strip().lower() not in ("0", "false", "no", "off")
+HEALER_LOAD_GUARD_CPU_PRESSURE: float = float(os.getenv("HEALER_LOAD_GUARD_CPU_PRESSURE", "50"))      # PSI "some" avg10, percent
+HEALER_LOAD_GUARD_LOAD_PER_CPU: float = float(os.getenv("HEALER_LOAD_GUARD_LOAD_PER_CPU", "2.0"))     # 1-min loadavg / CPUs
+HEALER_LOAD_GUARD_MIN_MEM_MB: float = float(os.getenv("HEALER_LOAD_GUARD_MIN_MEM_MB", "0"))          # 0 = off
+HEALER_LOAD_GUARD_SYSTEMIC_MIN: int = int(os.getenv("HEALER_LOAD_GUARD_SYSTEMIC_MIN", "2"))          # <2 = off
+HEALER_LOAD_GUARD_RECENT_HEALTHY_SECONDS: float = float(os.getenv("HEALER_LOAD_GUARD_RECENT_HEALTHY_SECONDS", "300"))
+# A service held this long is restarted anyway: a real outage under sustained load must still get fixed.
+HEALER_LOAD_GUARD_MAX_HOLD_SECONDS: float = float(os.getenv("HEALER_LOAD_GUARD_MAX_HOLD_SECONDS", "600"))
 
 import httpx
 
@@ -111,6 +125,8 @@ class ServiceConfig:
     consecutive_unhealthy: int = 0  # streak of any non-HEALTHY probe (hard failure or 5xx)
     healthy_streak: int = 0         # streak of HEALTHY probes
     healing: bool = False           # a restart is in flight / being verified: do not plan another
+    last_healthy_at: Optional[float] = None  # last time a probe was HEALTHY (for the 'newly unhealthy' systemic signal)
+    guard_since: Optional[float] = None      # when the load guard started holding a restart for this service
     total_heals: int = 0
     last_healed: Optional[float] = None
     consecutive_failed_heals: int = 0
@@ -238,6 +254,8 @@ def analyze(
     if current_status == ServiceStatus.HEALTHY:
         service.consecutive_unhealthy = 0
         service.healthy_streak += 1
+        service.last_healthy_at = time.time()
+        service.guard_since = None
     else:
         service.consecutive_unhealthy += 1
         service.healthy_streak = 0
@@ -267,6 +285,123 @@ def analyze(
 
 
 # ------------------------------------
+# HOST-LOAD GUARD
+# ------------------------------------
+
+@dataclass(frozen=True)
+class HostLoad:
+    """VM-wide load readings from /proc (None = could not be read)."""
+
+    loadavg1: Optional[float] = None
+    ncpu: int = 1
+    cpu_pressure10: Optional[float] = None   # PSI /proc/pressure/cpu "some" avg10, percent of time stalled
+    mem_available_mb: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class GuardDecision:
+    """Whether docker/http restarts should be held this cycle, and why."""
+
+    hold: bool = False
+    reason: str = ""
+
+
+def read_host_load(proc_root: str = "/proc") -> HostLoad:
+    """Read VM-wide load. /proc/loadavg, /proc/pressure/cpu and /proc/meminfo are not namespaced, so a container sees the
+    whole VM. Anything unreadable stays None (the guard then ignores that signal)."""
+    load1: Optional[float] = None
+    pressure: Optional[float] = None
+    mem_mb: Optional[float] = None
+    try:
+        with open(f"{proc_root}/loadavg", encoding="utf-8") as fh:
+            load1 = float(fh.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        pass
+    try:
+        with open(f"{proc_root}/pressure/cpu", encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("some"):
+                    m = re.search(r"avg10=([0-9.]+)", line)
+                    if m:
+                        pressure = float(m.group(1))
+                    break
+    except (OSError, ValueError):
+        pass
+    try:
+        with open(f"{proc_root}/meminfo", encoding="utf-8") as fh:
+            for line in fh:
+                if line.startswith("MemAvailable:"):
+                    mem_mb = int(line.split()[1]) / 1024.0
+                    break
+    except (OSError, ValueError, IndexError):
+        pass
+    return HostLoad(loadavg1=load1, ncpu=os.cpu_count() or 1, cpu_pressure10=pressure, mem_available_mb=mem_mb)
+
+
+def evaluate_guard(
+    services: list[ServiceConfig], load: HostLoad, now: Optional[float] = None
+) -> GuardDecision:
+    """Decide whether restarts are held this cycle. Pure function (inject `load`/`now` in tests)."""
+    if not HEALER_LOAD_GUARD_ENABLED:
+        return GuardDecision()
+    now = time.time() if now is None else now
+    reasons: list[str] = []
+
+    if load.cpu_pressure10 is not None and load.cpu_pressure10 >= HEALER_LOAD_GUARD_CPU_PRESSURE:
+        reasons.append(f"CPU pressure {load.cpu_pressure10:.0f}% >= {HEALER_LOAD_GUARD_CPU_PRESSURE:.0f}%")
+    if load.loadavg1 is not None and load.ncpu > 0 and load.loadavg1 / load.ncpu >= HEALER_LOAD_GUARD_LOAD_PER_CPU:
+        reasons.append(f"load {load.loadavg1:.1f} on {load.ncpu} CPUs")
+    if (
+        HEALER_LOAD_GUARD_MIN_MEM_MB > 0
+        and load.mem_available_mb is not None
+        and load.mem_available_mb < HEALER_LOAD_GUARD_MIN_MEM_MB
+    ):
+        reasons.append(f"only {load.mem_available_mb:.0f} MB memory available")
+
+    # Systemic: several services that were healthy a moment ago are all unhealthy now. That points at the host, not at
+    # any one service. Services that have been down for days (e.g. the stopped observability stack) were not recently
+    # healthy and are not counted.
+    if HEALER_LOAD_GUARD_SYSTEMIC_MIN >= 2:
+        newly = [
+            svc.name for svc in services
+            if svc.last_status in (ServiceStatus.DEGRADED, ServiceStatus.CRITICAL)
+            and svc.last_healthy_at is not None
+            and (now - svc.last_healthy_at) <= HEALER_LOAD_GUARD_RECENT_HEALTHY_SECONDS
+        ]
+        if len(newly) >= HEALER_LOAD_GUARD_SYSTEMIC_MIN:
+            reasons.append(f"{len(newly)} services went unhealthy at once ({', '.join(newly)})")
+
+    return GuardDecision(hold=bool(reasons), reason="; ".join(reasons))
+
+
+def _apply_guard(
+    service: ServiceConfig, action: HealAction, guard: Optional[GuardDecision]
+) -> HealAction:
+    """Hold docker/http restarts while the host-load guard is active (alert-only actions are never held)."""
+    if action not in (HealAction.DOCKER_RESTART, HealAction.HTTP_RESTART):
+        return action
+    if guard is not None and guard.hold:
+        now = time.time()
+        if service.guard_since is None:
+            service.guard_since = now
+            logger.warning(
+                "[GUARD] %s restart HELD (up to %ds): %s", service.name, int(HEALER_LOAD_GUARD_MAX_HOLD_SECONDS), guard.reason
+            )
+        if now - service.guard_since < HEALER_LOAD_GUARD_MAX_HOLD_SECONDS:
+            logger.debug("[GUARD] %s restart still held", service.name)
+            return HealAction.NO_ACTION
+        logger.warning(
+            "[GUARD] %s held for %ds -- restarting anyway (guard max hold exceeded)",
+            service.name, int(now - service.guard_since),
+        )
+        return action
+    if service.guard_since is not None:
+        logger.info("[GUARD] %s restart released after %ds", service.name, int(time.time() - service.guard_since))
+        service.guard_since = None
+    return action
+
+
+# ------------------------------------
 # PLAN PHASE
 # ------------------------------------
 
@@ -275,6 +410,7 @@ def plan(
     _status: ServiceStatus,
     _reason: str,
     kb: KnowledgeBase,
+    guard: Optional[GuardDecision] = None,
 ) -> HealAction:
     """Choose best heal action based on config and historical success rates."""
     if service.healing:
@@ -297,15 +433,15 @@ def plan(
     if not service.critical:
         return HealAction.ALERT_ONLY
 
+    action = HealAction.ALERT_ONLY
     if service.restart_url:
         soft_rate = kb.success_rate(HealAction.HTTP_RESTART)
         if soft_rate >= 0.5 or not kb.action_success_rates[HealAction.HTTP_RESTART]:
-            return HealAction.HTTP_RESTART
+            action = HealAction.HTTP_RESTART
+    if action == HealAction.ALERT_ONLY and service.compose_name:
+        action = HealAction.DOCKER_RESTART
 
-    if service.compose_name:
-        return HealAction.DOCKER_RESTART
-
-    return HealAction.ALERT_ONLY
+    return _apply_guard(service, action, guard)
 
 
 # ------------------------------------
@@ -503,9 +639,18 @@ async def mape_k_loop(
 ) -> None:
     """Core MAPE-K loop -- runs forever, monitors and heals all services."""
     logger.info("MAPE-K Engine ONLINE -- HyperCode self-healing active")
+    guard_active = False
 
     while True:
         cycle_start = time.time()
+
+        guard = evaluate_guard(services, read_host_load())
+        if guard.hold != guard_active:
+            if guard.hold:
+                logger.warning("[GUARD] host-load guard ACTIVE -- docker/http restarts are held: %s", guard.reason)
+            else:
+                logger.info("[GUARD] host-load guard cleared -- restarts allowed again")
+            guard_active = guard.hold
 
         for service in services:
             try:
@@ -521,7 +666,7 @@ async def mape_k_loop(
                         "[ANALYZE] %s anomaly detected! status=%s z=%.1f -- %s",
                         service.name, status.value, z_score, reason,
                     )
-                    action = plan(service, status, reason, kb)
+                    action = plan(service, status, reason, kb, guard)
                     if action != HealAction.NO_ACTION:
                         schedule_heal(service, action, reason, kb)
 
