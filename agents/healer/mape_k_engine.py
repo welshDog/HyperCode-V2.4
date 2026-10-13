@@ -37,6 +37,10 @@ HEALER_VERIFY_POLL_SECONDS: float = float(os.getenv("HEALER_VERIFY_POLL_SECONDS"
 # so a service that recovered on its own is not stuck at the maximum backoff forever.
 HEALER_RESET_AFTER_HEALTHY: int = int(os.getenv("HEALER_RESET_AFTER_HEALTHY", "6"))
 HEALER_COOLDOWN_SECONDS: int = int(os.getenv("HEALER_COOLDOWN_SECONDS", "60"))
+# Alert-only services (critical=False, e.g. the observability stack that is deliberately stopped) alert ONCE per outage, then
+# repeat at most this often. Before this, each such service raised ~1 alert/min (WARNING lines + an event published to core)
+# for as long as it stayed down. 0 = alert on every cooldown cycle (the old behaviour).
+HEALER_ALERT_REPEAT_SECONDS: float = float(os.getenv("HEALER_ALERT_REPEAT_SECONDS", "3600"))
 
 # Host-load guard -- tuneable via env vars. Restarting a service while the VM is starved makes things worse (core costs
 # ~90 s of downtime per restart; the dashboard's last restart under build load broke its rootfs), and probe failures
@@ -127,6 +131,8 @@ class ServiceConfig:
     healing: bool = False           # a restart is in flight / being verified: do not plan another
     last_healthy_at: Optional[float] = None  # last time a probe was HEALTHY (for the 'newly unhealthy' systemic signal)
     guard_since: Optional[float] = None      # when the load guard started holding a restart for this service
+    last_alerted_at: Optional[float] = None  # last alert_only notice for the current outage (None = none sent)
+    anomaly_logged: bool = False             # the current anomaly episode has already been logged at WARNING
     total_heals: int = 0
     last_healed: Optional[float] = None
     consecutive_failed_heals: int = 0
@@ -256,6 +262,10 @@ def analyze(
         service.healthy_streak += 1
         service.last_healthy_at = time.time()
         service.guard_since = None
+        if service.last_alerted_at is not None:
+            logger.info("[ALERT] %s recovered", service.name)
+        service.last_alerted_at = None
+        service.anomaly_logged = False
     else:
         service.consecutive_unhealthy += 1
         service.healthy_streak = 0
@@ -431,6 +441,11 @@ def plan(
         return HealAction.NO_ACTION
 
     if not service.critical:
+        now = time.time()
+        if service.last_alerted_at is not None and (now - service.last_alerted_at) < HEALER_ALERT_REPEAT_SECONDS:
+            logger.debug("[PLAN] %s -- already alerted %ds ago, skipping", service.name, int(now - service.last_alerted_at))
+            return HealAction.NO_ACTION
+        service.last_alerted_at = now
         return HealAction.ALERT_ONLY
 
     action = HealAction.ALERT_ONLY
@@ -662,7 +677,10 @@ async def mape_k_loop(
                 maybe_reset_backoff(service)
 
                 if is_anomaly:
-                    logger.warning(
+                    # WARNING once per episode (it stays an anomaly every 10 s until the service is healthy again)
+                    log = logger.debug if service.anomaly_logged else logger.warning
+                    service.anomaly_logged = True
+                    log(
                         "[ANALYZE] %s anomaly detected! status=%s z=%.1f -- %s",
                         service.name, status.value, z_score, reason,
                     )

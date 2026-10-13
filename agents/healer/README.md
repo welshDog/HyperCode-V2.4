@@ -53,6 +53,7 @@ held. The guard fails open (unreadable `/proc` = nothing held) and restarts a he
 | `HEALER_LOAD_GUARD_SYSTEMIC_MIN` | 2 | hold when this many services that were healthy in the last `..._RECENT_HEALTHY_SECONDS` (300) went unhealthy together (<2 = off) |
 | `HEALER_LOAD_GUARD_MAX_HOLD_SECONDS` | 600 | restart anyway after holding this long |
 | `HEALER_LOG_LEVEL` | INFO | level for the `mape_k` logger |
+| `HEALER_ALERT_REPEAT_SECONDS` | 3600 | alert-only services (`critical=False`, e.g. the stopped observability stack) alert once per outage, then at most this often; 0 = every cooldown cycle (old behaviour). A `[ALERT] X recovered` line follows when they come back |
 
 The healer container sees VM-wide numbers (`/proc/loadavg`, `/proc/pressure/cpu`, `/proc/meminfo` are not namespaced).
 Tests: `agents/healer/tests/test_mape_k_policy.py` (run in CI by `healer-policy-tests.yml`).

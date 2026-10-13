@@ -513,3 +513,78 @@ async def test_loop_holds_restarts_under_load_then_releases(monkeypatch):
     assert held_restarts == 0           # nothing restarted while the host was busy
     assert len(started) >= 1            # restarted once the guard cleared
     assert svc.guard_since is None
+
+# ------------------------------------------------------------------ alert_only: one notice per outage, not one per minute
+def test_alert_only_service_alerts_once_per_outage():
+    svc, kb = make_service(critical=False), KnowledgeBase()
+    assert plan(svc, C, "x", kb) == HealAction.ALERT_ONLY
+    for _ in range(20):
+        assert plan(svc, C, "x", kb) == HealAction.NO_ACTION
+
+
+def test_alert_repeats_after_the_repeat_interval(monkeypatch):
+    monkeypatch.setattr(eng, "HEALER_ALERT_REPEAT_SECONDS", 3600.0)
+    svc, kb = make_service(critical=False), KnowledgeBase()
+    plan(svc, C, "x", kb)
+    svc.last_alerted_at = time.time() - 3601
+    assert plan(svc, C, "x", kb) == HealAction.ALERT_ONLY
+
+
+def test_repeat_interval_zero_restores_the_old_alert_every_cycle(monkeypatch):
+    monkeypatch.setattr(eng, "HEALER_ALERT_REPEAT_SECONDS", 0.0)
+    svc, kb = make_service(critical=False), KnowledgeBase()
+    assert [plan(svc, C, "x", kb) for _ in range(3)] == [HealAction.ALERT_ONLY] * 3
+
+
+def test_recovery_logs_once_and_rearms_the_alert(caplog):
+    caplog.set_level(logging.INFO, logger="mape_k")
+    svc, kb = make_service(critical=False), KnowledgeBase()
+    plan(svc, C, "x", kb)
+    assert plan(svc, C, "x", kb) == HealAction.NO_ACTION
+    analyze(svc, H, 100.0, kb)
+    assert "[ALERT] Svc recovered" in caplog.text
+    assert svc.last_alerted_at is None and svc.anomaly_logged is False
+    assert plan(svc, C, "x", kb) == HealAction.ALERT_ONLY  # a new outage alerts again
+
+
+def test_service_that_was_never_alerted_logs_no_recovery(caplog):
+    caplog.set_level(logging.INFO, logger="mape_k")
+    svc, kb = make_service(), KnowledgeBase()
+    analyze(svc, H, 100.0, kb)
+    assert "recovered" not in caplog.text
+
+
+def test_critical_services_are_not_rate_limited_by_the_alert_logic():
+    svc, kb = make_service(), KnowledgeBase()
+    assert plan(svc, C, "x", kb) == HealAction.DOCKER_RESTART
+    svc.last_healed = None
+    assert plan(svc, C, "x", kb) == HealAction.DOCKER_RESTART
+
+
+async def test_loop_alerts_once_and_logs_the_anomaly_once_for_a_long_outage(monkeypatch, caplog):
+    """The regression: a stopped alert-only service used to produce an ANALYZE warning every cycle and an alert every cooldown."""
+    caplog.set_level(logging.WARNING, logger="mape_k")
+    svc = make_service(critical=False)
+    svc.name = "Stopped"
+    alerts: list[str] = []
+
+    async def fake_monitor(_s):
+        return C, 5000.0
+
+    def fake_schedule(service, action, reason, kb):
+        alerts.append(action.value)
+        service.healing = False
+
+    monkeypatch.setattr(eng, "monitor", fake_monitor)
+    monkeypatch.setattr(eng, "schedule_heal", fake_schedule)
+    monkeypatch.setattr(eng, "HEALER_RESTART_MIN_CONSECUTIVE", 1)
+    monkeypatch.setattr(eng, "HEALER_COOLDOWN_SECONDS", 0)
+    loop_task = asyncio.create_task(eng.mape_k_loop([svc], KnowledgeBase(), interval_seconds=0.01))
+    await asyncio.sleep(0.4)  # dozens of cycles
+    loop_task.cancel()
+    try:
+        await loop_task
+    except asyncio.CancelledError:
+        pass
+    assert alerts == ["alert_only"]
+    assert caplog.text.count("anomaly detected") == 1
