@@ -1,0 +1,30 @@
+# Runs the healer's restart-policy tests. The repo-level pytest config (testpaths) does not include agents/healer,
+# so without this these tests would never run in CI.
+name: Healer policy tests
+
+on:
+  pull_request:
+    paths:
+      - "agents/healer/mape_k_engine.py"
+      - "agents/healer/tests/test_mape_k_policy.py"
+      - ".github/workflows/healer-policy-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test deps
+        run: pip install "pytest==8.2.2" "pytest-asyncio==0.23.7" "httpx>=0.27.0"
+
+      - name: Run policy tests
+        run: python -m pytest agents/healer/tests/test_mape_k_policy.py -q -p no:cacheprovider
