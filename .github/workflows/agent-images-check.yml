@@ -16,6 +16,7 @@ on:
       - "services/agent-spawner/**"
       - "memstream/**"
       - "services/skillweaver/**"
+      - "agents/dashboard/**"
       - ".github/workflows/agent-images-check.yml"
   workflow_dispatch:
 
@@ -69,6 +70,16 @@ jobs:
               test "$(id -u)" != 0
               touch /app/logs/.w && rm /app/logs/.w
               python -c "import services.skillweaver.server as s; print('import ok', s.app.title)"
+          - name: dashboard
+            context: agents/dashboard
+            file: agents/dashboard/Dockerfile
+            check: |
+              test "$(id -u)" != 0
+              (node server.js >/tmp/app.log 2>&1 &)
+              for i in $(seq 1 40); do wget -q -O /dev/null http://127.0.0.1:3000/health && break; sleep 1; done
+              wget -q -O /dev/null http://127.0.0.1:3000/health
+              wget -q -O /dev/null http://127.0.0.1:3000/
+              echo "dashboard serves / and /health"
           - name: coder
             context: agents/coder
             file: agents/coder/Dockerfile
