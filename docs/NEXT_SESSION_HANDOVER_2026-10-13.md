@@ -1,7 +1,7 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-13 (CI image scanning + runtime tests)
 
-> Scope of this session: **CI / published images, then one live rollout.** Late in the session `coder-agent` was rolled onto the CI-built image (see "Local rollout" below);
-> nothing else in the live stack was changed. `main` at the time of writing: `cbfacc7e` (+ this docs update).
+> Scope of this session: **CI / published images, then live rollouts.** `coder-agent` (CI image), `hypercode-dashboard` (UI fixes) and `healer-agent` (new restart policy) were rolled in the live stack
+> (see the dated sections below); nothing else in the live stack was changed. `main` at the time of writing: `cbfacc7e` (+ this docs update).
 > Older handover for the HyperCrew / live-stack side: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
 
 ## 🌅 START HERE (2 minutes, read-only)
@@ -39,7 +39,7 @@
 
 ## ⚠️ What this does NOT mean
 
-- Beyond `coder-agent`, **the live local stack still runs the images it had before**; the other fixed images exist on GHCR (`:latest`) and in PR checks only. Rebuild/recreate deliberately (RAM guard first; recreating `coder-agent`/`qa-engineer` drops `CREW_LLM_BASE_URL` unless it is in the shell env).
+- Beyond `coder-agent`, `hypercode-dashboard` and `healer-agent`, **the live local stack still runs the images it had before**; the other fixed images exist on GHCR (`:latest`) and in PR checks only. Rebuild/recreate deliberately (RAM guard first; recreating `coder-agent`/`qa-engineer` drops `CREW_LLM_BASE_URL` unless it is in the shell env).
 - Scans ignore unfixed CVEs and anything below HIGH. Moderate `npm audit` items remain (e.g. `uuid` in `agents/architect`).
 - The integration test checks startup + basic requests only (no core, Postgres or LLM): it is not proof of real agent work. It is manual, not a gate.
 
@@ -59,6 +59,15 @@
 4. `hypercode-dashboard` flaps unhealthy; `crew-orchestrator` has no fully pinned lockfile; CodeRabbit never posts a review (rate limited).
 5. The `remember` plugin SessionStart hook is slow (~30 s average).
 
+## ✅ Healer restart policy fixed + rolled out (2026-10-13 ~13:32 BST)
+
+- **Problem (from the healer's own logs, since 2026-10-10 22:29Z):** 34 `docker_restart`s (Backend 20, Mission Control 11, Ollama 3), **0 recoveries**, 29 "still unhealthy after heal"; failed-heal counters stuck at 32 / 18. Causes in `agents/healer/mape_k_engine.py`: one non-healthy probe with Z>3 (e.g. one 5 s timeout under VM load) restarted a service; a restart was judged after ONE probe 5 s later while core boots in ~90-230 s (so every restart was recorded as failed); the counters only reset on a successful heal, which could never happen (backoff stuck at the 30 min cap); the DEGRADED branch was dead code; the dashboard got docker-restarted (its 12 Oct 13:30Z restart under build load left it with a missing rootfs, unhealthy ~19 h).
+- **Fix: PR #586 (`7b4843f0`):** restart needs **3 consecutive** bad probes (`HEALER_RESTART_MIN_CONSECUTIVE`); post-restart verification polls for the service's `startup_grace_seconds` (core 240, dashboard 90, ollama 60) in a **background task** (so one slow boot never blocks probing the rest); failed-heal counters/backoff **reset after 6 healthy probes** (`HEALER_RESET_AFTER_HEALTHY`); per-service `probe_timeout` (core/dashboard 10 s); **Mission Control (dashboard) is alert-only**. 17 tests in `agents/healer/tests/test_mape_k_policy.py`, run in CI by the new `healer-policy-tests.yml` (`agents/healer` is not in the repo pytest `testpaths`). Old-vs-new replay: one slow 5xx probe, one timeout, two timeouts in a row: restart True -> False; 3 DEGRADED at low latency False -> True; a service booting a few probes late judged OK False -> True.
+- **Rolled out:** image `42a9267d5770` built locally (rollback tag `hypercode-v24-healer-agent:pre-policy-fix-20261013`, `1382b0520d26`), `healer-agent` recreated 13:32 BST with `--force-recreate --no-deps --no-build healer-agent` once the VM was calm. The build needed `fcc-proxy` stopped by name (restarted after); lowest WSL available during it ~1333 MB (build context is the whole `agents/` tree, ~160 MB, slow).
+- **Observed after ~75 min (to 14:47 BST):** 0 `docker_restart`s; 219 `alert_only` notices (Grafana / HyperHealth API / Prometheus, the obs services Lyndz keeps stopped, ~1/min each = noise, not action); `hypercode-core` and `hypercode-dashboard` untouched since before the rollout (up since 11:42Z and 12:09Z); stack 35 running, 0 unhealthy. **Not yet proven:** how it handles a real slow boot or a real load spike (no such event happened). Check with `docker logs -t healer-agent 2>&1 | grep -E "docker_restart|recovered|Backing off"`.
+- **Also seen:** core (11:42Z) and the dashboard (12:09Z) were restarted during today's builds, very likely by the OLD healer (the 12:09Z one lines up with the healer image build); unproven because the old healer's logs went with its container. Both healthy, `exec` fine on all 35 containers.
+- **Not done:** a host-load-aware guard (skip restarts while several services degrade at once); concurrent probing (probes are sequential, so a 10 s timeout can delay a cycle); silencing the repeated `alert_only` spam for deliberately stopped services.
+
 ## ✅ Dashboard UI bugs fixed + image rebuilt (2026-10-13 ~11:37 BST)
 
 - **Found by a headless-browser tour** of http://127.0.0.1:8088/ (repo-local Playwright; the Chrome extension was not connected): 15 API endpoints all 200, 0 console errors; two real bugs. **#584 merged** (`37817299`): (1) `components/views/MetricsView.tsx:25` had `⏳` as JSX *text*, so users saw the literal characters while Metrics loaded (now the real emoji; regression test `__tests__/MetricsView.loading.test.tsx` fails on the old line); (2) the shell was a fixed `240px 1fr` grid, so at 390px the content was ~150px wide: under 760px it now stacks (wrapping top bar, scrolling nav strip, panes in one column). Dashboard vitest 264/264.
@@ -75,7 +84,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-Find out why the healer keeps `docker_restart`-ing the dashboard/core on latency Z-score anomalies under load (4 dashboard restarts in 16 h; the last one is what broke its rootfs), and decide whether to raise the threshold or back off during builds.
+Let the new healer run through a real load spike or restart (watch `docker logs -t healer-agent | grep -E "docker_restart|recovered|Backing off"`), and meanwhile add a CI-built dashboard image (it is not in `docker-push.yml`, and its local Next.js build dipped RAM to 976 MB) so the next UI change doesn't need a risky local build.
 
 ## Gotchas learned (also in memory `hypercode-ci-image-scanning-trivy-2026-10-13`)
 
