@@ -209,6 +209,67 @@ h1, h2, h3, h4, h5, h6, .pane-title {
   padding: 10px;
 }
 
+/* Small screens: the 240px sidebar column left only ~150px for content at 390px wide.
+   Stack the shell instead: topbar (wraps), a horizontally scrollable nav strip, then main. */
+@media (max-width: 760px) {
+  .hc-app {
+    height: 100dvh;
+    grid-template:
+      "topbar" auto
+      "sidebar" auto
+      "main" 1fr
+      / minmax(0, 1fr);
+  }
+
+  .hc-topbar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .hc-topbar-left,
+  .hc-topbar-right {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .hc-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--pane-border);
+    padding: 8px 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .hc-nav {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .hc-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .hc-main {
+    overflow: auto;
+    min-width: 0;
+  }
+
+  /* Pages set an inline named-area grid (2x2 etc.); on a phone, stack the panes in one column. */
+  .hyper-shell {
+    grid-template: none !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-rows: minmax(280px, auto);
+    overflow-y: auto;
+  }
+
+  .hyper-shell > * {
+    grid-area: auto !important;
+    min-width: 0;
+  }
+}
+
 .hc-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
