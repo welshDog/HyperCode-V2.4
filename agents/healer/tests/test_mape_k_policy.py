@@ -588,3 +588,93 @@ async def test_loop_alerts_once_and_logs_the_anomaly_once_for_a_long_outage(monk
         pass
     assert alerts == ["alert_only"]
     assert caplog.text.count("anomaly detected") == 1
+
+# ------------------------------------------------------------------ concurrent probing
+def _named(n, **kw):
+    svc = make_service(**kw)
+    svc.name = n
+    return svc
+
+
+async def _run_loop_for(seconds, services, **kw):
+    task = asyncio.create_task(eng.mape_k_loop(services, KnowledgeBase(), interval_seconds=kw.get("interval", 10)))
+    await asyncio.sleep(seconds)
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
+async def test_services_are_probed_concurrently(monkeypatch):
+    """Sequential probing made a cycle the SUM of every probe (13.8 s for 3 stopped services on this stack)."""
+    inflight = {"now": 0, "max": 0}
+
+    async def slow_monitor(_s):
+        inflight["now"] += 1
+        inflight["max"] = max(inflight["max"], inflight["now"])
+        await asyncio.sleep(0.1)
+        inflight["now"] -= 1
+        return H, 100.0
+
+    monkeypatch.setattr(eng, "monitor", slow_monitor)
+    services = [_named(f"S{i}") for i in range(5)]
+    t0 = time.monotonic()
+    await _run_loop_for(0.25, services)
+    assert inflight["max"] == 5
+    assert time.monotonic() - t0 < 0.5
+
+
+async def test_probe_concurrency_of_one_restores_sequential_probing(monkeypatch):
+    inflight = {"now": 0, "max": 0}
+
+    async def slow_monitor(_s):
+        inflight["now"] += 1
+        inflight["max"] = max(inflight["max"], inflight["now"])
+        await asyncio.sleep(0.02)
+        inflight["now"] -= 1
+        return H, 100.0
+
+    monkeypatch.setattr(eng, "monitor", slow_monitor)
+    monkeypatch.setattr(eng, "HEALER_PROBE_CONCURRENCY", 1)
+    await _run_loop_for(0.2, [_named(f"S{i}") for i in range(4)])
+    assert inflight["max"] == 1
+
+
+async def test_a_hung_probe_does_not_delay_another_services_heal(monkeypatch):
+    """A slow service must not hold up the decision about a failing one (it did: probes ran one after another)."""
+    scheduled: dict[str, float] = {}
+    t0 = time.monotonic()
+
+    async def fake_monitor(svc):
+        if svc.name == "Hung":
+            await asyncio.sleep(0.6)
+            return H, 100.0
+        return C, 5000.0
+
+    def fake_schedule(service, action, reason, kb):
+        scheduled.setdefault(service.name, time.monotonic() - t0)
+        service.healing = False
+
+    monkeypatch.setattr(eng, "monitor", fake_monitor)
+    monkeypatch.setattr(eng, "schedule_heal", fake_schedule)
+    monkeypatch.setattr(eng, "HEALER_RESTART_MIN_CONSECUTIVE", 1)
+    monkeypatch.setattr(eng, "HEALER_COOLDOWN_SECONDS", 0)
+    await _run_loop_for(0.4, [_named("Hung"), _named("Failing")])
+    assert "Failing" in scheduled and scheduled["Failing"] < 0.2
+
+
+async def test_an_error_in_one_service_does_not_stop_the_others(monkeypatch, caplog):
+    caplog.set_level(logging.ERROR, logger="mape_k")
+    probed: set[str] = set()
+
+    async def fake_monitor(svc):
+        probed.add(svc.name)
+        if svc.name == "Broken":
+            raise RuntimeError("boom")
+        return H, 100.0
+
+    monkeypatch.setattr(eng, "monitor", fake_monitor)
+    await _run_loop_for(0.15, [_named("Broken"), _named("Fine")])
+    assert probed == {"Broken", "Fine"}
+    assert "Error processing Broken: boom" in caplog.text

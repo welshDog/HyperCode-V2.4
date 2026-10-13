@@ -42,6 +42,11 @@ HEALER_COOLDOWN_SECONDS: int = int(os.getenv("HEALER_COOLDOWN_SECONDS", "60"))
 # for as long as it stayed down. 0 = alert on every cooldown cycle (the old behaviour).
 HEALER_ALERT_REPEAT_SECONDS: float = float(os.getenv("HEALER_ALERT_REPEAT_SECONDS", "3600"))
 
+# Services are probed concurrently (up to this many at once). Probing them one after another made a cycle the SUM of all probe
+# times: on this stack three stopped services cost ~4 s each (the hostname lookup fails slowly), so a cycle took ~13.8 s against a
+# 10 s interval, delayed every other service's check, and stretched "3 consecutive failures" to ~40 s. 1 = sequential (old behaviour).
+HEALER_PROBE_CONCURRENCY: int = int(os.getenv("HEALER_PROBE_CONCURRENCY", "16"))
+
 # Host-load guard -- tuneable via env vars. Restarting a service while the VM is starved makes things worse (core costs
 # ~90 s of downtime per restart; the dashboard's last restart under build load broke its rootfs), and probe failures
 # during a spike are usually the load, not the service. While the guard is active, docker/http restarts are HELD
@@ -647,12 +652,46 @@ def schedule_heal(
 # MAPE-K MAIN LOOP
 # ------------------------------------
 
+async def _cycle_one(
+    service: ServiceConfig,
+    kb: KnowledgeBase,
+    guard: GuardDecision,
+    sem: asyncio.Semaphore,
+) -> None:
+    """One service's Monitor -> Analyze -> Plan -> (schedule) Execute step.
+
+    Runs concurrently with the other services' steps, so a slow or hung probe delays only its own service. Everything after the
+    probe is synchronous (no awaits), so the shared state it touches is never interleaved with another service's step.
+    """
+    try:
+        async with sem:
+            status, response_ms = await monitor(service)
+        is_anomaly, reason, z_score = analyze(service, status, response_ms, kb)
+        service.last_status = status
+        maybe_reset_backoff(service)
+
+        if is_anomaly:
+            # WARNING once per episode (it stays an anomaly every 10 s until the service is healthy again)
+            log = logger.debug if service.anomaly_logged else logger.warning
+            service.anomaly_logged = True
+            log(
+                "[ANALYZE] %s anomaly detected! status=%s z=%.1f -- %s",
+                service.name, status.value, z_score, reason,
+            )
+            action = plan(service, status, reason, kb, guard)
+            if action != HealAction.NO_ACTION:
+                schedule_heal(service, action, reason, kb)
+
+    except Exception as exc:
+        logger.error("[MAPE-K] Error processing %s: %s", service.name, exc)
+
+
 async def mape_k_loop(
     services: list[ServiceConfig],
     kb: KnowledgeBase,
     interval_seconds: int = 10,
 ) -> None:
-    """Core MAPE-K loop -- runs forever, monitors and heals all services."""
+    """Core MAPE-K loop -- runs forever, monitors and heals all services (probed concurrently each cycle)."""
     logger.info("MAPE-K Engine ONLINE -- HyperCode self-healing active")
     guard_active = False
 
@@ -667,31 +706,8 @@ async def mape_k_loop(
                 logger.info("[GUARD] host-load guard cleared -- restarts allowed again")
             guard_active = guard.hold
 
-        for service in services:
-            try:
-                status, response_ms = await monitor(service)
-                is_anomaly, reason, z_score = analyze(
-                    service, status, response_ms, kb
-                )
-                service.last_status = status
-                maybe_reset_backoff(service)
-
-                if is_anomaly:
-                    # WARNING once per episode (it stays an anomaly every 10 s until the service is healthy again)
-                    log = logger.debug if service.anomaly_logged else logger.warning
-                    service.anomaly_logged = True
-                    log(
-                        "[ANALYZE] %s anomaly detected! status=%s z=%.1f -- %s",
-                        service.name, status.value, z_score, reason,
-                    )
-                    action = plan(service, status, reason, kb, guard)
-                    if action != HealAction.NO_ACTION:
-                        schedule_heal(service, action, reason, kb)
-
-            except Exception as exc:
-                logger.error(
-                    "[MAPE-K] Error processing %s: %s", service.name, exc
-                )
+        sem = asyncio.Semaphore(max(1, HEALER_PROBE_CONCURRENCY))
+        await asyncio.gather(*(_cycle_one(service, kb, guard, sem) for service in services))
 
         cycle_time = time.time() - cycle_start
         await asyncio.sleep(max(0.0, interval_seconds - cycle_time))
