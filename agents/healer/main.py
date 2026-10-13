@@ -45,6 +45,7 @@ from agents.shared.event_bus import AgentEventBus
 # ── MAPE-K imports (absolute — resolved via sys.path above) ────────────────────────────────────
 from mape_k_api import router as mape_k_router
 from mape_k_engine import KnowledgeBase, mape_k_loop, DEFAULT_SERVICES
+from mape_k_engine import configure_logging as configure_mape_k_logging
 from mape_k_api import set_knowledge_base
 
 # ── Logging ────────────────────────────────────────────────────────────────────────────────────
@@ -69,6 +70,8 @@ handler.setFormatter(JSONFormatter())
 logger = logging.getLogger("healer.main")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
+# The MAPE-K engine logs through its own "mape_k" logger; without this its INFO lines (recoveries etc.) are dropped.
+configure_mape_k_logging(handler)
 
 # ── Config ────────────────────────────────────────────────────────────────────────────────────
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379")

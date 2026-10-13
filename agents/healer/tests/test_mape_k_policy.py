@@ -252,3 +252,74 @@ async def test_loop_keeps_probing_other_services_while_one_is_healing(monkeypatc
     # Other was probed many times even though Slow's heal was "running" the whole time
     assert probes["Other"] >= 5
     assert slow.healing is False or probes["Slow"] >= 1
+
+# ------------------------------------------------------------------ logging: the success path must be visible
+import io  # noqa: E402
+import logging  # noqa: E402
+
+
+def _capture_handler():
+    buf = io.StringIO()
+    h = logging.StreamHandler(buf)
+    h.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    return h, buf
+
+
+@pytest.fixture
+def _restore_mape_logger():
+    lg = eng.logger
+    saved = (lg.level, list(lg.handlers), lg.propagate)
+    yield lg
+    lg.setLevel(saved[0])
+    lg.handlers[:] = saved[1]
+    lg.propagate = saved[2]
+
+
+def test_configure_logging_emits_info_that_was_previously_dropped(_restore_mape_logger):
+    """Before: the 'mape_k' logger had no handler, so only WARNING+ reached docker logs (via the last-resort handler)."""
+    lg = _restore_mape_logger
+    lg.handlers.clear()
+    h, buf = _capture_handler()
+    eng.configure_logging(h)
+    lg.info("[EXECUTE] Svc recovered in 4.2s")
+    lg.debug("[PLAN] Svc -- cooldown active, skipping heal")
+    out = buf.getvalue()
+    assert "INFO [EXECUTE] Svc recovered in 4.2s" in out
+    assert "cooldown active" not in out  # DEBUG noise stays off at the default level
+    assert lg.propagate is False
+
+
+def test_configure_logging_is_idempotent_and_level_overridable(_restore_mape_logger):
+    lg = _restore_mape_logger
+    lg.handlers.clear()
+    h, buf = _capture_handler()
+    eng.configure_logging(h)
+    eng.configure_logging(h)
+    assert lg.handlers.count(h) == 1
+    eng.configure_logging(h, level="WARNING")
+    lg.info("quiet")
+    lg.warning("loud")
+    assert "quiet" not in buf.getvalue() and "loud" in buf.getvalue()
+
+
+async def test_recovery_is_logged_when_a_restart_succeeds(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger="mape_k")
+    svc, kb = make_service(startup_grace_seconds=30.0), KnowledgeBase()
+    _script_monitor(monkeypatch, [C, H])
+    await execute(svc, HealAction.DOCKER_RESTART, "t", kb)
+    assert "recovered in" in caplog.text
+    assert "Docker restart sent" in caplog.text
+
+
+def test_plan_skip_notices_are_debug_not_info(caplog):
+    caplog.set_level(logging.INFO, logger="mape_k")
+    svc, kb = make_service(), KnowledgeBase()
+    svc.healing = True
+    plan(svc, C, "x", kb)
+    svc.healing = False
+    svc.last_healed = time.time()
+    plan(svc, C, "x", kb)
+    svc.last_healed = None
+    svc.backoff_until = time.time() + 60
+    plan(svc, C, "x", kb)
+    assert "skipping" not in caplog.text

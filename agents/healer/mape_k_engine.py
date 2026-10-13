@@ -49,6 +49,21 @@ except ImportError:
 logger = logging.getLogger("mape_k")
 
 
+def configure_logging(handler: logging.Handler, level: Optional[str] = None) -> None:
+    """Attach `handler` to the "mape_k" logger so its INFO messages are actually emitted.
+
+    main.py only configured the "healer.main" logger. "mape_k" had no handler, so Python's last-resort handler
+    printed WARNING and above only: the success path (`recovered in Ns`, `Docker restart sent`, backoff resets) is
+    logged at INFO and was therefore invisible in `docker logs`, which made successful heals look like they never
+    happened. Level defaults to INFO; override with HEALER_LOG_LEVEL (e.g. DEBUG, WARNING).
+    """
+    name = (level or os.getenv("HEALER_LOG_LEVEL", "INFO")).upper()
+    logger.setLevel(getattr(logging, name, logging.INFO))
+    if handler not in logger.handlers:
+        logger.addHandler(handler)
+    logger.propagate = False  # the handler is attached here; do not also emit via the root logger
+
+
 # ------------------------------------
 # ENUMS
 # ------------------------------------
@@ -263,20 +278,20 @@ def plan(
 ) -> HealAction:
     """Choose best heal action based on config and historical success rates."""
     if service.healing:
-        logger.info("[PLAN] %s -- a heal is already in flight, skipping", service.name)
+        logger.debug("[PLAN] %s -- a heal is already in flight, skipping", service.name)
         return HealAction.NO_ACTION
 
     # Exponential backoff — stop looping after repeated failed heals
     if service.backoff_until is not None and time.time() < service.backoff_until:
         remaining = int(service.backoff_until - time.time())
-        logger.info(
+        logger.debug(
             "[PLAN] %s -- backoff active after %d failed heals (%ds remaining), skipping",
             service.name, service.consecutive_failed_heals, remaining,
         )
         return HealAction.NO_ACTION
 
     if service.last_healed and (time.time() - service.last_healed) < HEALER_COOLDOWN_SECONDS:
-        logger.info("[PLAN] %s -- cooldown active, skipping heal", service.name)
+        logger.debug("[PLAN] %s -- cooldown active, skipping heal", service.name)
         return HealAction.NO_ACTION
 
     if not service.critical:
