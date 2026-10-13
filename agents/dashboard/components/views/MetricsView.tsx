@@ -22,7 +22,7 @@ export function MetricsView(): React.JSX.Element {
     refetch()
   }
 
-  if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>\u23F3 Loading metrics...</div>
+  if (loading) return <div style={{ color: 'var(--text-secondary)', padding: 16 }}>⏳ Loading metrics...</div>
 
   const rows = [
     { label: 'API Requests/min',  value: metrics?.requestsPerMin  ?? '—', colour: 'var(--accent-cyan)'   },
