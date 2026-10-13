@@ -14,6 +14,8 @@ on:
       - "agents/Dockerfile.base"
       - "services/hypercode-mcp-server/**"
       - "services/agent-spawner/**"
+      - "memstream/**"
+      - "services/skillweaver/**"
       - ".github/workflows/agent-images-check.yml"
   workflow_dispatch:
 
@@ -52,6 +54,21 @@ jobs:
             context: services/agent-spawner
             file: services/agent-spawner/Dockerfile
             check: "sh -c 'docker --version && docker compose version'"
+          - name: memstream
+            context: memstream
+            file: memstream/Dockerfile
+            check: |
+              test "$(id -u)" != 0
+              (python app.py >/tmp/app.log 2>&1 &)
+              sleep 4
+              curl -fsS http://localhost:8009/health
+          - name: skillweaver
+            context: .
+            file: services/skillweaver/Dockerfile
+            check: |
+              test "$(id -u)" != 0
+              touch /app/logs/.w && rm /app/logs/.w
+              python -c "import services.skillweaver.server as s; print('import ok', s.app.title)"
           - name: coder
             context: agents/coder
             file: agents/coder/Dockerfile

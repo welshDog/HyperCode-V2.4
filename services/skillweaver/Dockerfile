@@ -21,7 +21,9 @@ COPY services/__init__.py /app/services/__init__.py
 COPY services/skillweaver/ /app/services/skillweaver/
 
 # Create necessary directories + run as non-root (uid 1000), same pattern as agents/*
-RUN mkdir -p /app/logs     && useradd --create-home --uid 1000 appuser     && chown -R appuser:appuser /app
+RUN mkdir -p /app/logs && \
+    useradd --create-home --uid 1000 appuser && \
+    chown -R appuser:appuser /app
 USER appuser
 
 # Health check
