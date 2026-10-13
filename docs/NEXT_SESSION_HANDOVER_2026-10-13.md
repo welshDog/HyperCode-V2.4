@@ -59,9 +59,15 @@
 4. `hypercode-dashboard` flaps unhealthy; `crew-orchestrator` has no fully pinned lockfile; CodeRabbit never posts a review (rate limited).
 5. The `remember` plugin SessionStart hook is slow (~30 s average).
 
+## ✅ Dashboard fixed (2026-10-13 ~10:07 BST)
+
+- **Cause:** `hypercode-dashboard` was "unhealthy" for ~19 h with the app fine (HTTP 200 on :8088). `docker exec` into it failed with `open /var/lib/docker/rootfs/overlayfs/<id>: no such file or directory` (missing container rootfs mount in the Docker VM), so its `docker exec`-based health probe could never run (failing streak 2253). It began right after the healer's `docker_restart` of it at 12 Oct 13:30:58Z (Z-score anomaly) under heavy build load; the healer had restarted it 4 times since 11 Oct evening. Only this one container of 35 was affected. The exact mechanism is not proven (Docker's events for that window were not retained).
+- **Fix:** waited for the VM to calm (load ~4.5, CPU pressure <10%, WSL avail >1200 MB), then `docker compose <4-file set> --profile agents up -d --no-deps --no-build --force-recreate dashboard` (service name is `dashboard`, container `hypercode-dashboard`). Healthy, 0 restarts, `/`, `/ide`, `/api/health` 200. Rollback tag `hypercode-v24-dashboard:pre-recreate-20261013`. **A plain restart would not have fixed it; recreate.**
+- Two never-started leftovers removed (`wonderful_poitras` postgres + its empty anonymous volume, `20d5073ea64c_skillweaver`); the real `skillweaver` untouched. The dashboard's "System Health: CRITICAL" banner is expected (stopped obs stack, celery-worker, agents outside the local stack).
+
 ## ▶️ NEXT TASK (one sentence)
 
-Look at why `hypercode-dashboard` fails its health probe with a Docker overlayfs "no such file" error (restarts=0, so the healer isn't fixing it): inspect it, and recreate the container if the rootfs is genuinely broken (RAM guard first).
+Find out why the healer keeps `docker_restart`-ing the dashboard/core on latency Z-score anomalies under load (4 dashboard restarts in 16 h; the last one is what broke its rootfs), and decide whether to raise the threshold or back off during builds.
 
 ## Gotchas learned (also in memory `hypercode-ci-image-scanning-trivy-2026-10-13`)
 
