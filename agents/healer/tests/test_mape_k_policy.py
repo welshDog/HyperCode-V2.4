@@ -323,3 +323,193 @@ def test_plan_skip_notices_are_debug_not_info(caplog):
     svc.backoff_until = time.time() + 60
     plan(svc, C, "x", kb)
     assert "skipping" not in caplog.text
+
+# ------------------------------------------------------------------ host-load guard
+from mape_k_engine import GuardDecision, HostLoad, evaluate_guard, read_host_load  # noqa: E402
+
+CALM = HostLoad(loadavg1=0.5, ncpu=4, cpu_pressure10=5.0, mem_available_mb=1500.0)
+BUSY = HostLoad(loadavg1=12.0, ncpu=4, cpu_pressure10=75.0, mem_available_mb=1500.0)
+
+
+@pytest.fixture(autouse=True)
+def _calm_host_by_default(monkeypatch):
+    """Tests must not depend on the load of the machine running them."""
+    monkeypatch.setattr(eng, "read_host_load", lambda *a, **k: CALM)
+
+
+def _write_proc(root: Path, load="0.50 0.60 0.70 1/100 1", psi="some avg10=5.00 avg60=4.00 avg300=3.00 total=1", mem="MemAvailable:    1536000 kB"):
+    (root / "pressure").mkdir(parents=True, exist_ok=True)
+    if load is not None:
+        (root / "loadavg").write_text(load)
+    if psi is not None:
+        (root / "pressure" / "cpu").write_text(psi + "\n")
+    if mem is not None:
+        (root / "meminfo").write_text("MemTotal: 4000000 kB\n" + mem + "\n")
+
+
+def test_read_host_load_parses_proc_files(tmp_path):
+    _write_proc(tmp_path, load="12.34 8.00 5.00 3/100 9", psi="some avg10=73.28 avg60=60.43 avg300=42.36 total=1", mem="MemAvailable:    1048576 kB")
+    h = read_host_load(str(tmp_path))
+    assert h.loadavg1 == pytest.approx(12.34)
+    assert h.cpu_pressure10 == pytest.approx(73.28)
+    assert h.mem_available_mb == pytest.approx(1024.0)
+    assert h.ncpu >= 1
+
+
+def test_read_host_load_leaves_unreadable_signals_none(tmp_path):
+    h = read_host_load(str(tmp_path / "does-not-exist"))
+    assert h.loadavg1 is None and h.cpu_pressure10 is None and h.mem_available_mb is None
+    _write_proc(tmp_path, load="garbage", psi=None, mem=None)
+    h = read_host_load(str(tmp_path))
+    assert h.loadavg1 is None and h.cpu_pressure10 is None
+
+
+def test_calm_host_does_not_hold():
+    assert evaluate_guard([make_service()], CALM) == GuardDecision(False, "")
+
+
+def test_high_cpu_pressure_holds():
+    d = evaluate_guard([make_service()], HostLoad(loadavg1=1.0, ncpu=4, cpu_pressure10=60.0, mem_available_mb=1500.0))
+    assert d.hold and "CPU pressure 60%" in d.reason
+
+
+def test_high_load_per_cpu_holds():
+    d = evaluate_guard([make_service()], HostLoad(loadavg1=9.0, ncpu=4, cpu_pressure10=5.0, mem_available_mb=1500.0))
+    assert d.hold and "load 9.0 on 4 CPUs" in d.reason
+
+
+def test_low_memory_signal_is_off_by_default_and_works_when_enabled(monkeypatch):
+    low = HostLoad(loadavg1=0.5, ncpu=4, cpu_pressure10=5.0, mem_available_mb=900.0)
+    assert evaluate_guard([make_service()], low).hold is False
+    monkeypatch.setattr(eng, "HEALER_LOAD_GUARD_MIN_MEM_MB", 1000.0)
+    d = evaluate_guard([make_service()], low)
+    assert d.hold and "900 MB" in d.reason
+
+
+def test_unreadable_load_fails_open():
+    assert evaluate_guard([make_service()], HostLoad()).hold is False
+
+
+def test_guard_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(eng, "HEALER_LOAD_GUARD_ENABLED", False)
+    assert evaluate_guard([make_service()], BUSY).hold is False
+
+
+def _recently_healthy_but_down(name, age=30.0):
+    s = make_service()
+    s.name = name
+    s.last_status = C
+    s.last_healthy_at = time.time() - age
+    return s
+
+
+def test_two_services_newly_unhealthy_at_once_is_systemic():
+    d = evaluate_guard([_recently_healthy_but_down("A"), _recently_healthy_but_down("B")], CALM)
+    assert d.hold and "2 services went unhealthy at once" in d.reason
+
+
+def test_a_single_unhealthy_service_is_not_systemic():
+    assert evaluate_guard([_recently_healthy_but_down("A"), make_service()], CALM).hold is False
+
+
+def test_services_down_for_days_are_not_counted():
+    """The stopped observability stack must not make every real failure look systemic."""
+    stopped = [make_service() for _ in range(3)]
+    for s in stopped:
+        s.last_status = C
+        s.last_healthy_at = None
+    assert evaluate_guard([*stopped, _recently_healthy_but_down("A")], CALM).hold is False
+    old = _recently_healthy_but_down("B", age=eng.HEALER_LOAD_GUARD_RECENT_HEALTHY_SECONDS + 60)
+    assert evaluate_guard([old, _recently_healthy_but_down("A")], CALM).hold is False
+
+
+# ------------------------------------------------------------------ guard in plan()
+HOLD = GuardDecision(hold=True, reason="CPU pressure 75% >= 50%")
+
+
+def test_restart_is_held_while_guard_is_active():
+    svc, kb = make_service(), KnowledgeBase()
+    assert plan(svc, C, "x", kb, HOLD) == HealAction.NO_ACTION
+    assert svc.guard_since is not None
+
+
+def test_restart_is_allowed_when_guard_is_inactive_or_absent():
+    kb = KnowledgeBase()
+    assert plan(make_service(), C, "x", kb, GuardDecision()) == HealAction.DOCKER_RESTART
+    assert plan(make_service(), C, "x", kb) == HealAction.DOCKER_RESTART
+
+
+def test_alert_only_is_never_held():
+    assert plan(make_service(critical=False), C, "x", KnowledgeBase(), HOLD) == HealAction.ALERT_ONLY
+
+
+def test_http_restart_is_held_too():
+    svc = make_service()
+    svc.restart_url = "http://svc/restart"
+    assert plan(svc, C, "x", KnowledgeBase(), HOLD) == HealAction.NO_ACTION
+
+
+def test_held_restart_is_released_once_the_guard_clears():
+    svc, kb = make_service(), KnowledgeBase()
+    plan(svc, C, "x", kb, HOLD)
+    assert plan(svc, C, "x", kb, GuardDecision()) == HealAction.DOCKER_RESTART
+    assert svc.guard_since is None
+
+
+def test_a_service_held_too_long_is_restarted_anyway(monkeypatch):
+    """A real outage under sustained load must still get fixed."""
+    svc, kb = make_service(), KnowledgeBase()
+    monkeypatch.setattr(eng, "HEALER_LOAD_GUARD_MAX_HOLD_SECONDS", 600.0)
+    plan(svc, C, "x", kb, HOLD)
+    svc.guard_since = time.time() - 601
+    assert plan(svc, C, "x", kb, HOLD) == HealAction.DOCKER_RESTART
+
+
+def test_hold_is_logged_once_not_every_cycle(caplog):
+    caplog.set_level(logging.WARNING, logger="mape_k")
+    svc, kb = make_service(), KnowledgeBase()
+    for _ in range(5):
+        plan(svc, C, "x", kb, HOLD)
+    assert caplog.text.count("restart HELD") == 1
+
+
+def test_healthy_probe_clears_a_pending_hold_and_records_the_time():
+    svc, kb = make_service(), KnowledgeBase()
+    svc.guard_since = time.time() - 30
+    analyze(svc, H, 100.0, kb)
+    assert svc.guard_since is None
+    assert svc.last_healthy_at is not None and time.time() - svc.last_healthy_at < 5
+
+
+# ------------------------------------------------------------------ guard in the loop
+async def test_loop_holds_restarts_under_load_then_releases(monkeypatch):
+    svc = make_service()
+    svc.name = "Down"
+    started: list[str] = []
+    state = {"load": BUSY}
+
+    async def fake_monitor(_s):
+        return C, 5000.0
+
+    def fake_schedule(service, action, reason, kb):
+        started.append(service.name)
+        service.healing = False
+
+    monkeypatch.setattr(eng, "monitor", fake_monitor)
+    monkeypatch.setattr(eng, "schedule_heal", fake_schedule)
+    monkeypatch.setattr(eng, "read_host_load", lambda *a, **k: state["load"])
+    monkeypatch.setattr(eng, "HEALER_RESTART_MIN_CONSECUTIVE", 1)
+    monkeypatch.setattr(eng, "HEALER_COOLDOWN_SECONDS", 0)
+    loop_task = asyncio.create_task(eng.mape_k_loop([svc], KnowledgeBase(), interval_seconds=0.02))
+    await asyncio.sleep(0.3)
+    held_restarts = len(started)
+    state["load"] = CALM
+    await asyncio.sleep(0.3)
+    loop_task.cancel()
+    try:
+        await loop_task
+    except asyncio.CancelledError:
+        pass
+    assert held_restarts == 0           # nothing restarted while the host was busy
+    assert len(started) >= 1            # restarted once the guard cleared
+    assert svc.guard_since is None
