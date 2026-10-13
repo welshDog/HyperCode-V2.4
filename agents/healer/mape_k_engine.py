@@ -26,6 +26,17 @@ HEALER_MAX_RESTART_ATTEMPTS: int = int(os.getenv("HEALER_MAX_RESTART_ATTEMPTS", 
 HEALER_BACKOFF_BASE_SECONDS: int = int(os.getenv("HEALER_BACKOFF_BASE_SECONDS", "300"))   # 5 min base
 HEALER_MAX_BACKOFF_SECONDS:  int = int(os.getenv("HEALER_MAX_BACKOFF_SECONDS",  "1800"))  # 30 min cap
 
+# Restart policy -- tuneable via env vars.
+# A restart needs this many CONSECUTIVE bad probes (one slow/failed probe under host load must not restart a
+# service: restarting hypercode-core costs ~90 s of downtime on this host, the dashboard's last restart broke its rootfs).
+HEALER_RESTART_MIN_CONSECUTIVE: int = int(os.getenv("HEALER_RESTART_MIN_CONSECUTIVE", "3"))
+# After a restart, poll this often (up to the service's startup_grace_seconds) before deciding the heal failed.
+HEALER_VERIFY_POLL_SECONDS: float = float(os.getenv("HEALER_VERIFY_POLL_SECONDS", "5"))
+# This many consecutive HEALTHY probes (~1 min at the default 10 s loop) clear the failed-heal counter and backoff,
+# so a service that recovered on its own is not stuck at the maximum backoff forever.
+HEALER_RESET_AFTER_HEALTHY: int = int(os.getenv("HEALER_RESET_AFTER_HEALTHY", "6"))
+HEALER_COOLDOWN_SECONDS: int = int(os.getenv("HEALER_COOLDOWN_SECONDS", "60"))
+
 import httpx
 
 try:
@@ -75,11 +86,16 @@ class ServiceConfig:
     compose_name: Optional[str] = None
     restart_url: Optional[str] = None
     critical: bool = True
+    probe_timeout: float = 5.0           # seconds a health probe may take before it counts as CRITICAL
+    startup_grace_seconds: float = 30.0  # how long a restarted service gets to turn HEALTHY before the heal is "failed"
     history: deque[tuple[float, ServiceStatus, float]] = field(
         default_factory=lambda: deque(maxlen=60)
     )
     last_status: ServiceStatus = ServiceStatus.UNKNOWN
-    consecutive_failures: int = 0
+    consecutive_failures: int = 0   # streak of hard failures (probe error/timeout)
+    consecutive_unhealthy: int = 0  # streak of any non-HEALTHY probe (hard failure or 5xx)
+    healthy_streak: int = 0         # streak of HEALTHY probes
+    healing: bool = False           # a restart is in flight / being verified: do not plan another
     total_heals: int = 0
     last_healed: Optional[float] = None
     consecutive_failed_heals: int = 0
@@ -164,7 +180,7 @@ async def monitor(service: ServiceConfig) -> tuple[ServiceStatus, float]:
     """Poll a service health endpoint; return (status, response_time_ms)."""
     start = time.monotonic()
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=service.probe_timeout) as client:
             resp = await client.get(service.check_url)
         elapsed = (time.monotonic() - start) * 1000
         status = ServiceStatus.HEALTHY if resp.status_code < 500 else ServiceStatus.DEGRADED
@@ -204,17 +220,32 @@ def analyze(
     else:
         service.consecutive_failures = 0
 
-    if current_status == ServiceStatus.CRITICAL and service.consecutive_failures >= 2:
+    if current_status == ServiceStatus.HEALTHY:
+        service.consecutive_unhealthy = 0
+        service.healthy_streak += 1
+    else:
+        service.consecutive_unhealthy += 1
+        service.healthy_streak = 0
+
+    need = HEALER_RESTART_MIN_CONSECUTIVE
+
+    if current_status == ServiceStatus.CRITICAL and service.consecutive_failures >= need:
         return True, f"CRITICAL: {service.consecutive_failures} consecutive failures", z_score
 
-    if current_status == ServiceStatus.DEGRADED and service.consecutive_failures >= 3:
+    if current_status == ServiceStatus.DEGRADED and service.consecutive_unhealthy >= need:
         return (
             True,
-            f"DEGRADED: {service.consecutive_failures} consecutive slow responses",
+            f"DEGRADED: {service.consecutive_unhealthy} consecutive slow responses",
             z_score,
         )
 
-    if z_score > 3.0 and current_status != ServiceStatus.HEALTHY:
+    # A latency outlier alone is not enough: it must persist for `need` probes, otherwise a single slow
+    # response while the host is busy restarts a perfectly good service.
+    if (
+        z_score > 3.0
+        and current_status != ServiceStatus.HEALTHY
+        and service.consecutive_unhealthy >= need
+    ):
         return True, f"ANOMALY: Z-score={z_score:.1f} (threshold=3.0)", z_score
 
     return False, "nominal", z_score
@@ -231,6 +262,10 @@ def plan(
     kb: KnowledgeBase,
 ) -> HealAction:
     """Choose best heal action based on config and historical success rates."""
+    if service.healing:
+        logger.info("[PLAN] %s -- a heal is already in flight, skipping", service.name)
+        return HealAction.NO_ACTION
+
     # Exponential backoff — stop looping after repeated failed heals
     if service.backoff_until is not None and time.time() < service.backoff_until:
         remaining = int(service.backoff_until - time.time())
@@ -240,7 +275,7 @@ def plan(
         )
         return HealAction.NO_ACTION
 
-    if service.last_healed and (time.time() - service.last_healed) < 60:
+    if service.last_healed and (time.time() - service.last_healed) < HEALER_COOLDOWN_SECONDS:
         logger.info("[PLAN] %s -- cooldown active, skipping heal", service.name)
         return HealAction.NO_ACTION
 
@@ -315,15 +350,26 @@ async def execute(
 
     mttr: Optional[float] = None
     if success and action not in (HealAction.NO_ACTION, HealAction.ALERT_ONLY):
-        await asyncio.sleep(5)
-        post_status, _ = await monitor(service)
-        if post_status == ServiceStatus.HEALTHY:
+        # A restarted service needs time to boot (hypercode-core ~90-230 s on this host): judging it after one
+        # 5 s probe recorded EVERY restart as failed. Poll until it is HEALTHY or its grace period runs out.
+        deadline = time.monotonic() + service.startup_grace_seconds
+        recovered = False
+        while True:
+            await asyncio.sleep(HEALER_VERIFY_POLL_SECONDS)
+            post_status, _ = await monitor(service)
+            if post_status == ServiceStatus.HEALTHY:
+                recovered = True
+                break
+            if time.monotonic() >= deadline:
+                break
+        if recovered:
             mttr = round(time.time() - started_at, 1)
             logger.info("[EXECUTE] %s recovered in %ss", service.name, mttr)
         else:
             success = False
             logger.warning(
-                "[EXECUTE] %s still unhealthy after heal", service.name
+                "[EXECUTE] %s still unhealthy after heal (waited %ss)",
+                service.name, int(service.startup_grace_seconds),
             )
 
     service.total_heals += 1
@@ -385,6 +431,53 @@ async def execute(
 
 
 # ------------------------------------
+# HEAL SCHEDULING + BACKOFF RESET
+# ------------------------------------
+
+_background_heals: set[asyncio.Task[None]] = set()
+
+
+def maybe_reset_backoff(service: ServiceConfig) -> bool:
+    """Clear failed-heal state once a service has been HEALTHY long enough. Returns True if it reset."""
+    if (
+        service.healthy_streak >= HEALER_RESET_AFTER_HEALTHY
+        and not service.healing
+        and (service.consecutive_failed_heals > 0 or service.backoff_until is not None)
+    ):
+        logger.info(
+            "[MAPE-K] %s healthy for %d probes -- resetting backoff (was %d failed heals)",
+            service.name, service.healthy_streak, service.consecutive_failed_heals,
+        )
+        service.consecutive_failed_heals = 0
+        service.backoff_until = None
+        return True
+    return False
+
+
+async def _run_heal(
+    service: ServiceConfig, action: HealAction, reason: str, kb: KnowledgeBase
+) -> None:
+    """Run one heal (incl. its post-restart verification) off the main loop; always clear `healing`."""
+    try:
+        await execute(service, action, reason, kb)
+    except Exception as exc:
+        logger.error("[MAPE-K] Heal of %s failed unexpectedly: %s", service.name, exc)
+    finally:
+        service.healing = False
+
+
+def schedule_heal(
+    service: ServiceConfig, action: HealAction, reason: str, kb: KnowledgeBase
+) -> asyncio.Task[None]:
+    """Start a heal in the background so verifying a slow-booting service never blocks monitoring of the rest."""
+    service.healing = True
+    task = asyncio.create_task(_run_heal(service, action, reason, kb))
+    _background_heals.add(task)
+    task.add_done_callback(_background_heals.discard)
+    return task
+
+
+# ------------------------------------
 # MAPE-K MAIN LOOP
 # ------------------------------------
 
@@ -406,6 +499,7 @@ async def mape_k_loop(
                     service, status, response_ms, kb
                 )
                 service.last_status = status
+                maybe_reset_backoff(service)
 
                 if is_anomaly:
                     logger.warning(
@@ -414,7 +508,7 @@ async def mape_k_loop(
                     )
                     action = plan(service, status, reason, kb)
                     if action != HealAction.NO_ACTION:
-                        _ = await execute(service, action, reason, kb)
+                        schedule_heal(service, action, reason, kb)
 
             except Exception as exc:
                 logger.error(
@@ -433,16 +527,21 @@ async def mape_k_loop(
 DEFAULT_SERVICES: list[ServiceConfig] = [
     ServiceConfig(
         "HyperCode Backend", 8000,
-        "http://hypercode-core:8000/health", "hypercode-core"),
+        "http://hypercode-core:8000/health", "hypercode-core",
+        probe_timeout=10.0, startup_grace_seconds=240.0),  # cold start is ~90-230 s (import time)
     ServiceConfig(
         "Healer Agent", 8008,
         "http://healer-agent:8008/health", "healer-agent", critical=False),
+    # Alert-only: a docker restart of the dashboard under host load left it with a missing rootfs on 2026-10-12
+    # (exec failed, probe unhealthy for ~19 h). Latency on the dashboard is not worth a restart; a human decides.
     ServiceConfig(
         "Mission Control", 3000,
-        "http://hypercode-dashboard:3000/health", "hypercode-dashboard"),
+        "http://hypercode-dashboard:3000/health", "hypercode-dashboard",
+        critical=False, probe_timeout=10.0, startup_grace_seconds=90.0),
     ServiceConfig(
         "Ollama LLM", 11434,
-        "http://hypercode-ollama:11434/api/tags", "hypercode-ollama"),
+        "http://hypercode-ollama:11434/api/tags", "hypercode-ollama",
+        startup_grace_seconds=60.0),
     ServiceConfig(
         "Prometheus", 9090,
         "http://prometheus:9090/-/healthy", "prometheus", critical=False),
