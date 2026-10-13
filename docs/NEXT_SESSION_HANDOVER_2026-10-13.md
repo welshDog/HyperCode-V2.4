@@ -1,6 +1,6 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-13 (CI image scanning + runtime tests)
 
-> Scope of this session: **CI / published images, then live rollouts.** `coder-agent` (CI image), `hypercode-dashboard` (UI fixes) and `healer-agent` (new restart policy) were rolled in the live stack
+> Scope of this session: **CI / published images, then live rollouts.** `coder-agent` (CI image), `hypercode-dashboard` (UI fixes, then the CI-built image with the `next` CVE fix) and `healer-agent` (new restart policy) were rolled in the live stack
 > (see the dated sections below); nothing else in the live stack was changed. `main` at the time of writing: `cbfacc7e` (+ this docs update).
 > Older handover for the HyperCrew / live-stack side: `docs/NEXT_SESSION_HANDOVER_2026-10-03.md`.
 
@@ -27,6 +27,9 @@
 | #571, #576 | memstream / mcp-server / skillweaver run non-root; memstream + skillweaver added to the PR image check (+ their own CVE fixes) |
 | #580 | coder: pin `mcp==1.28.1` inside the `docker-mcp` venv |
 | #579 | `images-integration.yml` + `scripts/ci/images-integration.sh` |
+| #584 | dashboard: raw `\u23F3` loading text + usable phone layout |
+| #586 | healer restart policy (3 consecutive bad probes, grace-period verification, backoff reset, dashboard alert-only) + `healer-policy-tests.yml` |
+| #588 | dashboard built + published by CI (`hypercode-dashboard`), in the scan/PR-check/integration test; **`next` 16.2.4 -> 16.3.8** (3 CRITICAL / ~17 HIGH) |
 | closed | #567 (one-off scan workflow, superseded) |
 
 ## 🚀 Local rollout (done 2026-10-13 ~08:35 BST)
@@ -56,8 +59,18 @@
 1. Normal (non-superuser) users get 0 RAG results (ingest stamps the superuser id) — design decision needed.
 2. `POST /memory/reset` returns a misleading 503 while Chroma runs `ALLOW_RESET=FALSE`.
 3. ~23 workflows have invalid YAML and fail instantly (see memory `hypercode-healthcheck-yaml-never-valid`).
-4. `hypercode-dashboard` flaps unhealthy; `crew-orchestrator` has no fully pinned lockfile; CodeRabbit never posts a review (rate limited).
+4. `crew-orchestrator` has no fully pinned lockfile; CodeRabbit never posts a review (rate limited). (The dashboard's unhealthy flapping is fixed: see the dashboard and healer sections.)
 5. The `remember` plugin SessionStart hook is slow (~30 s average).
+
+## ✅ Dashboard built by CI + `next` CVEs fixed + rolled out (2026-10-13 ~15:35 BST)
+
+- **Why:** the dashboard was only ever built locally, and its `next build` dipped WSL available RAM to 976 MB (stop rule 1200 MB). **PR #588 (`d9c6578e`)** builds and publishes it from CI: `dashboard` in the `push-agents` matrix of `docker-push.yml` -> `ghcr.io/welshdog/hypercode-v2.4/hypercode-dashboard:{latest,<sha>}`, built with **no build args** (same as the local compose build; `NEXT_PUBLIC_HYPER_BRAIN_URL` defaults to empty and `.env` sets neither `NEXT_PUBLIC_*` var). Also added to the 31-image `security-scan` list, to `agent-images-check.yml` (build, non-root, serves `/` and `/health`, Trivy gate) and to `scripts/ci/images-integration.sh` (incl. a `docker exec` check, the 2026-10-12 failure class).
+- **What the first CI Trivy gate found in the image we had been running:** `next` 16.2.4 with **3 CRITICAL + ~17 HIGH**, `sharp` 0.34.5 (3 HIGH), npm-bundled `tar` (1 CRITICAL, 8 HIGH) / `glob` / `minimatch` / `brace-expansion` / `sigstore` / `pacote`, and Alpine OpenSSL 3.5.6. **Fix:** `next` + `eslint-config-next` -> 16.3.8 (requires `sharp ^0.35.4`; lock resolves 0.35.5), runner stage `apk upgrade` and npm/npx/corepack/yarn removed (same pattern as hyper-architect). Verified in a clean temp copy: vitest 264/264 and `tsc --noEmit` clean on 16.3.8.
+- **Rolled out:** pulled the CI image (`01dfd9d22ca4`: next 16.3.8, npm absent, uid 1001), tagged the previous local build **`hypercode-v24-dashboard:pre-ci-image-20261013`** (`9f13f123ffc1`, rollback), retagged the CI image `hypercode-v24-dashboard:latest`, then `docker compose <4-file set> --profile agents up -d --no-deps --no-build --force-recreate dashboard` once the VM was calm. Healthy, 0 restarts, `exec` works, nothing unhealthy.
+- **Verified:** integration test **40/40** on the published image (all 5 dashboard checks); headless-browser tour on `next` 16.3.8: 14/15 steps (the one failure is my script's Grafana-link lookup, same as the baseline tour), 15 API endpoints all 200, 0 console errors, Studio / Mission Control / Flows / MCP / themes / Calm toggle fine, phone layout (390 px) and the loading-text fix still hold.
+- **Unexplained blip:** in the first tour run, seconds after the swap, `/api/agents` and `/api/crew/panic` returned HTTP 502 and two nav links did not navigate; everything returned 200 on a second run and the dashboard log was clean (core reachable from the container). Cause not identified; if it recurs after a restart, investigate (the likely suspects are core being briefly busy, or the first requests after a cold start).
+- **From now on, a dashboard change is:** merge -> CI publishes -> `docker pull` the image, retag as `hypercode-v24-dashboard:latest`, recreate with `--no-build`. No local `next build`.
+- **Not done / still true:** the dashboard's phone top bar is ~200 px tall (a collapsible menu would be a separate change); `/api/mcp/health` takes ~3.6 s; the Docker Zone page is static text with stale content; `npm audit --omit=dev` still lists 2 findings (1 high, 1 moderate) that the image gate does not flag as fixable.
 
 ## ✅ Healer restart policy fixed + rolled out (2026-10-13 ~13:32 BST)
 
@@ -84,7 +97,7 @@
 
 ## ▶️ NEXT TASK (one sentence)
 
-Let the new healer run through a real load spike or restart (watch `docker logs -t healer-agent | grep -E "docker_restart|recovered|Backing off"`), and meanwhile add a CI-built dashboard image (it is not in `docker-push.yml`, and its local Next.js build dipped RAM to 976 MB) so the next UI change doesn't need a risky local build.
+Let the new healer run through a real load spike or restart (watch `docker logs -t healer-agent | grep -E "docker_restart|recovered|Backing off"`) and confirm it now recovers instead of recording every restart as failed; if the dashboard's 502 blip shows up again after a restart, investigate it then.
 
 ## Gotchas learned (also in memory `hypercode-ci-image-scanning-trivy-2026-10-13`)
 
@@ -92,3 +105,4 @@ Let the new healer run through a real load spike or restart (watch `docker logs 
 - `workflow_dispatch` only works for workflows already on `main`; to run a PR-branch workflow use `gh run rerun <run-id>`.
 - Python heredocs collapse `\`-newline continuations (write scripts with the Write tool); read `docker-push.yml` as UTF-8.
 - Wait for pending PR checks before merging (I merged #571 with three still pending; they passed).
+- A PR that adds a check for a not-yet-published image to `images-integration.sh` makes that workflow fail on the PR (`manifest unknown`) until the image exists; merge, let the push run publish it, then re-run `gh workflow run images-integration.yml` (it passed 40/40 after #588).
