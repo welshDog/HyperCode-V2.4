@@ -2,10 +2,22 @@
 FROM python:3.9-slim
 
 # Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# apt-get upgrade picks up the patched Debian packages (openssl, perl, util-linux...)
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
+
+# Pip tool hardening - setuptools>=80 vendors patched jaraco.context; wheel 0.46.2 fixes CVE-2026-24049
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 # Copy requirements and install dependencies
 COPY requirements.txt .

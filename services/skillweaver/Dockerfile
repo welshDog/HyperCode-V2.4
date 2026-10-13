@@ -3,9 +3,18 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Pip tool hardening - setuptools>=80 vendors patched jaraco.context; wheel 0.46.2 fixes CVE-2026-24049
+RUN pip install --upgrade --no-cache-dir \
+    "pip==26.0.1" \
+    "setuptools>=80.0.0" \
+    "wheel==0.46.2" \
+    "jaraco.context>=6.0.0" \
+    "jaraco.functools>=4.1.0" \
+    "jaraco.text>=4.0.0"
 
 # Install Python dependencies (pinned to match backend/requirements.txt baseline)
 # NOTE: No python-multipart — SkillWeaver only speaks JSON, no multipart endpoints.
@@ -21,7 +30,9 @@ COPY services/__init__.py /app/services/__init__.py
 COPY services/skillweaver/ /app/services/skillweaver/
 
 # Create necessary directories + run as non-root (uid 1000), same pattern as agents/*
-RUN mkdir -p /app/logs     && useradd --create-home --uid 1000 appuser     && chown -R appuser:appuser /app
+RUN mkdir -p /app/logs && \
+    useradd --create-home --uid 1000 appuser && \
+    chown -R appuser:appuser /app
 USER appuser
 
 # Health check
