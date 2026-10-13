@@ -205,9 +205,17 @@ h1, h2, h3, h4, h5, h6, .pane-title {
 
 .hc-main {
   grid-area: main;
-  overflow: hidden;
+  /* Pages taller than the viewport (Studio / IDE) were clipped with no way to reach the rest. Scroll vertically;
+     fixed-height grids such as Mission still fit exactly, so they show no bar. min-height:0 lets the grid row shrink. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
   padding: 10px;
 }
+
+.hc-main::-webkit-scrollbar { width: 10px; }
+.hc-main::-webkit-scrollbar-thumb { border-radius: 5px; }
+.hc-main { scrollbar-width: thin; scrollbar-color: var(--accent-cyan) var(--pane-bg); }
 
 /* Small screens: the 240px sidebar column left only ~150px for content at 390px wide.
    Stack the shell instead: topbar (wraps), a horizontally scrollable nav strip, then main. */
