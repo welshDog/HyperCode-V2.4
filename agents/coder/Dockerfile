@@ -9,6 +9,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Install docker-mcp via pipx
 RUN pipx install git+https://github.com/QuantGeekDev/docker-mcp.git
+# docker-mcp declares `mcp>=1.0.0` (no upper bound), so pipx resolves mcp 2.x, which removed the
+# low-level Server.list_prompts() API it uses: `docker-mcp` crashed on launch with AttributeError
+# (found by scripts/ci/images-integration.sh). Pin the SDK below 2 inside its own venv.
+RUN pipx inject --force docker-mcp "mcp==1.28.1" && \
+    /opt/pipx/venvs/docker-mcp/bin/python -c "import docker_mcp"
 # pipx keeps a shared pip under /opt/pipx/shared that it used only to install docker-mcp.
 # pip 26.2.1 (newest release) vendors msgpack 1.1.2, urllib3 2.7.0 and setuptools 70.3.0, which
 # carry HIGH CVEs with no pip release that updates them yet. Nothing at runtime needs that pip
