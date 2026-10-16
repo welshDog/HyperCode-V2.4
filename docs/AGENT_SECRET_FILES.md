@@ -51,5 +51,11 @@ one shared value as `HYPERCODE_API_KEY` / `API_KEY`: callers send it, receivers 
 (404 = accepted, 401 = rejected). The fix is to move ALL holders to one new secret file in a single coordinated
 recreate; that rollout is not part of this code change.
 
+Check all seven at once, read-only, with `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\probe_inter_agent_key.ps1`
+(it sends each holder's own key to every peer and never prints a key). A `?` after a code means that peer also answered 404 to a
+deliberately wrong key, i.e. it does not enforce the key on `/__authprobe`; on 2026-10-16 only `coder-agent`, `qa-engineer`,
+`safety-shepherd` and `evolve-relay` enforce it there, so the probe proves nothing for `crew-orchestrator`, `coder-studio`, `governor`.
+
+
 Also: `agent-registry` auto-restarts any watched container it sees die (exit 137 after a stop or recreate), so expect
 a second start ~13 s after a manual recreate.
