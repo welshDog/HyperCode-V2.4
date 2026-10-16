@@ -20,6 +20,7 @@ from pathlib import Path
 D = Path(sys.argv[1])
 SEEN_TTL = 7776000
 PFX = "broski:xp:seen:"
+MAX_GAP_S = 30  # a marker and its stream entry are written within moments of each other; a wider gap means a wrong join
 
 
 def iso_epoch(s):
@@ -81,7 +82,7 @@ def nearest(m):
         if repo and not e.get("source", "").endswith(repo):
             continue
         d = abs(e["epoch"] - m["award_epoch"])
-        if best is None or d < best[0]:
+        if d <= MAX_GAP_S and (best is None or d < best[0]):
             best = (d, e)
     return best
 
@@ -91,8 +92,13 @@ ok = bad = 0
 mism = []
 for m in markers:
     if m["sid"] in L_by_sid:
-        d, e = nearest(m)
+        hit = nearest(m)
         row = L_by_sid[m["sid"]][0]
+        if hit is None:
+            bad += 1
+            mism.append((m["sid"], None, "(no stream entry within %ds)" % MAX_GAP_S, row["reason"][:50]))
+            continue
+        d, e = hit
         if row["reason"] == "XP: " + e.get("reason", "") and int(row["amount"]) == e["xp"]:
             ok += 1
         else:

@@ -14,7 +14,8 @@ import urllib.request
 
 path = sys.argv[1]
 dry = "--dry-run" in sys.argv
-rows = sorted(csv.DictReader(open(path, encoding="utf-8-sig")), key=lambda r: r["when_utc"])
+with open(path, encoding="utf-8-sig") as fh:
+    rows = sorted(csv.DictReader(fh), key=lambda r: r["when_utc"])
 
 # ---- validate everything BEFORE sending anything
 errs = []
@@ -44,7 +45,8 @@ if dry:
     print("DRY RUN - nothing was sent")
     sys.exit(0)
 
-key = open(os.environ["HYPERCODE_API_KEY_FILE"], encoding="utf-8-sig").read().strip()
+with open(os.environ["HYPERCODE_API_KEY_FILE"], encoding="utf-8-sig") as fh:
+    key = fh.read().strip()
 awarded = dup = 0
 awarded_xp = 0
 balance = None
