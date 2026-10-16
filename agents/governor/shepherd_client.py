@@ -14,6 +14,23 @@ from typing import Optional
 
 import httpx
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 _FALLBACK_RISK = "INFRASTRUCTURE_MUTATION"
 
 
@@ -51,7 +68,7 @@ def _url() -> str:
 
 def _headers() -> dict:
     """Auth header for Shepherd calls, or {} if no API_KEY is set."""
-    key = (os.getenv("API_KEY") or "").strip()
+    key = read_secret("API_KEY").strip()
     return {"X-Agent-Key": key} if key else {}
 
 

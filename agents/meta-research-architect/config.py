@@ -8,6 +8,23 @@ from __future__ import annotations
 
 import os
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 
 def _int(name: str, default: int) -> int:
     try:
@@ -32,7 +49,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 # --- optional shared-secret auth (matches the other V2.4 agents) -------------
 # When unset, non-health endpoints are open (fine for local dev).
-AGENT_API_KEY = (os.getenv("AGENT_API_KEY") or os.getenv("HYPERCODE_API_KEY") or "").strip()
+AGENT_API_KEY = (read_secret("AGENT_API_KEY") or read_secret("HYPERCODE_API_KEY") or "").strip()
 
 # --- research sweep ---------------------------------------------------------
 # How often the scheduled sweep runs. Default: weekly.

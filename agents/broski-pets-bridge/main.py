@@ -13,6 +13,23 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 
 def _is_true(value: str | None) -> bool:
     if value is None:
@@ -29,7 +46,7 @@ async def _agent_auth_middleware(request: Request, call_next):
     if path.startswith("/health") or path.startswith("/webhooks/") or path.startswith("/provision"):
         return await call_next(request)
 
-    expected = (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    expected = (read_secret("HYPERCODE_API_KEY") or read_secret("AGENT_API_KEY") or "").strip()
     if not expected:
         return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
 
@@ -501,7 +518,7 @@ def _award_xp_to_pet(discord_id: str, amount: int, reason: str, source: str) -> 
     if evolved and token_id and webhook:
         try:
             headers = {}
-            shared = (os.getenv("HYPERCODE_API_KEY") or "").strip()
+            shared = read_secret("HYPERCODE_API_KEY").strip()
             if shared:
                 headers["X-API-Key"] = shared
             with httpx.Client(timeout=3.0, headers=headers) as client:

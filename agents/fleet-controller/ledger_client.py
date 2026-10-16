@@ -21,6 +21,23 @@ import httpx
 from models import CapabilityView, PlanRequest
 from safety_client import SafetyResult
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 LEDGER_PATH = "/api/v1/governance/ledger"
 
 _client: Optional[httpx.AsyncClient] = None
@@ -30,7 +47,7 @@ _tasks: set[asyncio.Task] = set()
 def init() -> None:
     """Create the ledger client if CORE_AGENT_KEY is configured. Call from lifespan startup."""
     global _client
-    key = (os.getenv("CORE_AGENT_KEY") or "").strip()
+    key = read_secret("CORE_AGENT_KEY").strip()
     if not key:
         return
     core_url = (os.getenv("CORE_URL") or "http://hypercode-core:8000").rstrip("/")
