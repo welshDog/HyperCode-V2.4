@@ -3,12 +3,15 @@
 #   - freshness: newest Postgres dump, stores set, C: mirror dump, Google Drive archive
 #   - disk space (H:, C:), 7z present, passphrase file present
 #   - Redis: memory % of cap (>= -RedisWarnPct, default 70), eviction policy must be volatile-lru, no evicted keys
+#   - Core auth: any 401/403 from a container to hypercode-core since the previous run (stale/wrong API keys)
 # Alerts go to the Discord health webhook (DISCORD_HEALTH_WEBHOOK in .env, never printed/logged) and a Windows
 # toast as fallback. Dedupe: one alert per distinct problem set, repeated at most every 12 h; a "recovered" message
 # is sent once when everything is healthy again. Messages contain status text only - no secrets.
 # Usage: ./scripts/backup_watchdog.ps1 [-DryRun] [-Test] [-MaxAgeHours 26]
 #   -DryRun   print findings, send nothing, don't touch state      -Test  send a one-off test message
-param([switch]$DryRun, [switch]$Test, [double]$MaxAgeHours = 26, [double]$RedisWarnPct = 70)
+param([switch]$DryRun, [switch]$Test, [double]$MaxAgeHours = 26, [double]$RedisWarnPct = 70,
+      [double]$AuthWindowHours = 0,   # 0 = since the previous run (clamped 2h..26h)
+      [string]$CoreLogPath = '')      # test hook: read core's access log from a file instead of `docker logs`
 $ErrorActionPreference = 'Stop'
 $Repo     = Split-Path -Parent $PSScriptRoot
 $Backups  = Join-Path $Repo 'backups'
@@ -109,6 +112,44 @@ try {
     if ([int64]$ri['evicted_keys'] -gt 0) { $problems.Add("Redis has evicted $($ri['evicted_keys']) key(s) since its last restart - memory pressure") }
 } catch { $problems.Add('Redis is not reachable via docker exec (container down or Docker stopped)') }
 
+# ---- Core authentication failures (stale / wrong agent API keys) ----
+# Why: after the 2026-10-15 key rotation 8 agents kept the OLD master key and the healer used the literal
+# "dev-master-key"; core answered 401/403 and nothing alerted (the XP sink and healer events failed silently).
+# Looks only at the period since the previous run, and only at CONTAINER callers (the docker gateway .1 is the
+# host/browser, whose expired tokens are normal noise). Message omits counts so the alert de-duplicates.
+try {
+    $st0 = if (Test-Path $State) { Get-Content $State -Raw | ConvertFrom-Json } else { $null }
+    $mins = if ($AuthWindowHours -gt 0) { [int]($AuthWindowHours * 60) }
+            elseif ($st0 -and $st0.lastCheck) { [int][math]::Min(1560, [math]::Max(120, ((Get-Date) - [datetime]$st0.lastCheck).TotalMinutes + 2)) }
+            else { 1560 }
+    if ($CoreLogPath) { $logLines = Get-Content $CoreLogPath }
+    else {
+        $logLines = & { $ErrorActionPreference = 'Continue'; docker logs hypercode-core --since "${mins}m" 2>&1 }
+        if ($LASTEXITCODE -ne 0) { throw 'docker logs failed' }
+    }
+    $ipmap = @{}
+    if (-not $CoreLogPath) {
+        foreach ($cid in (docker ps -q)) {
+            $l = docker inspect $cid --format '{{.Name}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}'
+            $p = ($l.Trim() -split '\s+'); for ($i = 1; $i -lt $p.Count; $i++) { if ($p[$i]) { $ipmap[$p[$i]] = $p[0].TrimStart('/') } }
+        }
+    }
+    $seen = New-Object 'System.Collections.Generic.SortedSet[string]'
+    foreach ($ln in $logLines) {
+        if ($ln -notmatch '^INFO:\s+(\d+\.\d+\.\d+\.\d+):\d+ - "(\w+) (\S+) HTTP/[\d.]+" (401|403)\b') { continue }
+        $ip = $Matches[1]; $meth = $Matches[2]; $code = $Matches[4]
+        $path = ($Matches[3] -split '\?')[0] -replace '/[0-9a-f]{8}-[0-9a-f-]{27}', '/<id>' -replace '/\d+', '/<n>'
+        if ($path -match '^/(api/v1/)?(health|metrics)') { continue }
+        if ($ip -match '\.1$') { continue }                       # docker gateway = host / browser
+        $who = if ($ipmap.ContainsKey($ip)) { $ipmap[$ip] } else { "unknown($ip)" }
+        [void]$seen.Add("$who -> $meth $path ($code)")
+    }
+    if ($seen.Count -gt 0) {
+        $shown = @($seen | Select-Object -First 5); $more = $seen.Count - $shown.Count
+        $problems.Add("Core is rejecting calls from services (401/403) - stale or wrong API key? " + ($shown -join '; ') + $(if ($more -gt 0) { "; +$more more" } else { '' }))
+    }
+} catch { $problems.Add("Could not read hypercode-core's access log to check for auth failures ($($_.Exception.Message))") }
+
 # ---- decide ----
 if ($DryRun) {
     if ($problems.Count) { Write-Host "DRY RUN - $($problems.Count) problem(s):" -ForegroundColor Yellow; $problems | ForEach-Object { Write-Host "  - $_" } }
@@ -119,14 +160,17 @@ $prev = if (Test-Path $State) { Get-Content $State -Raw | ConvertFrom-Json } els
 $sig  = ($problems | Sort-Object) -join '|'
 if ($problems.Count -eq 0) {
     Log 'all backup checks healthy'
-    if ($prev -and $prev.problems) { [void](Send-Alert 'Backups healthy again' @('All backup checks pass now.') 'ok') }
-    @{ problems = ''; lastSent = $null } | ConvertTo-Json | Set-Content $State -Encoding utf8
+    if ($prev -and $prev.problems) { [void](Send-Alert 'HyperCode checks healthy again' @('All watchdog checks pass now.') 'ok') }
+    @{ problems = ''; lastSent = $null; lastCheck = (Get-Date).ToString('s') } | ConvertTo-Json | Set-Content $State -Encoding utf8
     exit 0
 }
 Log "$($problems.Count) problem(s): $($problems -join ' ; ')"
 $due = (-not $prev) -or ($prev.problems -ne $sig) -or (-not $prev.lastSent) -or (((Get-Date) - [datetime]$prev.lastSent).TotalHours -ge $Repeat)
 if ($due) {
-    $ok = Send-Alert 'Backup problem on the HyperCode PC' ($problems.ToArray() + 'Check: scripts\backup-*-task.ps1 -Action status') 'bad'
-    @{ problems = $sig; lastSent = $(if ($ok) { (Get-Date).ToString('s') } else { $null }) } | ConvertTo-Json | Set-Content $State -Encoding utf8
-} else { Log 'same problem already alerted recently - not repeating' }
+    $ok = Send-Alert 'Problem on the HyperCode PC' ($problems.ToArray() + 'Details: scripts\backup_watchdog.ps1 -DryRun   (backup jobs: scripts\backup-*-task.ps1 -Action status)') 'bad'
+    @{ problems = $sig; lastSent = $(if ($ok) { (Get-Date).ToString('s') } else { $null }); lastCheck = (Get-Date).ToString('s') } | ConvertTo-Json | Set-Content $State -Encoding utf8
+} else {
+    Log 'same problem already alerted recently - not repeating'
+    @{ problems = $prev.problems; lastSent = $prev.lastSent; lastCheck = (Get-Date).ToString('s') } | ConvertTo-Json | Set-Content $State -Encoding utf8
+}
 exit 1

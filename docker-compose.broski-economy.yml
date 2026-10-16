@@ -33,8 +33,12 @@ services:
       # Reachable over data-net (core is on it). Opt-in: needs BOTH the API key
       # and the owner discord id, else the consumer stays redis-only.
       HYPERCODE_API_URL: http://hypercode-core:8000
-      HYPERCODE_API_KEY: ${API_KEY:-}
+      # The CURRENT master key, from the same secret file core reads (secrets/api_key.txt). Never ${API_KEY}
+      # from the shell/.env: that is blank or a stale pre-rotation value (it silently broke the sink on 15 Oct).
+      HYPERCODE_API_KEY_FILE: /run/secrets/api_key
       DEV_XP_DISCORD_ID: ${DEV_XP_DISCORD_ID:-418075243404591106}
+    secrets:
+      - api_key
     networks:
       - data-net
     healthcheck:
@@ -48,6 +52,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+secrets:
+  api_key:
+    file: ./secrets/api_key.txt
 
 networks:
   data-net:
