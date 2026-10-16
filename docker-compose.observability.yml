@@ -412,7 +412,9 @@ services:
       - IS_PERSISTENT=TRUE
       - ALLOW_RESET=${CHROMA_ALLOW_RESET:-FALSE}
     volumes:
-      - chroma_data:/chroma/chroma
+      # Chroma 1.x persists to /data (persist_path in its /config.yaml). The old target
+      # /chroma/chroma left the volume empty and all data in the container layer.
+      - chroma_data:/data
     ports:
       - "127.0.0.1:8009:8000"
     networks:
