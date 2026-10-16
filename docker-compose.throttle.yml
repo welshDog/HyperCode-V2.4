@@ -1,0 +1,67 @@
+# docker-compose.throttle.yml — required RAM/CPU pressure manager
+services:
+  throttle-agent:
+    build:
+      context: ./agents/throttle-agent
+      dockerfile: Dockerfile
+    image: hypercode-throttle-agent:local
+    container_name: throttle-agent
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8014:8080"
+    environment:
+      AGENT_NAME: throttle-agent
+      LOG_LEVEL: INFO
+      API_KEY: ${API_KEY}
+      HYPERCODE_API_KEY: ${API_KEY}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:6379/1
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+      DOCKER_HOST: tcp://docker-socket-proxy-healer:2375
+      MEMSTREAM_URL: http://memstream:8009
+      MEMSTREAM_HEALTH_TOKEN: ${MEMSTREAM_HEALTH_TOKEN:-}
+      THROTTLE_MODE: ${THROTTLE_MODE:-observe}
+      THROTTLE_SIGNAL_FILE: /signal/ram.json
+      THROTTLE_SIGNAL_MAX_AGE_S: ${THROTTLE_SIGNAL_MAX_AGE_S:-120}
+      THROTTLE_AMBER_CYCLES: ${THROTTLE_AMBER_CYCLES:-3}
+      THROTTLE_RED_CYCLES: ${THROTTLE_RED_CYCLES:-1}
+    volumes:
+      - ./ram-signal:/signal:ro
+    networks:
+      - agents-net
+      - data-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      memstream:
+        condition: service_healthy
+      docker-socket-proxy-healer:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    labels:
+      com.hypercode.service: throttle-agent
+      com.hypercode.role: rate-limiting
+
+networks:
+  agents-net:
+    external: true
+    name: hypercode_agents_net
+  data-net:
+    external: true
+    name: hypercode_data_net

@@ -15,6 +15,17 @@ sys.modules["arq.connections"] = MagicMock()
 sys.modules["arq.worker"] = MagicMock()
 sys.modules["crewai"] = MagicMock()
 
+@pytest.fixture(autouse=True)
+def _isolate_results_dir(tmp_path, monkeypatch):
+    """Tests must never write into the real ./results directory.
+
+    /execute -> write_and_sync -> write_execution_results used to overwrite the committed
+    results/latest-*.{md,json} with fixture data ("task-approval-ok", "qa_engineer") on every test run.
+    """
+    import result_writer
+    monkeypatch.setattr(result_writer, "RESULTS_DIR", tmp_path / "results")
+
+
 @pytest.fixture
 def mock_redis():
     mock = AsyncMock()
