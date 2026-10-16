@@ -59,3 +59,11 @@ deliberately wrong key, i.e. it does not enforce the key on `/__authprobe`; on 2
 
 Also: `agent-registry` auto-restarts any watched container it sees die (exit 137 after a stop or recreate), so expect
 a second start ~13 s after a manual recreate.
+
+**Rolled out 2026-10-16.** All seven now use `secrets/inter_agent_key.txt` (gitignored; the previous key is kept in
+`secrets/inter_agent_key.old.txt` for rollback). `crew-orchestrator`, `coder-agent`, `safety-shepherd` and `governor` read it as a
+file (`HYPERCODE_API_KEY_FILE` / `API_KEY_FILE` in `docker-compose.secrets.yml`); `qa-engineer`, `coder-studio` and
+`evolve-relay` have no `read_secret` yet and get it as an env value. To change it again, or to recreate any of the seven
+safely, use `scriptsollout_inter_agent_key.ps1` (dry run by default, `-Apply` to change; it recreates all seven with their
+own compose file sets, diffs env names, then runs the probe). Recreating one of the three env-fed agents by hand without the
+key in `API_KEY` still falls back to `dev-master-key`.
