@@ -1,0 +1,53 @@
+name: BROski XP reconcile check
+
+# The watchdog compares awards banked in Redis against the Postgres ledger (scripts/lib/xp_reconcile.ps1). The comparison is a
+# pure PowerShell function, tested here with injected data - no docker, Redis or Postgres. Standalone on purpose, so an
+# unrelated workflow breaking can never stop this check from running.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/lib/xp_reconcile.ps1'
+      - 'scripts/backup_watchdog.ps1'
+      - 'scripts/broski_economy_consumer.py'
+      - '.github/scripts/tests/test_xp_reconcile.py'
+      - '.github/workflows/xp-reconcile.yml'
+  pull_request:
+    paths:
+      - 'scripts/lib/xp_reconcile.ps1'
+      - 'scripts/backup_watchdog.ps1'
+      - 'scripts/broski_economy_consumer.py'
+      - '.github/scripts/tests/test_xp_reconcile.py'
+      - '.github/workflows/xp-reconcile.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  xp-reconcile:
+    name: XP reconcile logic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: pip install pytest
+
+      - name: PowerShell available (preinstalled on GitHub's Ubuntu runners)
+        run: pwsh --version
+
+      - name: Reconcile logic tests
+        run: python -m pytest .github/scripts/tests/test_xp_reconcile.py -q
+
+      - name: Consumer unit tests (the _SEEN_TTL the reconcile math depends on lives there)
+        run: python -m unittest discover -s scripts -p "test_broski_economy_consumer.py" -v
+
+      - name: The reconcile module's TTL constant matches the consumer's
+        run: |
+          grep -E '^_SEEN_TTL\s*=\s*7776000' scripts/broski_economy_consumer.py
+          pwsh -NoProfile -Command ". ./scripts/lib/xp_reconcile.ps1; if ($script:XpSeenTtlSeconds -ne 7776000) { throw 'TTL constant drifted' }; 'ttl constants agree'"

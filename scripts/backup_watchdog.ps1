@@ -4,6 +4,7 @@
 #   - disk space (H:, C:), 7z present, passphrase file present
 #   - Redis: memory % of cap (>= -RedisWarnPct, default 70), eviction policy must be volatile-lru, no evicted keys
 #   - Core auth: any 401/403 from a container to hypercode-core since the previous run (stale/wrong API keys)
+#   - BROski$ XP: awards banked in Redis (seen-markers older than -XpGraceMinutes) with no row in the Postgres ledger
 # Alerts go to the Discord health webhook (DISCORD_HEALTH_WEBHOOK in .env, never printed/logged) and a Windows
 # toast as fallback. Dedupe: one alert per distinct problem set, repeated at most every 12 h; a "recovered" message
 # is sent once when everything is healthy again. Messages contain status text only - no secrets.
@@ -11,7 +12,12 @@
 #   -DryRun   print findings, send nothing, don't touch state      -Test  send a one-off test message
 param([switch]$DryRun, [switch]$Test, [double]$MaxAgeHours = 26, [double]$RedisWarnPct = 70,
       [double]$AuthWindowHours = 0,   # 0 = since the previous run (clamped 2h..26h)
-      [string]$CoreLogPath = '')      # test hook: read core's access log from a file instead of `docker logs`
+      [string]$CoreLogPath = '',      # test hook: read core's access log from a file instead of `docker logs`
+      [int]$XpGraceMinutes = 10,      # awards younger than this may still be on their way to Postgres
+      [string]$XpMarkersFile = '',    # test hooks for the XP reconciliation: lines "<source_id> <ttl>" / one source_id per line
+      [string]$XpLedgerFile = '')
+
+. (Join-Path $PSScriptRoot 'lib\xp_reconcile.ps1')
 $ErrorActionPreference = 'Stop'
 $Repo     = Split-Path -Parent $PSScriptRoot
 $Backups  = Join-Path $Repo 'backups'
@@ -149,6 +155,19 @@ try {
         $problems.Add("Core is rejecting calls from services (401/403) - stale or wrong API key? " + ($shown -join '; ') + $(if ($more -gt 0) { "; +$more more" } else { '' }))
     }
 } catch { $problems.Add("Could not read hypercode-core's access log to check for auth failures ($($_.Exception.Message))") }
+
+# ---- BROski$ XP: awards banked in Redis but missing from the Postgres wallet ----
+# Why: the economy consumer banks every award in Redis first, then posts it to core. When that post failed (stale key
+# after a rotation, core down) the award stayed in Redis only and nothing noticed: 63 awards / 660 XP were lost across
+# Aug-Oct 2026. End-to-end truth, independent of WHY the post failed. See scripts\lib\xp_reconcile.ps1.
+try {
+    if ($XpMarkersFile) {
+        $xpMarkers = @(Get-Content $XpMarkersFile | Where-Object { $_ -match '^\S+\s+-?\d+\s*$' } | ForEach-Object { $p = $_ -split '\s+'; [pscustomobject]@{ SourceId = $p[0]; Ttl = [int64]$p[1] } })
+    } else { $xpMarkers = @(Get-XpMarkers) }
+    $xpLedger = if ($XpLedgerFile) { @(Get-Content $XpLedgerFile | Where-Object { $_.Trim() } | ForEach-Object { $_.Trim() }) } else { @(Get-XpLedgerIds) }
+    $xpLost = @(Find-MissingXpAwards -Markers $xpMarkers -LedgerIds $xpLedger -GraceSeconds ($XpGraceMinutes * 60))
+    if ($xpLost.Count -gt 0) { $problems.Add((Format-XpMissingMessage $xpLost)) }
+} catch { $problems.Add("Could not reconcile BROski`$ XP awards (Redis vs Postgres): $($_.Exception.Message)") }
 
 # ---- decide ----
 if ($DryRun) {
