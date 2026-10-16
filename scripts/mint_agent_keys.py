@@ -8,10 +8,13 @@ pipe it into psql:
 
     python scripts/mint_agent_keys.py | docker exec -i postgres psql -U postgres -d hypercode
 
-⚠️  No args = mints (ROTATES!) every agent in AGENTS. Pass agent names to
-mint only those:
+Pass the agent name(s) to mint (rotates ONLY those):
 
-    python scripts/mint_agent_keys.py healer-agent | docker exec -i postgres psql -U postgres -d hypercode
+    python scripts/mint_agent_keys.py healer-agent | docker exec -i postgres psql -U postgres -d hypercode -v ON_ERROR_STOP=1
+
+⚠️  Rotating EVERY agent at once now needs the explicit `--all` flag (running with no arguments used to do that
+silently). Rotation replaces the key file AND the database hash; an agent that reads its key per call (healer,
+coder-agent) picks the new file up with no restart, others need a restart/recreate.
 
 Raw keys land ONLY in the gitignored secrets/ dir, never on stdout.
 """
@@ -37,13 +40,25 @@ AGENTS = [
     "security-engineer",
     "system-architect",
     "test-agent",
+    # Running services that had a key FILE (or an overlay entry) but no agent_api_keys row, so core rejected them
+    # or their Compose secret could not be created: mint them to create the file + row.
+    "governor",
+    "throttle-agent",
+    "tips-tricks-writer",
 ]
 
 SECRETS_DIR = Path(__file__).resolve().parent.parent / "secrets"
 
 
 def main() -> None:
-    targets = sys.argv[1:] or AGENTS
+    args = sys.argv[1:]
+    if not args:
+        raise SystemExit(
+            "Refusing to run with no arguments (it used to rotate EVERY agent's key).\n"
+            "Name the agent(s) to mint, e.g.:  python scripts/mint_agent_keys.py healer-agent\n"
+            "or pass --all to rotate all of them deliberately."
+        )
+    targets = AGENTS if args == ["--all"] else args
     unknown = [t for t in targets if t not in AGENTS]
     if unknown:
         raise SystemExit(f"Unknown agent(s): {unknown} — add to AGENTS first")
