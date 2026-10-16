@@ -1,29 +1,20 @@
 # HyperAgent Execution Report
 
-**Generated:** 2026-10-13T07:51:21.397160+00:00  
-**Task ID:** crew:e8e9c527-f47f-5807-b01c-2776de04ae42:verify  
+**Generated:** 2026-10-16T10:11:37.469180+00:00  
+**Task ID:** task-approval-ok  
 
 ## Execution Summary
 
 - **Status:** completed
-- **Duration:** 41.22s if duration_seconds else "N/A"
+- **Duration:** 5.70s
 - **Agents:** 1
-    - qa-engineer
+    - qa_engineer
 
 ## Result Details
 
 {
-  "qa-engineer": {
-    "task_id": "crew:e8e9c527-f47f-5807-b01c-2776de04ae42:verify",
-    "agent": "qa-engineer",
-    "status": "completed",
-    "result": {
-      "status": "completed",
-      "result": "PROBLEMS: none\nVERDICT: PASS",
-      "verifier": "rules+model",
-      "model": "claude-sonnet-5"
-    },
-    "error": null
+  "qa_engineer": {
+    "status": "ok"
   }
 }
 

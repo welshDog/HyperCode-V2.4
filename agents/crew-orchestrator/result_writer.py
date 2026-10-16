@@ -115,6 +115,9 @@ async def write_execution_results(
 
     # ── Write latest-report.md ──────────────────────────────────────────────
     report_file = RESULTS_DIR / "latest-report.md"
+    # Computed up front: a conditional written inside the template text is NOT evaluated (it printed literally),
+    # and formatting None with ".2f" raises TypeError.
+    duration_text = f"{duration_seconds:.2f}s" if duration_seconds else "N/A"
     report_content = f"""# HyperAgent Execution Report
 
 **Generated:** {timestamp}  
@@ -123,7 +126,7 @@ async def write_execution_results(
 ## Execution Summary
 
 - **Status:** {status}
-- **Duration:** {duration_seconds:.2f}s if duration_seconds else "N/A"
+- **Duration:** {duration_text}
 - **Agents:** {len(agents) if agents else 0}
   {f"  - {agents[0] if agents else ''}" if agents else ""}
 
