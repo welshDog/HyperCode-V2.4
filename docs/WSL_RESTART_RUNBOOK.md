@@ -197,7 +197,7 @@ unbacked volumes were tar-exported to `backups\volumes\` instead (38 MB, ~10 s).
    VM's 3.9 GB. It did not settle in 2.5 min. Builds need GREEN (>= 1500 MB), so before building, stop OPTIONAL containers
    by name (never `compose down`) such as the small `agent-*` containers, `evolve-relay`, `skillweaver`, `hyper-brain`,
    `obsidian-watcher`, `github-sync*`, then `docker start` them again afterwards. Re-run `ram_guard.py --for build --wait 120`.
-2. Rebuild + swap the economy consumer (code is merged in #602; rollback tag `hypercode-v24-broski-economy-consumer:rollback-20261016`).
+2. ~~Rebuild + swap the economy consumer~~ **DONE 2026-10-16 16:29** (code merged in #602). To get the RAM guard to GREEN (WSL available 1083 -> 1599 MB) the watchers and 9 optional containers were stopped by name first (healer-agent, agent-registry, the four `agent-*`, obsidian-watcher, github-sync x2, evolve-relay, skillweaver) and started again afterwards. Build + recreate took 50 s; verified healthy, banner `postgres sink: ENABLED (key from file)`, key hash == core master key. Rollback image kept: `hypercode-v24-broski-economy-consumer:rollback-20261016`.
 3. Rebuild the five baked-in agents for the `read_secret` change (#603), then the coordinated shared-key rollout
    (`docs/AGENT_SECRET_FILES.md`).
 4. Delete the optional disk copy after a day of healthy running.
