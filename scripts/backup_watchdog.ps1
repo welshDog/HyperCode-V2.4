@@ -2,12 +2,13 @@
 #   - each Task Scheduler job's last result (0 = ok; offsite 2 = Google Drive not mounted)
 #   - freshness: newest Postgres dump, stores set, C: mirror dump, Google Drive archive
 #   - disk space (H:, C:), 7z present, passphrase file present
+#   - Redis: memory % of cap (>= -RedisWarnPct, default 70), eviction policy must be volatile-lru, no evicted keys
 # Alerts go to the Discord health webhook (DISCORD_HEALTH_WEBHOOK in .env, never printed/logged) and a Windows
 # toast as fallback. Dedupe: one alert per distinct problem set, repeated at most every 12 h; a "recovered" message
 # is sent once when everything is healthy again. Messages contain status text only - no secrets.
 # Usage: ./scripts/backup_watchdog.ps1 [-DryRun] [-Test] [-MaxAgeHours 26]
 #   -DryRun   print findings, send nothing, don't touch state      -Test  send a one-off test message
-param([switch]$DryRun, [switch]$Test, [double]$MaxAgeHours = 26)
+param([switch]$DryRun, [switch]$Test, [double]$MaxAgeHours = 26, [double]$RedisWarnPct = 70)
 $ErrorActionPreference = 'Stop'
 $Repo     = Split-Path -Parent $PSScriptRoot
 $Backups  = Join-Path $Repo 'backups'
@@ -84,6 +85,24 @@ foreach ($d in @(@{l='H';min=20}, @{l='C';min=10})) {
 }
 if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) { $problems.Add('7z not found on PATH (encrypted off-site copy will fail)') }
 if (-not (Test-Path (Join-Path $Repo 'secrets\offsite_backup_passphrase.txt'))) { $problems.Add('Off-site passphrase file is missing') }
+
+# ---- Redis health (durable queue/state shares db0 with cache; see volatile-lru change) ----
+# Why: with volatile-lru, durable keys (no TTL) are never evicted, so if they fill the cap writes fail loudly.
+# Alert early on memory %, a wrong eviction policy (silent data loss risk) and any eviction at all.
+try {
+    $ri = @{}
+    foreach ($l in (docker exec redis redis-cli info memory) + (docker exec redis redis-cli info stats)) {
+        if ($l -match '^(used_memory|maxmemory|maxmemory_policy|evicted_keys):(.+)$') { $ri[$Matches[1]] = $Matches[2].Trim() }
+    }
+    if (-not $ri.ContainsKey('used_memory')) { throw 'no data' }
+    $used = [double]$ri['used_memory']; $cap = [double]$ri['maxmemory']
+    if ($cap -gt 0) {
+        $pct = [math]::Round($used / $cap * 100, 1)
+        if ($pct -ge $RedisWarnPct) { $problems.Add("Redis memory at $pct% of its cap ($([math]::Round($used/1MB,0)) MB of $([math]::Round($cap/1MB,0)) MB) - durable queue/state data is at risk") }
+    } else { $problems.Add('Redis has no maxmemory cap set') }
+    if ($ri['maxmemory_policy'] -ne 'volatile-lru') { $problems.Add("Redis eviction policy is '$($ri['maxmemory_policy'])', expected volatile-lru - durable keys (queues, approvals, task state) can be silently evicted") }
+    if ([int64]$ri['evicted_keys'] -gt 0) { $problems.Add("Redis has evicted $($ri['evicted_keys']) key(s) since its last restart - memory pressure") }
+} catch { $problems.Add('Redis is not reachable via docker exec (container down or Docker stopped)') }
 
 # ---- decide ----
 if ($DryRun) {
