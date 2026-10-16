@@ -30,6 +30,7 @@ from models import (
     CheckDefinitionORM, CheckResultORM,
     CheckDefinitionCreate, CheckDefinitionOut, CheckResultOut, HealthReportOut
 )
+from secret_env import read_secret
 
 # ── Logging ────────────────────────────────────────────────────────────────────
 structlog.configure(
@@ -57,13 +58,13 @@ ASYNC_DB_URL = (
     else DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 )
 
-API_KEY     = os.environ.get("API_KEY", "")
+API_KEY     = read_secret("API_KEY")  # API_KEY_FILE (Compose secret) preferred, plain API_KEY as fallback
 REDIS_URL   = os.environ.get("REDIS_URL", "redis://redis:6379/0")
 HEALER_URL  = os.environ.get("HEALER_URL", "http://healer-agent:8008")
 ENVIRONMENT = os.environ.get("ENVIRONMENT", "development")
 
 if not API_KEY:
-    raise RuntimeError("API_KEY environment variable must be set")
+    raise RuntimeError("API_KEY must be set (via the API_KEY_FILE secret file or the API_KEY environment variable)")
 
 # ── Prometheus ──────────────────────────────────────────────────────────────────
 REGISTRY = CollectorRegistry(auto_describe=False)
