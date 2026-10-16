@@ -57,8 +57,38 @@ _SEEN_TTL = 7776000         # 90d -- bound growth; old commits past this could r
 # system of record). Redis stays the fast always-on path; postgres is the
 # survives-anything ledger. Opt-in: fires only when BOTH are set, so an
 # unconfigured deploy behaves exactly as before (redis-only).
+def _read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else default.
+
+    Inlined on purpose: this script ships alone in a tiny image (see Dockerfile.broski-economy).
+    """
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                value = fh.read().strip()
+        except OSError:
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+
+
+def _key_source(name):
+    """Where the key comes from - 'file' | 'env' | 'none'. For the startup banner; never the value."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                if fh.read().strip():
+                    return "file"
+        except OSError:
+            pass
+    return "env" if os.environ.get(name) else "none"
+
+
 _CORE_URL = os.environ.get("HYPERCODE_API_URL", "http://hypercode-core:8000").rstrip("/")
-_CORE_API_KEY = os.environ.get("HYPERCODE_API_KEY", "")
+_CORE_API_KEY = _read_secret("HYPERCODE_API_KEY")
 _DEV_XP_DISCORD_ID = os.environ.get("DEV_XP_DISCORD_ID", "")
 _CORE_TIMEOUT = 3
 
@@ -240,12 +270,37 @@ def _post_to_core(xp, source, reason, source_id=None):
         return e
 
 
+def _describe_failure(err):
+    """'HTTP 401' for an HTTP error (the status is what tells a stale key from an outage), else the class name."""
+    code = getattr(err, "code", None)
+    return ("HTTP %s" % code) if code is not None else type(err).__name__
+
+
+def _auth_alert(err, consecutive):
+    """A loud message for the 1st, then every 10th, consecutive 401/403 from core - else None.
+
+    Why: a stale key used to make EVERY award skip postgres with only a quiet '->pg FAILED (HTTPError)'.
+    """
+    if getattr(err, "code", None) not in (401, 403):
+        return None
+    if consecutive != 1 and consecutive % 10 != 0:
+        return None
+    return ("ERROR: hypercode-core rejected the economy sink (%s) x%d - the API key is stale or wrong. "
+            "Awards are still banked in redis but are NOT reaching postgres. "
+            "Check API_KEY_FILE / secrets/api_key.txt." % (_describe_failure(err), consecutive))
+
+
 def _listen(be, seconds):
     deadline = (time.time() + seconds) if seconds else None
     print(C.BOLD + C.CYAN + "  BROSKI$ ECONOMY CONSUMER -- listening on '" + _CHANNEL + "'" + C.RESET)
     print(C.DIM + "  transport=" + be.name + (("  for " + str(seconds) + "s") if seconds else "  (Ctrl-C to stop)") + C.RESET)
+    if _CORE_API_KEY and _DEV_XP_DISCORD_ID:
+        print(C.DIM + "  postgres sink: ENABLED (key from " + _key_source("HYPERCODE_API_KEY") + ")" + C.RESET)
+    else:
+        print(C.YELLOW + "  postgres sink: DISABLED (needs HYPERCODE_API_KEY[_FILE] and DEV_XP_DISCORD_ID) -- redis only" + C.RESET)
     print()
     processed = 0
+    auth_fails = 0   # consecutive 401/403 from core
     try:
         for raw in be.subscribe(_CHANNEL):
             award = _parse_award(raw)
@@ -267,7 +322,14 @@ def _listen(be, seconds):
             elif sink is None:
                 tag = ""
             else:
-                tag = C.YELLOW + "  ->pg FAILED (" + type(sink).__name__ + ")" + C.RESET
+                tag = C.YELLOW + "  ->pg FAILED (" + _describe_failure(sink) + ")" + C.RESET
+            if sink is True or sink is None:
+                auth_fails = 0
+            else:
+                auth_fails = auth_fails + 1 if getattr(sink, "code", None) in (401, 403) else 0
+                alert = _auth_alert(sink, auth_fails)
+                if alert:
+                    print(alert, file=sys.stderr, flush=True)
             processed += 1
             print("  " + C.GREEN + "+{:>4}".format(xp) + C.RESET
                   + "  " + C.BOLD + "{:<24}".format(source) + C.RESET
