@@ -474,7 +474,7 @@ services:
       - PROMETHEUS_URL=http://prometheus:9090
       - GRAFANA_URL=http://grafana:3000
       - CREW_URL=http://crew-orchestrator:8080
-      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - API_KEY=${API_KEY:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
       - PD_ROUTING_KEY=${PD_ROUTING_KEY:-}
@@ -532,7 +532,7 @@ services:
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - HEALER_URL=http://healer-agent:8008
       - CORE_URL=http://hypercode-core:8000
-      - API_KEY=${API_KEY:?API_KEY must be set in .env}
+      - API_KEY=${API_KEY:-}
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - WORKER_CONCURRENCY=50
       - CHECK_BATCH_SIZE=100
