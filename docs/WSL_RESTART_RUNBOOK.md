@@ -134,6 +134,9 @@ Then:
 
 ```powershell
 docker update --restart=always healer-agent                       # restore the policy changed in 5.A
+# Redis comes back with its OLD creation settings: recreate it from the compose BEFORE verify (why: 6.1)
+docker compose -f docker-compose.yml up -d --no-deps --no-build --force-recreate redis
+docker exec redis redis-cli config get maxmemory-policy        # must say volatile-lru
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\wsl-restart.ps1 -Action verify     # must end PASS
 Enable-ScheduledTask -TaskPath '\HyperCode\' -TaskName 'HyperCode Backup Watchdog'
 powershell -NoProfile -File scripts\backup_watchdog.ps1 -DryRun    # expect only the known economy-consumer 401 until it is rebuilt
@@ -148,12 +151,9 @@ ready again, nothing that was stopped started by itself, the healer's restart po
 A stop/start keeps a container's *creation* settings. Anything applied to a running process with no matching container
 recreate is lost. Known case: **Redis `maxmemory-policy`** was set live (`CONFIG SET`) on 2026-10-16; after the restart
 the watchdog reported `allkeys-lru` again because the container's creation command still said so. Fix permanently by
-recreating Redis from the committed compose (data is on a volume; keys and policy `unless-stopped` are preserved):
-
-```powershell
-docker compose -f docker-compose.yml up -d --no-deps --no-build --force-recreate redis
-docker exec redis redis-cli config get maxmemory-policy        # must say volatile-lru WITHOUT any manual CONFIG SET
-```
+recreating Redis from the committed compose (data is on a volume; keys are kept, `unless-stopped` is preserved). This is
+the `docker compose ... --force-recreate redis` step in the block above, and it runs **before** `verify` so the check sees the
+corrected policy.
 
 Only Redis is affected right now, but check `scripts/backup_watchdog.ps1 -DryRun` after every restart: it flags it.
 
