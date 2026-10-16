@@ -67,3 +67,5 @@ file (`HYPERCODE_API_KEY_FILE` / `API_KEY_FILE` in `docker-compose.secrets.yml`)
 safely, use `scriptsollout_inter_agent_key.ps1` (dry run by default, `-Apply` to change; it recreates all seven with their
 own compose file sets, diffs env names, then runs the probe). Recreating one of the three env-fed agents by hand without the
 key in `API_KEY` still falls back to `dev-master-key`.
+
+**healer-agent (2026-10-17):** its inbound routes were protected by the public default `dev-master-key`. It now takes the shared key as an env value (its image predates `read_secret`, so the overlay's `HYPERCODE_API_KEY_FILE` only takes effect after a rebuild). `/health`, `/metrics` and `/alerts/webhook` stay open by design. No caller was sending a key to its protected routes, so nothing regressed.

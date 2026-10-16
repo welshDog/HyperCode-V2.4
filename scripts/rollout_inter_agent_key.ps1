@@ -1,6 +1,6 @@
 # rollout_inter_agent_key.ps1 - move ALL seven holders of the shared inter-agent key onto secrets/inter_agent_key.txt in ONE pass.
 #
-# Holders: crew-orchestrator coder-agent qa-engineer safety-shepherd coder-studio evolve-relay governor.
+# Holders: crew-orchestrator coder-agent qa-engineer safety-shepherd coder-studio evolve-relay governor healer-agent.
 # Four of them (crew, coder-agent, shepherd, governor) read the key from the file (overlay *_API_KEY_FILE). The other three have
 # no read_secret yet, so the key is passed as the env value the base compose already uses (${API_KEY}) for THIS compose run only:
 # it is read from the file in memory, never printed, and cleared from the shell afterwards.
@@ -20,7 +20,8 @@ $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path -Parent $PSScriptRoot)
 $root = (Get-Location).Path
 
-$services = 'safety-shepherd', 'governor', 'coder-agent', 'qa-engineer', 'coder-studio', 'evolve-relay', 'crew-orchestrator'
+# healer-agent: its image predates the vendored read_secret, so it gets the key as an env value like qa-engineer/coder-studio/evolve-relay
+$services = 'safety-shepherd', 'governor', 'coder-agent', 'qa-engineer', 'coder-studio', 'evolve-relay', 'crew-orchestrator', 'healer-agent'
 # 'fleet' only when the service's own file set includes docker-compose.fleet.yml: the secrets overlay names `governor`, which has
 # no image/build of its own, so enabling the profile without fleet.yml makes compose reject the whole project.
 function ProfilesFor($f) {
