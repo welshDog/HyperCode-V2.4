@@ -247,7 +247,9 @@ services:
       CELERY_WORKER_MAX_TASKS_PER_CHILD: ${CELERY_WORKER_MAX_TASKS_PER_CHILD:-100}
       HYPERCODE_MEMORY_KEY: ${HYPERCODE_MEMORY_KEY}
     healthcheck:
-      test: ["CMD-SHELL", "python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]
+      # `timeout -s KILL 20`: under load `inspect ping` can hang past its own --timeout, and Docker does not kill a timed-out
+      # probe, so copies pile up (38 x ~68 MB on 2026-10-16 and thrashed WSL). Hard-kill it before Docker's 30s limit.
+      test: ["CMD-SHELL", "timeout -s KILL 20 python -m celery -A app.core.celery_app inspect ping --timeout=5 || exit 1"]
       interval: 30s
       timeout: 30s
       retries: 5
