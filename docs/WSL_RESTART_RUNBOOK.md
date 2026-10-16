@@ -53,6 +53,7 @@ wsl -e true; echo $LASTEXITCODE        # 0 = the channel is back: STOP HERE, no 
 > `wsl.exe` processes**: one of them is Docker Desktop's own long-lived engine host.
 
 Both distros failed on 2026-10-16, which points at the VM-level channel, so expect this to fail. It costs ten seconds.
+**Confirmed on the first real run: even `wsl --terminate` timed out**, so go straight to the full restart.
 
 ## 4. Preflight (before)
 
@@ -142,6 +143,38 @@ Start-ScheduledTask -TaskPath '\HyperCode\' -TaskName 'HyperCode Postgres Backup
 `verify` checks: WSL channel + swap, RAM guard verdict, every container that was running in the preflight snapshot is
 ready again, nothing that was stopped started by itself, the healer's restart policy, the smoke test, and the watchdog.
 
+### 6.1 Re-apply anything that was only changed LIVE (a restart reverts it)
+
+A stop/start keeps a container's *creation* settings. Anything applied to a running process with no matching container
+recreate is lost. Known case: **Redis `maxmemory-policy`** was set live (`CONFIG SET`) on 2026-10-16; after the restart
+the watchdog reported `allkeys-lru` again because the container's creation command still said so. Fix permanently by
+recreating Redis from the committed compose (data is on a volume; keys and policy `unless-stopped` are preserved):
+
+```powershell
+docker compose -f docker-compose.yml up -d --no-deps --no-build --force-recreate redis
+docker exec redis redis-cli config get maxmemory-policy        # must say volatile-lru WITHOUT any manual CONFIG SET
+```
+
+Only Redis is affected right now, but check `scripts/backup_watchdog.ps1 -DryRun` after every restart: it flags it.
+
+### 6.2 What the first real run looked like (2026-10-16, for planning)
+
+| Phase | Time |
+|---|---|
+| fresh backups (3 tasks) | ~3 min |
+| stop 37 containers in 8 tiers | ~4.5 min (data tier 63 s) |
+| `docker desktop stop` + `wsl --shutdown` | ~1 min (both exit 0, VM gone, hung `wsl.exe` pile gone with it) |
+| `docker desktop start` -> engine answers | ~35 s |
+| `wsl -e true` answered, swap 2048 MB live | immediately after |
+| staged `start-stack` (8 tiers) | ~7 min, no tier needed a retry |
+| `verify` | ~95 s |
+| **total, stack down** | **~14 min** (about half the 30 min estimate) |
+
+Docker started nothing on its own except its own extension container (the `docker update --restart=no` /
+`unless-stopped` neutralisation worked). I skipped the optional 213 GB disk copy: only ~65 GB of that file is real
+(images 39 GB, build cache 20 GB, volumes 4.8 GB), Postgres/Redis are covered by verified backups, and the small
+unbacked volumes were tar-exported to `backups\volumes\` instead (38 MB, ~10 s).
+
 ## 7. If something goes wrong
 
 | Problem | Action |
@@ -157,7 +190,13 @@ ready again, nothing that was stopped started by itself, the healer's restart po
 
 ## 8. After a clean restart (what this unblocks)
 
-1. `ram_guard.py --for build` should read GREEN again, so **builds are allowed**.
+1. `ram_guard.py --for build` can now READ WSL again, so the verdict is real, but it may read **RED right after a restart**
+   (2026-10-16: WSL available 1133 MB vs the 1200 MB stop rule). Cause: before the restart the old VM had pushed ~1 GB of cold
+   pages to swap (967 MB used), which made "available" look generous; after a restart everything is resident and swap is
+   nearly untouched (92 MB used, ~1.9 GB still free as a buffer), and the full stack's working set is ~2.1 GB of the
+   VM's 3.9 GB. It did not settle in 2.5 min. Builds need GREEN (>= 1500 MB), so before building, stop OPTIONAL containers
+   by name (never `compose down`) such as the small `agent-*` containers, `evolve-relay`, `skillweaver`, `hyper-brain`,
+   `obsidian-watcher`, `github-sync*`, then `docker start` them again afterwards. Re-run `ram_guard.py --for build --wait 120`.
 2. Rebuild + swap the economy consumer (code is merged in #602; rollback tag `hypercode-v24-broski-economy-consumer:rollback-20261016`).
 3. Rebuild the five baked-in agents for the `read_secret` change (#603), then the coordinated shared-key rollout
    (`docs/AGENT_SECRET_FILES.md`).
