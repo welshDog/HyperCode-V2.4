@@ -146,7 +146,7 @@ class BaseAgent:
             if path == "/" or path.startswith("/health"):
                 return await call_next(request)
 
-            expected = (self.config.hypercode_api_key or os.getenv("AGENT_API_KEY") or "").strip()
+            expected = (self.config.hypercode_api_key or _resolve_secret("AGENT_API_KEY") or "").strip()
             if not expected:
                 return JSONResponse(status_code=503, content={"detail": "Agent API key not configured"})
 

@@ -36,6 +36,23 @@ try:
 except Exception:  # fail-open: loadout module unavailable -> skip the boot check
     boot_check = None
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("nemoclaw.main")
 
@@ -73,7 +90,7 @@ def _expected_api_key() -> str:
         from_file = _read_secret_file(file_path)
         if from_file:
             return from_file
-    return (os.getenv("HYPERCODE_API_KEY") or os.getenv("AGENT_API_KEY") or "").strip()
+    return (read_secret("HYPERCODE_API_KEY") or read_secret("AGENT_API_KEY") or "").strip()
 
 
 def _self_agent_key() -> str:

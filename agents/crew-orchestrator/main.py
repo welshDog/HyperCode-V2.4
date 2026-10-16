@@ -72,6 +72,23 @@ for _cand in (_here, os.path.dirname(_here)):
         sys.path.insert(0, _cand)
 from shared.loadout import resolve_loadout_skills, loadout_block, boot_check
 
+# >>> vendored from agents/shared/secret_env.py - edit there, then run scripts/vendor_secret_env.py >>>
+def read_secret(name, default=""):
+    """`<name>_FILE` (a Compose/Docker secret file) wins; else the `<name>` env var; else `default`."""
+    path = os.environ.get(name + "_FILE", "").strip()
+    if path:
+        try:
+            # utf-8-sig drops a Windows-editor BOM instead of letting it become part of the compared/sent value
+            with open(path, "r", encoding="utf-8-sig") as fh:
+                value = fh.read().strip()
+        except (OSError, UnicodeDecodeError):
+            value = ""
+        if value:
+            return value
+    return os.environ.get(name, default)
+# <<< vendored from agents/shared/secret_env.py <<<
+
+
 # Configure Logging
 logging.basicConfig(level=settings.log_level)
 logger = logging.getLogger("crew-orchestrator")
@@ -219,7 +236,7 @@ async def require_api_key(api_key: str = Security(api_key_header)) -> str:
 
 
 def _agent_auth_headers() -> dict[str, str]:
-    api_key = (os.getenv("HYPERCODE_API_KEY") or os.getenv("API_KEY") or "").strip()
+    api_key = (read_secret("HYPERCODE_API_KEY") or read_secret("API_KEY") or "").strip()
     if not api_key:
         return {}
     return {"X-API-Key": api_key}
