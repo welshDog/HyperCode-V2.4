@@ -1,6 +1,6 @@
 """Tests for agents/shared/secret_env.read_secret (the canonical helper vendored into the agents).
 
-Run: python -m pytest agents/shared/tests/test_secret_env.py
+Run: python -m pytest .github/scripts/tests/test_agent_secret_env_helper.py
 """
 import os
 import sys
@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO / "agents" / "shared"))
 from secret_env import read_secret  # noqa: E402
 
 

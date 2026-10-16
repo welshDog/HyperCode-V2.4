@@ -24,7 +24,7 @@ python scripts/vendor_secret_env.py          # refresh the copies
 python scripts/vendor_secret_env.py --check  # CI: fail if any copy drifted
 ```
 
-`agents/shared/tests/test_secret_env_sync.py` also fails if a raw `os.getenv("HYPERCODE_API_KEY"|"AGENT_API_KEY"|
+`.github/scripts/tests/test_agent_secret_env_sync.py` also fails if a raw `os.getenv("HYPERCODE_API_KEY"|"AGENT_API_KEY"|
 "API_KEY"|"CORE_AGENT_KEY")` read is reintroduced (a short allow-list with reasons covers the few already
 file-aware sites). CI lane: `.github/workflows/secret-env-sync.yml`.
 

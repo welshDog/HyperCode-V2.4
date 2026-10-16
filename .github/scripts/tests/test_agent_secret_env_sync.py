@@ -4,7 +4,7 @@
 2. No agent reads an inter-agent / core API key straight from the environment any more - they must go through
    read_secret() (so a *_FILE Compose secret works). Exceptions are explicit, with the reason.
 
-Run: python -m pytest agents/shared/tests/test_secret_env_sync.py
+Run: python -m pytest .github/scripts/tests/test_agent_secret_env_sync.py
 """
 import re
 import sys

@@ -12,7 +12,7 @@ never needs the value in `.env` or in the container's environment block.
 Agents ship as isolated images/dirs and cannot all import this module, so the function below is VENDORED
 (copied verbatim, between `# >>> vendored` / `# <<< vendored` markers) into each agent file that reads a key.
 Edit ONLY this file, then run `python scripts/vendor_secret_env.py`; `python scripts/vendor_secret_env.py --check`
-(and agents/shared/tests/test_secret_env_sync.py) fail if any copy has drifted.
+(and .github/scripts/tests/test_agent_secret_env_sync.py) fail if any copy has drifted.
 """
 from __future__ import annotations
 
