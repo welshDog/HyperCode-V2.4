@@ -20,7 +20,9 @@ include:
   - docker-compose.obsidian-sync.yml    # Crew→vault sync: watcher (--profile agents) + one-shot (--profile vault-sync)
   - docker-compose.bropets.yml          # BROskiPets integration (--profile pets)
   - docker-compose.brain.yml            # Obsidian-Brain integration (--profile brain)
-  - docker-compose.grafana-cloud.yml    # Grafana Cloud remote-write pipeline (--profile grafana-cloud)
+  - docker-compose.grafana-cloud.yml    # Grafana Cloud remote-write pipeline (--profile grafana-cloud; costs nothing unless that profile is enabled)
+  - docker-compose.fcc.yml             # Free LLM proxy (FCC + Ollama/NIM/OpenRouter)
+  - docker-compose.throttle.yml        # RAM/CPU pressure manager and Docker guard
 
 # Note: frontend-net defined here (used by dashboard, mission-ui)
 networks:
