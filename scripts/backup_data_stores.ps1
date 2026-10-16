@@ -20,6 +20,17 @@ $failed = $false
 
 function Fail($m) { Write-Host "FAIL: $m" -ForegroundColor Red; $script:failed = $true }
 
+# Resolve the volume mounted at /data from the RUNNING container, so a different Compose project name
+# (not "hypercode-v24") can never make us archive a freshly auto-created empty volume.
+function Get-DataVolume($container) {
+    $out = docker inspect $container --format '{{range .Mounts}}{{.Destination}}={{.Name}};{{end}}'
+    if ($LASTEXITCODE -ne 0) { throw "cannot inspect container '$container'" }
+    $m = ($out -split ';' | Where-Object { $_ -like '/data=*' } | Select-Object -First 1)
+    $name = if ($m) { ($m -split '=', 2)[1] } else { '' }
+    if ([string]::IsNullOrWhiteSpace($name)) { throw "no named volume mounted at /data on '$container'" }
+    $name
+}
+
 # Minimal HTTP GET against a container's localhost:8000 using bash /dev/tcp (the chroma image has no curl/wget/python).
 function Invoke-ChromaGet($container, $path) {
     # Windows PowerShell 5.1 prepends a UTF-8 BOM to text piped to a native exe, which makes bash choke.
@@ -53,9 +64,10 @@ try {
 # ---------------- MinIO ----------------
 try {
     Write-Host '[minio] tar volume...'
-    docker run --rm --pull never -v hypercode-v24_minio_data:/src:ro -v "${dest}:/out" $Helper tar czf /out/minio-data.tgz -C /src .
+    $minioVol = Get-DataVolume minio
+    docker run --rm --pull never -v "${minioVol}:/src:ro" -v "${dest}:/out" $Helper tar czf /out/minio-data.tgz -C /src .
     if ($LASTEXITCODE -ne 0) { throw "tar exit $LASTEXITCODE" }
-    $manifest.minio = [int](docker run --rm --pull never -v hypercode-v24_minio_data:/src:ro $Helper sh -c 'find /src -type f | wc -l')
+    $manifest.minio = [int](docker run --rm --pull never -v "${minioVol}:/src:ro" $Helper sh -c 'find /src -type f | wc -l')
     Write-Host ("[minio] OK  {0:N1} KB  {1} files" -f ((Get-Item (Join-Path $dest 'minio-data.tgz')).Length/1KB), $manifest.minio)
 } catch { Fail "minio: $_" }
 
@@ -74,13 +86,19 @@ if (-not $SkipChroma) {
         }
         $manifest.chroma = $info
         Write-Host "[chroma] stopping briefly for a consistent copy ($(@($info).Count) collections)..."
-        docker stop chroma | Out-Null; $stopped = $true
-        docker run --rm --pull never -v hypercode-v24_chroma_data:/src:ro -v "${dest}:/out" $Helper tar czf /out/chroma-data.tgz -C /src .
+        $chromaVol = Get-DataVolume chroma
+        docker stop chroma | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "docker stop chroma failed (exit $LASTEXITCODE) - not copying live files" }
+        $stopped = $true
+        docker run --rm --pull never -v "${chromaVol}:/src:ro" -v "${dest}:/out" $Helper tar czf /out/chroma-data.tgz -C /src .
         if ($LASTEXITCODE -ne 0) { throw "tar exit $LASTEXITCODE" }
         Write-Host ("[chroma] OK  {0:N1} KB" -f ((Get-Item (Join-Path $dest 'chroma-data.tgz')).Length/1KB))
     } catch { Fail "chroma: $_" }
     finally {
-        if ($stopped) { docker start chroma | Out-Null; Write-Host '[chroma] restarted' }
+        if ($stopped) {
+            docker start chroma | Out-Null
+            if ($LASTEXITCODE -ne 0) { Fail 'chroma did NOT restart - start it manually: docker start chroma' } else { Write-Host '[chroma] restarted' }
+        }
     }
 }
 

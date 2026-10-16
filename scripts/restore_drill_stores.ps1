@@ -85,6 +85,11 @@ try {
 
     # 3. Chroma
     Write-Host '[3] chroma'
+    $chromaTgz = Join-Path $BackupDir 'chroma-data.tgz'
+    if (-not (Test-Path $chromaTgz) -and $null -eq $m.chroma) {
+        # backup_data_stores.ps1 -SkipChroma writes no archive and a null chroma manifest: not a failure.
+        Write-Host '  chroma  SKIPPED  (this backup was taken with -SkipChroma)' -ForegroundColor Yellow
+    } else {
     try {
         docker volume create drill_chroma | Out-Null
         docker run --rm --pull never -v drill_chroma:/data -v "${BackupDir}:/in:ro" $Helper tar xzf /in/chroma-data.tgz -C /data
@@ -103,6 +108,7 @@ try {
         }
         Result 'chroma' $okC ("collections=$($cols.Count)  vectors restored/manifest " + ($detail -join ' '))
     } catch { Result 'chroma' $false "$_" }
+    }
 }
 finally {
     foreach ($b in $boxes)   { docker rm -f $b 2>$null | Out-Null }

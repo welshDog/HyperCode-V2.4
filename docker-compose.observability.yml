@@ -414,6 +414,12 @@ services:
     volumes:
       # Chroma 1.x persists to /data (persist_path in its /config.yaml). The old target
       # /chroma/chroma left the volume empty and all data in the container layer.
+      # MIGRATING an older deployment? Before recreating, check whether the volume already holds data from a
+      # pre-1.0 Chroma (which DID persist to /chroma/chroma) and copy it across first, e.g.:
+      #   docker run --rm -v <chroma_volume>:/v alpine ls -la /v        (anything there = migrate it to /data)
+      # Anything written by 1.x while mounted at the old path lives only in the old container's layer:
+      #   docker cp chroma:/data ./chroma-rescue     (do this BEFORE `up --force-recreate`)
+      # Verified empty on the dev machine on 2026-10-16 (0 collections), so nothing needed migrating there.
       - chroma_data:/data
     ports:
       - "127.0.0.1:8009:8000"

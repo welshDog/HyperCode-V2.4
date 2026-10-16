@@ -75,12 +75,17 @@ function CheckFresh($label, $item) {
 CheckFresh 'Postgres backup' (Get-ChildItem (Join-Path $Backups 'postgres') -Filter 'backup_*.dump' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
 CheckFresh 'Stores backup'   (Get-ChildItem (Join-Path $Backups 'stores') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
 CheckFresh 'Second-disk copy' (Get-ChildItem (Join-Path $LocalCopy 'postgres') -Filter 'backup_*.dump' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1)
-$drive = (Get-PSDrive -PSProvider FileSystem).Name | ForEach-Object { "${_}:\My Drive\HyperCode-Backups" } | Where-Object { Test-Path $_ } | Select-Object -First 1
+# Same candidate roots as offsite_copy.ps1, so a delivery there is never reported as "folder not found" here.
+$driveRoots = @((Get-PSDrive -PSProvider FileSystem).Name | ForEach-Object { "${_}:\My Drive" }) + "$env:USERPROFILE\My Drive" + "$env:USERPROFILE\Google Drive\My Drive"
+$drive = $driveRoots | ForEach-Object { Join-Path $_ 'HyperCode-Backups' } | Where-Object { Test-Path $_ } | Select-Object -First 1
 if ($drive) { CheckFresh 'Google Drive archive' (Get-ChildItem $drive -Filter 'hypercode_*.7z' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1) }
 else { $problems.Add('Google Drive folder not found (Drive for Desktop not running/signed in?)') }
 
 foreach ($d in @(@{l='H';min=20}, @{l='C';min=10})) {
-    $free = [math]::Round((Get-PSDrive $d.l).Free / 1GB, 1)
+    # A disconnected drive must become an alert, not a crash that swallows every other alert.
+    $psd = Get-PSDrive -Name $d.l -PSProvider FileSystem -ErrorAction SilentlyContinue
+    if (-not $psd -or -not (Test-Path "$($d.l):\")) { $problems.Add("Disk $($d.l): is not available (disconnected?)"); continue }
+    $free = [math]::Round($psd.Free / 1GB, 1)
     if ($free -lt $d.min) { $problems.Add("Disk $($d.l): only $free GB free (min $($d.min) GB)") }
 }
 if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) { $problems.Add('7z not found on PATH (encrypted off-site copy will fail)') }
@@ -121,7 +126,7 @@ if ($problems.Count -eq 0) {
 Log "$($problems.Count) problem(s): $($problems -join ' ; ')"
 $due = (-not $prev) -or ($prev.problems -ne $sig) -or (-not $prev.lastSent) -or (((Get-Date) - [datetime]$prev.lastSent).TotalHours -ge $Repeat)
 if ($due) {
-    $ok = Send-Alert 'Backup problem on the HyperCode PC' ($problems + 'Check: scripts\backup-*-task.ps1 -Action status') 'bad'
+    $ok = Send-Alert 'Backup problem on the HyperCode PC' ($problems.ToArray() + 'Check: scripts\backup-*-task.ps1 -Action status') 'bad'
     @{ problems = $sig; lastSent = $(if ($ok) { (Get-Date).ToString('s') } else { $null }) } | ConvertTo-Json | Set-Content $State -Encoding utf8
 } else { Log 'same problem already alerted recently - not repeating' }
 exit 1

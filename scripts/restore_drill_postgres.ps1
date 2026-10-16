@@ -47,13 +47,24 @@ try {
 
     $live = PsqlLive $liveDb $countSql
     $rest = PsqlLive $scratch $countSql
-    $diff = Compare-Object $live $rest
     Write-Host ("tables: live={0} restored={1}" -f @($live).Count, @($rest).Count)
-    if ($diff) {
-        Write-Host "ROW-COUNT DIFFERENCES (live '<=' vs restored '=>'; hot tables may drift since the dump):" -ForegroundColor Yellow
-        $diff | ForEach-Object { "  $($_.SideIndicator) $($_.InputObject)" }
-        if (@($live).Count -ne @($rest).Count) { $ok = $false }
-    } else { Write-Host "row counts identical across all tables" -ForegroundColor Green }
+    # Per-table check. The live DB keeps changing after the dump, so allow a small drift
+    # (max(50 rows, 1%)); anything beyond that - or a missing table - FAILS the drill.
+    $toMap = { param($lines) $h = @{}; foreach ($l in $lines) { $k, $v = $l -split '=', 2; $h[$k] = [int64]$v }; $h }
+    $lm = & $toMap $live; $rm = & $toMap $rest
+    $drift = @(); $bad = @()
+    foreach ($t in $lm.Keys) {
+        if (-not $rm.ContainsKey($t)) { $bad += "$t missing from restore"; continue }
+        $d = [math]::Abs($lm[$t] - $rm[$t])
+        if ($d -eq 0) { continue }
+        $tol = [math]::Max(50, [math]::Ceiling($lm[$t] * 0.01))
+        if ($d -gt $tol) { $bad += "$t live=$($lm[$t]) restored=$($rm[$t]) (diff $d > tolerance $tol)" }
+        else { $drift += "$t live=$($lm[$t]) restored=$($rm[$t])" }
+    }
+    foreach ($t in $rm.Keys) { if (-not $lm.ContainsKey($t)) { $bad += "$t exists only in restore" } }
+    if ($drift) { Write-Host 'within-tolerance drift (rows written since the dump):' -ForegroundColor Yellow; $drift | ForEach-Object { "  $_" } }
+    if ($bad)   { Write-Host 'ROW-COUNT MISMATCHES:' -ForegroundColor Red; $bad | ForEach-Object { "  $_" }; $ok = $false }
+    elseif (-not $drift) { Write-Host 'row counts identical across all tables' -ForegroundColor Green }
 
     $lv = PsqlLive $liveDb "select version_num from alembic_version"
     $rv = PsqlLive $scratch "select version_num from alembic_version"

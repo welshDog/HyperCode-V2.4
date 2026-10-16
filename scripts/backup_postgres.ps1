@@ -27,20 +27,21 @@ Write-Host "Starting backup (custom format)..."
 docker exec postgres sh -c "pg_dump -U `"`$POSTGRES_USER`" -d `"`$POSTGRES_DB`" -Fc -f $inContainer"
 if ($LASTEXITCODE -ne 0) { Fail "pg_dump exited $LASTEXITCODE" }
 
+# Full-content check on the in-container file BEFORE trusting it: `pg_restore -f /dev/null` decompresses and
+# replays every data block (a catalogue-only `-l` would pass a truncated data section). No scratch DB needed.
+docker exec postgres sh -c "pg_restore -f /dev/null $inContainer"
+if ($LASTEXITCODE -ne 0) { Fail "pg_restore cannot read the full archive (truncated or corrupt dump)" }
+$srcHash = ((docker exec postgres sh -c "sha256sum $inContainer") -split '\s+')[0].ToUpper()
+if ($srcHash.Length -ne 64) { Fail "could not checksum the dump inside the container" }
+
 docker cp "postgres:$inContainer" $backupFile
 if ($LASTEXITCODE -ne 0) { Fail "docker cp exited $LASTEXITCODE" }
 docker exec postgres rm -f $inContainer | Out-Null
 
 if (-not (Test-Path $backupFile) -or (Get-Item $backupFile).Length -lt 1024) { Fail "dump missing or suspiciously small" }
 
-# Prove the archive is readable (catalog listing) before trusting it.
-docker cp $backupFile "postgres:$inContainer" | Out-Null
-docker exec postgres sh -c "pg_restore -l $inContainer > /dev/null"
-$listRc = $LASTEXITCODE
-docker exec postgres rm -f $inContainer | Out-Null
-if ($listRc -ne 0) { Fail "pg_restore cannot read the archive" }
-
 $hash = (Get-FileHash $backupFile -Algorithm SHA256).Hash
+if ($hash -ne $srcHash) { Fail "copy to host does not match the dump made in the container (checksum mismatch)" }
 "$hash  $(Split-Path $backupFile -Leaf)" | Set-Content "$backupFile.sha256"
 Write-Host ("Backup OK: {0} ({1:N1} MB) sha256={2}" -f $backupFile, ((Get-Item $backupFile).Length/1MB), $hash.Substring(0,16)) -ForegroundColor Green
 

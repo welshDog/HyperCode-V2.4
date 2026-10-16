@@ -22,9 +22,14 @@ $code = 0
 function Say($m, $c = 'Gray') { Write-Host $m -ForegroundColor $c }
 
 # ---- sanity: need a fresh source ----
-$pgDump = Get-ChildItem (Join-Path $Backups 'postgres') -Filter 'backup_*.dump' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
-$stSet  = Get-ChildItem (Join-Path $Backups 'stores') -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
-if (-not $pgDump -or -not $stSet) { Say 'FAIL: no source backups found (run the backup scripts first)' Red; exit 1 }
+# Only COMPLETED sources: a dump is complete once its .sha256 exists; a stores set once SHA256SUMS + manifest.json
+# exist (written last). Otherwise an overlapping backup run could get archived half-written.
+$pgDump = Get-ChildItem (Join-Path $Backups 'postgres') -Filter 'backup_*.dump' -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path "$($_.FullName).sha256" } | Sort-Object Name -Descending | Select-Object -First 1
+$stSet  = Get-ChildItem (Join-Path $Backups 'stores') -Directory -ErrorAction SilentlyContinue |
+    Where-Object { (Test-Path (Join-Path $_.FullName 'SHA256SUMS')) -and (Test-Path (Join-Path $_.FullName 'manifest.json')) } |
+    Sort-Object Name -Descending | Select-Object -First 1
+if (-not $pgDump -or -not $stSet) { Say 'FAIL: no COMPLETED source backups found (run the backup scripts first)' Red; exit 1 }
 Say ("source: postgres {0}  stores {1}" -f $pgDump.Name, $stSet.Name)
 
 # ---- A) second-disk copy ----

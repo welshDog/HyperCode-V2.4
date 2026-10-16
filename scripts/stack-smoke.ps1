@@ -32,21 +32,34 @@ foreach ($n in $required) {
 }
 
 Write-Host "== any Created/Restarting container in the project"
-$stuck = docker ps -a --filter 'status=created' --filter 'status=restarting' --format '{{.Names}} ({{.Status}})'
+# Scope to THIS Compose project (taken from hypercode-core's label), so an unrelated stray container on the host
+# can't fail the gate. If the label can't be read, fall back to the required names only.
+# (Read the labels as JSON: embedded double quotes in a --format template get mangled by Windows PowerShell.)
+$proj = $null
+$lbl = docker inspect hypercode-core --format '{{json .Config.Labels}}' 2>$null
+if ($LASTEXITCODE -eq 0 -and $lbl) { try { $proj = ($lbl | ConvertFrom-Json).'com.docker.compose.project' } catch { } }
+if ($proj) {
+  $stuck = docker ps -a --filter "label=com.docker.compose.project=$proj" --filter 'status=created' --filter 'status=restarting' --format '{{.Names}} ({{.Status}})'
+} else {
+  $stuck = docker ps -a --filter 'status=created' --filter 'status=restarting' --format '{{.Names}} ({{.Status}})' | Where-Object { $required -contains ($_ -split ' ')[0] }
+}
 if ($stuck) { $stuck | ForEach-Object { Fail "stuck: $_" } } else { Pass 'none stuck' }
 
 Write-Host "== core readiness (status must be 'ok', not just HTTP 200)"
 $h = curl.exe -s -m 8 http://127.0.0.1:8000/health
-try {
-  $j = $h | ConvertFrom-Json
-  if ($j.status -eq 'ok') { Pass 'core status=ok' }
-  else { Fail "core status='$($j.status)' boot_error='$($j.boot_error)'" }
-} catch { Fail "core /health unreadable: '$h'" }
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($h)) { Fail "core /health unreachable (curl exit $LASTEXITCODE)" }
+else {
+  try {
+    $j = $h | ConvertFrom-Json
+    if ($j.status -eq 'ok') { Pass 'core status=ok' }
+    else { Fail "core status='$($j.status)' boot_error='$($j.boot_error)'" }
+  } catch { Fail "core /health unreadable: '$h'" }
+}
 
 Write-Host "== endpoints"
 foreach ($e in @{ dashboard='http://127.0.0.1:8088/'; mcp='http://127.0.0.1:8823/health'; fcc='http://127.0.0.1:8083/health' }.GetEnumerator()) {
   $code = curl.exe -s -o NUL -w '%{http_code}' -m 8 $e.Value
-  if ($code -eq '200') { Pass "$($e.Key) 200" } else { Fail "$($e.Key) $($e.Value) -> $code" }
+  if ($code -match '^2\d\d$') { Pass "$($e.Key) $code" } else { Fail "$($e.Key) $($e.Value) -> '$code'" }
 }
 
 Write-Host "== celery heartbeat"
