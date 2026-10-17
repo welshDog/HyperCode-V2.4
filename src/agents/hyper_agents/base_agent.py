@@ -204,7 +204,9 @@ class HyperAgent(ABC):
         try:
             resp = httpx.post(f"{crew_url}/agents/register", json=payload, timeout=5)
             resp.raise_for_status()
-            logger.info(f"[{self.name}] Registered with Crew Orchestrator at {crew_url}")
+            logger.info(
+                f"[{self.name}] Registered with Crew Orchestrator at {crew_url}"
+            )
             return resp.json()
         except Exception as exc:
             logger.warning(f"[{self.name}] Crew registration failed: {exc}")

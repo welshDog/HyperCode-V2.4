@@ -26,7 +26,7 @@ from src.agents.hyper_agents.base_agent import (
 class AlertSeverity(Enum):
     """Alert levels - always explicit, never ambiguous."""
 
-    INFO = "info"        # Informational, no action needed
+    INFO = "info"  # Informational, no action needed
     WARNING = "warning"  # Worth knowing, monitor closely
     CRITICAL = "critical"  # Needs attention now
 
@@ -34,10 +34,10 @@ class AlertSeverity(Enum):
 class MetricType(Enum):
     """What kind of metric we're tracking."""
 
-    COUNTER = "counter"    # Monotonically increasing value
-    GAUGE = "gauge"        # Point-in-time value
+    COUNTER = "counter"  # Monotonically increasing value
+    GAUGE = "gauge"  # Point-in-time value
     HISTOGRAM = "histogram"  # Distribution of values
-    RATE = "rate"          # Events per second
+    RATE = "rate"  # Events per second
 
 
 @dataclass
@@ -276,9 +276,7 @@ class ObserverAgent(HyperAgent):
 
     def get_active_alerts(self) -> List[Alert]:
         """Return all currently active (unresolved) alerts."""
-        return [
-            a for a in self._active_alerts.values() if not a.resolved
-        ]
+        return [a for a in self._active_alerts.values() if not a.resolved]
 
     def get_rate(self, metric_name: str, window_seconds: float = 60.0) -> float:
         """Calculate the rate of change for a metric over a time window.
@@ -293,9 +291,7 @@ class ObserverAgent(HyperAgent):
         now = time.time()
         cutoff = now - window_seconds
         samples = [
-            (ts, val)
-            for ts, val in self._metrics.get(metric_name, [])
-            if ts >= cutoff
+            (ts, val) for ts, val in self._metrics.get(metric_name, []) if ts >= cutoff
         ]
         if len(samples) < 2:
             return 0.0

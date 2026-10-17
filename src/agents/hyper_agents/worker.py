@@ -127,7 +127,9 @@ class WorkerAgent(HyperAgent):
         self.max_concurrent_tasks = max_concurrent_tasks
         self.hyperfocus_mode = hyperfocus_mode
         self._task_queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
-        self._enqueue_seq: int = 0  # tie-breaker: prevents Task comparison on equal priority
+        self._enqueue_seq: int = (
+            0  # tie-breaker: prevents Task comparison on equal priority
+        )
         self._active_tasks: Dict[str, Task] = {}
         self._completed_tasks: List[TaskResult] = []
         self._task_history: List[TaskResult] = []

@@ -173,7 +173,9 @@ class ArchitectAgent(HyperAgent):
         """Mark a step as completed."""
         self.update_step_status(goal_id, step_id, GoalStatus.COMPLETED)
 
-    def fail_step(self, goal_id: str, step_id: str, error: Optional[str] = None) -> None:
+    def fail_step(
+        self, goal_id: str, step_id: str, error: Optional[str] = None
+    ) -> None:
         """Mark a step as failed."""
         self.update_step_status(goal_id, step_id, GoalStatus.FAILED, error=error)
 
@@ -209,7 +211,8 @@ class ArchitectAgent(HyperAgent):
 
         completed = {s.step_id for s in goal.steps if s.status == GoalStatus.COMPLETED}
         return [
-            s for s in goal.steps
+            s
+            for s in goal.steps
             if s.status == GoalStatus.DEFINED and s.is_ready(completed)
         ]
 

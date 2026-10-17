@@ -49,7 +49,7 @@ async def retry_with_backoff(
 
     for attempt in range(max_retries + 1):
         if attempt > 0:
-            wait_time = backoff_base ** attempt
+            wait_time = backoff_base**attempt
             if on_retry is not None:
                 on_retry(attempt, wait_time)
             await asyncio.sleep(wait_time)
@@ -66,9 +66,7 @@ async def retry_with_backoff(
                 loop = asyncio.get_event_loop()
                 if timeout is not None:
                     result = await asyncio.wait_for(
-                        loop.run_in_executor(
-                            None, lambda: func(*args, **kwargs)
-                        ),
+                        loop.run_in_executor(None, lambda: func(*args, **kwargs)),
                         timeout=timeout,
                     )
                 else:

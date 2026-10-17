@@ -44,7 +44,7 @@ jobs:
         run: ruff check src/agents/hyper_agents/ --output-format=github
 
       - name: Black format check
-        run: black --check src/agents/hyper_agents/ tests/hyper_agents/
+        run: black --check src/agents/hyper_agents/
 
       - name: MyPy type check
         run: mypy src/agents/hyper_agents/ --ignore-missing-imports

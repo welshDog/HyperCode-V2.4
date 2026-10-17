@@ -9,7 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # GHCR needs a lowercase repository path; github.repository keeps the "welshDog" casing.
+  IMAGE_NAME: welshdog/hypercode-v2.4
 
 jobs:
   verify-config:
@@ -147,12 +148,12 @@ jobs:
         run: |
           set -e
           build_img () { NAME=$1; CTX=$2; DOCKER_BUILDKIT=1 docker build -t $NAME $CTX; }
-          measure () { NAME=$1; echo \"$NAME size:\" $(docker image inspect $NAME --format='{{.Size}}'); }
+          measure () { NAME=$1; echo "$NAME size:" $(docker image inspect $NAME --format='{{.Size}}'); }
           # Build
-          build_img hypercode-core:metrics \"./backend\"
-          build_img hypercode-dashboard:metrics \"./agents/dashboard\"
-          build_img crew-orchestrator:metrics \"./agents/crew-orchestrator\"
-          build_img healer-agent:metrics \"./agents/healer\"
+          build_img hypercode-core:metrics "./backend"
+          build_img hypercode-dashboard:metrics "./agents/dashboard"
+          build_img crew-orchestrator:metrics "./agents/crew-orchestrator"
+          build_img healer-agent:metrics "./agents/healer"
           # Metrics
           measure hypercode-core:metrics
           measure hypercode-dashboard:metrics
