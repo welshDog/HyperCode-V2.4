@@ -518,7 +518,10 @@ def _award_xp_to_pet(discord_id: str, amount: int, reason: str, source: str) -> 
     if evolved and token_id and webhook:
         try:
             headers = {}
-            shared = read_secret("HYPERCODE_API_KEY").strip()
+            # evolve-relay checks the SHARED inter-agent key, while this bridge's own HYPERCODE_API_KEY is what core
+            # sends it (the master key). EVOLVE_WEBHOOK_API_KEY(_FILE) carries the relay's key; the old single-key
+            # setup (HYPERCODE_API_KEY for both) still works when it is unset.
+            shared = (read_secret("EVOLVE_WEBHOOK_API_KEY") or read_secret("HYPERCODE_API_KEY")).strip()
             if shared:
                 headers["X-API-Key"] = shared
             with httpx.Client(timeout=3.0, headers=headers) as client:
