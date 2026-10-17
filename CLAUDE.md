@@ -49,7 +49,7 @@
 - **Session gotchas (cost real time):** `wsl -e free -m` (not `free -m`); `MSYS_NO_PATHCONV=1` in Git Bash; **never** print `docker compose config`
   (expands `.env` secrets — use `-q`); never `docker compose down` to stop obs (stop by name); core runs `alembic upgrade head` before uvicorn;
   `crew-orchestrator` source is bind-mounted (restart, no rebuild); WSL cap is 4 GB — obs stack + core build = under the 1.2 GB stop rule.
-- **JWT signing secret ROTATED 2026-10-03 15:13 UTC** (the exposed 10-year admin JWT is dead: 403). Core signs with `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`; the `.env` `JWT_SECRET` line is a different, unused value). Rotate again with `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight) then `--yes`; prints only hashes. New 30-day dashboard token **expires ~2026-11-02** (re-run the script before then). All logins/tokens issued before the rotation need re-issuing.
+- **JWT signing secret ROTATED 2026-10-03 15:13 UTC** (the exposed 10-year admin JWT is dead: 403). Core signs with `HYPERCODE_JWT_SECRET` (= `secrets/jwt_secret.txt`; the `.env` `JWT_SECRET` line is a different, unused value). Rotate again with `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight) then `--yes`; prints only hashes. Since 2026-10-17 it handles the file layout too (core reads `secrets/jwt_secret.txt`; holders found by mount, dashboard recreated not restarted). New 30-day dashboard token **expires ~2026-11-02** (re-run the script before then). All logins/tokens issued before the rotation need re-issuing.
 
 ---
 
