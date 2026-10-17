@@ -1,9 +1,9 @@
 # rollout_inter_agent_key.ps1 - move ALL seven holders of the shared inter-agent key onto secrets/inter_agent_key.txt in ONE pass.
 #
 # Holders: crew-orchestrator coder-agent qa-engineer safety-shepherd coder-studio evolve-relay governor healer-agent.
-# Four of them (crew, coder-agent, shepherd, governor) read the key from the file (overlay *_API_KEY_FILE). The other three have
-# no read_secret yet, so the key is passed as the env value the base compose already uses (${API_KEY}) for THIS compose run only:
-# it is read from the file in memory, never printed, and cleared from the shell afterwards.
+# Every holder reads the key from the file (overlay *_API_KEY_FILE), so by default the key is NOT put in any env value.
+# -PassKeyAsEnv (rollback/emergency) also passes it as the env value the base compose uses (${API_KEY}) for THIS compose run
+# only: read from the file in memory, never printed, cleared from the shell afterwards.
 # Each service is recreated with the compose file set it was originally started with (taken from its container label),
 # and its other env is preserved (CREW_LLM_BASE_URL is carried over). A before/after env diff (names only) is printed.
 #
@@ -14,13 +14,13 @@
 param(
     [switch]$Apply,
     [string]$KeyFile = 'secrets\inter_agent_key.txt',
+    [switch]$PassKeyAsEnv,      # emergency/rollback: ALSO hand the key over as an env value (for an image that cannot read *_FILE)
     [string]$BackupTo = ''      # optional path: the CURRENT key (read from a running peer) is saved here before changing anything
 )
 $ErrorActionPreference = 'Continue'
 Set-Location (Split-Path -Parent $PSScriptRoot)
 $root = (Get-Location).Path
 
-# healer-agent: its image predates the vendored read_secret, so it gets the key as an env value like qa-engineer/coder-studio/evolve-relay
 $services = 'safety-shepherd', 'governor', 'coder-agent', 'qa-engineer', 'coder-studio', 'evolve-relay', 'crew-orchestrator', 'healer-agent'
 # 'fleet' only when the service's own file set includes docker-compose.fleet.yml: the secrets overlay names `governor`, which has
 # no image/build of its own, so enabling the profile without fleet.yml makes compose reject the whole project.
@@ -76,7 +76,8 @@ if ($BackupTo) {
 # ---- apply: one pass, shepherd first (the receiver), then the rest
 foreach ($p in $plan) {
     $s = $p.Service
-    [Environment]::SetEnvironmentVariable('API_KEY', $newKey, 'Process')
+    # default: the key reaches the container ONLY as a file (not visible in `docker inspect`)
+    if ($PassKeyAsEnv) { [Environment]::SetEnvironmentVariable('API_KEY', $newKey, 'Process') }
     $crew = $p.Before['CREW_LLM_BASE_URL']
     if ($crew) { [Environment]::SetEnvironmentVariable('CREW_LLM_BASE_URL', $crew, 'Process') }
     $o = docker compose @($p.F) @($p.P) up -d --no-deps --no-build --force-recreate $s 2>&1
@@ -96,6 +97,12 @@ do {
 } while ($bad.Count -gt 0 -and (Get-Date) -lt $deadline)
 foreach ($s in $services) { "{0,-18} {1}" -f $s, (Health $s) }
 
+'--- file key wired? (the new container must carry a *_API_KEY_FILE variable)'
+foreach ($p in $plan) {
+    $a = EnvMap $p.Service
+    $has = [bool]($a.Keys | Where-Object { $_ -in 'HYPERCODE_API_KEY_FILE', 'API_KEY_FILE' })
+    "{0,-18} {1}" -f $p.Service, $(if ($has) { 'file key' } else { 'NO FILE VAR (rebuild needed or use -PassKeyAsEnv)' })
+}
 '--- env diff (names only)'
 foreach ($p in $plan) {
     $a = EnvMap $p.Service
