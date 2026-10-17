@@ -20,7 +20,6 @@ from src.agents.hyper_agents.base_agent import (
     AgentArchetype,
     AgentStatus,
     HyperAgent,
-    NDErrorResponse,
 )
 from .retry_helper import retry_with_backoff, RetryError
 
