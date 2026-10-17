@@ -13,7 +13,7 @@ import asyncio
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from src.agents.hyper_agents.base_agent import (
     AgentArchetype,
@@ -39,13 +39,13 @@ class PlanStep:
 
     step_id: str
     description: str
-    assigned_to: Optional[str] = None  # agent_id
-    depends_on: Set[str] = field(default_factory=set)  # step_ids
+    assigned_to: str | None = None  # agent_id
+    depends_on: set[str] = field(default_factory=set)  # step_ids
     status: GoalStatus = GoalStatus.DEFINED
     result: Any = None
-    error: Optional[str] = None
+    error: str | None = None
 
-    def is_ready(self, completed_steps: Set[str]) -> bool:
+    def is_ready(self, completed_steps: set[str]) -> bool:
         """Check if all dependencies are met."""
         return self.depends_on.issubset(completed_steps)
 
@@ -57,9 +57,9 @@ class Goal:
     goal_id: str
     title: str
     description: str
-    steps: List[PlanStep] = field(default_factory=list)
+    steps: list[PlanStep] = field(default_factory=list)
     status: GoalStatus = GoalStatus.DEFINED
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def progress(self) -> float:
@@ -109,9 +109,9 @@ class ArchitectAgent(HyperAgent):
     ) -> None:
         super().__init__(name=name, archetype=archetype, **kwargs)
         self.planning_timeout = planning_timeout
-        self._goals: Dict[str, Goal] = {}
-        self._agent_registry: Dict[str, str] = {}  # name -> role/archetype
-        self._active_goal_id: Optional[str] = None
+        self._goals: dict[str, Goal] = {}
+        self._agent_registry: dict[str, str] = {}  # name -> role/archetype
+        self._active_goal_id: str | None = None
         self._total_goals_completed: int = 0
 
     async def initialize(self) -> None:
@@ -141,8 +141,8 @@ class ArchitectAgent(HyperAgent):
         self,
         goal_id: str,
         description: str,
-        depends_on: Optional[List[str]] = None,
-        assigned_to: Optional[str] = None,
+        depends_on: list[str] | None = None,
+        assigned_to: str | None = None,
     ) -> str:
         """Add an execution step to a goal.
 
@@ -173,9 +173,7 @@ class ArchitectAgent(HyperAgent):
         """Mark a step as completed."""
         self.update_step_status(goal_id, step_id, GoalStatus.COMPLETED)
 
-    def fail_step(
-        self, goal_id: str, step_id: str, error: Optional[str] = None
-    ) -> None:
+    def fail_step(self, goal_id: str, step_id: str, error: str | None = None) -> None:
         """Mark a step as failed."""
         self.update_step_status(goal_id, step_id, GoalStatus.FAILED, error=error)
 
@@ -190,11 +188,11 @@ class ArchitectAgent(HyperAgent):
         self._log(f"Agent registered: {agent_id} ({archetype.value})")
 
     @property
-    def registered_agents(self) -> Dict[str, str]:
+    def registered_agents(self) -> dict[str, str]:
         """Public view of the agent registry."""
         return self._agent_registry
 
-    def get_goal(self, goal_id: str) -> Optional[Goal]:
+    def get_goal(self, goal_id: str) -> Goal | None:
         """Retrieve full goal details."""
         return self._goals.get(goal_id)
 
@@ -203,7 +201,7 @@ class ArchitectAgent(HyperAgent):
         goal = self._goals.get(goal_id)
         return goal.progress if goal else 0.0
 
-    def get_ready_steps(self, goal_id: str) -> List[PlanStep]:
+    def get_ready_steps(self, goal_id: str) -> list[PlanStep]:
         """Find steps that are ready for execution (deps met, not started)."""
         goal = self._goals.get(goal_id)
         if not goal:
@@ -222,7 +220,7 @@ class ArchitectAgent(HyperAgent):
         step_id: str,
         status: GoalStatus,
         result: Any = None,
-        error: Optional[str] = None,
+        error: str | None = None,
     ) -> None:
         """Update a step's progress and check for goal completion."""
         goal = self._goals.get(goal_id)
@@ -247,7 +245,7 @@ class ArchitectAgent(HyperAgent):
             self._log(f"GOAL FAILED [{goal_id}]: One or more steps failed")
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Current architect statistics."""
         return {
             "name": self.name,

@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable, Tuple, Type
+from collections.abc import Callable
+from typing import Any
 
 
 class RetryError(Exception):
@@ -21,10 +22,10 @@ async def retry_with_backoff(
     max_retries: int = 3,
     backoff_base: float = 2.0,
     timeout: float | None = None,
-    retry_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    retry_exceptions: tuple[type[BaseException], ...] = (Exception,),
     on_retry: Callable[[int, float], None] | None = None,
     **kwargs,
-) -> Tuple[Any, int]:
+) -> tuple[Any, int]:
     """Execute a function with exponential backoff retry.
 
     Args:
