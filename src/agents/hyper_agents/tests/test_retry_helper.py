@@ -1,8 +1,9 @@
 import asyncio
-import pytest
 from unittest.mock import Mock
 
-from src.agents.hyper_agents.retry_helper import retry_with_backoff, RetryError
+import pytest
+
+from src.agents.hyper_agents.retry_helper import RetryError, retry_with_backoff
 
 
 @pytest.mark.asyncio
@@ -56,8 +57,10 @@ async def test_retry_with_backoff_on_retry_callback():
 @pytest.mark.asyncio
 async def test_retry_with_backoff_async_function():
     """Works with async function."""
+
     async def async_func():
         return "async success"
+
     result, attempt_index = await retry_with_backoff(async_func, max_retries=2)
     assert result == "async success"
     assert attempt_index == 0
@@ -67,12 +70,14 @@ async def test_retry_with_backoff_async_function():
 async def test_retry_with_backoff_async_function_retry():
     """Async function fails then succeeds."""
     call_count = 0
+
     async def async_func():
         nonlocal call_count
         call_count += 1
         if call_count < 2:
             raise ValueError("fail")
         return "async success"
+
     result, attempt_index = await retry_with_backoff(async_func, max_retries=3)
     assert result == "async success"
     assert attempt_index == 1
@@ -82,6 +87,7 @@ async def test_retry_with_backoff_async_function_retry():
 @pytest.mark.asyncio
 async def test_retry_with_backoff_timeout():
     """A slow attempt times out; with no retries left it raises RetryError."""
+
     async def slow_func():
         await asyncio.sleep(0.1)
         return "done"
