@@ -47,7 +47,7 @@ jobs:
         run: black --check src/agents/hyper_agents/
 
       - name: MyPy type check
-        run: mypy src/agents/hyper_agents/ --ignore-missing-imports
+        run: mypy src/agents/hyper_agents/ --ignore-missing-imports --explicit-package-bases
 
   unit-tests:
     name: Unit Tests (Python ${{ matrix.python-version }})

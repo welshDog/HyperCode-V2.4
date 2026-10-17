@@ -10,7 +10,7 @@ from typing import Any
 class RetryError(Exception):
     """Raised when all retry attempts are exhausted."""
 
-    def __init__(self, last_exception: BaseException, attempt_index: int):
+    def __init__(self, last_exception: BaseException | None, attempt_index: int):
         super().__init__(str(last_exception))
         self.last_exception = last_exception
         self.attempt_index = attempt_index
@@ -81,4 +81,4 @@ async def retry_with_backoff(
             continue
 
     # If we got here, all retries failed.
-    raise RetryError(last_exception, attempt)  # type: ignore[raise-missing]
+    raise RetryError(last_exception, attempt)
