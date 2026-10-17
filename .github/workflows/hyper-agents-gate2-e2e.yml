@@ -21,6 +21,7 @@ jobs:
   regression-guard:
     name: Regression Guard — Existing V2.0 Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       redis:
         image: redis:7-alpine
@@ -51,13 +52,24 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov pytest-asyncio httpx jsonschema
-          pip install -r requirements.txt || true
+          # The root requirements.txt is a small tooling list; these tests import app/* (backend)
+          # and need its runtime deps. No "|| true": a failed install must fail the job.
+          pip install -r backend/requirements.txt
+          pip install fakeredis jsonschema pytest-timeout
 
       - name: Run ALL existing V2.0 tests
+        env:
+          PYTHONPATH: .:backend
         run: |
+          # Four modules cannot be collected (hard-coded /tmp paths, import clashes with backend/)
+          # and abort the whole run. Fix or delete them, then drop these ignores.
           pytest tests/ \
             --ignore=tests/hyper_agents/ \
+            --ignore=tests/test_bus2.py \
+            --ignore=tests/test_bus3.py \
+            --ignore=tests/test_compose_validator.py \
+            --ignore=tests/test_rag_system.py \
+            --timeout=60 \
             -v --tb=short \
             --junitxml=regression-results.xml
 
