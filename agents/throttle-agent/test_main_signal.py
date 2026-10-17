@@ -286,3 +286,35 @@ class Tiers(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class HealerAuthTests(unittest.TestCase):
+    """Healer's protected routes need the shared key; /health stays open. The key may come from a *_FILE secret."""
+
+    def test_key_from_file_is_sent_on_every_protected_healer_call(self):
+        with tempfile.TemporaryDirectory() as d:
+            kf = os.path.join(d, "key.txt")
+            with open(kf, "w", encoding="utf-8") as fh:
+                fh.write("hc_testkey\n")
+            seen = []
+
+            def fake(url, **kw):
+                seen.append((url, kw.get("headers")))
+                r = unittest.mock.Mock(status_code=200)
+                r.json.return_value = {"containers": [], "open_circuits": [], "state": "closed"}
+                return r
+
+            with unittest.mock.patch.dict(os.environ, {"HYPERCODE_API_KEY_FILE": kf}), \
+                    unittest.mock.patch.object(main.httpx, "get", side_effect=fake), \
+                    unittest.mock.patch.object(main.httpx, "post", side_effect=fake):
+                main._fetch_healer_paused_by_throttle()
+                main._fetch_healer_open_circuits()
+                main._healer_allows_resume("c1")
+            self.assertEqual(len(seen), 3)
+            for _url, hdr in seen:
+                self.assertEqual(hdr, {"X-API-Key": "hc_testkey"})
+
+    def test_no_key_configured_sends_no_header(self):
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("HYPERCODE_API_KEY", "AGENT_API_KEY"))}
+        with unittest.mock.patch.dict(os.environ, env, clear=True):
+            self.assertEqual(main._healer_headers(), {})

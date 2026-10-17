@@ -52,6 +52,8 @@ $plan = foreach ($s in $services) {
     $files = ($labels.'com.docker.compose.project.config_files') -split ','
     if (-not $files -or -not $files[0]) { throw "no compose config_files label on $s" }
     $f = @(); foreach ($x in $files) { $f += '-f'; $f += ($x.Trim() -replace [regex]::Escape($root + '\'), '') }
+    # some services (qa-engineer, evolve-relay) were started from the plain compose file; the overlay carries their *_API_KEY_FILE
+    if (-not ($f -contains 'docker-compose.secrets.yml')) { $f += '-f'; $f += 'docker-compose.secrets.yml' }
     [pscustomobject]@{ Service = $s; F = $f; P = (ProfilesFor $f); Before = (EnvMap $s) }
 }
 foreach ($p in $plan) {
