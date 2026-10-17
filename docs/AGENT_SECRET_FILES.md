@@ -59,3 +59,15 @@ deliberately wrong key, i.e. it does not enforce the key on `/__authprobe`; on 2
 
 Also: `agent-registry` auto-restarts any watched container it sees die (exit 137 after a stop or recreate), so expect
 a second start ~13 s after a manual recreate.
+
+**Rolled out 2026-10-16.** All seven now use `secrets/inter_agent_key.txt` (gitignored; the previous key is kept in
+`secrets/inter_agent_key.old.txt` for rollback). `crew-orchestrator`, `coder-agent`, `safety-shepherd` and `governor` read it as a
+file (`HYPERCODE_API_KEY_FILE` / `API_KEY_FILE` in `docker-compose.secrets.yml`); `qa-engineer`, `coder-studio` and
+`evolve-relay` have no `read_secret` yet and get it as an env value. To change it again, or to recreate any of the seven
+safely, use `scriptsollout_inter_agent_key.ps1` (dry run by default, `-Apply` to change; it recreates all seven with their
+own compose file sets, diffs env names, then runs the probe). Recreating one of the three env-fed agents by hand without the
+key in `API_KEY` still falls back to `dev-master-key`.
+
+**healer-agent (2026-10-17):** its inbound routes were protected by the public default `dev-master-key`. It now takes the shared key as an env value (its image predates `read_secret`, so the overlay's `HYPERCODE_API_KEY_FILE` only takes effect after a rebuild). `/health`, `/metrics` and `/alerts/webhook` stay open by design. No caller was sending a key to its protected routes, so nothing regressed.
+
+**All nine on the file (2026-10-17).** `healer-agent` (rebuilt), `throttle-agent` (rebuilt; now also sends the key on its healer calls), `evolve-relay` (rebuilt from BROskiPets-LLM-dNFT PR #3), `qa-engineer` and `coder-studio` (already file-aware) join the first four. `scriptsollout_inter_agent_key.ps1` therefore no longer puts the key in any env value by default (`-PassKeyAsEnv` is the rollback switch) and prints whether each container carries a `*_API_KEY_FILE`. `throttle-agent` is started from `docker-compose.throttle.yml` (its own `secrets:` block), so recreate it with `docker compose -f docker-compose.yml up -d --no-deps --force-recreate throttle-agent`. Rebuilding `evolve-relay` needs the BROskiPets checkout (`BROSKIPETS_DIR`) on a branch that has PR #3, otherwise the image loses file support.

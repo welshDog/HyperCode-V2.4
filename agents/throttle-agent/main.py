@@ -527,9 +527,19 @@ _last_open_circuits: set[str] = set()
 _paused_since: dict[str, float] = {}
 
 
+def _healer_headers() -> dict:
+    """Auth for healer's protected routes (/throttle/state, /circuit-breaker/*): the shared inter-agent key.
+
+    Healer used to accept the public default `dev-master-key`; since 2026-10-17 it checks the real shared key, and an
+    unauthenticated call is a 401 (so observe mode silently saw no circuits and no throttle state). `/health` stays open.
+    """
+    key = (read_secret("HYPERCODE_API_KEY") or read_secret("AGENT_API_KEY") or "").strip()
+    return {"X-API-Key": key} if key else {}
+
+
 def _fetch_healer_paused_by_throttle() -> set[str]:
     try:
-        r = httpx.get(f"{HEALER_URL}/throttle/state", timeout=2.0)
+        r = httpx.get(f"{HEALER_URL}/throttle/state", headers=_healer_headers(), timeout=2.0)
         if r.status_code != 200:
             return set()
         data = r.json()
@@ -543,7 +553,7 @@ def _fetch_healer_paused_by_throttle() -> set[str]:
 
 def _fetch_healer_open_circuits() -> set[str]:
     try:
-        r = httpx.get(f"{HEALER_URL}/circuit-breaker/status", timeout=2.0)
+        r = httpx.get(f"{HEALER_URL}/circuit-breaker/status", headers=_healer_headers(), timeout=2.0)
         if r.status_code != 200:
             return set()
         data = r.json()
@@ -594,7 +604,7 @@ def _notify_healer_state(containers: list[str], paused: bool) -> None:
         "reason": "throttle_agent",
     }
     try:
-        resp = httpx.post(f"{HEALER_URL}/throttle/state", json=payload, timeout=2.0)
+        resp = httpx.post(f"{HEALER_URL}/throttle/state", json=payload, headers=_healer_headers(), timeout=2.0)
         resp.raise_for_status()
     except Exception as e:
         logger.warning("Healer notification failed, will retry next cycle", extra={"error": str(e)})
@@ -602,7 +612,7 @@ def _notify_healer_state(containers: list[str], paused: bool) -> None:
 
 def _healer_allows_resume(container: str) -> bool:
     try:
-        r = httpx.get(f"{HEALER_URL}/circuit-breaker/{container}", timeout=2.0)
+        r = httpx.get(f"{HEALER_URL}/circuit-breaker/{container}", headers=_healer_headers(), timeout=2.0)
         if r.status_code != 200:
             return True
         data = r.json()
