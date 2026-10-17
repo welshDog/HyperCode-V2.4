@@ -313,7 +313,7 @@ numpy==2.3.2
     #   -c requirements.txt
     #   chromadb
     #   onnxruntime
-oauthlib==3.3.1
+oauthlib==4.0.0
     # via
     #   -c requirements.txt
     #   kubernetes
@@ -491,7 +491,7 @@ pygments==2.20.0
     # via
     #   -c requirements.txt
     #   rich
-pyjwt==2.14.0
+pyjwt==2.15.0
     # via
     #   -c requirements.txt
     #   redis
@@ -521,7 +521,7 @@ python-jose==3.5.0
     #   -r requirements.core.in
 python-json-logger==4.2.0
     # via -r requirements.core.in
-python-multipart==0.0.30
+python-multipart==0.0.31
     # via
     #   -c requirements.txt
     #   -r requirements.core.in
