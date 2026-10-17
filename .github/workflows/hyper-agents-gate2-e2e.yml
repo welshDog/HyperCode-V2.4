@@ -51,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov pytest-asyncio httpx
+          pip install pytest pytest-cov pytest-asyncio httpx jsonschema
           pip install -r requirements.txt || true
 
       - name: Run ALL existing V2.0 tests
