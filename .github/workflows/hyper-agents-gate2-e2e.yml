@@ -60,8 +60,14 @@ jobs:
         env:
           PYTHONPATH: .:backend
         run: |
+          # Four modules cannot be collected (hard-coded /tmp paths, import clashes with backend/)
+          # and abort the whole run. Fix or delete them, then drop these ignores.
           pytest tests/ \
             --ignore=tests/hyper_agents/ \
+            --ignore=tests/test_bus2.py \
+            --ignore=tests/test_bus3.py \
+            --ignore=tests/test_compose_validator.py \
+            --ignore=tests/test_rag_system.py \
             -v --tb=short \
             --junitxml=regression-results.xml
 
