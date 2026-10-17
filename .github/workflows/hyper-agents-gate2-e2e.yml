@@ -21,6 +21,7 @@ jobs:
   regression-guard:
     name: Regression Guard — Existing V2.0 Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     services:
       redis:
         image: redis:7-alpine
@@ -54,7 +55,7 @@ jobs:
           # The root requirements.txt is a small tooling list; these tests import app/* (backend)
           # and need its runtime deps. No "|| true": a failed install must fail the job.
           pip install -r backend/requirements.txt
-          pip install fakeredis jsonschema
+          pip install fakeredis jsonschema pytest-timeout
 
       - name: Run ALL existing V2.0 tests
         env:
