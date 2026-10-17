@@ -23,6 +23,10 @@ export default defineConfig({
     ? {
         command: 'npm --prefix agents/dashboard run dev -- -p 8088',
         url: 'http://localhost:8088',
+        // The command's relative path is repo-root relative; Playwright would
+        // otherwise run it from this config's folder (tests/e2e).
+        cwd: repoRoot,
+        timeout: 120_000,
         reuseExistingServer: false,
       }
     : undefined,
