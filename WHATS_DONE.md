@@ -3,6 +3,13 @@
 > Last synced: 2026-10-03 16:05 UTC by Claude (since 14:15: Shepherd real grants for hyphenated agents, JWT signing secret rotated, verifier tightened, Pulse fixed) — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
 
+## 2026-10-14 — DASHBOARD FULL TEST: shared agent polling, BROski Pulse retry, Studio scroll (PR #598) + Studio Anthropic key replaced
+
+- **Tested all 11 dashboard pages** (HTTP + browser): all 200, 264 vitest tests pass. Found the Mission page stacking ~13 overlapping `/api/agents` calls on load (502/503 burst), `/api/logs` 404 (running image predated the route), and the Studio page clipped (`.hc-main` overflow hidden).
+- **PR #598** (open, not merged): `useAgentSwarm` shares one timer/request; `BROskiPulseView` retries `/api/broski`; `.hc-main` scrolls. Dashboard rebuilt from the branch and recreated (rollback tags `pre-polling-fix-20261013`, `pre-scroll-fix-20261013`); `/api/logs` now 200.
+- **Studio "Invalid API key":** the Anthropic key was dead (401). New key put in `.env` by Lyndz, `coder-studio` recreated, key verified 200, Studio confirmed working.
+- **Not verified:** Mission first-load behaviour in a browser after the fix. Handover: `docs/NEXT_SESSION_HANDOVER_2026-10-14.md`.
+
 ## 2026-10-12/13 — CI IMAGE SCANNING: Docker Scout → Trivy over all 30 pushed images (all clean), workaround images runtime-tested, `docker-mcp` bug found + fixed (CI/images only; live stack not touched)
 
 - **`security-scan` in `docker-push.yml` is now Trivy over all 30 published images** (#566, #570), advisory, `:<sha>` tags. Scout was failing with "not entitled to use Docker Scout". All 30 images came back clean for fixable HIGH/CRITICAL (push run `38302879595`).

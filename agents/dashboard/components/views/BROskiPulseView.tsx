@@ -17,20 +17,36 @@ export function BROskiPulseView(): React.JSX.Element {
   const [pulse, setPulse] = useState<BroskiPulse | null>(null)
   const [pulseError, setPulseError] = useState<string | null>(null)
 
+  // /api/broski can 503 while core is busy (first load of the Mission page). One failed attempt used to leave the panel at 0 forever,
+  // so retry a few times with a growing delay and refresh every 30s afterwards.
   useEffect(() => {
-    const controller = new AbortController()
-    const t = setTimeout(() => controller.abort(), 5_000)
-    fetch('/api/broski', { signal: controller.signal })
-      .then((r) => r.json())
-      .then((data: BroskiPulse) => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let attempt = 0
+    const load = async () => {
+      const controller = new AbortController()
+      const t = setTimeout(() => controller.abort(), 8_000)
+      let ok = false
+      try {
+        const r = await fetch('/api/broski', { signal: controller.signal })
+        const data: BroskiPulse = await r.json()
+        if (cancelled) return
+        ok = r.ok && !data?.error
         setPulse(data)
-        setPulseError(data?.error ? String(data.error) : null)
-      })
-      .catch((e) => setPulseError(e instanceof Error ? e.message : String(e)))
-      .finally(() => clearTimeout(t))
+        setPulseError(data?.error ? String(data.error) : r.ok ? null : `HTTP ${r.status}`)
+      } catch (e) {
+        if (!cancelled) setPulseError(e instanceof Error ? e.message : String(e))
+      } finally {
+        clearTimeout(t)
+      }
+      if (cancelled) return
+      attempt = ok ? 0 : attempt + 1
+      timer = setTimeout(load, ok ? 30_000 : Math.min(2_000 * 2 ** attempt, 20_000))
+    }
+    load()
     return () => {
-      clearTimeout(t)
-      controller.abort()
+      cancelled = true
+      if (timer) clearTimeout(timer)
     }
   }, [])
 

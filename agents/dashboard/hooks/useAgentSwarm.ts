@@ -52,34 +52,66 @@ function normaliseAgent(raw: unknown): Agent | null {
   }
 }
 
-export function useAgentSwarm(onRefetchComplete?: (success: boolean) => void) {
-  const [agents, setAgents]   = useState<Agent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState<string | null>(null)
+// One shared poll for every widget. The Mission page mounts several consumers (swarm panel, BROski pulse, layout); each used to run its own
+// 5s timer, so a slow core stacked up a dozen overlapping /api/agents requests that then 502'd together. Now there is a single timer and a
+// single in-flight request, and every subscriber reads the same snapshot.
+type Snapshot = { agents: Agent[]; loading: boolean; error: string | null }
 
-  const fetchAgents = useCallback(async (isManual = false) => {
+let snapshot: Snapshot = { agents: [], loading: true, error: null }
+const subscribers = new Set<() => void>()
+let timer: ReturnType<typeof setInterval> | null = null
+let inFlight: Promise<boolean> | null = null
+
+function publish(next: Snapshot) {
+  snapshot = next
+  subscribers.forEach((fn) => fn())
+}
+
+function fetchShared(): Promise<boolean> {
+  if (inFlight) return inFlight
+  inFlight = (async () => {
     try {
       const res = await fetch('/api/agents', { next: { revalidate: 0 } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const rawAgents: unknown[] = Array.isArray(data?.agents) ? data.agents : []
       const mapped = rawAgents.map(normaliseAgent).filter((x): x is Agent => x != null)
-      setAgents(mapped)
-      setError(null)
-      if (isManual && onRefetchComplete) onRefetchComplete(true)
+      publish({ agents: mapped, loading: false, error: null })
+      return true
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error')
-      if (isManual && onRefetchComplete) onRefetchComplete(false)
+      // keep the last good roster on a transient failure; only the error flag changes
+      publish({ ...snapshot, loading: false, error: err instanceof Error ? err.message : 'Unknown error' })
+      return false
     } finally {
-      setLoading(false)
+      inFlight = null
     }
+  })()
+  return inFlight
+}
+
+function subscribe(fn: () => void): () => void {
+  subscribers.add(fn)
+  if (subscribers.size === 1) {
+    fetchShared()
+    timer = setInterval(fetchShared, POLL_MS)
+  }
+  return () => {
+    subscribers.delete(fn)
+    if (subscribers.size === 0 && timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  }
+}
+
+export function useAgentSwarm(onRefetchComplete?: (success: boolean) => void) {
+  const [, force] = useState(0)
+
+  useEffect(() => subscribe(() => force((n) => n + 1)), [])
+
+  const refetch = useCallback(() => {
+    fetchShared().then((ok) => onRefetchComplete?.(ok))
   }, [onRefetchComplete])
 
-  useEffect(() => {
-    fetchAgents(false)
-    const timer = setInterval(() => fetchAgents(false), POLL_MS)
-    return () => clearInterval(timer)
-  }, [fetchAgents])
-
-  return { agents, loading, error, refetch: () => fetchAgents(true) }
+  return { agents: snapshot.agents, loading: snapshot.loading, error: snapshot.error, refetch }
 }
