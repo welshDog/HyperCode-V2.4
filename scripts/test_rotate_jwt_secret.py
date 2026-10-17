@@ -5,7 +5,9 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent))
-from rotate_jwt_secret import drop_env_line, get_env_value, jwt_claims, replace_env_line, sha8  # noqa: E402
+from rotate_jwt_secret import (  # noqa: E402
+    compose_target, drop_env_line, get_env_value, jwt_claims, replace_env_line, secret_file_holders, sha8,
+)
 
 FAKE = "A=1\nHYPERCODE_JWT_SECRET=oldoldold\nJWT_SECRET=other\nDASHBOARD_SERVICE_JWT=eyJ.fake.tok\nZ=9\n"
 
@@ -50,3 +52,38 @@ def test_jwt_claims_decodes_without_verifying():
 
 def test_sha8_is_a_short_stable_prefix_that_does_not_contain_the_value():
     assert sha8("abc") == sha8("abc") and len(sha8("abc")) == 8 and "abc" not in sha8("abc")
+
+
+BS = chr(92)  # a backslash, built here so no escaping layer can mangle a Windows path
+
+
+def test_secret_file_holders_matches_on_the_mounted_file_only():
+    win = lambda *parts: "H:" + BS + BS.join(parts)  # noqa: E731
+    mounts = lambda *srcs: [{"Source": x} for x in srcs]  # noqa: E731
+    inspected = [
+        {"Name": "/hypercode-core", "Mounts": mounts(win("repo", "secrets", "jwt_secret.txt"), "/x/other.txt")},
+        {"Name": "/dashboard", "Mounts": mounts(win("repo", "secrets", "dashboard_service_jwt.txt"))},  # NOT jwt_secret.txt
+        {"Name": "/redis", "Mounts": None},
+        {"Name": "/linux-style", "Mounts": mounts("/host/repo/secrets/jwt_secret.txt")},
+    ]
+    assert secret_file_holders(inspected) == ["hypercode-core", "linux-style"]
+
+
+def test_compose_target_gives_relative_files_and_the_service():
+    root = Path("/repo")
+    labels = {"com.docker.compose.project.config_files": "/repo/docker-compose.yml, /repo/docker-compose.secrets.yml",
+              "com.docker.compose.service": "dashboard"}
+    args, svc = compose_target(labels, root)
+    assert svc == "dashboard"
+    assert args == ["-f", str(Path("docker-compose.yml")), "-f", str(Path("docker-compose.secrets.yml"))]
+
+
+def test_compose_target_keeps_a_path_outside_root():
+    args, _ = compose_target({"com.docker.compose.project.config_files": "/elsewhere/x.yml",
+                              "com.docker.compose.service": "s"}, Path("/repo"))
+    assert args == ["-f", "/elsewhere/x.yml"]
+
+
+def test_compose_target_refuses_a_container_without_compose_labels():
+    with pytest.raises(ValueError):
+        compose_target({}, Path("/repo"))
