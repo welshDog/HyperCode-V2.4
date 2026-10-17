@@ -45,8 +45,8 @@ jobs:
             --config "p/jwt" \
             --config "p/docker" \
             --config "p/owasp-top-ten" \
-            --sarif --output ${{ env.REPORTS_DIR }}/semgrep.sarif \
-            --json --output ${{ env.REPORTS_DIR }}/semgrep.json \
+            --sarif-output=${{ env.REPORTS_DIR }}/semgrep.sarif \
+            --json-output=${{ env.REPORTS_DIR }}/semgrep.json \
             --severity ERROR \
             --exclude "tests/" --exclude "*.lock" \
             --exclude "node_modules/" --exclude ".venv/" \

@@ -14,7 +14,9 @@ def test_classify_status():
     assert evo_harness.classify_status("✅ ALL DONE") == "complete"
     assert evo_harness.classify_status("✅ LIVE — May 7") == "complete"
     assert evo_harness.classify_status("✅ BUILT — May 16 (smoke pending)") == "complete_pending"
-    assert evo_harness.classify_status("rated 9.5/10 — backbone complete") == "unknown"
+    # COMPLETE is a done-marker (d4997e4e), so prose containing it counts as complete.
+    assert evo_harness.classify_status("rated 9.5/10 — backbone complete") == "complete"
+    assert evo_harness.classify_status("rated 9.5/10") == "unknown"
     assert evo_harness.classify_status("TODO") == "unknown"
 
 
