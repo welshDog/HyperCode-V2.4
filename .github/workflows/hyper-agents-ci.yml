@@ -94,14 +94,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov pytest-asyncio httpx
+          pip install pytest pytest-cov pytest-asyncio httpx fastapi pydantic
           pip install -r requirements.txt || true
 
       - name: Run unit tests with coverage
         run: |
           # Tests live next to the code. Coverage measured at 57% on 2026-10-17;
           # raise this floor as tests are added (the original target was 80).
-          pytest src/agents/hyper_agents/tests/ \
+          # "python -m" puts the repo root on sys.path so "import src.agents..." resolves.
+          python -m pytest src/agents/hyper_agents/tests/ \
             --cov=src/agents/hyper_agents \
             --cov-report=xml \
             --cov-report=term-missing \
