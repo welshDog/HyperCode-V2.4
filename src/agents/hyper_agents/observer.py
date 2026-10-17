@@ -12,9 +12,10 @@ from __future__ import annotations
 import asyncio
 import time
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Deque, Dict, List, Optional, Set
+from typing import Any
 
 from src.agents.hyper_agents.base_agent import (
     AgentArchetype,
@@ -26,7 +27,7 @@ from src.agents.hyper_agents.base_agent import (
 class AlertSeverity(Enum):
     """Alert levels - always explicit, never ambiguous."""
 
-    INFO = "info"        # Informational, no action needed
+    INFO = "info"  # Informational, no action needed
     WARNING = "warning"  # Worth knowing, monitor closely
     CRITICAL = "critical"  # Needs attention now
 
@@ -34,10 +35,10 @@ class AlertSeverity(Enum):
 class MetricType(Enum):
     """What kind of metric we're tracking."""
 
-    COUNTER = "counter"    # Monotonically increasing value
-    GAUGE = "gauge"        # Point-in-time value
+    COUNTER = "counter"  # Monotonically increasing value
+    GAUGE = "gauge"  # Point-in-time value
     HISTOGRAM = "histogram"  # Distribution of values
-    RATE = "rate"          # Events per second
+    RATE = "rate"  # Events per second
 
 
 @dataclass
@@ -47,7 +48,7 @@ class Metric:
     name: str
     value: float
     metric_type: MetricType = MetricType.GAUGE
-    tags: Dict[str, str] = field(default_factory=dict)
+    tags: dict[str, str] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
     unit: str = ""
 
@@ -160,7 +161,7 @@ class ObserverAgent(HyperAgent):
         name: str,
         archetype: AgentArchetype = AgentArchetype.OBSERVER,
         window_size: int = 100,
-        alert_callback: Optional[Callable[[Alert], None]] = None,
+        alert_callback: Callable[[Alert], None] | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(name=name, archetype=archetype, **kwargs)
@@ -168,14 +169,14 @@ class ObserverAgent(HyperAgent):
         self.alert_callback = alert_callback
 
         # Metric storage: name -> deque of (timestamp, value)
-        self._metrics: Dict[str, Deque[tuple]] = defaultdict(
+        self._metrics: dict[str, deque[tuple]] = defaultdict(
             lambda: deque(maxlen=window_size)
         )
-        self._alert_rules: List[AlertRule] = []
-        self._active_alerts: Dict[str, Alert] = {}
-        self._alert_history: List[Alert] = []
-        self._event_log: Deque[Dict[str, Any]] = deque(maxlen=window_size)
-        self._watchers: Set[str] = set()
+        self._alert_rules: list[AlertRule] = []
+        self._active_alerts: dict[str, Alert] = {}
+        self._alert_history: list[Alert] = []
+        self._event_log: deque[dict[str, Any]] = deque(maxlen=window_size)
+        self._watchers: set[str] = set()
         self._total_metrics_recorded: int = 0
         self._total_alerts_fired: int = 0
 
@@ -205,7 +206,7 @@ class ObserverAgent(HyperAgent):
         )
         self._evaluate_rules(metric)
 
-    def record_many(self, metrics: List[Metric]) -> None:
+    def record_many(self, metrics: list[Metric]) -> None:
         """Batch record multiple metrics at once."""
         for metric in metrics:
             self.record(metric)
@@ -255,7 +256,7 @@ class ObserverAgent(HyperAgent):
             if self.alert_callback:
                 self.alert_callback(alert)
 
-    def get_metric_stats(self, metric_name: str) -> Dict[str, float]:
+    def get_metric_stats(self, metric_name: str) -> dict[str, float]:
         """Get statistical summary for a metric.
 
         Returns dict with min, max, avg, latest, count.
@@ -274,11 +275,9 @@ class ObserverAgent(HyperAgent):
             "count": float(len(values)),
         }
 
-    def get_active_alerts(self) -> List[Alert]:
+    def get_active_alerts(self) -> list[Alert]:
         """Return all currently active (unresolved) alerts."""
-        return [
-            a for a in self._active_alerts.values() if not a.resolved
-        ]
+        return [a for a in self._active_alerts.values() if not a.resolved]
 
     def get_rate(self, metric_name: str, window_seconds: float = 60.0) -> float:
         """Calculate the rate of change for a metric over a time window.
@@ -293,9 +292,7 @@ class ObserverAgent(HyperAgent):
         now = time.time()
         cutoff = now - window_seconds
         samples = [
-            (ts, val)
-            for ts, val in self._metrics.get(metric_name, [])
-            if ts >= cutoff
+            (ts, val) for ts, val in self._metrics.get(metric_name, []) if ts >= cutoff
         ]
         if len(samples) < 2:
             return 0.0
@@ -307,7 +304,7 @@ class ObserverAgent(HyperAgent):
         value_delta = samples[-1][1] - samples[0][1]
         return value_delta / time_delta
 
-    def log_event(self, event_type: str, data: Dict[str, Any]) -> None:
+    def log_event(self, event_type: str, data: dict[str, Any]) -> None:
         """Record a structured event to the event log."""
         event = {
             "event_type": event_type,
@@ -318,7 +315,7 @@ class ObserverAgent(HyperAgent):
         self._log(f"Event: {event_type} - {data}")
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Current observer statistics."""
         return {
             "name": self.name,

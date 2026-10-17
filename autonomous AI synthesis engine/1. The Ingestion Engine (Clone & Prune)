@@ -1,0 +1,76 @@
+Building the Scavenger agent requires a pipeline that strips away raw source code noise and extracts only the structural skeleton of a project. Instead of feeding an LLM thousands of lines of logic, the agent maps the directory tree, reads the configuration files, and synthesizes an architectural summary.Here is the modular Python architecture to build the first Scavenger agent.1. The Ingestion Engine (Clone & Prune)The agent needs to pull the repository locally and instantly filter out heavy, irrelevant directories (node_modules, venv, .git) so the context window isn't overwhelmed. Using Python's GitPython and pathspec allows the agent to respect .gitignore rules while applying its own strict architectural filters.Pythonimport os
+from git import Repo
+from pathlib import Path
+
+def ingest_repository(repo_url, clone_dir="/tmp/scavenger"):
+    print(f"Cloning {repo_url}...")
+    if not os.path.exists(clone_dir):
+        Repo.clone_from(repo_url, clone_dir)
+    
+    # Prune noise to keep only structural files
+    ignore_dirs = {'.git', 'node_modules', '__pycache__', 'dist', 'build'}
+    structural_files = ['.json', '.yml', '.yaml', '.txt', '.md', '.toml', '.cfg']
+    
+    tree_map = []
+    config_contents = {}
+
+    for root, dirs, files in os.walk(clone_dir):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        
+        # Build the visual tree map
+        level = root.replace(clone_dir, '').count(os.sep)
+        indent = ' ' * 4 * (level)
+        tree_map.append(f"{indent}{os.path.basename(root)}/")
+        
+        for file in files:
+            subindent = ' ' * 4 * (level + 1)
+            tree_map.append(f"{subindent}{file}")
+            
+            # Extract contents of critical config files
+            if any(file.endswith(ext) for ext in structural_files):
+                filepath = os.path.join(root, file)
+                with open(filepath, 'r', errors='ignore') as f:
+                    config_contents[filepath.replace(clone_dir, '')] = f.read()
+                    
+    return "\n".join(tree_map), config_contents
+2. The Pattern Extractor (The LLM Interface)Once the directory tree and the configuration files (like docker-compose.yml, package.json, or requirements.txt) are isolated, the agent feeds them to an LLM to translate raw files into a system architecture map.Pythonimport anthropic # or openai
+
+def extract_patterns(tree_map, configs):
+    client = anthropic.Anthropic()
+    
+    prompt = f"""
+    You are an AI Software Architect. Analyze this repository structure and configuration files.
+    
+    Directory Tree:
+    {tree_map}
+    
+    Configuration Files:
+    {configs}
+    
+    Extract the following:
+    1. The core tech stack (e.g., React frontend, Flask API).
+    2. The Docker container network and how services interact.
+    3. The primary modular components.
+    4. Unique patterns (e.g., SVG animation engines, gamification logic).
+    
+    Output strictly as a structured Markdown document.
+    """
+    
+    response = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response.content[0].text
+3. The Knowledge Vault ExporterThe final step is giving the Scavenger a persistent memory. The generated Markdown blueprint is saved directly into an Obsidian vault directory, allowing you to visually link concepts, search for patterns, and give the subsequent Innovator Agent a structured brain to query.Pythondef save_to_brain(repo_name, markdown_content, vault_path="./Obsidian-Brain/Architectures"):
+    os.makedirs(vault_path, exist_ok=True)
+    
+    file_path = os.path.join(vault_path, f"{repo_name}_blueprint.md")
+    
+    with open(file_path, 'w') as f:
+        f.write(f"# {repo_name} Architecture\n\n")
+        f.write(markdown_content)
+        f.write("\n\n*Tags: #architecture #scavenged #blueprint*")
+        
+    print(f"Pattern saved to {file_path}")
+4. Orchestrating the AgentYou can wrap this entire flow in a Docker container or trigger it via a CLI tool. When you pass a GitHub URL to the Scavenger, it will clone it, strip the noise, analyze the Docker mapping and API endpoints, and drop a clean, actionable blueprint into your knowledge base.

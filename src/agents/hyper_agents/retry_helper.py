@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Callable, Tuple, Type
+from collections.abc import Callable
+from typing import Any
 
 
 class RetryError(Exception):
     """Raised when all retry attempts are exhausted."""
 
-    def __init__(self, last_exception: BaseException, attempt_index: int):
+    def __init__(self, last_exception: BaseException | None, attempt_index: int):
         super().__init__(str(last_exception))
         self.last_exception = last_exception
         self.attempt_index = attempt_index
@@ -21,10 +22,10 @@ async def retry_with_backoff(
     max_retries: int = 3,
     backoff_base: float = 2.0,
     timeout: float | None = None,
-    retry_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+    retry_exceptions: tuple[type[BaseException], ...] = (Exception,),
     on_retry: Callable[[int, float], None] | None = None,
     **kwargs,
-) -> Tuple[Any, int]:
+) -> tuple[Any, int]:
     """Execute a function with exponential backoff retry.
 
     Args:
@@ -49,7 +50,7 @@ async def retry_with_backoff(
 
     for attempt in range(max_retries + 1):
         if attempt > 0:
-            wait_time = backoff_base ** attempt
+            wait_time = backoff_base**attempt
             if on_retry is not None:
                 on_retry(attempt, wait_time)
             await asyncio.sleep(wait_time)
@@ -66,9 +67,7 @@ async def retry_with_backoff(
                 loop = asyncio.get_event_loop()
                 if timeout is not None:
                     result = await asyncio.wait_for(
-                        loop.run_in_executor(
-                            None, lambda: func(*args, **kwargs)
-                        ),
+                        loop.run_in_executor(None, lambda: func(*args, **kwargs)),
                         timeout=timeout,
                     )
                 else:
@@ -82,4 +81,4 @@ async def retry_with_backoff(
             continue
 
     # If we got here, all retries failed.
-    raise RetryError(last_exception, attempt)  # type: ignore[raise-missing]
+    raise RetryError(last_exception, attempt)

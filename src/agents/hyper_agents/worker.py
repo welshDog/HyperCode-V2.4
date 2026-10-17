@@ -12,16 +12,18 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from src.agents.hyper_agents.base_agent import (
     AgentArchetype,
     AgentStatus,
     HyperAgent,
 )
-from .retry_helper import retry_with_backoff, RetryError
+
+from .retry_helper import RetryError, retry_with_backoff
 
 
 class TaskPriority(Enum):
@@ -47,7 +49,7 @@ class Task:
     name: str
     handler: Callable[..., Any]
     args: tuple = field(default_factory=tuple)
-    kwargs: Dict[str, Any] = field(default_factory=dict)
+    kwargs: dict[str, Any] = field(default_factory=dict)
     priority: TaskPriority = TaskPriority.NORMAL
     timeout: float = 30.0
     task_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
@@ -68,10 +70,10 @@ class TaskResult:
     task_name: str
     success: bool
     result: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     duration_ms: float = 0.0
     retries_used: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def summary(self) -> str:
@@ -127,10 +129,12 @@ class WorkerAgent(HyperAgent):
         self.max_concurrent_tasks = max_concurrent_tasks
         self.hyperfocus_mode = hyperfocus_mode
         self._task_queue: asyncio.PriorityQueue = asyncio.PriorityQueue()
-        self._enqueue_seq: int = 0  # tie-breaker: prevents Task comparison on equal priority
-        self._active_tasks: Dict[str, Task] = {}
-        self._completed_tasks: List[TaskResult] = []
-        self._task_history: List[TaskResult] = []
+        self._enqueue_seq: int = (
+            0  # tie-breaker: prevents Task comparison on equal priority
+        )
+        self._active_tasks: dict[str, Task] = {}
+        self._completed_tasks: list[TaskResult] = []
+        self._task_history: list[TaskResult] = []
         self._total_tasks_executed: int = 0
         self._successful_tasks: int = 0
 
@@ -191,21 +195,18 @@ class WorkerAgent(HyperAgent):
         async def _attempt_task() -> Any:
             # Apply timeout once here to avoid double-wrapping for async handlers
             # and missing timeout for sync handlers.
-            try:
-                if asyncio.iscoroutinefunction(task.handler):
-                    return await asyncio.wait_for(
-                        task.handler(*task.args, **task.kwargs),
-                        timeout=task.timeout,
-                    )
+            if asyncio.iscoroutinefunction(task.handler):
                 return await asyncio.wait_for(
-                    asyncio.get_event_loop().run_in_executor(
-                        None,
-                        lambda: task.handler(*task.args, **task.kwargs),
-                    ),
+                    task.handler(*task.args, **task.kwargs),
                     timeout=task.timeout,
                 )
-            except asyncio.TimeoutError:
-                raise  # Let retry_with_backoff handle it
+            return await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None,
+                    lambda: task.handler(*task.args, **task.kwargs),
+                ),
+                timeout=task.timeout,
+            )
 
         try:
             raw_result, attempt_index = await retry_with_backoff(
@@ -256,12 +257,12 @@ class WorkerAgent(HyperAgent):
                 retries_used=task.max_retries,
             )
 
-    async def run_queue(self) -> List[TaskResult]:
+    async def run_queue(self) -> list[TaskResult]:
         """Process all queued tasks in priority order.
 
         Returns list of results when queue is empty.
         """
-        results: List[TaskResult] = []
+        results: list[TaskResult] = []
         while not self._task_queue.empty():
             _, _seq, task = await self._task_queue.get()
             result = await self.execute_task(task)
@@ -290,7 +291,7 @@ class WorkerAgent(HyperAgent):
         return task.task_id
 
     @property
-    def stats(self) -> Dict[str, Any]:
+    def stats(self) -> dict[str, Any]:
         """Current worker statistics - always visible, never hidden."""
         success_rate = (
             self._successful_tasks / self._total_tasks_executed
