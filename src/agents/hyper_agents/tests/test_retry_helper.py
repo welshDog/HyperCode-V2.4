@@ -1,6 +1,6 @@
 import asyncio
 import pytest
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 
 from src.agents.hyper_agents.retry_helper import retry_with_backoff, RetryError
 

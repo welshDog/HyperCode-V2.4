@@ -171,7 +171,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: actionlint
-        uses: rhysd/actionlint@v1
+        uses: rhysd/actionlint@v1.7.12
 
   k8s-schema-validate:
     name: Kubernetes Schema Validate
