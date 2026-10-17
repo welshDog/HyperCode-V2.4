@@ -1,11 +1,5 @@
 name: Security — Comprehensive Scan
 
-permissions:
-  contents: read
-on:
-  read
-on:
-  read
 on:
   push:
     branches: [main]        # ← main only, never feature branches

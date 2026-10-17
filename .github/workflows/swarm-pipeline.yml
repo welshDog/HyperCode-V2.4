@@ -3,8 +3,6 @@ name: Swarm Pipeline
 permissions:
   contents: read
 on:
-  read
-on:
   workflow_dispatch:
 
 jobs:

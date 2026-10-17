@@ -40,6 +40,23 @@ class CheckDefinitionOut(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    @classmethod
+    def model_validate(cls, obj, *args, **kwargs):
+        if isinstance(obj, dict):
+            data = dict(obj)
+        else:
+            data = {name: getattr(obj, name) for name in cls.model_fields if hasattr(obj, name)}
+        target = str(data.get("target", ""))
+        if "://" in target and "@" in target:
+            from urllib.parse import urlsplit, urlunsplit
+            parsed = urlsplit(target)
+            if parsed.username or parsed.password:
+                host = parsed.hostname or "redacted"
+                if parsed.port:
+                    host += f":{parsed.port}"
+                data["target"] = urlunsplit((parsed.scheme, host, parsed.path, parsed.query, parsed.fragment))
+        return super().model_validate(data, *args, **kwargs)
+
 
 class CheckResultOut(BaseModel):
     id: UUID

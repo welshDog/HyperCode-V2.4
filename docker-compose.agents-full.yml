@@ -85,8 +85,8 @@ services:
     environment:
       - AGENT_NAME=brain-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - CHROMA_HOST=chroma
@@ -138,8 +138,8 @@ services:
     environment:
       - AGENT_NAME=tips-tricks-writer
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -194,7 +194,7 @@ services:
     environment:
       - AGENT_NAME=security-engineer
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
     networks:
@@ -237,7 +237,7 @@ services:
     environment:
       - AGENT_NAME=system-architect
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -289,8 +289,8 @@ services:
     environment:
       - AGENT_NAME=throttle-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/1
       # ✅ SACRED RULE: Redis DB 1 = rate limits — NEVER change this
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -358,8 +358,8 @@ services:
     environment:
       - AGENT_NAME=super-hyper-broski-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OLLAMA_HOST=http://hypercode-ollama:11434
@@ -415,8 +415,8 @@ services:
     environment:
       - AGENT_NAME=test-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -478,7 +478,7 @@ services:
     environment:
       - AGENT_NAME=session-snapshot
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -526,7 +526,7 @@ services:
     environment:
       - AGENT_NAME=hyper-split-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317
@@ -572,7 +572,7 @@ services:
     environment:
       - AGENT_NAME=coderabbit-webhook
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - CODERABBIT_API_KEY=${CODERABBIT_API_KEY:-}
@@ -619,8 +619,8 @@ services:
     environment:
       - AGENT_NAME=business-agent
       - LOG_LEVEL=INFO
-      - API_KEY=${API_KEY:-dev}
-      - HYPERCODE_API_KEY=${API_KEY:-dev}
+      - API_KEY=${API_KEY:-}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - DATABASE_URL=${DATABASE_URL}
       - STRIPE_API_KEY=${STRIPE_API_KEY:-}

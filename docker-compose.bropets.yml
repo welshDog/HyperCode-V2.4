@@ -72,7 +72,7 @@ services:
     container_name: evolve-relay
     environment:
       - PORT=8097
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
     env_file:
       # LEAST PRIVILEGE (2026-10-03): NOT the Pets repo's whole .env (~50 vars: CDP secret, GitHub token, Supabase
       # service key, Anthropic key...). Only what the relay's code reads: SEPOLIA_RPC / CONTRACT_ADDRESS / DEPLOYER_KEY /

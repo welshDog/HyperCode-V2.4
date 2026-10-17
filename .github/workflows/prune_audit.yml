@@ -3,8 +3,6 @@ name: Prune Celery Task Audit
 permissions:
   contents: read
 on:
-  read
-on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:

@@ -4,8 +4,6 @@ name: Performance Testing
 permissions:
   contents: read
 on:
-  read
-on:
   workflow_dispatch:
 
 jobs:

@@ -172,7 +172,7 @@ services:
       REDIS_URL: redis://${REDIS_HOST:-redis}:6379
       POSTGRES_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-hypercode}@${POSTGRES_HOST:-postgres}:5432/${POSTGRES_DB:-hypercode}
       DOCKER_HOST: tcp://docker-socket-proxy-healer:2375
-      HYPERCODE_API_KEY: ${API_KEY:-dev-master-key}
+      HYPERCODE_API_KEY: ${API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       DISCORD_OOM_WEBHOOK_URL: ${DISCORD_OOM_WEBHOOK_URL:-}
       DISCORD_ALERTS_WEBHOOK_URL: ${DISCORD_ALERTS_WEBHOOK_URL:-}
@@ -261,7 +261,7 @@ services:
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
       # Service identity for tasks/planning/DLQ proxies (no login UI yet).
       # Empty = proxies forward the browser header only, as before.
-      - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-}
       # Human JWT (30-day, owner account) read from a Docker secret file by lib/server-auth.ts.
       # NOT the master API key: core's /operator/* rejects that as both Bearer and X-Agent-Key.
       # The env var DASHBOARD_SERVICE_JWT must stay unset or it wins over the file.
@@ -273,7 +273,7 @@ services:
       # HyperStudio proxy → coder-studio. The key must match coder-studio's
       # (both resolve from ${API_KEY}); without it the proxy forwards an empty
       # X-Agent-Key and coder-studio rejects every request with 401.
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - STUDIO_AGENT_URL=http://coder-studio:8087
       # MCP IDE view proxy → mcp-rest-adapter. The key must match
       # mcp-rest-adapter's own (both resolve from ${MCP_REST_ADAPTER_AUTH_TOKEN});
@@ -969,7 +969,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hypercode}
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
       - SMOKE_KEY_TTL_SECONDS=${SMOKE_KEY_TTL_SECONDS:-}
@@ -1033,7 +1033,7 @@ services:
     environment:
       - CORE_URL=http://hypercode-core:8000
       - PROMETHEUS_URL=http://prometheus:9090
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - OLLAMA_URL=http://hypercode-ollama:11434/api/generate
       - OLLAMA_MODEL=${CODER_OLLAMA_MODEL:-ai/smollm2}
       # HyperCrew builder model. EMPTY = local Ollama/DMR (smollm2, too small to write a diff). Set
@@ -1208,7 +1208,7 @@ services:
       - MCP_GATEWAY_URL=${MCP_GATEWAY_URL:-http://mcp-gateway:8820}
       - PETS_WEBHOOK_SECRET=${PETS_WEBHOOK_SECRET:-}
       - COURSE_SYNC_SECRET=${COURSE_SYNC_SECRET:-}
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - PETS_LLM_PROVIDER=${PETS_LLM_PROVIDER:-anthropic}
       - PETS_ANTHROPIC_MODEL_CHAT=${PETS_ANTHROPIC_MODEL_CHAT:-claude-haiku-4-5-20251001}
@@ -1261,7 +1261,7 @@ services:
       dockerfile: Dockerfile
     container_name: nemoclaw-agent
     environment:
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - WORKSPACE_PATH=/workspace
       - NEMOCLAW_SCAN_TARGETS=${NEMOCLAW_SCAN_TARGETS:-backend,agents}
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
@@ -1320,7 +1320,7 @@ services:
     image: safety-shepherd:latest
     container_name: safety-shepherd
     environment:
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_URL=redis://${REDIS_HOST:-redis}:6379/0
       - SAFETY_RATE_WINDOW=${SAFETY_RATE_WINDOW:-3600}
       # HS-P2c — verdicts → governance ledger; empty key = push disabled
@@ -1370,7 +1370,7 @@ services:
     image: coder-studio:latest
     container_name: coder-studio
     environment:
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       # The bundled Claude Code CLI reads ANTHROPIC_API_KEY from the environment.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - SAFETY_SHEPHERD_URL=http://safety-shepherd:8096
@@ -1483,7 +1483,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=project-strategist
       - AGENT_PORT=8001
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
@@ -1536,7 +1536,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=frontend-specialist
       - AGENT_PORT=8012
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/01-frontend-specialist:/app
@@ -1589,7 +1589,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=backend-specialist
       - AGENT_PORT=8003
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - SKILLWEAVER_URL=http://skillweaver:8051
     volumes:
@@ -1641,7 +1641,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=database-architect
       - AGENT_PORT=8004
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/03-database-architect:/app
@@ -1697,7 +1697,7 @@ services:
       - CREW_LLM_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-freecc}
       - CREW_LLM_MODEL=${CREW_LLM_MODEL:-claude-sonnet-5}
       - AGENT_PORT=8005
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/04-qa-engineer:/app
@@ -1748,7 +1748,7 @@ services:
       - CORE_URL=http://hypercode-core:8000
       - AGENT_ROLE=devops-engineer
       - AGENT_PORT=8006
-      - HYPERCODE_API_KEY=${API_KEY:-dev-master-key}
+      - HYPERCODE_API_KEY=${API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./agents/05-devops-engineer:/app
@@ -1812,7 +1812,7 @@ services:
       # optional sinks — unset = no-op
       - RESEARCH_DISCORD_WEBHOOK_URL=${RESEARCH_DISCORD_WEBHOOK_URL:-${DISCORD_WEBHOOK_URL:-}}
       - RESEARCH_VAULT_DIR=${RESEARCH_VAULT_DIR:-}
-      - AGENT_API_KEY=${API_KEY:-dev-master-key}
+      - AGENT_API_KEY=${API_KEY:-}
     networks:
       - agents-net
     ports:
