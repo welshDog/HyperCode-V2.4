@@ -42,42 +42,42 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ github.event_name == 'workflow_call' && inputs.node_version || '20' }}
+          node-version: ${{ inputs.node_version || '20' }}
 
       - name: Install deps
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
         run: npm ci
 
       - name: Install repo root deps (Playwright + E2E)
-        if: ${{ github.event_name != 'workflow_call' || inputs.run_e2e }}
+        if: ${{ inputs.run_e2e }}
         run: |
           npm ci
 
       - name: Lint
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
         run: npm run lint
 
       - name: Typecheck
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
         run: |
           if [ -f tsconfig.json ]; then npx tsc -b || npx tsc --noEmit; fi
 
       - name: Unit tests with coverage
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
-        run: npx vitest run --coverage --reporter=text --coverage.reporter=text-summary
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
+        run: npx vitest run --coverage --reporter=default --coverage.reporter=text-summary --coverage.reporter=json-summary
 
       - name: Enforce coverage thresholds
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
         run: |
           SUMMARY=$(cat coverage/coverage-summary.json 2>/dev/null || echo "{}")
           LINES=$(node -e "console.log(JSON.parse(process.argv[1]).total?.lines?.pct||0)" "$SUMMARY")
           STATEMENTS=$(node -e "console.log(JSON.parse(process.argv[1]).total?.statements?.pct||0)" "$SUMMARY")
           echo "Lines: $LINES% Statements: $STATEMENTS%"
-          MIN=${{ github.event_name == 'workflow_call' && inputs.coverage_min || '80' }}
+          MIN=${{ inputs.coverage_min || '80' }}
           node -e "process.exit((${LINES} < ${MIN} || ${STATEMENTS} < ${MIN})?1:0)"
 
       - name: E2E tests (Playwright)
-        if: ${{ github.event_name != 'workflow_call' || inputs.run_e2e }}
+        if: ${{ inputs.run_e2e }}
         run: |
           npx playwright install --with-deps
           npx playwright test -c tests/e2e/playwright.config.ts
@@ -93,9 +93,9 @@ jobs:
           retention-days: 30
 
       - name: npm audit (block on high)
-        working-directory: ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}
+        working-directory: ${{ inputs.project_dir || 'agents/dashboard' }}
         run: |
-          npm audit --audit-level=${{ github.event_name == 'workflow_call' && inputs.npm_audit_level || 'high' }} || (echo "Vulnerabilities found" && exit 1)
+          npm audit --audit-level=${{ inputs.npm_audit_level || 'high' }} || (echo "Vulnerabilities found" && exit 1)
 
       - name: Upload JS reports
         if: always()
@@ -103,5 +103,5 @@ jobs:
         with:
           name: js-reports
           path: |
-            ${{ github.event_name == 'workflow_call' && inputs.project_dir || 'agents/dashboard' }}/coverage/
+            ${{ inputs.project_dir || 'agents/dashboard' }}/coverage/
           retention-days: 30

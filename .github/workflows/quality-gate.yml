@@ -143,6 +143,9 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Generate HTML dashboard
+        # The script exits 1 when any summarised scan has findings. This job is
+        # informational (the gate job decides), so findings must not fail it.
+        continue-on-error: true
         run: |
           python3 scripts/scan/generate-dashboard.py \
             --reports-dir reports/all \
