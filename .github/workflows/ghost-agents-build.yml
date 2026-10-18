@@ -182,7 +182,7 @@ jobs:
       - name: Extract Docker metadata
         if: steps.check_dir.outputs.exists == 'true'
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE_PREFIX }}/${{ matrix.agent }}
           tags: |
