@@ -25,7 +25,17 @@ function matchStub(stub: ApiStub, method: string, pathname: string): boolean {
   return stub.path.test(pathname)
 }
 
-export async function installDeterministicRouting(page: Page, stubs: ApiStub[]) {
+// Endpoints the shell polls on every page. A test's own stub for the same
+// method + path wins, because stubs.find() returns the first match.
+const DEFAULT_STUBS: ApiStub[] = [
+  { method: 'GET', path: '/api/crew/panic', json: { paused: [] } },
+  { method: 'GET', path: '/api/ops/dlq/stats', json: {} },
+  { method: 'GET', path: '/api/ops/dlq', json: { items: [] } },
+  { method: 'GET', path: '/api/v1/orchestrator/system/health', json: {} },
+]
+
+export async function installDeterministicRouting(page: Page, testStubs: ApiStub[]) {
+  const stubs = [...testStubs, ...DEFAULT_STUBS]
   const unhandledApi: string[] = []
 
   await page.route('**/*', async (route) => {

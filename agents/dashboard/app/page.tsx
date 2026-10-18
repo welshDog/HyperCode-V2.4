@@ -30,7 +30,7 @@ export default function HyperStationPage(): React.JSX.Element {
   const show = (id: string): boolean => !focus || focus === id
 
   return (
-    <div className="hyper-shell" style={{ gridTemplate }}>
+    <div className="hyper-shell" data-testid="hyper-shell" style={{ gridTemplate }}>
       {/* 🏷️ Lean Mode badge — floated top-right of the shell */}
       <div className="fixed top-3 right-4 z-30">
         <LeanModeBadge services={services} loading={loading} />

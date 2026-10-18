@@ -32,6 +32,11 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # scripts/e2e/start-dashboard.mjs runs "next dev" inside agents/dashboard,
+      # which needs its own node_modules (next, typescript, @types/*).
+      - name: Install dashboard deps
+        run: npm ci --prefix agents/dashboard
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 

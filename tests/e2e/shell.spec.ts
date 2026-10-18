@@ -15,10 +15,11 @@ test.describe('HyperShell Full-Screen Layout', () => {
     expect(overflow.y).toBe(true)
   })
 
-  test('all 4 panes are visible', async ({ page }) => {
-    await expect(page.getByTestId('pane-agents')).toBeVisible()
-    await expect(page.getByTestId('pane-timeline')).toBeVisible()
+  test('all 5 panes are visible', async ({ page }) => {
     await expect(page.getByTestId('pane-metrics')).toBeVisible()
+    await expect(page.getByTestId('pane-agents')).toBeVisible()
+    await expect(page.getByTestId('pane-services')).toBeVisible()
+    await expect(page.getByTestId('pane-tasks')).toBeVisible()
     await expect(page.getByTestId('pane-pulse')).toBeVisible()
   })
 
