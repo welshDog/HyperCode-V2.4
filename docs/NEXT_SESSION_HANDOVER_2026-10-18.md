@@ -42,7 +42,7 @@ Dependabot #621/#622 were closed with an explanation.
 ## ⏭️ WHAT IS STILL RED OR OPEN
 
 - **Security Gate:** red only because of Gitleaks (above). pip-audit, Trivy, Semgrep pass.
-- **Advisory job `regression-known-red`:** 36 failures, by design visible. Live-stack files (`test_api_agents`, `test_agent_observability`, `test_swarm_load`, `test_coder_capabilities`) plus 20 stale unit tests (`test_dashboard_endpoints`, `test_security`, `test_tasks_endpoint`). Fix a file, then move it into the blocking list in `.github/workflows/hyper-agents-gate2-e2e.yml`.
+- **Advisory job `regression-known-red`:** 21 failures, by design visible: the live-stack files (`test_api_agents`, `test_agent_observability`, `test_swarm_load`, `test_coder_capabilities`) that need the running Docker stack. The 20 stale unit tests were repaired in PR #631 and are blocking now (Regression Guard 336 passed). Fix a file, then move it into the blocking list in `.github/workflows/hyper-agents-gate2-e2e.yml`.
 - **No Legacy Paths Guard:** live `HyperCode-V2.0` references (docker-bake.hcl, mcp configs, helm Chart.yaml, `agents/healer/cli.py`, k8s scripts).
 - **Gate e2e off** (`run_e2e: false`): `tests/e2e/playwright.config.ts` still uses `next dev`; apply the production-build approach from #626, expect real axe findings.
 - **Gate 2:** `tests/hyper_agents/e2e` does not exist; the Full Stack compose test fails on `networks.agents-net conflicts with imported resource` and needs secrets. Manual-dispatch only until fixed.
