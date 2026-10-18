@@ -1,4 +1,4 @@
-# HyperCode V2.0 — Dependabot Auto-Update Config
+# HyperCode V2.4 — Dependabot Auto-Update Config
 # Keeps Python + npm deps patched automatically 🛡️
 
 version: 2
@@ -25,12 +25,19 @@ updates:
           - "minor"
           - "patch"
     ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
       # Ignore major version bumps on openai — test manually
       - dependency-name: "openai"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "pip"
     directory: "/backend"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -50,6 +57,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/cli"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -69,6 +80,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/monitoring/alert-webhook"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -88,6 +103,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/services/hyperhealth"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -107,6 +126,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/services/hypercode-mcp-server"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -126,6 +149,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/services/mcp-rest-adapter"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -145,6 +172,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/agents/broski-bot"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -165,6 +196,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/agents/throttle-agent"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -185,6 +220,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/agents/crew-orchestrator"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -205,6 +244,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/agents/healer"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -225,6 +268,10 @@ updates:
 
   - package-ecosystem: "pip"
     directory: "/agents/agent-x"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -244,6 +291,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/agent-factory"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -263,6 +314,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/coder"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -282,6 +337,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/coderabbit-webhook"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -301,6 +360,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyper-agents"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -320,6 +383,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyper-auto-assistant"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -339,6 +406,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/hyperhealth"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -358,6 +429,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/broski-nemoclaw-agent"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -377,6 +452,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/super-hyper-broski-agent"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -396,6 +475,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/base-agent"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -415,6 +498,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/business"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -434,6 +521,10 @@ updates:
           - "patch"
   - package-ecosystem: "pip"
     directory: "/agents/life-plans"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -454,6 +545,10 @@ updates:
   # ── npm / Node ────────────────────────────────────────────
   - package-ecosystem: "npm"
     directory: "/"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -473,6 +568,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/agents/dashboard"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -493,6 +592,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/agents/architect"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -513,6 +616,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/memstream"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -533,6 +640,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/hyper-mission-system/server"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -552,6 +663,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/hyper-mission-system/client"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -572,6 +687,10 @@ updates:
   # ── Docker ────────────────────────────────────────────────
   - package-ecosystem: "docker"
     directory: "/"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -590,6 +709,10 @@ updates:
 
   - package-ecosystem: "docker"
     directory: "/backend"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -608,6 +731,10 @@ updates:
 
   - package-ecosystem: "docker"
     directory: "/agents/dashboard"
+    ignore:
+      # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "weekly"
       day: "monday"
