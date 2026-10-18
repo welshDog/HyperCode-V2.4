@@ -1,0 +1,9 @@
+# actionlint config. shellcheck's info/style notes (unquoted variables, grouped
+# redirects, A && B || C) and two benign warnings (SC2155 declare-and-assign,
+# SC2034 unused loop variable) are tolerated in this repo's inline scripts.
+# Every other warning and all errors still fail the IaC workflow.
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'shellcheck reported issue in this script: SC[0-9]+:(info|style):'
+      - 'shellcheck reported issue in this script: SC(2155|2034):warning:'
