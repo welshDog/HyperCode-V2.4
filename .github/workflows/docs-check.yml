@@ -38,7 +38,7 @@ jobs:
             docs/INDEX.md
             docs/DOCUMENTATION_INDEX.md
             docs/DOCUMENTATION_PROCESS.md
-            docs/**/*.md
+            'docs/**/*.md'
 
       - name: Enforce docker compose terminology in canonical docs
         shell: bash
