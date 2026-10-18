@@ -21,7 +21,8 @@ jobs:
             context: .
           - agent: healer
             dockerfile: agents/healer/Dockerfile
-            context: .
+            # Its Dockerfile does COPY healer/requirements.txt, so the context is agents/.
+            context: agents
           - agent: hyper-architect
             dockerfile: agents/hyper-agents/architect/Dockerfile
             context: .
@@ -33,10 +34,11 @@ jobs:
             context: .
           - agent: 05-devops-engineer
             dockerfile: agents/05-devops-engineer/Dockerfile
-            context: .
+            context: agents/05-devops-engineer
           - agent: coder
             dockerfile: agents/coder/Dockerfile
             context: agents/coder
+            base: true   # FROM agent-base:latest, built below
           - agent: crew-orchestrator
             dockerfile: agents/crew-orchestrator/Dockerfile
             context: agents/crew-orchestrator
@@ -80,6 +82,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Build agent-base (coder only)
+        if: matrix.base
+        run: docker build -t agent-base:latest -f agents/Dockerfile.base agents/
 
       - name: Build image
         run: |
