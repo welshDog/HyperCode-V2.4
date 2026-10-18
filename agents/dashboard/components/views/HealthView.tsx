@@ -60,7 +60,7 @@ export function HealthView(): React.JSX.Element {
   const { services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useDockerServices(15_000)
 
   const load = useCallback(async (isManual = false) => {
-    if (isManual) toast({ type: 'info', message: '⏳ Sweeping health endpoints…' })
+    if (isManual) toast({ variant: 'info', title: '⏳ Sweeping health endpoints…' })
     setLoading(true)
     try {
       const coreRes = await fetch('/api/health')
@@ -74,9 +74,9 @@ export function HealthView(): React.JSX.Element {
 
       const healerRes = await fetch('/api/healer/health')
       setHealer(await healerRes.json().catch(() => null))
-      if (isManual) toast({ type: 'success', message: '✅ Sweep complete' })
+      if (isManual) toast({ variant: 'success', title: '✅ Sweep complete' })
     } catch {
-      if (isManual) toast({ type: 'error', message: '❌ Sweep failed' })
+      if (isManual) toast({ variant: 'error', title: '❌ Sweep failed' })
     } finally {
       setLoading(false)
     }
