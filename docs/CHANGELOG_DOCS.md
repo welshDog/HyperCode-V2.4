@@ -4,6 +4,8 @@ This file tracks documentation synchronization changes (what changed and why). I
 
 ### 2026-10-18
 
+- Marked NEXT_TASKS C11 fixed (iac-scan and weekly Trivy wiring) and recorded the two advisory gates and their backlog.
+
 - Recorded the Dependabot triage and policy (NEXT_TASKS C10/C11 and the new policy section, handover, WHATS_DONE).
 
 - Marked NEXT_TASKS C6 done (gate e2e re-enabled, PR #633) and recorded the two serious axe findings.
