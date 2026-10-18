@@ -65,11 +65,26 @@ jobs:
           # Blocking set: everything that runs without the live Docker stack.
           # Ignored here and run (advisory) by the regression-known-red job:
           #   - live-stack tests (need running services, Docker, Loki, Prometheus)
-          #   - stale unit tests that fail against current backend code
           # Four modules cannot be collected (hard-coded /tmp paths, import clashes with backend/)
           # and abort the whole run. Fix or delete them, then drop these ignores.
           # test_planning_system.py::test is a helper named like a test, not a test.
-          pytest tests/             --ignore=tests/hyper_agents/             --ignore=tests/test_bus2.py             --ignore=tests/test_bus3.py             --ignore=tests/test_compose_validator.py             --ignore=tests/test_rag_system.py             --ignore=tests/integration/test_api_agents.py             --ignore=tests/test_agent_observability.py             --ignore=tests/test_swarm_load.py             --ignore=tests/functional/test_coder_capabilities.py             --ignore=tests/unit/test_dashboard_endpoints.py             --ignore=tests/unit/test_security.py             --ignore=tests/unit/test_tasks_endpoint.py             --deselect tests/test_planning_system.py::test             --timeout=60             -v --tb=short             --junitxml=regression-results.xml
+          pytest \
+            tests/ \
+            --ignore=tests/hyper_agents/ \
+            --ignore=tests/test_bus2.py \
+            --ignore=tests/test_bus3.py \
+            --ignore=tests/test_compose_validator.py \
+            --ignore=tests/test_rag_system.py \
+            --ignore=tests/integration/test_api_agents.py \
+            --ignore=tests/test_agent_observability.py \
+            --ignore=tests/test_swarm_load.py \
+            --ignore=tests/functional/test_coder_capabilities.py \
+            --deselect \
+            tests/test_planning_system.py::test \
+            --timeout=60 \
+            -v \
+            --tb=short \
+            --junitxml=regression-results.xml
 
       - name: Upload regression results
         uses: actions/upload-artifact@v4
@@ -78,10 +93,9 @@ jobs:
           name: regression-test-results
           path: regression-results.xml
 
-  # Known-red tests, kept visible but non-blocking. Measured 2026-10-17: 36 failures.
-  # Live-stack tests need the running Docker stack; the unit ones are stale
-  # (AsyncMock awaits, missing celery_app/verify_token attributes, sqlite table setup,
-  # 401 vs 503). Fix them, move each file into the blocking set above, and delete it here.
+  # Known-red tests, kept visible but non-blocking. They need the running Docker
+  # stack (or the agent code). Fix one, move its file into the blocking set above,
+  # and delete it here. The stale unit tests were repaired on 2026-10-18.
   regression-known-red:
     name: Known-red tests (advisory)
     runs-on: ubuntu-latest
@@ -109,7 +123,15 @@ jobs:
         env:
           PYTHONPATH: .:backend
         run: |
-          pytest             tests/integration/test_api_agents.py             tests/test_agent_observability.py             tests/test_swarm_load.py             tests/functional/test_coder_capabilities.py             tests/unit/test_dashboard_endpoints.py             tests/unit/test_security.py             tests/unit/test_tasks_endpoint.py             --timeout=30             -v --tb=short             --junitxml=known-red-results.xml
+          pytest \
+            tests/integration/test_api_agents.py \
+            tests/test_agent_observability.py \
+            tests/test_swarm_load.py \
+            tests/functional/test_coder_capabilities.py \
+            --timeout=30 \
+            -v \
+            --tb=short \
+            --junitxml=known-red-results.xml
 
       - name: Upload known-red results
         uses: actions/upload-artifact@v4
@@ -163,7 +185,10 @@ jobs:
             echo "::warning::tests/hyper_agents/e2e does not exist yet - skipping E2E suites"
             exit 0
           fi
-          pytest tests/hyper_agents/e2e/ -v --timeout=120
+          pytest \
+            tests/hyper_agents/e2e/ \
+            -v \
+            --timeout=120
 
   load-test:
     name: Load Test — 50 Concurrent Requests
@@ -267,7 +292,9 @@ jobs:
 
       - name: Run performance benchmarks
         run: |
-          pytest tests/hyper_agents/benchmarks/ \
+          pytest \
+            tests/hyper_agents/benchmarks/ \
+            \
             --benchmark-json=benchmark-results.json \
             --benchmark-compare-fail=mean:10% \
             -v || echo "Benchmarks completed"

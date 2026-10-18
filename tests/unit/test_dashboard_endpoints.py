@@ -60,7 +60,7 @@ def _make_redis_mock(pipeline_results: list):
 # ── GET /api/v1/metrics ────────────────────────────────────────────────────────
 
 class TestMetricsEndpoint:
-    @patch("app.ws.metrics_broadcaster.aioredis.from_url")
+    @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_returns_metrics_snapshot_shape(self, mock_from_url, client):
         """Response must include all MetricsSnapshot fields."""
         pipeline_results = [
@@ -84,7 +84,7 @@ class TestMetricsEndpoint:
         for field in required_fields:
             assert field in data, f"Missing field: {field}"
 
-    @patch("app.ws.metrics_broadcaster.aioredis.from_url")
+    @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_requests_per_min_sums_two_minutes(self, mock_from_url, client):
         pipeline_results = ["10", "5", [], "0", None, "0", []]
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
@@ -93,7 +93,7 @@ class TestMetricsEndpoint:
         assert resp.status_code == 200
         assert resp.json()["requestsPerMin"] == 15
 
-    @patch("app.ws.metrics_broadcaster.aioredis.from_url")
+    @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_handles_empty_redis(self, mock_from_url, client):
         """All Redis keys absent — should return zeros, not crash."""
         pipeline_results = [None, None, [], None, None, "0", []]
@@ -110,7 +110,7 @@ class TestMetricsEndpoint:
 # ── GET /api/v1/agents/status ─────────────────────────────────────────────────
 
 class TestAgentStatusEndpoint:
-    @patch("app.ws.agents_broadcaster.aioredis.from_url")
+    @patch("app.ws.agents_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_returns_agent_list_schema(self, mock_from_url, client):
         r_mock = AsyncMock()
         r_mock.keys = AsyncMock(return_value=["agents:heartbeat:core"])
@@ -131,7 +131,7 @@ class TestAgentStatusEndpoint:
         assert "agents" in data
         assert "updatedAt" in data
 
-    @patch("app.ws.agents_broadcaster.aioredis.from_url")
+    @patch("app.ws.agents_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_empty_heartbeat_keys_returns_empty_list(self, mock_from_url, client):
         r_mock = AsyncMock()
         r_mock.keys = AsyncMock(return_value=[])
@@ -146,7 +146,7 @@ class TestAgentStatusEndpoint:
 # ── GET /api/v1/error-budget ──────────────────────────────────────────────────
 
 class TestErrorBudgetEndpoint:
-    @patch("app.routes.reliability.aioredis.from_url")
+    @patch("app.routes.reliability.aioredis.from_url", new_callable=AsyncMock)
     def test_budget_ok_gate(self, mock_from_url, client):
         """Low error count → gate = ok."""
         # 5 minutes * 2 sets of keys (req + err) = 10 results
@@ -160,7 +160,7 @@ class TestErrorBudgetEndpoint:
         assert data["gate"] == "ok"
         assert data["errorTotal"] == 0
 
-    @patch("app.routes.reliability.aioredis.from_url")
+    @patch("app.routes.reliability.aioredis.from_url", new_callable=AsyncMock)
     def test_budget_exhausted_gate(self, mock_from_url, client):
         """Many errors → gate = exhausted."""
         pipeline_results = ["100", "100", "100", "100", "100",
@@ -171,7 +171,7 @@ class TestErrorBudgetEndpoint:
         assert resp.status_code == 200
         assert resp.json()["gate"] == "exhausted"
 
-    @patch("app.routes.reliability.aioredis.from_url")
+    @patch("app.routes.reliability.aioredis.from_url", new_callable=AsyncMock)
     def test_no_requests_returns_100_pct_budget(self, mock_from_url, client):
         """Zero requests → 100% budget remaining (no data = healthy)."""
         pipeline_results = [None] * 10
@@ -185,7 +185,7 @@ class TestErrorBudgetEndpoint:
 # ── GET /api/v1/system/state ──────────────────────────────────────────────────
 
 class TestSystemStateEndpoint:
-    @patch("app.routes.reliability.aioredis.from_url")
+    @patch("app.routes.reliability.aioredis.from_url", new_callable=AsyncMock)
     def test_stable_when_no_errors(self, mock_from_url, client):
         pipeline_results = ["100"] * 5 + ["0"] * 5
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
@@ -194,7 +194,7 @@ class TestSystemStateEndpoint:
         assert resp.status_code == 200
         assert resp.json()["state"] == "stable"
 
-    @patch("app.routes.reliability.aioredis.from_url")
+    @patch("app.routes.reliability.aioredis.from_url", new_callable=AsyncMock)
     def test_on_fire_when_high_error_rate(self, mock_from_url, client):
         pipeline_results = ["100"] * 5 + ["10"] * 5  # 10% error rate
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
@@ -209,7 +209,7 @@ class TestSystemStateEndpoint:
 # ── GET /api/v1/logs ──────────────────────────────────────────────────────────
 
 class TestLogsEndpoint:
-    @patch("app.ws.logs_broadcaster.aioredis.from_url")
+    @patch("app.ws.logs_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_returns_log_response_schema(self, mock_from_url, client):
         log_entry = json.dumps({
             "id": "abc",
@@ -231,7 +231,7 @@ class TestLogsEndpoint:
         assert data["total"] == 1
         assert data["logs"][0]["agent"] == "healer"
 
-    @patch("app.ws.logs_broadcaster.aioredis.from_url")
+    @patch("app.ws.logs_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_empty_redis_returns_empty_logs(self, mock_from_url, client):
         r_mock = AsyncMock()
         r_mock.lrange = AsyncMock(return_value=[])
@@ -242,7 +242,7 @@ class TestLogsEndpoint:
         assert resp.status_code == 200
         assert resp.json()["logs"] == []
 
-    @patch("app.ws.logs_broadcaster.aioredis.from_url")
+    @patch("app.ws.logs_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_level_filter(self, mock_from_url, client):
         entries = [
             json.dumps({"id": "1", "time": "", "agent": "core", "level": "error", "msg": "boom"}),
@@ -267,12 +267,16 @@ class TestPublicTasksCRUD:
         """In-memory SQLite session for route tests."""
         from sqlalchemy import create_engine
         from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
         from app.db.base_class import Base
         from app.models.dashboard_task import DashboardTask  # noqa: F401
 
         engine = create_engine(
             "sqlite:///:memory:",
             connect_args={"check_same_thread": False},
+            # One shared connection: TestClient runs the app in another thread, and a
+            # plain :memory: engine would give that thread its own empty database.
+            poolclass=StaticPool,
         )
         Base.metadata.create_all(engine)
         Session = sessionmaker(bind=engine)
@@ -293,7 +297,7 @@ class TestPublicTasksCRUD:
         assert data["tasks"] == []
         assert data["total"] == 0
 
-    @patch("app.routes.tasks.aioredis.from_url")
+    @patch("app.routes.tasks.aioredis.from_url", new_callable=AsyncMock)
     def test_create_and_list_task(self, mock_redis, client, db_session):
         r_mock = AsyncMock()
         r_mock.pipeline = MagicMock(return_value=AsyncMock(
