@@ -32,6 +32,11 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # scripts/e2e/start-dashboard.mjs runs "next dev" inside agents/dashboard,
+      # which needs its own node_modules (next, typescript, @types/*).
+      - name: Install dashboard deps
+        run: npm ci --prefix agents/dashboard
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -40,4 +45,16 @@ jobs:
           CI: "1"
           DASHBOARD_PORT: "3010"
         run: npx playwright test
+
+      # Failure snapshots (page ARIA tree, trace, screenshots) for diagnosis.
+      - name: Upload Playwright results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-dashboard-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
 

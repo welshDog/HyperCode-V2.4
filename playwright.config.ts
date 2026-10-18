@@ -31,7 +31,8 @@ export default defineConfig({
         command: `node "${path.join(__dirname, 'scripts', 'e2e', 'start-dashboard.mjs')}"`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        // CI runs "next build" before serving, so allow for it.
+        timeout: 420_000,
         env: {
           ...process.env,
           DASHBOARD_PORT: String(port),
