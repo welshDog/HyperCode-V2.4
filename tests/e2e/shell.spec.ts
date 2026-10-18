@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { installDeterministicRouting } from './dashboard/_support/apiStubs'
 
 test.describe('HyperShell Full-Screen Layout', () => {
   test.beforeEach(async ({ page }) => {
+    await installDeterministicRouting(page, [])
     await page.goto('/')
     await page.waitForSelector('[data-testid="hyper-shell"]')
   })

@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { installDeterministicRouting } from './dashboard/_support/apiStubs'
 
 test.describe('Accessibility — WCAG 2.1 AA', () => {
+  test.beforeEach(async ({ page }) => {
+    await installDeterministicRouting(page, [])
+  })
+
   test('homepage has no critical accessibility violations', async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('[data-testid="hyper-shell"]')
