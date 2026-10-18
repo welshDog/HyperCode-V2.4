@@ -32,7 +32,7 @@
 
 ## ⚠️ Known Issues
 *   **Collaborative Quests:** Currently tracks individual progress; shared global counters require Redis implementation in v1.1.0.
-*   **Frontend Integration:** Requires manual setup in HyperCode-V2.0 dashboard (see `docs/FRONTEND_INTEGRATION.md`).
+*   **Frontend Integration:** Requires manual setup in HyperCode-V2.4 dashboard (see `docs/FRONTEND_INTEGRATION.md`).
 
 ## 🔄 Rollback Plan
 In case of critical failure:

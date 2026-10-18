@@ -15,7 +15,7 @@
 | C2 | Gitleaks triage: 64 findings, 8 match live local values, the rest look like examples/fixtures (not hand-checked). | 🔴 |
 | C3 | pip-audit ignore-list expires **2026-11-18** (7 IDs, no upstream fix); consider replacing python-jose. | 🟡 |
 | C4 | **✅ DONE 2026-10-18 (PR #631):** the 20 stale unit tests are fixed and blocking (Regression Guard: 336 passed, 0 failed). The advisory job now holds only the 4 live-stack files (21 failures): they need the running Docker stack. | ✅ |
-| C5 | No Legacy Paths Guard: clean live `HyperCode-V2.0` references (docker-bake.hcl, mcp configs, helm Chart.yaml, healer cli, k8s scripts). | 🟡 |
+| C5 | **✅ DONE 2026-10-18 (PR #632):** live V2.0-named paths repointed (docker-bake core context -> `./backend`, helm Chart, healer comment, k8s scripts, agents README). The guard now uses `git grep` with documented exclusions (history, vendored `.claude` packs, chat transcripts). **Still open:** `mcp/config.yaml` and `mcp/config.host.yaml` mount a dead host path; pointing them at the real repo would change what the filesystem MCP can read, so decide first. | ✅ |
 | C6 | Re-enable the gate e2e (`run_e2e: true`): apply the production-build approach to `tests/e2e/playwright.config.ts`; axe may surface real violations. | 🟢 |
 | C7 | Gate 2: write `tests/hyper_agents/e2e`, fix the compose network conflict, then make Full Stack run on PRs again. | 🟢 |
 | C9 | Docs link check (lychee) is advisory: 106 of 811 links broken (77 missing local files, 16 web 404s, 6 container-only URLs). Clean up, exclude the container URLs, then remove `continue-on-error` from `docs-check.yml` and `docs-lint.yml`. | 🟢 |

@@ -1,6 +1,6 @@
 # Frontend Integration Guide: Economy Dashboard
 
-This guide explains how to integrate the BROski Bot Economy Dashboard into the HyperCode-V2.0 frontend.
+This guide explains how to integrate the BROski Bot Economy Dashboard into the HyperCode-V2.4 frontend.
 
 ## 1. Environment Configuration
 

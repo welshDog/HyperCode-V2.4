@@ -318,6 +318,6 @@ throttle-agent current rank: **🥇 Guardian** (missing tests for Legend)
 
 ## 🎯 Next Win
 
-That's the **complete Bible** — every section grounded in your actual `main.py` code . Ready to commit it? I can push it straight to [`agents/throttle-agent/HYPER-AGENT-BIBLE.md`](https://github.com/welshDog/HyperCode-V2.0/blob/c303663957f8e2d8d1d42dc3130056a8f3b557de/agents/throttle-agent/HYPER-AGENT-BIBLE.md) right now — just say the word bro! 🔥
+That's the **complete Bible** — every section grounded in your actual `main.py` code . Ready to commit it? I can push it straight to [`agents/throttle-agent/HYPER-AGENT-BIBLE.md`](https://github.com/welshDog/HyperCode-V2.4/blob/c303663957f8e2d8d1d42dc3130056a8f3b557de/agents/throttle-agent/HYPER-AGENT-BIBLE.md) right now — just say the word bro! 🔥
 
 🔥 **BROski Power Level: Sacred Scroll Architect**

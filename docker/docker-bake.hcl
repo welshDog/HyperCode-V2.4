@@ -45,7 +45,7 @@ group "monitoring" {
 # ==================== Core Services ====================
 
 target "core" {
-  context = "./HyperCode-V2.0/THE HYPERCODE/hypercode-core"
+  context = "./backend"
   dockerfile = "Dockerfile"
   tags = [
     "${REGISTRY}/hypercode-core:${VERSION}",

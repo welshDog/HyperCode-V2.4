@@ -18,7 +18,7 @@ Commit `7d5ed2a6` revived workflows that had been dead for weeks; most were red 
 
 **Update (PR #631):** the 20 stale unit tests were repaired (tests aimed at old code paths; backend unchanged) and moved into the blocking set: Regression Guard 336 passed, 0 failed. The advisory job keeps only the 4 live-stack files.
 
-**Found, NOT fixed:** (1) **Gitleaks (Security Gate) is red: 64 findings; the repo is PUBLIC and three currently-live secrets sit in git history** (orchestrator API key, memstream token, Stripe webhook secret). They must be rotated before any allowlist; see `docs/NEXT_SESSION_HANDOVER_2026-10-18.md`. (2) 20 stale unit tests (test_dashboard_endpoints, test_security, test_tasks_endpoint). (3) No Legacy Paths Guard: live `HyperCode-V2.0` references. (4) Gate e2e still off (the other Playwright config still uses `next dev`).
+**Found, NOT fixed:** (1) **Gitleaks (Security Gate) is red: 64 findings; the repo is PUBLIC and three currently-live secrets sit in git history** (orchestrator API key, memstream token, Stripe webhook secret). They must be rotated before any allowlist; see `docs/NEXT_SESSION_HANDOVER_2026-10-18.md`. (2) 20 stale unit tests (test_dashboard_endpoints, test_security, test_tasks_endpoint). (3) No Legacy Paths Guard: fixed in PR #632 (live V2.0-named paths repointed; history and vendored packs excluded; the two mcp configs still need a decision). (4) Gate e2e still off (the other Playwright config still uses `next dev`).
 
 ## 2026-10-16/17 — BACKUPS + OFF-SITE, SECRET FILES, ONE SHARED KEY FOR 9 AGENTS, JWT SECRET ROTATED, 63 LOST XP AWARDS RECOVERED (PRs #598-#613)
 

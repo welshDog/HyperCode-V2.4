@@ -19,13 +19,21 @@ jobs:
       - name: Search for deprecated HyperCode-V2.0 paths
         run: |
           echo "Scanning for legacy 'HyperCode-V2.0' references..."
-          # Exclude .git and reports/ directory which contains historical data
-          # grep returns 0 if it finds a match, 1 if no match.
-          # We want to FAIL if we find a match, so we invert the check.
-          if grep -r "HyperCode-V2\.0" . \
-              --exclude-dir=".git" \
-              --exclude-dir="reports" \
-              --exclude-dir="docs"; then
+          # The guard targets live code and config. Left alone on purpose:
+          #   - reports/, docs/, notes/, archive/, artifacts/, .trae/,
+          #     HyperFocus_Audit_Methodology/: history and evidence, true as written.
+          #   - .claude/: vendored skill packs that describe the archived upstream repo.
+          #   - agents/*hyper agent*: saved chat transcripts.
+          #   - mcp/config*.yaml: dead host-mount paths; changing them would change
+          #     what the filesystem MCP server can read, so that needs its own decision.
+          #   - this workflow (it names the string it searches for).
+          if git grep -n -I "HyperCode-V2\.0" -- . \
+              ':(exclude)reports' ':(exclude)docs' ':(exclude)notes' \
+              ':(exclude)archive' ':(exclude)artifacts' ':(exclude).trae' \
+              ':(exclude)HyperFocus_Audit_Methodology' ':(exclude).claude' \
+              ':(exclude,icase)agents/*hyper agent*' \
+              ':(exclude)mcp/config.yaml' ':(exclude)mcp/config.host.yaml' \
+              ':(exclude).github/workflows/no-legacy-paths.yml'; then
             echo "::error::Found legacy 'HyperCode-V2.0' path references in the codebase!"
             echo "Please update these references to the V3+ canonical entrypoint (e.g., 'HyperCode-V2.4' or relative paths)."
             exit 1

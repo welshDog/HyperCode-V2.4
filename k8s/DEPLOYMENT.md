@@ -71,7 +71,7 @@ Before deploying, build and push all container images to your registry:
 export REGISTRY="your-registry.com/hypercode"
 
 # Build and push HyperCode Core
-docker build -t $REGISTRY/hypercode-core:latest ./HyperCode-V2.0/THE\ HYPERCODE/hypercode-core
+docker build -t $REGISTRY/hypercode-core:latest ./backend
 docker push $REGISTRY/hypercode-core:latest
 
 # Build and push Crew Orchestrator

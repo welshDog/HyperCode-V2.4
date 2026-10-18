@@ -19,7 +19,7 @@ except ImportError:
         from agents.healer.adapters.docker_adapter import DockerAdapter
     except ImportError:
         # Fallback: try adding project root if agents is not package root
-        # .../HyperCode-V2.0/agents/healer -> .../HyperCode-V2.0
+        # .../HyperCode-V2.4/agents/healer -> .../HyperCode-V2.4
         project_root = os.path.dirname(parent_dir)
         if project_root not in sys.path:
             sys.path.append(project_root)
