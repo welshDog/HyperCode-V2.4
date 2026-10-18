@@ -1,7 +1,24 @@
 # 🎯 Active Next Tasks
 > Update this every session. Completed items → `WHATS_DONE.md`.
 > For sacred rules + architecture → `CLAUDE.md`
-> Last updated: **September 13, 2026 (later) — Skill Discoverability merged to `main` + live-verified, dashboard rebuilt off a 4-day-stale build, a real BROski Pulse route-collision bug found + fixed, and the box's RAM ceiling re-confirmed the hard way (N22, needs its own session) — see `WHATS_DONE.md`'s 2026-09-13 entries and `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`**
+> Last updated: **2026-10-18: CI recovery, new section C1-C8 below. Previously: September 13, 2026 (later) — Skill Discoverability merged to `main` + live-verified, dashboard rebuilt off a 4-day-stale build, a real BROski Pulse route-collision bug found + fixed, and the box's RAM ceiling re-confirmed the hard way (N22, needs its own session) — see `WHATS_DONE.md`'s 2026-09-13 entries and `docs/NEXT_SESSION_HANDOVER_2026-09-13.md`**
+
+---
+
+## 🆕 From 2026-10-18 (CI recovery, PRs #620-#628, `main` = `a66b26f8`)
+
+> Full write-up: `WHATS_DONE.md` top entry, `docs/NEXT_SESSION_HANDOVER_2026-10-18.md`.
+
+| # | Task | Priority |
+|---|---|---|
+| C1 | **ROTATE 3 live secrets that leaked into the PUBLIC repo's git history** (orchestrator API key, memstream token, Stripe webhook secret; Stripe is TEST mode). Lyndz's action; then redact the three HEAD files and add a `.gitleaks.toml` allowlist for fixtures only. Never print values. | 🔴 first |
+| C2 | Gitleaks triage: 64 findings, 8 match live local values, the rest look like examples/fixtures (not hand-checked). | 🔴 |
+| C3 | pip-audit ignore-list expires **2026-11-18** (7 IDs, no upstream fix); consider replacing python-jose. | 🟡 |
+| C4 | Fix the 20 stale unit tests in the advisory job, then move each file back into the blocking Regression Guard set. | 🟡 |
+| C5 | No Legacy Paths Guard: clean live `HyperCode-V2.0` references (docker-bake.hcl, mcp configs, helm Chart.yaml, healer cli, k8s scripts). | 🟡 |
+| C6 | Re-enable the gate e2e (`run_e2e: true`): apply the production-build approach to `tests/e2e/playwright.config.ts`; axe may surface real violations. | 🟢 |
+| C7 | Gate 2: write `tests/hyper_agents/e2e`, fix the compose network conflict, then make Full Stack run on PRs again. | 🟢 |
+| C8 | Decide on the 7 "autonomous AI synthesis engine" files that landed in `main` inside #623; triage ~25 old Dependabot PRs (#506-#575). | 🟢 |
 
 ---
 
