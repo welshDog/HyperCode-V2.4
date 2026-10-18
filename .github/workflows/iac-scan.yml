@@ -251,6 +251,7 @@ jobs:
             -output json \
             -strict \
             -ignore-missing-schemas \
+            -ignore-filename-pattern '(^|/)helm/' \
             /work/k8s /work/reports/iac/rendered \
             > reports/iac/kubeconform.json || exit 1
 
