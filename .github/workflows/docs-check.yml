@@ -46,12 +46,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Only the canonical files. Scanning all of docs/ matched 199 lines in 45
+          # historical files (roadmaps, status snapshots, reviews) on 2026-10-18.
           if git grep -n -E "(^|[[:space:]])docker-compose([[:space:]]|$)" -- \
-            README.md QUICKSTART.md RUNBOOK.md START_HERE.md docs/INDEX.md docs/DOCUMENTATION_INDEX.md docs/DOCUMENTATION_PROCESS.md docs \
-            ":(exclude)docs/reports/**" \
-            ":(exclude)docs/archive/**" \
-            ":(exclude)docs/notes/**" \
-            ":(exclude)docs/outputs/**"
+            README.md QUICKSTART.md RUNBOOK.md START_HERE.md docs/INDEX.md docs/DOCUMENTATION_INDEX.md docs/DOCUMENTATION_PROCESS.md
           then
             echo "Found 'docker-compose' in canonical documentation. Use 'docker compose' instead."
             exit 1

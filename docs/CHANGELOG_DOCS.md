@@ -5,7 +5,7 @@ This file tracks documentation synchronization changes (what changed and why). I
 ### 2026-10-18
 
 - Added `docs/NEXT_SESSION_HANDOVER_2026-10-18.md` (CI recovery, leaked-secret finding) and a new C1-C9 section in `docs/NEXT_TASKS.md`.
-- Docs CI repaired: lychee `--exclude` quoting, quoted `docs/**/*.md` glob, removed `--exclude-mail` (gone in lychee 0.23). The link check is advisory until the 106 broken links are cleaned up (NEXT_TASKS C9).
+- Docs CI repaired: terminology rule now scans only the canonical files (199 old matches in 45 historical docs); lychee `--exclude` quoting, quoted `docs/**/*.md` glob, removed `--exclude-mail` (gone in lychee 0.23). The link check is advisory until the 106 broken links are cleaned up (NEXT_TASKS C9).
 
 ### 2026-04-20
 
