@@ -12,12 +12,43 @@ on:
     paths:
       - 'backend/**'
       - 'backend/requirements*.txt'
+  # Called by quality-gate.yml. The fail_on_* flags decide whether a scanner
+  # blocks the job; with the defaults (and on push/PR) the scanners are advisory.
+  workflow_call:
+    inputs:
+      python_version:
+        description: Python version
+        required: false
+        type: string
+        default: "3.12"
+      coverage_min:
+        description: Line coverage (percent) below which a warning is raised
+        required: false
+        type: string
+        default: "0"
+      fail_on_ruff:
+        description: Fail the job on ruff findings
+        required: false
+        type: boolean
+        default: false
+      fail_on_pip_audit:
+        description: Fail the job on pip-audit findings
+        required: false
+        type: boolean
+        default: false
+      fail_on_bandit_high:
+        description: Fail the job on high-severity bandit findings
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-python-${{ github.ref }}
+  # github.workflow is the caller's name when called, so a run from
+  # quality-gate.yml does not cancel the standalone run on the same ref.
+  group: ci-python-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,7 +59,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ inputs.python_version || '3.12' }}
           cache: pip
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
@@ -39,5 +70,46 @@ jobs:
         env:
           ENVIRONMENT: test
         run: python -c "from app.main import app; assert app is not None; print('backend-import-ok')"
-      - name: Run tests
-        run: pytest backend/tests -v --tb=short
+      - name: Run tests with coverage
+        run: |
+          mkdir -p reports
+          pytest backend/tests -v --tb=short \
+            --cov=backend/app --cov-report=xml:reports/coverage.xml --cov-report=term
+      - name: Coverage floor (warning only)
+        if: always()
+        env:
+          COVERAGE_MIN: ${{ inputs.coverage_min || '0' }}
+        run: |
+          [ -f reports/coverage.xml ] || exit 0
+          python - <<'PY'
+          import os, re
+          xml = open("reports/coverage.xml", encoding="utf-8").read()
+          m = re.search(r'line-rate="([^"]+)"', xml)
+          rate = float(m.group(1)) * 100 if m else 0.0
+          floor = float(os.environ["COVERAGE_MIN"])
+          print(f"line coverage {rate:.1f}% (floor {floor:.0f}%)")
+          if rate < floor:
+              print(f"::warning::line coverage {rate:.1f}% is below the {floor:.0f}% floor")
+          PY
+      - name: Ruff
+        id: ruff
+        continue-on-error: ${{ !inputs.fail_on_ruff }}
+        run: ruff check backend/app --output-format=concise
+      - name: Bandit
+        continue-on-error: ${{ !inputs.fail_on_bandit_high }}
+        run: |
+          mkdir -p reports
+          bandit -r backend/app -lll -f json -o reports/bandit.json
+      - name: pip-audit
+        continue-on-error: ${{ !inputs.fail_on_pip_audit }}
+        run: |
+          pip install pip-audit
+          mkdir -p reports
+          pip-audit -r backend/requirements.txt -f json -o reports/pip-audit.json
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-reports
+          path: reports/
+          if-no-files-found: ignore
