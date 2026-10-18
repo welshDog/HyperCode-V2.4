@@ -133,7 +133,7 @@ echo ""
 # Make sure compose file exists
 if [ ! -f "docker-compose.yml" ]; then
   echo -e "${RED}❌ Error: docker-compose.yml not found in current directory${NC}"
-  echo "   Make sure you're in the HyperCode-V2.0 directory"
+  echo "   Make sure you're in the HyperCode-V2.4 directory"
   exit 1
 fi
 

@@ -183,7 +183,7 @@ main() {
     
     # Check we're in right directory
     if [ ! -d "k8s" ]; then
-        echo -e "${RED}❌ Must run from HyperCode-V2.0 root directory${NC}"
+        echo -e "${RED}❌ Must run from HyperCode-V2.4 root directory${NC}"
         exit 1
     fi
     

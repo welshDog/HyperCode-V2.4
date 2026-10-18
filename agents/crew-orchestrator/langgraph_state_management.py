@@ -363,7 +363,7 @@ async def main():
         task_description="Implement real-time notifications feature",
         goal="Add WebSocket-based notifications to BROski dashboard",
         project_context={
-            "repo": "welshDog/HyperCode-V2.0",
+            "repo": "welshDog/HyperCode-V2.4",
             "language": "Python",
             "framework": "FastAPI",
         },

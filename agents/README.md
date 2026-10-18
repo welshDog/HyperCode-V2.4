@@ -10,7 +10,7 @@ Complete Docker configuration for running your specialist AI agent team.
 Perfect for development & testing on limited hardware:
 
 ```bash
-cd HyperCode-V2.0
+cd HyperCode-V2.4
 docker compose -f docker-compose.yml -f docker-compose.agents-lite.yml up -d
 ```
 
@@ -32,7 +32,7 @@ cd agents/agent-factory
 All agents running for maximum capability:
 
 ```bash
-cd HyperCode-V2.0
+cd HyperCode-V2.4
 docker compose --profile agents up -d
 ```
 
@@ -42,7 +42,7 @@ docker compose --profile agents up -d
 Start agents as you need them (recommended):
 
 ```bash
-cd HyperCode-V2.0/agents/agent-factory
+cd HyperCode-V2.4/agents/agent-factory
 
 # Spawn specific agents
 ./spawn_agent.sh crew-orchestrator

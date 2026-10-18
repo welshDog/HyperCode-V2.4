@@ -200,7 +200,7 @@ Disaster Recovery | ✅ | ❌ | ✅ | 🟡 |
 
 2. ⏱️ 10 min: Prepare secrets
    ```bash
-   cd HyperCode-V2.0/k8s
+   cd HyperCode-V2.4/k8s
    # Edit 02-secrets.yaml with your values
    nano 02-secrets.yaml
    ```
@@ -370,7 +370,7 @@ The only things genuinely needing work before cloud production:
 Next command:
 
 ```bash
-cd HyperCode-V2.0/k8s
+cd HyperCode-V2.4/k8s
 bash deploy.sh
 ```
 
