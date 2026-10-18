@@ -25,7 +25,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build backend image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -73,7 +73,7 @@ jobs:
 
       - name: Build ${{ matrix.agent }} image
         if: matrix.agent != 'coder'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./agents/${{ matrix.dir }}
           file: ./agents/${{ matrix.dir }}/Dockerfile
@@ -94,7 +94,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build agent-spawner image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./services/agent-spawner
           file: ./services/agent-spawner/Dockerfile
