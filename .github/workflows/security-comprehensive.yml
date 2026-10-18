@@ -107,8 +107,23 @@ jobs:
         id: audit_backend
         run: |
           mkdir -p ${{ env.REPORTS_DIR }}
+          # Accepted findings: pip-audit reports no fixed version for any of these
+          # (checked 2026-10-18). Matched by exact ID, so any NEW vulnerability still
+          # fails the gate. REVIEW BY 2026-11-18: drop an ID as soon as a fix ships.
+          #   chromadb 1.0.15   PYSEC-2026-311, -3813, -3814, -3815
+          #   ecdsa 0.19.2      PYSEC-2026-1325 (CVE-2024-23342, timing side channel)
+          #   paramiko 3.5.1    PYSEC-2026-2858 (CVE-2026-44405)
+          #   python-jose 3.5.0 PYSEC-2026-4298 (CVE-2026-85394; used for JWT, so
+          #                     consider replacing it rather than waiting)
           pip-audit \
             -r backend/requirements.txt \
+            --ignore-vuln PYSEC-2026-311 \
+            --ignore-vuln PYSEC-2026-3813 \
+            --ignore-vuln PYSEC-2026-3814 \
+            --ignore-vuln PYSEC-2026-3815 \
+            --ignore-vuln PYSEC-2026-1325 \
+            --ignore-vuln PYSEC-2026-2858 \
+            --ignore-vuln PYSEC-2026-4298 \
             --format json \
             --output ${{ env.REPORTS_DIR }}/pip-audit-backend.json \
             || echo "BACKEND_VULNS=true" >> $GITHUB_ENV
