@@ -2,10 +2,15 @@ import { defineConfig, devices } from '@playwright/test'
 import path from 'path'
 
 const repoRoot = path.resolve(__dirname, '..', '..')
+const port = Number(process.env.DASHBOARD_PORT ?? 8088)
+const baseURL = process.env.DASHBOARD_URL ?? `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir:   __dirname,
+  // tests/e2e/dashboard has its own config (repo root) and workflow.
+  testIgnore: '**/dashboard/**',
   timeout:   30_000,
+  expect:    { timeout: 10_000 },
   retries:   process.env.CI ? 2 : 0,
   workers:   process.env.CI ? 1 : undefined,
   reporter:  [
@@ -14,24 +19,26 @@ export default defineConfig({
     ['junit', { outputFile: path.join(repoRoot, 'reports', 'e2e-junit.xml') }],
   ],
   use: {
-    baseURL:         process.env.DASHBOARD_URL ?? 'http://localhost:8088',
+    baseURL,
     screenshot:      'only-on-failure',
     video:           'retain-on-failure',
     trace:           'retain-on-failure',
   },
-  webServer: process.env.CI
+  // CI serves a production build through the same starter the dashboard e2e
+  // workflow uses: under "next dev" the pages did not hydrate in the test browser.
+  webServer: process.env.CI && !process.env.DASHBOARD_URL
     ? {
-        command: 'npm --prefix agents/dashboard run dev -- -p 8088',
-        url: 'http://localhost:8088',
-        // The command's relative path is repo-root relative; Playwright would
-        // otherwise run it from this config's folder (tests/e2e).
+        command: `node "${path.join(repoRoot, 'scripts', 'e2e', 'start-dashboard.mjs')}"`,
+        url: baseURL,
+        // The command's relative paths are repo-root relative.
         cwd: repoRoot,
-        timeout: 120_000,
+        // "next build" runs before the server starts.
+        timeout: 420_000,
         reuseExistingServer: false,
+        env: { ...process.env, DASHBOARD_PORT: String(port) } as Record<string, string>,
       }
     : undefined,
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox',  use: { ...devices['Desktop Firefox'] } },
   ],
 })

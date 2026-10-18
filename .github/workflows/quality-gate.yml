@@ -46,12 +46,9 @@ jobs:
       # Measured 2026-10-17: 61% lines / 57% statements. Raise as tests are added
       # (original target was 80).
       coverage_min: "55"
-      # Off until the e2e suite is repaired (measured 2026-10-17: 20 of 24 fail).
-      # dashboard.spec.ts needs stubs for /api/crew/panic, /api/ops/dlq,
-      # /api/ops/dlq/stats and /api/v1/orchestrator/system/health; shell.spec.ts
-      # and accessibility.spec.ts wait for data-testid="hyper-shell", which the
-      # home page (AppShell) no longer renders. Each full run costs ~18 minutes.
-      run_e2e: false
+      # shell.spec.ts and accessibility.spec.ts against a production build
+      # (chromium only, stubbed API). dashboard/ has its own workflow.
+      run_e2e: true
       # Blocks on critical only. 5 high findings remain in the eslint-config-next
       # chain (@next/eslint-plugin-next, braces, eslint-config-next, fast-glob,
       # micromatch): lint-time tooling whose only npm-suggested fix is a major

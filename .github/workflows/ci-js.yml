@@ -79,7 +79,7 @@ jobs:
       - name: E2E tests (Playwright)
         if: ${{ inputs.run_e2e }}
         run: |
-          npx playwright install --with-deps
+          npx playwright install --with-deps chromium
           npx playwright test -c tests/e2e/playwright.config.ts
 
       - name: Upload Playwright Report
@@ -90,6 +90,7 @@ jobs:
           path: |
             reports/e2e-html/
             reports/e2e-junit.xml
+            test-results/
           retention-days: 30
 
       - name: npm audit (block on high)

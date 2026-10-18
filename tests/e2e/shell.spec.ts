@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { installDeterministicRouting } from './dashboard/_support/apiStubs'
 
 test.describe('HyperShell Full-Screen Layout', () => {
   test.beforeEach(async ({ page }) => {
+    await installDeterministicRouting(page, [])
     await page.goto('/')
     await page.waitForSelector('[data-testid="hyper-shell"]')
   })
@@ -29,10 +31,12 @@ test.describe('HyperShell Full-Screen Layout', () => {
     await expect(page.getByRole('button', { name: /Exit focus mode/i })).toBeVisible()
   })
 
-  test('view mode toggle cycles correctly', async ({ page }) => {
-    await page.getByRole('button', { name: /Focus/i }).first().click()
-    // after clicking Focus mode, check aria-pressed
-    const focusModeBtn = page.getByRole('button', { name: /Focus/i })
-    await expect(focusModeBtn.first()).toHaveAttribute('aria-pressed', 'true')
+  test('a focus session can be started and ended', async ({ page }) => {
+    // The header's focus control swaps Start focus for End focus (and a timer);
+    // it is not an aria-pressed toggle, so assert the visible states.
+    await page.getByRole('button', { name: 'Start focus' }).click()
+    await expect(page.getByTestId('focus-active')).toBeVisible()
+    await page.getByRole('button', { name: 'End focus' }).click()
+    await expect(page.getByRole('button', { name: 'Start focus' })).toBeVisible()
   })
 })
