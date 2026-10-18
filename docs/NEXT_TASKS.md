@@ -19,7 +19,18 @@
 | C6 | **✅ DONE 2026-10-18 (PR #633):** the gate e2e is back on (`run_e2e: true`) against a production build, chromium only; 7 tests. Axe found **2 serious (non-critical) violations on the home page: `color-contrast` and `scrollable-region-focusable`**. The spec only fails on critical ones, so they are logged, not blocking. Fix them in the dashboard UI, then tighten the spec to fail on serious. | ✅ |
 | C7 | Gate 2: write `tests/hyper_agents/e2e`, fix the compose network conflict, then make Full Stack run on PRs again. | 🟢 |
 | C9 | Docs link check (lychee) is advisory: 106 of 811 links broken (77 missing local files, 16 web 404s, 6 container-only URLs). Clean up, exclude the container URLs, then remove `continue-on-error` from `docs-check.yml` and `docs-lint.yml`. | 🟢 |
-| C8 | Decide on the 7 "autonomous AI synthesis engine" files that landed in `main` inside #623; triage ~25 old Dependabot PRs (#506-#575). | 🟢 |
+| C8 | Decide on the 7 "autonomous AI synthesis engine" files that landed in `main` inside #623. | 🟢 |
+| C10 | **Dependabot policy (2026-10-18, see the section below the table).** Remaining: #493 `pyopenssl` and #457 `starlette` (possible security bumps, left open on purpose), 38 minor requirement-floor bumps, and the regenerated group PRs. Review one at a time; **do not bulk-merge**. | 🟡 |
+| C11 | Weekly Trivy scan: 3 images fail to BUILD (`healer`, `05-devops-engineer`, `coder`), so they are never scanned. `iac-scan` also fails on `main` (Helm render, Hadolint, Actions lint, Trivy IaC, Compose validate). Both were red before the Actions bumps. | 🟡 |
+
+### Dependabot policy (decided 2026-10-18)
+
+- **Majors are ignored** in every pip/npm/docker entry of `.github/dependabot.yml` (PR #634); GitHub Actions bumps still flow. 42 major and requirement-floor-major PRs and two bulk group refreshes (#672 "211 updates", #677 "223 updates") were closed with an explanatory comment. `@dependabot reopen` brings one back.
+- **Merged:** the four Actions bumps (#129, #135, #216, #217). The two workflow-only ones (trivy-action, setup-helm) were only proven by dispatching the workflow on the PR branch, because their files do not run on PRs.
+- **Do not bulk-merge dependency PRs.** A requirements or lockfile bump only shows its effect when an image is next rebuilt, and the generic PR checks (CodeQL, GitGuardian, the backend build) do not build or test what these PRs change. Merge one only when a covering job ran on it: for the dashboard that is the image build plus `Playwright Dashboard E2E` and the Quality Gate, dispatched on the branch if Dependabot's PR did not trigger them.
+- **Expect churn:** changing the ignore rules made Dependabot close and re-create 8 of the old group PRs under new numbers (#637, #654, #659-#671), so old PR numbers in this file may be closed.
+- Dependabot security alerts are **disabled** on the repo, so these PRs cannot be ranked by severity. Consider enabling alerts (repo Settings, Code security).
+- Possible security bumps kept open: #493 `pyopenssl` 24 to 26 (`/agents/hyperhealth`), #457 `starlette` `>=1.6.0`.
 
 ---
 

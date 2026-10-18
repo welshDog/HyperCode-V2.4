@@ -4,6 +4,8 @@ This file tracks documentation synchronization changes (what changed and why). I
 
 ### 2026-10-18
 
+- Recorded the Dependabot triage and policy (NEXT_TASKS C10/C11 and the new policy section, handover, WHATS_DONE).
+
 - Marked NEXT_TASKS C6 done (gate e2e re-enabled, PR #633) and recorded the two serious axe findings.
 
 - Marked NEXT_TASKS C5 done (No Legacy Paths cleanup, PR #632); mcp configs left open for a decision.

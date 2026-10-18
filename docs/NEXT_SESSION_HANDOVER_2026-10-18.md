@@ -37,7 +37,7 @@ Already retired or harmless: the old `API_KEY` (now `inter_agent_key.old.txt`), 
 | #627 | Regression Guard split: blocking vs advisory `regression-known-red`; Gate 2 heavy jobs manual-only |
 | #628 | pip-audit: 7 IDs with no fix ignored, review by **2026-11-18** |
 
-Dependabot #621/#622 were closed with an explanation.
+Dependabot (later the same day): #621/#622 closed; four Actions bumps merged (#129, #135, #216, #217); majors now ignored in `.github/dependabot.yml` (#634); 44 PRs closed in bulk (42 majors + #672, #677). **Policy: do not bulk-merge dependency PRs**; details in `docs/NEXT_TASKS.md` (C10, "Dependabot policy").
 
 ## ⏭️ WHAT IS STILL RED OR OPEN
 
@@ -46,7 +46,7 @@ Dependabot #621/#622 were closed with an explanation.
 - **No Legacy Paths Guard:** live `HyperCode-V2.0` references (docker-bake.hcl, mcp configs, helm Chart.yaml, `agents/healer/cli.py`, k8s scripts).
 - **Gate e2e off** (`run_e2e: false`): `tests/e2e/playwright.config.ts` still uses `next dev`; apply the production-build approach from #626, expect real axe findings.
 - **Gate 2:** `tests/hyper_agents/e2e` does not exist; the Full Stack compose test fails on `networks.agents-net conflicts with imported resource` and needs secrets. Manual-dispatch only until fixed.
-- **Also:** 7 "autonomous AI synthesis engine" files landed in `main` inside #623 (decide keep/remove); ~25 old Dependabot PRs (#506-#575); PR #616 (system test docs); an untracked `docs/reports/HYPERCODE_FULL_HEALTH_TEST_REPORT_2026-10-17.md`.
+- **Also:** 7 "autonomous AI synthesis engine" files landed in `main` inside #623 (decide keep/remove); ~76 open Dependabot PRs (review one at a time, NEXT_TASKS C10; #493 pyopenssl and #457 starlette may be security bumps); PR #616 (system test docs); an untracked `docs/reports/HYPERCODE_FULL_HEALTH_TEST_REPORT_2026-10-17.md`.
 
 ## 🪤 TRAPS LEARNED (cost real time)
 
