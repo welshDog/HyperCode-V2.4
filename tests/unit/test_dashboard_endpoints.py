@@ -60,6 +60,15 @@ def _make_redis_mock(pipeline_results: list):
 # ── GET /api/v1/metrics ────────────────────────────────────────────────────────
 
 class TestMetricsEndpoint:
+    @pytest.fixture(autouse=True)
+    def _no_prometheus(self):
+        """The snapshot also asks Prometheus for alerts; keep the test offline."""
+        with patch(
+            "app.ws.metrics_broadcaster._get_alert_info",
+            new=AsyncMock(return_value=(0, 0, [])),
+        ):
+            yield
+
     @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_returns_metrics_snapshot_shape(self, mock_from_url, client):
         """Response must include all MetricsSnapshot fields."""
@@ -69,7 +78,9 @@ class TestMetricsEndpoint:
             ["12.5", "20.0"],  # response_times
             "1",    # error_count
             "3",    # healer:heals_today
-            "7",    # queue depth
+            "7",    # queue depth (hypercode:task_queue)
+            "0", "0", "0", "0", "0",  # high/normal/low/main-queue/celery depths
+            "0",    # dlq depth
             ["agents:heartbeat:agent1", "agents:heartbeat:agent2"],  # keys
         ]
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
@@ -86,7 +97,7 @@ class TestMetricsEndpoint:
 
     @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_requests_per_min_sums_two_minutes(self, mock_from_url, client):
-        pipeline_results = ["10", "5", [], "0", None, "0", []]
+        pipeline_results = ["10", "5", [], "0", None, "0", *["0"] * 6, []]
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
 
         resp = client.get("/api/v1/metrics")
@@ -96,7 +107,7 @@ class TestMetricsEndpoint:
     @patch("app.ws.metrics_broadcaster.aioredis.from_url", new_callable=AsyncMock)
     def test_handles_empty_redis(self, mock_from_url, client):
         """All Redis keys absent — should return zeros, not crash."""
-        pipeline_results = [None, None, [], None, None, "0", []]
+        pipeline_results = [None, None, [], None, None, "0", *["0"] * 6, []]
         mock_from_url.return_value = _make_redis_mock(pipeline_results)
 
         resp = client.get("/api/v1/metrics")
