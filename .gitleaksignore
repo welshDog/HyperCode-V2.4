@@ -1,0 +1,75 @@
+# Gitleaks: historical findings reviewed on 2026-10-19 and accepted.
+#
+# Each line is the exact fingerprint (commit:file:rule:line) of ONE finding in git HISTORY, so this
+# ignores those exact lines only, never a pattern, a file or a rule. A new secret anywhere is still caught.
+#
+# Every finding below was re-read and checked: it is either a credential that has since been rotated or
+# retired (the orchestrator key, memstream token, old master key and old inter-agent key were rotated on
+# 2026-10-19 / 2026-10-16), or not a secret at all (example curl headers, URLs, Discord user ids, test fixtures).
+# The live values were also removed from the current files in PR #685.
+#
+# Do not add a fingerprint here without first checking the value is dead or harmless.
+0104edecdad42ea76e1b77f4c52a230638cf89e3:docs/FULL_SYSTEM_TEST_2026-10-17.md:generic-api-key:201
+1edf14c5b63745a1c42384af4d34ba418c7a8733:agents/coder/test_crew_build.py:generic-api-key:23
+4c3adcf6131dfac170deb0b2788237afd18640e2:backend/tests/test_crew_redaction.py:aws-access-token:13
+4c3adcf6131dfac170deb0b2788237afd18640e2:backend/tests/test_crew_redaction.py:jwt:15
+4c3adcf6131dfac170deb0b2788237afd18640e2:backend/tests/test_crew_redaction.py:private-key:24
+22e5b149f6f7b1fddc0ac716ade01c01d9e5f493:HEALTH_CHECK_REPORT.md:generic-api-key:55
+22e5b149f6f7b1fddc0ac716ade01c01d9e5f493:HEALTH_CHECK_REPORT.md:generic-api-key:56
+6dc2a94cff9b8551fe02390f709efc8e90ab3c80:memory/memstream-integration-report.md:generic-api-key:44
+6dc2a94cff9b8551fe02390f709efc8e90ab3c80:memory/memstream-integration-report.md:generic-api-key:60
+86d947b3ba281cc1b5dd669b04e0c06b10662297:.claude/settings.local.json:generic-api-key:4
+dddde55157777355e53c47bc2143e5873f492577:docs/mcp/BROSKI_ECONOMY_MCP.md:discord-client-id:72
+dddde55157777355e53c47bc2143e5873f492577:docs/mcp/BROSKI_ECONOMY_MCP.md:discord-client-id:80
+dddde55157777355e53c47bc2143e5873f492577:docs/mcp/BROSKI_ECONOMY_MCP.md:discord-client-id:88
+c5ae101507ec42f4a38b17f10316da86d82c3d6c:backend/tests/test_identity_agent.py:discord-client-id:31
+30300d186a127fe720c486f0c0cde0a9310e5db8:OBSIDIAN_SYNC_INTEGRATION.md:curl-auth-header:193
+02042c850af6046406207639eb9d9f1000a2f682:docs/reports/history/TASKS_COMPLETE_2026-06-03.md:curl-auth-header:104
+48fa6232373fa7e6a6102fc38eba2e2990eb4b1c:docs/TASKS_COMPLETE_2026-06-03.md:curl-auth-header:104
+9ce2b948a70b608d22b9068ddf839e6d19d2170e:E2E_TEST_PLAN.md:discord-client-id:27
+9ce2b948a70b608d22b9068ddf839e6d19d2170e:E2E_TEST_PLAN.md:discord-client-id:130
+9ce2b948a70b608d22b9068ddf839e6d19d2170e:E2E_TEST_PLAN.md:generic-api-key:102
+056d3225316cff21031a98d92356614d675f1c5c:docs/START_HERE.md:curl-auth-header:301
+a7c0ae1b5782d6138fb140a34c126a058b9404e1:reports/security/trivy-hypercode-core.json:generic-api-key:62
+a7c0ae1b5782d6138fb140a34c126a058b9404e1:reports/security/trivy-hypercode-core.json:generic-api-key:242
+46741e77a4d9126dbd38caa07ad8aad50dd7da10:RUNBOOK_BLOCKERS.md:generic-api-key:73
+f2fb97e840397c89f169f7e84d1825ddfa23836a:agents/broski-bot/docs/comprehensive_implementation_guide.txt:discord-client-id:145
+f2fb97e840397c89f169f7e84d1825ddfa23836a:backend/tests/conftest.py:generic-api-key:92
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/MCP_GATEWAY_OPERATIONAL_GUIDE.md:curl-auth-header:63
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/MCP_GATEWAY_OPERATIONAL_GUIDE.md:curl-auth-header:67
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/MCP_GATEWAY_OPERATIONAL_GUIDE.md:curl-auth-header:238
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/MCP_QUICK_START.md:curl-auth-header:25
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/MCP_QUICK_START.md:curl-auth-header:28
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/INTEGRATION_SUMMARY.md:curl-auth-header:90
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/INTEGRATION_SUMMARY.md:curl-auth-header:260
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/INTEGRATION_SUMMARY.md:curl-auth-header:283
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/INTEGRATION_SUMMARY.md:curl-auth-header:321
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/START_HERE.md:curl-auth-header:301
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/START_HERE.md:curl-auth-header:305
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/DOCKER_HEALTH_CHECK_REPORT.md:generic-api-key:205
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/FINAL_HEALTH_REPORT.md:generic-api-key:23
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/FINAL_HEALTH_REPORT.md:generic-api-key:24
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/FINAL_HEALTH_REPORT.md:generic-api-key:158
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HEALTH_CHECK_UPDATE.md:generic-api-key:68
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HEALTH_CHECK_UPDATE.md:generic-api-key:69
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HEALTH_CHECK_REPORT.md:generic-api-key:167
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HEALTH_CHECK_REPORT.md:generic-api-key:168
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HEALTH_CHECK_REPORT.md:generic-api-key:169
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/archive/HyperCode-V2-Master-Reference.md:curl-auth-header:1095
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/mission/MISSION.API.md:jwt:13
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/notes/1 hoy.md:generic-api-key:19
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/notes/On the execute smoke Endpoint Idea.md:curl-auth-header:78
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/notes/On the execute smoke Endpoint Idea.md:curl-auth-header:86
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/notes/docker-setup-notes.md:curl-auth-header:383
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/notes/docker-setup-notes.md:generic-api-key:394
+f2fb97e840397c89f169f7e84d1825ddfa23836a:docs/reports/analysis/COMPREHENSIVE_PROJECT_ANALYSIS_2026.md:generic-api-key:753
+f2fb97e840397c89f169f7e84d1825ddfa23836a:grafana/grafana.ini:generic-api-key:364
+f2fb97e840397c89f169f7e84d1825ddfa23836a:grafana/grafana.ini:generic-api-key:2123
+f2fb97e840397c89f169f7e84d1825ddfa23836a:reports/archive/AGENT_META_ARCHITECT_DELIVERY.md:curl-auth-header:221
+f2fb97e840397c89f169f7e84d1825ddfa23836a:reports/archive/AGENT_META_ARCHITECT_DELIVERY.md:curl-auth-header:232
+f2fb97e840397c89f169f7e84d1825ddfa23836a:k8s/hypercode-core.yaml:generic-api-key:30
+f2fb97e840397c89f169f7e84d1825ddfa23836a:k8s/hypercode-core.yaml:generic-api-key:32
+f2fb97e840397c89f169f7e84d1825ddfa23836a:scripts/mcp-gateway-start.sh:curl-auth-header:71
+f2fb97e840397c89f169f7e84d1825ddfa23836a:scripts/mcp-gateway-start.sh:curl-auth-header:75
+f2fb97e840397c89f169f7e84d1825ddfa23836a:reports/security/trivy-super-hyper-broski-agent.json:generic-api-key:65
+f2fb97e840397c89f169f7e84d1825ddfa23836a:reports/security/trivy-super-hyper-broski-agent.json:generic-api-key:186
