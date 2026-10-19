@@ -15,7 +15,7 @@
 
 **Root cause, verified end-to-end:**
 1. `.env` (HyperCode-V2.4 root) line 214 already has a real, valid-looking signed JWT: `DASHBOARD_SERVICE_JWT=eyJhbGci...` (decodes to `{"sub":"9","exp":2104315652}` — a long-lived service account token).
-2. `docker-compose.agents.yml:265` **overrides it**: `DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY:-dev-master-key}`. Confirmed via `docker exec hypercode-dashboard printenv DASHBOARD_SERVICE_JWT` → the container actually gets `hc_b040f1e59a02ee4a2fd3624a7a7c6f631eb0b53651e8e63b0c4e1386031f7449` (the plain API-key string from `.env:218`, not a JWT).
+2. `docker-compose.agents.yml:265` **overrides it**: `DASHBOARD_SERVICE_JWT=${HYPERCODE_API_KEY:-dev-master-key}`. Confirmed via `docker exec hypercode-dashboard printenv DASHBOARD_SERVICE_JWT` → the container actually gets `[REDACTED: HYPERCODE_API_KEY (rotated)]` (the plain API-key string from `.env:218`, not a JWT).
 3. `agents/dashboard/lib/server-auth.ts`'s `serviceAuthHeader()` sends this as `Authorization: Bearer hc_b040f1e...` to `hypercode-core`.
 4. `backend/app/api/deps.py:get_current_user` runs `jwt.decode(token, settings.JWT_SECRET, ...)` on it — an API key is not a JWT, decode fails, raises `403 "Could not validate credentials"` every single time.
 5. `agents/dashboard/app/api/ws-token/route.ts` (backing `ApprovalModal.tsx`'s live-approvals WebSocket) hands out the **same** broken string — confirmed via `curl http://127.0.0.1:8088/api/ws-token` → `{"token":"hc_b040f1e..."}`. The WebSocket handshake to `hypercode-core`'s `/ws/approvals?token=...` is rejected, `onerror` fires, `onclose` schedules a retry in exactly 5000ms (`ApprovalModal.tsx:80`) — forever, with no backoff and no max-attempts, and the component never unmounts across route changes.
