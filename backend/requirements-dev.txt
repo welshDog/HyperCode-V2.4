@@ -5,7 +5,7 @@
 
 # Testing
 pytest==9.0.2
-pytest-asyncio>=0.23.0
+pytest-asyncio>=0.26.0
 pytest-cov==7.1.0
 httpx==0.28.1
 
