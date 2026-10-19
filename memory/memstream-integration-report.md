@@ -41,7 +41,7 @@ The MemStream-throttle-agent integration is now functional, enabling real-time R
     - `POST /throttle` → logs delay commands (mock throttle control for adaptive throttling)
   - Configuration:
     - `MEMSTREAM_HEALTH_TOKEN=broski123`
-    - `MEMSTREAM_API_TOKEN=xK9mP2qLjwRvT5wY3jD6hF1cB4aE7sN0`
+    - `MEMSTREAM_API_TOKEN=[REDACTED: MEMSTREAM_API_TOKEN (rotated)]`
     - Networks: `agents-net`, `data-net`
     - Depends on: `redis` (service_healthy), `hypercode-core` (service_healthy)
     - Resource limits: 2.0 CPU, 3GB RAM (adjustable based on model size)
@@ -57,7 +57,7 @@ The MemStream-throttle-agent integration is now functional, enabling real-time R
   - Added placeholder values:
     ```
     MEMSTREAM_HEALTH_TOKEN=broski123
-    MEMSTREAM_API_TOKEN=xK9mP2qLjwRvT5wY3jD6hF1cB4aE7sN0
+    MEMSTREAM_API_TOKEN=[REDACTED: MEMSTREAM_API_TOKEN (rotated)]
     ```
 
 ### 2. Docker Compose YAML Validation Fixes

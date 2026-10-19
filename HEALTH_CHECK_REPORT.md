@@ -53,7 +53,7 @@ HYPERCODE_CORE_URL=http://hypercode-core:8000
 NEXT_PUBLIC_CORE_WS_HOST=localhost
 CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
 HYPERCODE_API_KEY=hc_d104ae9aa487359d565c1a5bf595209f7694f6372e060bdd
-ORCHESTRATOR_API_KEY=hc_681fc89ef279bd542439b36265e649d3164baf5f00c0ea645eb4ab5e1c03a3dc
+ORCHESTRATOR_API_KEY=[REDACTED: ORCHESTRATOR_API_KEY (rotated)]
 ```
 
 **Note on NEXT_PUBLIC_CORE_WS_HOST:** Set to `localhost` — this is the **ROOT CAUSE** of your ConnectionRefused error.
