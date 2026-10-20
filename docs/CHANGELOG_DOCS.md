@@ -2,6 +2,10 @@
 
 This file tracks documentation synchronization changes (what changed and why). It is separate from the product changelog.
 
+### 2026-10-20
+
+- Added `docs/NEXT_SESSION_HANDOVER_2026-10-20.md`: the leaked-secret rotation and where the old values also lived, the green security gate (#685-#688), the hyperhealth upgrade and its rollback, traps learned, and the open items. No secret values.
+
 ### 2026-10-19
 
 - Added `docs/superpowers/plans/2026-10-19-hyperhealth-fastapi-upgrade.md`: an evidence-backed plan to clear the remaining hyperhealth dependency advisories (FastAPI/Starlette upgrade, drop the unused pyOpenSSL and slowapi, add a smoke test and CI job). Plan only; no dependency changes yet.
