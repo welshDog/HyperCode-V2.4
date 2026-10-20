@@ -51,7 +51,7 @@ The 2026-10-18 note said three live secrets were in public history. A full-histo
 
 ## 📌 Open
 
-1. **Other services still on old FastAPI/Starlette ranges** (each needs the hyperhealth treatment: tests first, then a rebuild): `agents/mission-executor` (fastapi 0.109.1 keeps `starlette<0.36`), `memstream` (flask 2 → 3), the root tooling list (`starlette` 0.52 → 1.x). Not urgent; most are not in the running stack.
+1. **Other services still on old framework ranges** (each needs the hyperhealth treatment: tests first, then a rebuild): `memstream` (flask 2 → 3), the root tooling list (`starlette` 0.52 → 1.x). Not urgent. `agents/mission-executor` was done on 2026-10-20 (fastapi 0.149.0, starlette 1.9.0, pydantic 2.11.7; real tests and a CI job `mission-executor-tests.yml`; it is not deployed anywhere, only referenced by `docker-compose.agents-full.yml`).
 2. Unaudited/unused requirements files: `backend/requirements-UPGRADED.txt`, `requirements-ai.txt`, `requirements-agents.txt`, `hyperstudio-platform/` (92, 94, 4 and 44 advisories respectively; not shipped).
 3. `agents/coder-studio`: `claude-agent-sdk` 0.2.115 → 0.2.121 (could not be resolved on the audit machine; verify in CI or a build before shipping).
 4. Delete `secrets/rotation-backup-20261019` and the older JWT / inter-agent key backups, and the two `rollback/hyperhealth-*:20261019` image tags, after a few quiet days.

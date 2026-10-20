@@ -4,6 +4,8 @@ This file tracks documentation synchronization changes (what changed and why). I
 
 ### 2026-10-20
 
+- Updated the 2026-10-20 handover: `agents/mission-executor` moved from open to done (FastAPI/Starlette/pydantic upgrade with real tests and a CI job).
+
 - Added `docs/NEXT_SESSION_HANDOVER_2026-10-20.md`: the leaked-secret rotation and where the old values also lived, the green security gate (#685-#688), the hyperhealth upgrade and its rollback, traps learned, and the open items. No secret values.
 
 ### 2026-10-19
