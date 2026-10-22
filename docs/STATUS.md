@@ -1,6 +1,23 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **September 13, 2026 (evening)** — Skill Discoverability search
+> Last updated: **October 22, 2026 (~10:40 BST)** — upgrade report executed
+> (`UPGRADE_REPORT_FOR_DEVS_2026-10-21.md`). Verified live this session:
+> **38 containers running, 32 healthy, 0 unhealthy** (the rest have no health check).
+> - **Brain stack LIVE and current:** `hyper-brain` `:8100`, `agent-hyper-brain-core`
+>   `:3301`, `agent-mcp-bridge` `:3302`, `agent-focus-tracker` `:3303`,
+>   `agent-morning-briefing` `:3304` all answer `/health` 200 (profile `brain-agents`,
+>   defined in `docker-compose.brain.yml`). `/constellation/map` on `:8100` returns 200
+>   with graph data (it was 500 on a read-only vault; fixed by Brain commit `4a7b142`,
+>   live after rebuilding **all five** images, including `hyper-brain`).
+> - **Core containers right-sized** (`docker-compose.core.yml`, `6da44b22` + `bb71b232`):
+>   `redis` 512M / 0.5 CPU, `celery-worker` 512M, `memstream` 512M / 0.25 CPU. Redis AOF + RDB
+>   ok, core `/health` 200, `memstream` runs as `appuser`.
+> - **Host memory is still tight:** `ram_guard.py --for build` read AMBER at session end.
+>   Build one image at a time (`COMPOSE_PARALLEL_LIMIT=1`).
+> - The agent tables further down are still the old stale ones (see the warning above them).
+> See `docs/NEXT_SESSION_HANDOVER_2026-10-22.md` + `WHATS_DONE.md`'s 2026-10-22 entry.
+>
+> **Previous update — September 13, 2026 (evening):** Skill Discoverability search
 > **merged to `main`** (`91359687`, PR #526 closed) and live-verified on a
 > `main`-built `hypercode-core`: real LLM-ranked results
 > (`nvidia/nemotron-3-super-120b-a12b:free`) and the substring-fallback path
@@ -176,5 +193,5 @@
 | Port :8080 collision (container-internal) | ✅ Resolved 2026-08-20 — uniform `AGENT_PORT=8080` convention enforced across all 24 pre-existing agents (item #9) + `fleet-controller`. |
 | Memory pressure at 25+ agents | ⚠️ **Contradicted, 2026-08-22 night.** The 2026-08-20 "proven, zero unhealthy" claim below held for that session, but recreating ~12 containers on top of an already-running 69-container fleet (during the N2 DB-password-rotation session) drove the host to `0.40 GB` free / WSL2's 4GB cap and took the whole WSL2 VM unresponsive (`wsl -e free -m` timed out, `WSL/Service/0x8007274c`, Docker Desktop's own API returning `500`s) — required a full Docker Desktop restart to recover, not just a container restart. Recovered cleanly (staged relaunch: core infra → agents-full.yml → registry/hyperhealth/discord/brain profiles, watching memory between each stage) with zero data loss and zero unhealthy after — but the underlying ceiling is real, not hypothetical. `deploy.resources.limits` are present on all new agents; they don't prevent host-level WSL2 OOM. Original claim: 68 containers live 2026-08-20 late night, zero unhealthy — still true for *that* session's launch pattern (one clean `up -d`, not a live churn of already-running containers). |
 | crew-orchestrator SPOF | ✅ Confirmed live — `restart: unless-stopped` + `/health` verified during the 2026-08-20 launch. Still the SPOF architecturally; `fleet-controller` was deliberately built with **no** dependency on it (see `CLAUDE.md`'s Sacred Rules footnote) so it doesn't become a second one. |
-| `throttle-agent`'s `MemStream` dependency | 🟡 Open — a real, planned component (also depended on by `broski-bot`) that was never actually built anywhere in the compose stack. Not fatal (background polling loop). See `docs/NEXT_TASKS.md` item #2b. |
+| `throttle-agent`'s `MemStream` dependency | ✅ **Resolved — contradicted 2026-10-22:** a `memstream` service now exists in `docker-compose.core.yml` and runs healthy (`appuser`, 512M / 0.25 CPU). _Original note:_ a real, planned component (also depended on by `broski-bot`) that was never actually built anywhere in the compose stack. Not fatal (background polling loop). See `docs/NEXT_TASKS.md` item #2b. |
 | Service JWT expiry | `DASHBOARD_SERVICE_JWT` expires 2027-07-13 — re-mint before then |
