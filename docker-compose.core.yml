@@ -34,11 +34,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1"
-          memory: 1G
+          cpus: "0.5"
+          memory: 512M  # Matches Redis maxmemory with headroom for persistence forks.
         reservations:
-          cpus: "0.25"
-          memory: 256M
+          cpus: "0.1"
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -267,10 +267,10 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 1.5G
+          memory: 512M  # Two workers are already recycled at 200 MiB each.
         reservations:
           cpus: "0.25"
-          memory: 384M
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -308,10 +308,10 @@ services:
       resources:
         limits:
           cpus: "2.0"
-          memory: 3GB  # Adjust based on model size and available RAM
+          memory: 512M  # MemStream is a lightweight local API; keep VM headroom available.
         reservations:
-          cpus: "1.0"
-          memory: 1.5GB
+          cpus: "0.25"
+          memory: 128M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8009/health/memstream"]
       interval: 10s
