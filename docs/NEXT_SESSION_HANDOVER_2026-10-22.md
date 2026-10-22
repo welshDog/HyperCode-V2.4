@@ -8,7 +8,14 @@
 
 1. `cd H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`, `git fetch`, `git status -sb`. The checkout was fast-forwarded to `origin/main` on 2026-10-22 and still holds old uncommitted work (CI, tests, reports, a deleted `docs/archive/HEALTH_CHECK_REPORT.md`, an untracked 2026-10-17 report, `DEV_REPORT.md`). Do not bulk-commit or discard it.
 2. Check RAM before any build: `python scripts/ram_guard.py --for build`. It read **AMBER** at the end of this session (the four-agent builds still went through, but do not stack more).
-3. **Carried over, untouched this session:** the `COURSE_SYNC_SECRET` rotation (new value waits in `secrets/COURSE_SYNC_SECRET.txt.new`; it needs saving in the course Supabase project's dashboard first, then a local apply and a recreate of `hypercode-core` and `broski-pets-bridge`) and the Railway CLI login (`railway login` is interactive, the user must run it).
+3. **Carried over, untouched this session:** the Railway CLI login (`railway login` is interactive, the user must run it). The `COURSE_SYNC_SECRET` rotation is **done locally** (see the section below); only the remote side is unverified.
+
+## 🔑 COURSE_SYNC_SECRET rotation (applied locally 2026-10-22 ~11:15 BST)
+
+- **Applied to three local files:** the HyperCode `.env`, `secrets/COURSE_SYNC_SECRET.txt`, and `Hyper-Vibe-Coding-Course/.env` (the course app's own copy, which held the same old value as core's `.env`). Before the change the `.env` and the secrets file held *different* old values, as the 2026-10-20 handover warned: core reads the `.env` value (`${COURSE_SYNC_SECRET}` in `docker-compose.core.yml` and `docker-compose.agents.yml`).
+- **Recreated one at a time** with the four stack compose files (`docker-compose.yml`, `.secrets`, `.registry`, `.hyperhealth`): `broski-pets-bridge`, then `hypercode-core`. Verified: both Docker-healthy, core `/health` 200, secret set in core's environment, 0 containers unhealthy, 0 auth errors in either log over 10 minutes.
+- **Backups:** `secrets/rotation-backup-20261022/` (`.env`, `COURSE_SYNC_SECRET.txt`, `course.env`), gitignored. Delete them and `secrets/COURSE_SYNC_SECRET.txt.new` after a few quiet days.
+- **NOT confirmed (remote side):** the user saved the new value in the course Supabase project, but that project is **stopped for lack of funds** and the Supabase MCP returned "no permission" on `get_project`, so it was not verified that the save took effect. When the project is restored, check the edge function's secret matches the local value; a mismatch shows up as sync **401s**. If the live course site on Vercel keeps its own copy, update it there too: no hosted setting was touched.
 
 ## ✅ What was done (from `UPGRADE_REPORT_FOR_DEVS_2026-10-21.md`)
 
@@ -50,4 +57,4 @@
 
 ## 👉 ONE next task
 
-Save the new `COURSE_SYNC_SECRET` in the course Supabase dashboard so the rotation can finish.
+When the course Supabase project is restored (it is stopped for lack of funds), check its edge-function secret matches the new local `COURSE_SYNC_SECRET`, and update any Vercel copy.
