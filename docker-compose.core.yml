@@ -307,7 +307,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "2.0"
+          cpus: "0.25"
           memory: 512M  # MemStream is a lightweight local API; keep VM headroom available.
         reservations:
           cpus: "0.25"
