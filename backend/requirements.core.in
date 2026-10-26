@@ -70,5 +70,5 @@ langchain-text-splitters
 # Transitive floors (not imported by app/): langsmith -> httpx2/httpcore2 via
 # langchain-text-splitters. Raised to the fixed releases for HIGH CVEs
 # CVE-2026-84381 (httpcore2) and CVE-2026-84382 (httpx2).
-httpx2>=2.12.0
-httpcore2>=2.10.0
+httpx2>=2.16.0
+httpcore2>=2.16.0
