@@ -55,6 +55,30 @@
 - HYPER-SILLs: `git revert bef442c`.
 - Old Brain images were not tagged for rollback; the previous `hyper-brain` image id was `266a84bfd044`, only reachable if it was not pruned.
 
+## 🧱 DHI pilot — source prepared, image verification blocked by RAM
+
+A single-service Docker Hardened Images pilot now targets the actual deployed HyperHealth build context, `agents/hyperhealth` (not the unused `services/hyperhealth` duplicate):
+
+- `agents/hyperhealth/Dockerfile` uses a Python 3.11.18 Debian 12 DHI dev builder and runtime image, runs nonroot as UID/GID 65532, and retains the multi-stage venv build.
+- `agents/hyperhealth/entrypoint.py` replaces the shell-based startup wrapper: API mode runs `alembic upgrade head` before Uvicorn, and Compose's worker command is exec'd unchanged.
+- `agents/hyperhealth/.dockerignore` keeps local env/secrets, caches, and tests out of the build context.
+- The API healthcheck uses Python's stdlib `urllib` because the DHI runtime does not include curl/shell; the merged HyperHealth Compose healthcheck was updated the same way.
+- Compose services now use `read_only: true`, `tmpfs` `/tmp` (64 MiB, noexec/nosuid), `cap_drop: [ALL]`, and `no-new-privileges:true`; code inspection found no required persistent file writes in the service containers.
+- Added `.github/scripts/check_dhi_contract.py` plus a CI workflow `.github/workflows/hyperhealth-dhi-contract.yml`. The gate checks both API/worker definitions use the real `agents/hyperhealth` build context, paired versioned DHI bases, nonroot runtime, shell-free entrypoint behavior, Python healthcheck, build-context secret exclusions, and Compose runtime hardening. It executes the real entrypoint in subprocess probes while mocking only Alembic/process replacement: API mode must migrate before Uvicorn; worker mode must preserve Compose's command without running migrations. Run: `python .github/scripts/check_dhi_contract.py --check`. The CI workflow runs this source gate and tests only; it does not build images.
+- Added tests proving API mode runs Alembic before replacing itself with Uvicorn, worker mode skips migrations and preserves the Compose command, and deliberate contract mutations fail. Verification completed: **12 DHI gate/entrypoint tests and 39 HyperHealth tests pass**, entrypoint/API/worker compile, four-file Compose config validates, both existing HyperHealth containers remain healthy, and their current endpoints are HTTP 200.
+- **Update 2026-10-27 — built and deployed:** After stopping only the optional `fcc-proxy` (used by `coder-agent`/`qa-engineer`) and confirming RAM guard GREEN, built `hyperhealth-api` and `hyperhealth-worker` separately with `COMPOSE_PARALLEL_LIMIT=1`. Isolated smoke checks confirmed UID 65532 plus API/worker imports under read-only root, tmpfs `/tmp`, dropped capabilities, and no-new-privileges. Recreated API and worker individually with `--no-deps`. Live: both healthy, zero restarts, worker Redis heartbeat present, API `:8095/health` 200, core `:8000/health` 200. Guard was GREEN after rollout at 1608 MiB WSL available.
+- Restored `fcc-proxy` with the documented two-file compose and `--no-deps --no-build`; proxy health 200 and Docker healthy. `qa-engineer` can reach it. `coder-agent` was already exited before the temporary proxy stop and was left untouched.
+- Follow-up guard reads are AMBER again (WSL available ~1.4 GiB), so no additional builds/recreates until GREEN.
+
+When the guard is GREEN, from the HyperCode root run one service image build at a time with the four canonical compose files:
+
+```powershell
+$env:COMPOSE_PARALLEL_LIMIT='1'
+docker compose -f docker-compose.yml -f docker-compose.secrets.yml -f docker-compose.registry.yml -f docker-compose.hyperhealth.yml build hyperhealth-api
+```
+
+Before deploying, inspect `agents/hyperhealth/entrypoint.py` for both modes, verify `docker image inspect` reports user `65532:65532`, then recreate `hyperhealth-api` and `hyperhealth-worker` one at a time using the same four-file set and `--no-deps`. Verify `http://127.0.0.1:8095/health`, worker Redis heartbeat, core `/health`, and logs. If the image fails, keep the currently running containers and report the failure; do not use `--remove-orphans`.
+
 ## 👉 ONE next task
 
-When the course Supabase project is restored (it is stopped for lack of funds), check its edge-function secret matches the new local `COURSE_SYNC_SECRET`, and update any Vercel copy.
+When the RAM guard is GREEN, run `python .github/scripts/check_dhi_contract.py --check`, build only `hyperhealth-api`, and smoke-test the image as UID 65532 before rebuilding/recreating production services; separately, when the Course Supabase project is restored, verify its edge-function secret matches local `COURSE_SYNC_SECRET` and update any Vercel copy.

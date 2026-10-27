@@ -3,6 +3,41 @@
 > Newest entry: 2026-10-22 (upgrade report executed: Brain constellation fix live, core containers right-sized). Previous: 2026-10-18 (CI recovery, PRs #620-#628). Before that: 2026-10-17 12:30 BST (backups, secret files, shared key, JWT rotation). Older sync note: 2026-10-03 16:05 UTC by Claude (since 14:15: Shepherd real grants for hyphenated agents, JWT signing secret rotated, verifier tightened, Pulse fixed) — HyperCrew DEPLOYED on Docker and the happy path PROVEN (guard ALLOW → XP → Scribe → handover gate); capable model via fcc-proxy (opt-in); host-RAM safety added (`scripts/ram_guard.py`, Task Scheduler signal writer, throttle-agent in OBSERVE mode with a debounce). Branch `claude/focused-darwin-ljrs8k`, draft PR #547. Newest entries are at the top. Earlier sync: 2026-09-27 by Claude — BROski operator Phase 1 MERGED (PR #537, `22c3a7b7`); Phase 2a `hypercode.recover` MERGED (PR #538, `845a6d96`); Phase 2b `authorize` (fail-closed DRY_RUN pipeline proof) built + live-proven, branch `feature/broski-recover-2b`, PR #539 open (not yet merged)
 
 
+## 2026-10-27 — HyperHealth DHI pilot built, deployed, and live-verified
+
+- Migrated the actual Compose build context (`agents/hyperhealth`) to paired Python 3.11 Debian 12 DHI builder/runtime images; runtime UID/GID is 65532.
+- Added a shell-free entrypoint: API mode runs `alembic upgrade head` before Uvicorn; worker mode execs the Compose command without running API migrations.
+- Added context-local `.dockerignore`; both services use read-only root filesystems, bounded `/tmp` tmpfs, `cap_drop: [ALL]`, and `no-new-privileges:true`. Health probes use Python stdlib rather than curl/shell.
+- Added `.github/scripts/check_dhi_contract.py`, contract/entrypoint tests, and a lightweight source-only CI workflow. It verifies Compose build contexts, paired tags, user, startup behavior, healthchecks, secret exclusions, and container hardening without building images.
+- **Validation:** source gate PASS; 12 DHI contract/entrypoint tests + 39 HyperHealth tests PASS; four-file Compose config PASS.
+- Built `hyperhealth-api` only, then verified the image in an isolated read-only container: UID 65532 and API/worker imports pass. Recreated `hyperhealth-api` and `hyperhealth-worker` individually with `--no-deps`.
+- **Live proof:** both DHI containers healthy, restart count 0; worker Redis heartbeat present; HyperHealth API `:8095/health` and core `:8000/health` return HTTP 200.
+- RAM guard was GREEN before each build/recreate and after rollout (WSL available 1608 MiB). Stopped only `fcc-proxy` temporarily to pass the build floor; it remains stopped because it serves the `coder-agent`/`qa-engineer` model route.
+- **Next:** after checking the RAM guard, restart `fcc-proxy` if safe. Commit only the DHI source, tests, workflow, and status/handover edits; preserve unrelated existing changes.
+
+---
+
+## 2026-10-27 — Human-reviewed pattern synthesis foundation + Mission Director containment fix
+
+- **Local architecture inventory:** `scripts/architecture_inventory.py` scans an existing local checkout only; it never clones, runs code, calls an LLM, or reads/export secrets or raw source. The scan is bounded, skips symlinks and generated/vendor directories, handles Compose custom YAML tags, redacts interpolated and credential-bearing fields, and fingerprints extracted metadata only. A real HyperCode scan visited 10,352 files and summarized 247 manifests; six unit tests pass.
+- **Approval-gated pattern review:** `scripts/pattern_review.py` requires explicit approval bound to the exact deterministic inventory digest. It emits evidence-linked, deterministic structural candidates marked `pending_human_review`; synthesis and execution flags remain false. It rejects stale/forged approvals, incomplete scans, unsafe inventories, traversal paths, and embedded raw source. Six tests pass. No generated inventory was added to the repository.
+- **Mission Director Phase 1 safety correction:** removed an undocumented `/v1/missions/{id}/execute` route that published to Redis, updated mission state, and contained an undefined DB reference. Mission Director now serves only `/health` and `/v1/plan`; human-authenticated review stays in HyperCode core. Five regression tests ensure there is no execute route or queue publisher. Full Mission Director suite: 30 passed.
+- **Boundaries:** No new autonomous synthesis, repo cloning, LLM ingestion, container execution, or production deployment was introduced by this prototype. Existing user-supplied concept notes and unrelated working-tree changes remain outside this focused change set.
+
+---
+
+## 2026-10-27 — HyperHealth DHI pilot deployed; CI contract gate added
+
+- **DHI images built:** `hyperhealth-api` and `hyperhealth-worker` use the actual `agents/hyperhealth` build context, paired Python 3.11 Debian 12 DHI builder/runtime images, shell-free process entrypoint, nonroot UID/GID 65532, Python healthchecks, and context-scoped secret exclusions.
+- **Compose hardening:** both services use read-only root filesystems, bounded `/tmp` tmpfs (`noexec,nosuid`), `cap_drop: [ALL]`, and `no-new-privileges:true`.
+- **Source-only regression gate:** `.github/scripts/check_dhi_contract.py --check` validates both services' build context, paired DHI tags, runtime user, entrypoint behavior, healthcheck, secret exclusions, and Compose hardening. `.github/workflows/hyperhealth-dhi-contract.yml` runs this gate and tests without Docker builds.
+- **Tests:** 12 DHI contract/entrypoint tests + 39 HyperHealth tests passed. The image was built and smoke-tested in isolation with read-only root and dropped capabilities before production changes.
+- **Deployment:** API and worker were recreated separately with `--no-deps`. Both healthy, zero restarts, UID 65532, read-only rootfs, all caps dropped, and no-new-privileges. API `:8095/health` and core `:8000/health` returned HTTP 200; worker Redis heartbeat was present.
+- **RAM guard:** GREEN before builds/recreates and after rollout (WSL available 1608 MiB). Temporarily stopped `fcc-proxy` to meet the build floor, then restored it with `--no-deps --no-build`. Proxy health is 200/healthy; `qa-engineer` reaches it. `coder-agent` was already exited before the proxy stop and was not started as part of this work.
+- **Not done:** commit only the intended DHI source, contract gate/tests/workflow, and status/handover edits. Leave unrelated pre-existing modifications unstaged.
+
+---
+
 ## 2026-10-22 — UPGRADE REPORT EXECUTED: BRAIN CONSTELLATION FIX LIVE, CORE CONTAINERS RIGHT-SIZED
 
 Source: `UPGRADE_REPORT_FOR_DEVS_2026-10-21.md` (HperCore root). Handover: `docs/NEXT_SESSION_HANDOVER_2026-10-22.md`.

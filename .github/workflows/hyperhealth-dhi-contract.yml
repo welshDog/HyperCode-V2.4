@@ -1,0 +1,44 @@
+name: HyperHealth DHI Source Contract
+
+on:
+  pull_request:
+    paths:
+      - 'agents/hyperhealth/**'
+      - 'docker-compose.hyperhealth.yml'
+      - '.github/scripts/check_dhi_contract.py'
+      - '.github/scripts/tests/test_check_dhi_contract.py'
+      - '.github/scripts/tests/test_hyperhealth_entrypoint.py'
+      - '.github/workflows/hyperhealth-dhi-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'agents/hyperhealth/**'
+      - 'docker-compose.hyperhealth.yml'
+      - '.github/scripts/check_dhi_contract.py'
+      - '.github/scripts/tests/test_check_dhi_contract.py'
+      - '.github/scripts/tests/test_hyperhealth_entrypoint.py'
+      - '.github/workflows/hyperhealth-dhi-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    name: HyperHealth DHI source contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install HyperHealth test and validator dependencies
+        run: |
+          python -m pip install -r agents/hyperhealth/requirements.txt
+          python -m pip install pytest pyyaml
+      - name: Check DHI and Compose contracts
+        run: python .github/scripts/check_dhi_contract.py --check
+      - name: Test DHI contract mutations and process entrypoint
+        run: python -m pytest -q .github/scripts/tests/test_check_dhi_contract.py .github/scripts/tests/test_hyperhealth_entrypoint.py
+      - name: Test HyperHealth service
+        run: python -m pytest -q agents/hyperhealth/tests

@@ -13,6 +13,13 @@ services:
       dockerfile: Dockerfile
     image: hypercode-v20-hyperhealth-api
     container_name: hyperhealth-api
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     ports:
       - "127.0.0.1:8095:8090"
@@ -44,7 +51,7 @@ services:
       hypercode-core:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -74,6 +81,13 @@ services:
       dockerfile: Dockerfile
     image: hypercode-v20-hyperhealth-worker
     container_name: hyperhealth-worker
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     command: ["python", "-m", "worker"]
     environment:

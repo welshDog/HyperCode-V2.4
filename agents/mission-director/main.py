@@ -1,26 +1,18 @@
 # agents/mission-director/main.py
-"""
-mission-director -- Phase 1.
+"""Mission Director Phase 1 preview-only service.
 
-POST /v1/plan turns a goal into a previewed (or terminally-failed)
-MissionProposal. Unauthenticated by design -- same trust model
-fleet-controller's own /v1/plans/preview uses (containment via capability
-absence, not access control); the human-auth boundary lives in
-backend/app/api/v1/endpoints/missions.py (Task 4), the only sanctioned
-caller. See
-docs/superpowers/specs/2026-08-21-mission-director-phase1-design.md
-and this plan's "Deviations from the spec" section.
+The human-authenticated proposal/review surface lives in HyperCode core at
+``/api/v1/missions``. This internal service converts a supplied goal into a
+truth-grounded proposal, asks fleet-controller for a DRY_RUN preview, and
+returns the result. It deliberately exposes no execute or queue-publish route.
 """
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import AsyncIterator, Any
+from typing import Any, AsyncIterator
 
-import time
-
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
 
 import fleet_client
 import impact_snapshot
@@ -29,15 +21,6 @@ import plan_generator
 from local_validator import LocalValidationError, validate
 from models import Constraints, ImpactView, MissionProposal, PlanRequest
 from truth_snapshot import get_snapshot_ref
-import redis.asyncio as redis
-import os
-import json
-
-from app.api import deps
-from app.db.session import get_db
-from app.models import models
-from app.models.governance import GovernanceLedger
-from app.services import mission_store
 
 
 @asynccontextmanager
@@ -129,7 +112,7 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
     )
 
     profiles = sorted(
-        {a.profile for a in llm_output.requested_actions if a.profile is not None}
+        {action.profile for action in llm_output.requested_actions if action.profile is not None}
     )
     impact = impact_snapshot.get_impact(profiles)
 
@@ -137,16 +120,26 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
         validate(plan_request, snapshot_ref)
     except LocalValidationError:
         return _terminal(
-            mission_id, goal, snapshot_ref, "rejected_malformed",
-            plan_request, llm_output.rationale, impact,
+            mission_id,
+            goal,
+            snapshot_ref,
+            "rejected_malformed",
+            plan_request,
+            llm_output.rationale,
+            impact,
         )
 
     try:
         plan_response = await fleet_client.preview(plan_request)
     except fleet_client.FleetControllerUnavailable:
         return _terminal(
-            mission_id, goal, snapshot_ref, "preview_unavailable",
-            plan_request, llm_output.rationale, impact,
+            mission_id,
+            goal,
+            snapshot_ref,
+            "preview_unavailable",
+            plan_request,
+            llm_output.rationale,
+            impact,
         )
 
     proposal = MissionProposal(
@@ -162,60 +155,3 @@ async def create_plan(request: PlanGoalRequest) -> MissionProposal:
     )
     ledger_client.record_proposal(proposal)
     return proposal
-
-
-@app.post("/v1/missions/{mission_id}/execute")
-async def execute_mission(
-    mission_id: str,
-    current_user: models.User = Depends(deps.get_current_active_user),
-) -> Any:
-    """
-    Execute an approved mission by publishing to the execution queue.
-    Only missions with status 'approved' can be executed.
-    """
-    # Get the mission from the store
-    row = mission_store.get_by_id(db, mission_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="mission not found")
-    if row.status != "approved":
-        raise HTTPException(
-            status_code=409,
-            detail=f"mission status is {row.status!r}, must be 'approved' to execute",
-        )
-
-    # Publish execution request to Redis
-    redis_url = os.getenv("REDIS_URL", "redis://redis:6379")
-    execution_channel = os.getenv("MISSION_EXECUTION_CHANNEL", "mission_executions")
-
-    execution_payload = {
-        "mission_id": mission_id,
-        "goal": row.goal,
-        "plan": row.plan,
-        "requested_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time())),
-        "requested_by": str(current_user.id)
-    }
-
-    try:
-        redis_client = redis.from_url(redis_url)
-        await redis_client.publish(execution_channel, json.dumps(execution_payload))
-        await redis_client.close()
-    except Exception:
-        # Fail softly - execution will be picked up by the executor service if Redis is available
-        pass
-
-    # Update mission status to executing
-    updated = mission_store.update_status(db, mission_id, "executing")
-
-    # Record execution attempt in ledger
-    ledger_row = GovernanceLedger(
-        user_id=str(current_user.id),
-        action="mission.execute",
-        payload={"mission_id": mission_id},
-        decision="executing",
-        agent_name="mission-director",
-        approved_by=str(current_user.id),
-    )
-    db.add(ledger_row)
-    db.commit()
-
-    return _serialize(updated)

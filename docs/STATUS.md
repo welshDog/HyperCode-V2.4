@@ -12,7 +12,8 @@
 > - **Core containers right-sized** (`docker-compose.core.yml`, `6da44b22` + `bb71b232`):
 >   `redis` 512M / 0.5 CPU, `celery-worker` 512M, `memstream` 512M / 0.25 CPU. Redis AOF + RDB
 >   ok, core `/health` 200, `memstream` runs as `appuser`.
-> - **Host memory is still tight:** `ram_guard.py --for build` read AMBER at session end.
+> - **HyperHealth DHI pilot LIVE** (`agents/hyperhealth`): DHI Python 3.11 Debian build/runtime, UID 65532, shell-free migration/worker entrypoint, Python healthchecks, read-only roots, bounded `/tmp`, dropped capabilities, no-new-privileges. Source CI gate passes; 12 gate/entrypoint + 39 service tests pass. Built and deployed API + worker one at a time; both healthy, zero restarts, worker heartbeat present, `:8095/health` and core `:8000/health` HTTP 200. RAM guard was GREEN at deployment (WSL 1608 MiB available). `fcc-proxy` was stopped temporarily for memory headroom, then restored healthy after a GREEN guard check. `coder-agent` was already exited before the stop and was left untouched.
+> - **Host memory is still tight:** `ram_guard.py --for build` reads AMBER while WSL memory is unreadable. Build one image at a time (`COMPOSE_PARALLEL_LIMIT=1`) only after the guard is GREEN.
 >   Build one image at a time (`COMPOSE_PARALLEL_LIMIT=1`).
 > - The agent tables further down are still the old stale ones (see the warning above them).
 > See `docs/NEXT_SESSION_HANDOVER_2026-10-22.md` + `WHATS_DONE.md`'s 2026-10-22 entry.

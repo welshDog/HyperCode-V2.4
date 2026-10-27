@@ -1,0 +1,26 @@
+# Secrets and local configuration
+.env
+.env.*
+secrets/
+*.key
+*.pem
+*.crt
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Repository and development metadata
+.git/
+.vscode/
+.idea/
+
+# Tests are run outside the production image
+tests/
+test/
