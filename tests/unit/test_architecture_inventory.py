@@ -103,14 +103,25 @@ def test_compose_interpolation_and_url_credentials_are_redacted(tmp_path):
     root = _repo(tmp_path)
     compose = root / "docker-compose.yml"
     compose.write_text(
-        "services:\\n  api:\\n    image: internal:${IMAGE_TAG:-latest}\\n    environment:\\n      DATABASE_URL: postgresql://user:[REDACTED]@example.invalid/db\\n    ports: ['${HOST_IP}:9090:8080']\\n",
+        '''services:
+  api:
+    image: "https://review-user:review-password-9381@example.invalid/app"
+    environment:
+      DATABASE_URL: "postgresql://db-user:[REDACTED]@example.invalid/db"
+    ports: ["${HOST_IP}:9090:8080"]
+''',
         encoding="utf-8",
     )
     result = inventory_module.build_inventory(root)
     rendered = json.dumps(result)
-    assert "password@example.invalid" not in rendered
+    assert "review-password-9381" not in rendered
+    assert "db-password-7264" not in rendered
     assert "${IMAGE_TAG" not in rendered
     assert "${HOST_IP}" not in rendered
+    compose_manifest = next(item for item in result["manifests"] if item["kind"] == "compose")
+    service = compose_manifest["metadata"]["services"][0]
+    assert service["image"] == "[credential-bearing-url]"
+    assert service["environment_names"] == ["DATABASE_URL"]
 
 
 def test_compose_safe_loader_handles_docker_compose_custom_tags(tmp_path):
