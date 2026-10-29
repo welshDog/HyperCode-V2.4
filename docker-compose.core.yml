@@ -231,7 +231,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: celery-worker
-    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "-Q", "main-queue", "--concurrency=2"]
+    command: ["python", "-m", "celery", "-A", "app.core.celery_app", "worker", "--loglevel=info", "-Q", "main-queue", "--concurrency=1"]
     dns:
       - 8.8.8.8
     volumes:
