@@ -12,6 +12,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from core_client import CoreClient
+from metrics_server import set_ready, start_metrics_server
 
 # Skill loadout boot-check — shared module (agents/shared/loadout.py). The dir
 # holding the `shared` package is /app in-container and agents/ on the host.
@@ -79,6 +80,7 @@ async def on_ready():
     if boot_check:
         boot_check("broski-bot")
     print(f"\n⚡ BROski Bot ALIVE — {bot.user} (ID: {bot.user.id})")
+    set_ready(len(bot.guilds))
     print(f"   Guilds: {len(bot.guilds)}")
     print(f"   CoreClient → {os.getenv('HYPERCODE_API_URL', 'http://localhost:8000')}")
 
@@ -114,6 +116,7 @@ async def on_shutdown():
 
 
 async def main():
+    start_metrics_server()
     async with bot:
         await load_cogs()
         await bot.start(TOKEN)
