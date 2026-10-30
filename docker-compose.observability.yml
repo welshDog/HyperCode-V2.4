@@ -322,6 +322,41 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+
+  # Per-container metrics under cAdvisor's names. cAdvisor cannot enumerate
+  # containers on Docker Desktop's containerd image store (it logs "failed to
+  # identify the read-write layer ID" and skips them; v0.55/v0.60 fix that but
+  # grow to 300-430 MB while collecting). Reads via the READ-ONLY socket proxy.
+  docker-stats-exporter:
+    build:
+      context: ./services/docker-stats-exporter
+    image: hypercode-v24-docker-stats-exporter:latest
+    container_name: docker-stats-exporter
+    profiles: ["observability"]
+    environment:
+      DOCKER_HOST_URL: http://docker-socket-proxy:2375
+    networks:
+      - obs-net
+      - agents-net
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # starting Python under a small CPU cap while a collection runs can take
+      # >5s, so the Dockerfile's 5s timeout reported a false "unhealthy"
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:9417/health', timeout=10)"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
     logging:
       driver: "json-file"
       options:

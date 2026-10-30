@@ -71,6 +71,13 @@ scrape_configs:
     static_configs:
       - targets: ["cadvisor:8080"]
 
+  # Per-container metrics (cAdvisor names); see docker-stats-exporter in
+  # docker-compose.observability.yml. Collects every 30s, so scrape no faster.
+  - job_name: "docker-stats"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["docker-stats-exporter:9417"]
+
   - job_name: "node-exporter"
     scrape_interval: 30s
     scrape_timeout: 10s
