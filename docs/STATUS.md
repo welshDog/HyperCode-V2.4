@@ -1,6 +1,13 @@
 # 📊 Live System Status
 > **This is the living state doc.** Update every session.
-> Last updated: **October 22, 2026 (~10:40 BST)** — upgrade report executed
+> Last updated: **October 30, 2026 (~03:15 BST)** — obs stack recovered under RAM watch.
+> - **Running:** Governor, Prometheus, Alertmanager, Loki, Promtail, node-exporter, celery-exporter, cAdvisor (no per-container data), **`docker-stats-exporter`** (new, `:9417` internal, 43 containers, ~18 MB, Prometheus job `docker-stats`). `celery-worker` runs `--concurrency=1`.
+> - **STOPPED on purpose (RAM):** Grafana `:3001` and Tempo. Pyroscope, grafana-agent, prometheus-cloud also stopped. Grafana needs ~290 MB; free room first (WSL available ~1,450 MB, stop line 1,200 MB).
+> - **Dashboard:** `fb1406cb` pushed (Pattern Review, `/api/core` allow-list proxy) but the container is still the OLD image; published `127.0.0.1:8088` only.
+> - **Dashboard service JWT expires ~2026-11-02** per `CLAUDE.md` (the line further down says 2027-07-13; check which is current before relying on either).
+> See `docs/NEXT_SESSION_HANDOVER_2026-10-30.md` + `WHATS_DONE.md`'s 2026-10-30 entry.
+>
+> **Previous update — October 22, 2026 (~10:40 BST)** — upgrade report executed
 > (`UPGRADE_REPORT_FOR_DEVS_2026-10-21.md`). Verified live this session:
 > **38 containers running, 32 healthy, 0 unhealthy** (the rest have no health check).
 > - **Brain stack LIVE and current:** `hyper-brain` `:8100`, `agent-hyper-brain-core`
