@@ -31,9 +31,10 @@ export function levelColour(level: string): string {
 
 function wsUrl(): string | null {
   if (typeof window === 'undefined') return null
-  const host = process.env.NEXT_PUBLIC_CORE_WS_HOST ?? window.location.hostname
+  const host = window.location.hostname
   const port = process.env.NEXT_PUBLIC_CORE_WS_PORT ?? '8000'
-  return `ws://${host}:${port}/api/v1/ws/logs`
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${host}:${port}/api/v1/ws/logs`
 }
 
 function normaliseEntry(raw: Record<string, unknown>, idx: number): LogEntry {

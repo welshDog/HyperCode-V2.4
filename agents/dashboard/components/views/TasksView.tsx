@@ -79,7 +79,7 @@ function formatDlqAge(failedAtUnix: number | undefined): string {
 }
 
 export function TasksView(): React.JSX.Element {
-  const { tasks, loading, error, refetch } = useTasks()
+  const { tasks, loading, error, retryCount, refetch } = useTasks()
   const { toast } = useToast()
   const [creating, setCreating] = useState(false)
   const [newDesc, setNewDesc]   = useState('')
@@ -398,6 +398,7 @@ export function TasksView(): React.JSX.Element {
           <button type="button" className="btn" onClick={() => { refetch(); fetchDlq(); toast({ variant: 'info', title: 'Refreshing tasks' }) }}>
             ↻ Refresh
           </button>
+          {retryCount > 0 && <span role="status" className="hc-mono" aria-live="polite">Retrying in the background (attempt {retryCount})</span>}
         </div>
       </div>
 
@@ -441,9 +442,8 @@ export function TasksView(): React.JSX.Element {
         {error && (
           <div className="hc-tasks-empty hc-tasks-error" role="alert">
             <div className="hc-tasks-empty-title">Tasks unavailable</div>
-            <div className="hc-tasks-empty-subtitle hc-mono">
-              {error}
-            </div>
+            <div className="hc-tasks-empty-subtitle hc-mono">{error}</div>
+            <button type="button" className="btn" onClick={refetch}>Retry now</button>
           </div>
         )}
 

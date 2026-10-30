@@ -7,7 +7,6 @@ import { OfflineAgentsPanel } from '@/components/panels/OfflineAgentsPanel'
 import { KNOWN_SERVICES } from '@/data/knownServices'
 
 type Status = 'healthy' | 'degraded' | 'down' | 'unknown' | 'dormant'
-
 function toStatus(v: unknown): Status {
   if (!v) return 'unknown'
   if (v === true) return 'healthy'
@@ -20,35 +19,17 @@ function toStatus(v: unknown): Status {
   }
   return 'unknown'
 }
-
-function asRecord(v: unknown): Record<string, unknown> | null {
-  return v && typeof v === 'object' ? (v as Record<string, unknown>) : null
-}
-
+function asRecord(v: unknown): Record<string, unknown> | null { return v && typeof v === 'object' ? v as Record<string, unknown> : null }
 function badge(status: Status) {
   const map: Record<Status, { label: string; color: string; bg: string }> = {
-    healthy:  { label: 'healthy',  color: 'var(--status-healthy)', bg: 'rgba(0,255,136,0.12)' },
+    healthy: { label: 'healthy', color: 'var(--status-healthy)', bg: 'rgba(0,255,136,0.12)' },
     degraded: { label: 'degraded', color: 'var(--status-warning)', bg: 'rgba(255,170,0,0.12)' },
-    down:     { label: 'down',     color: 'var(--status-error)',   bg: 'rgba(255,68,102,0.12)' },
-    unknown:  { label: 'unknown',  color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.04)' },
-    dormant:  { label: 'dormant',  color: '#7c93b8',               bg: 'rgba(124,147,184,0.10)' },
+    down: { label: 'down', color: 'var(--status-error)', bg: 'rgba(255,68,102,0.12)' },
+    unknown: { label: 'unknown', color: 'var(--text-secondary)', bg: 'rgba(255,255,255,0.04)' },
+    dormant: { label: 'dormant', color: '#7c93b8', bg: 'rgba(124,147,184,0.10)' },
   }
   const s = map[status]
-  return (
-    <span style={{
-      border: `1px solid ${s.color}`,
-      background: s.bg,
-      color: s.color,
-      borderRadius: 999,
-      padding: '2px 8px',
-      fontSize: 10,
-      fontWeight: 800,
-      textTransform: 'uppercase',
-      letterSpacing: '0.05em',
-    }}>
-      {s.label}
-    </span>
-  )
+  return <span style={{ border: `1px solid ${s.color}`, background: s.bg, color: s.color, borderRadius: 999, padding: '2px 8px', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.label}</span>
 }
 
 export function HealthView(): React.JSX.Element {
@@ -63,229 +44,93 @@ export function HealthView(): React.JSX.Element {
     if (isManual) toast({ variant: 'info', title: '⏳ Sweeping health endpoints…' })
     setLoading(true)
     try {
-      const coreRes = await fetch('/api/health')
+      const coreRes = await fetch('/api/health', { cache: 'no-store' })
       setCore(await coreRes.json().catch(() => null))
-
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') ?? '' : ''
-      const orchRes = await fetch('/api/orchestrator', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
+      const orchRes = await fetch('/api/orchestrator', { headers: token ? { Authorization: `Bearer ${token}` } : {}, cache: 'no-store' })
       setOrchestrator(await orchRes.json().catch(() => null))
-
-      const healerRes = await fetch('/api/healer/health')
+      const healerRes = await fetch('/api/healer/health', { cache: 'no-store' })
       setHealer(await healerRes.json().catch(() => null))
       if (isManual) toast({ variant: 'success', title: '✅ Sweep complete' })
     } catch {
       if (isManual) toast({ variant: 'error', title: '❌ Sweep failed' })
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }, [toast])
 
   useEffect(() => {
-    load(false)
-    const t = setInterval(() => load(false), 20_000)
+    void load(false)
+    const t = setInterval(() => void load(false), 20_000)
     return () => clearInterval(t)
   }, [load])
 
   const coreObj = asRecord(core) ?? {}
+  const dependencyChecks = asRecord(coreObj.dependencies) ?? {}
   const orchObj = asRecord(orchestrator) ?? {}
   const healerObj = asRecord(healer) ?? {}
-
-  const lookupLive = useCallback((name: string) => {
-    return services[name]
-      ?? services[name.replace(/_/g, '-')]
-      ?? services[name.replace(/-/g, '_')]
-  }, [services])
-
-  // Which compose profiles are actually live right now — inferred from the
-  // Docker feed: a profile counts as active if ANY service that carries it
-  // shows up in the feed. Lets us tell "off because its profile isn't running"
-  // (dormant, expected) apart from "should be here but isn't" (unknown).
+  const lookupLive = useCallback((name: string) => services[name] ?? services[name.replace(/_/g, '-')] ?? services[name.replace(/-/g, '_')], [services])
   const activeProfiles = useMemo(() => {
     const set = new Set<string>()
-    for (const svc of KNOWN_SERVICES) {
-      if (svc.profiles.length && lookupLive(svc.name)) {
-        for (const p of svc.profiles) set.add(p)
-      }
-    }
+    for (const svc of KNOWN_SERVICES) if (svc.profiles.length && lookupLive(svc.name)) for (const p of svc.profiles) set.add(p)
     return set
   }, [lookupLive])
-
-  const isDormant = useCallback((profiles: string[], live: unknown) => {
-    return !live && profiles.length > 0 && !profiles.some((p) => activeProfiles.has(p))
-  }, [activeProfiles])
-
+  const isDormant = useCallback((profiles: string[], live: unknown) => !live && profiles.length > 0 && !profiles.some((p) => activeProfiles.has(p)), [activeProfiles])
   const crewLive = lookupLive('crew-orchestrator')
   const crewDormant = isDormant(['agents'], crewLive)
   const orchErr = String(orchObj.error ?? '')
   const orchTransportFail = /fetch failed|econnrefused|enotfound|getaddrinfo|network|timeout|abort/i.test(orchErr)
   let orchStatus = toStatus(orchObj.status ?? orchObj.healthy)
-  let orchDetail = orchStatus === 'unknown'
-    ? `No health report — check crew-orchestrator${orchErr ? ` (${orchErr.slice(0, 60)})` : ''}`
-    : (orchErr ? orchErr.slice(0, 80) : '—')
+  let orchDetail = orchStatus === 'unknown' ? `No health report — check crew-orchestrator${orchErr ? ` (${orchErr.slice(0, 60)})` : ''}` : (orchErr ? orchErr.slice(0, 80) : '—')
   if (crewDormant && (orchTransportFail || orchStatus === 'degraded' || orchStatus === 'down' || orchStatus === 'unknown')) {
     orchStatus = 'dormant'
     orchDetail = 'not started · profile: agents — docker compose --profile agents up -d crew-orchestrator'
   }
-
-  const knownRows = useMemo(() => {
-    return KNOWN_SERVICES.map((svc) => {
-      const h = lookupLive(svc.name)
-      const s = isDormant(svc.profiles, h) ? 'dormant' : toStatus(h?.status)
-      return {
-        name: svc.name,
-        label: svc.label,
-        group: svc.group,
-        status: s as Status,
-        latency_ms: typeof h?.latency_ms === 'number' ? h?.latency_ms : null,
-        last_checked: typeof h?.last_checked === 'string' ? h?.last_checked : null,
-        color: svc.color,
-      }
-    })
-  }, [lookupLive, isDormant])
-
+  const knownRows = useMemo(() => KNOWN_SERVICES.map((svc) => {
+    const h = lookupLive(svc.name)
+    const state = isDormant(svc.profiles, h) ? 'dormant' : toStatus(h?.status)
+    return { name: svc.name, label: svc.label, group: svc.group, status: state as Status, latency_ms: typeof h?.latency_ms === 'number' ? h.latency_ms : null, last_checked: typeof h?.last_checked === 'string' ? h.last_checked : null, color: svc.color }
+  }), [lookupLive, isDormant])
   const groups = useMemo(() => {
     const order: Array<(typeof KNOWN_SERVICES)[number]['group']> = ['infra', 'core', 'observability', 'proxy', 'agent']
-    const by = knownRows.reduce<Record<string, typeof knownRows>>((acc, row) => {
-      const k = row.group
-      if (!acc[k]) acc[k] = []
-      acc[k].push(row)
-      return acc
-    }, {})
-    return order.map((g) => ({ group: g, rows: by[g] ?? [] }))
+    const by = knownRows.reduce<Record<string, typeof knownRows>>((acc, row) => { (acc[row.group] ??= []).push(row); return acc }, {})
+    return order.map((group) => ({ group, rows: by[group] ?? [] }))
   }, [knownRows])
-
   const initialLoading = loading && !core && !orchestrator && !healer
+  const cardStyle = { border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {initialLoading && (
-        <div style={{ color: 'var(--text-secondary)', padding: 16 }}>⏳ Loading health…</div>
-      )}
-
+      {initialLoading && <div style={{ color: 'var(--text-secondary)', padding: 16 }}>⏳ Loading health…</div>}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-          Live checks via <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>/api/*</span>
-          {' '}+ Docker feed via <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>/api/v1/orchestrator/system/health</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn" onClick={() => load(true)}>↻ Refresh</button>
-          <button className="btn" onClick={() => refetchServices()}>↻ Services</button>
-        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Live checks via <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>/api/*</span>{' '}+ Docker feed via <span style={{ color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>/api/v1/orchestrator/system/health</span></div>
+        <div style={{ display: 'flex', gap: 8 }}><button className="btn" onClick={() => void load(true)}>↻ Refresh</button><button className="btn" onClick={() => void refetchServices()}>↻ Services</button></div>
       </div>
 
+      {Object.keys(dependencyChecks).length > 0 && (
+        <div aria-label="Dependency readiness" style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+          {Object.entries(dependencyChecks).map(([name, value]) => {
+            const check = asRecord(value) ?? {}
+            return <div key={name} style={cardStyle}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><span style={{ fontWeight: 800, fontSize: 12, textTransform: 'capitalize' }}>{name}</span>{badge(toStatus(check.status))}</div>
+              <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{typeof check.latency_ms === 'number' ? `${Math.round(check.latency_ms)}ms` : ''}{typeof check.error === 'string' ? ` ${check.error.slice(0, 90)}` : ''}</div>
+            </div>
+          })}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
-        <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 12 }}>Core</div>
-            {badge(toStatus(coreObj.healthy ?? coreObj.status))}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            {(typeof coreObj.timestamp === 'string' ? coreObj.timestamp : null) ?? '—'}
-          </div>
-        </div>
-
-        <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 12 }}>Crew Orchestrator</div>
-            {badge(orchStatus)}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            {orchDetail}
-          </div>
-        </div>
-
-        <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontWeight: 800, fontSize: 12 }}>Healer</div>
-            {badge(toStatus(healerObj.status ?? healerObj.healer ?? healerObj.healthy))}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            {(typeof healerObj.timestamp === 'string' ? healerObj.timestamp : null) ?? '—'}
-          </div>
-        </div>
+        <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 12 }}>Core</div>{badge(toStatus(coreObj.healthy ?? coreObj.status))}</div><div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{(typeof coreObj.timestamp === 'string' ? coreObj.timestamp : null) ?? '—'}</div></div>
+        <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 12 }}>Crew Orchestrator</div>{badge(orchStatus)}</div><div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{orchDetail}</div></div>
+        <div style={cardStyle}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 12 }}>Healer</div>{badge(toStatus(healerObj.status ?? healerObj.healer ?? healerObj.healthy))}</div><div style={{ marginTop: 6, fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{(typeof healerObj.timestamp === 'string' ? healerObj.timestamp : null) ?? '—'}</div></div>
       </div>
 
       <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.02)' }}>
-        {servicesError && (
-          <div role="alert" style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--status-error)', background: 'rgba(255,68,102,0.10)', color: 'var(--status-error)', fontSize: 11 }}>
-            Docker feed unavailable — <span style={{ fontFamily: 'var(--font-mono)' }}>{servicesError.slice(0, 120)}</span>. Rows below show last-known / can’t-tell state, not live.
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-            Services (Docker)
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {servicesError && (
-              <span style={{ fontSize: 10, color: 'var(--status-error)', fontFamily: 'var(--font-mono)' }}>
-                {servicesError.slice(0, 80)}
-              </span>
-            )}
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-              {servicesLoading ? 'polling…' : `${Object.keys(services).length} containers`}
-            </span>
-          </div>
-        </div>
-
+        {servicesError && <div role="alert" style={{ marginBottom: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--status-error)', background: 'rgba(255,68,102,0.10)', color: 'var(--status-error)', fontSize: 11 }}>Docker feed unavailable — <span style={{ fontFamily: 'var(--font-mono)' }}>{servicesError.slice(0, 120)}</span>. Rows below show last-known / can’t-tell state, not live.</div>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 8 }}><div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Services (Docker)</div><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{servicesError && <span style={{ fontSize: 10, color: 'var(--status-error)', fontFamily: 'var(--font-mono)' }}>{servicesError.slice(0, 80)}</span>}<span style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{servicesLoading ? 'polling…' : `${Object.keys(services).length} containers`}</span></div></div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {groups.map(({ group, rows }) => (
-                <div key={group} style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                      {group}
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                      {rows.length}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {rows.map((row) => (
-                      <div key={row.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {row.name}
-                          </div>
-                          <div style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {row.label}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          {row.latency_ms != null && (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>
-                              {Math.round(row.latency_ms)}ms
-                            </span>
-                          )}
-                          {badge(row.status)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{groups.map(({ group, rows }) => <div key={group} style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}><div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{group}</div><div style={{ fontSize: 10, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>{rows.length}</div></div><div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{rows.map((row) => <div key={row.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}><div style={{ minWidth: 0 }}><div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</div><div style={{ fontSize: 10, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.label}</div></div><div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{row.latency_ms != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{Math.round(row.latency_ms)}ms</span>}{badge(row.status)}</div></div>)}</div></div>)}</div>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>
-                Offline Agents (compose vs live)
-              </div>
-              <OfflineAgentsPanel services={services} loading={servicesLoading} />
-            </div>
-            <div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 6 }}>
-                Last Checked
-              </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>
-                {knownRows.find((r) => r.last_checked)?.last_checked ?? '—'}
-              </div>
-            </div>
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}><div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 8 }}>Offline Agents (compose vs live)</div><OfflineAgentsPanel services={services} loading={servicesLoading} /></div><div style={{ border: '1px solid var(--pane-border)', borderRadius: 8, padding: 10, background: 'rgba(255,255,255,0.02)' }}><div style={{ fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 6 }}>Last Checked</div><div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{knownRows.find((r) => r.last_checked)?.last_checked ?? '—'}</div></div></div>
         </div>
       </div>
     </div>

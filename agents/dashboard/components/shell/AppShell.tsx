@@ -31,6 +31,7 @@ const NAV_ITEMS: { href: string; label: string }[] = [
   { href: '/ide',     label: '🏗️ Studio' },
   { href: '/agents',  label: 'Agents' },
   { href: '/mission', label: 'Mission' },
+  { href: '/pattern-review', label: '🧪 Pattern Foundry' },
   { href: '/control', label: '🎛️ Mission Control' },
   { href: '/flows',   label: '🕸️ Flows' },
   { href: '/mcp',     label: 'MCP' },
