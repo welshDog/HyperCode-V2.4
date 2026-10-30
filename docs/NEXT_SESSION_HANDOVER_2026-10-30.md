@@ -1,13 +1,13 @@
 # 📋 NEXT_SESSION_HANDOVER — 2026-10-30 (obs stack recovered, per-container metrics, dashboard proxy locked down)
 
-> Current as of **2026-10-30 ~17:05 BST** (updated after a long afternoon of RAM-limited recovery; the 03:10 version is superseded). Earlier handovers (`-10-17`, `-10-18`, `-10-20`, `-10-22`) still apply for the host, backups and secret-file layout. **No secret values appear in this file.**
+> Current as of **2026-10-30 ~18:10 BST** (updated after a long afternoon of RAM-limited recovery; the 03:10 version is superseded). Earlier handovers (`-10-17`, `-10-18`, `-10-20`, `-10-22`) still apply for the host, backups and secret-file layout. **No secret values appear in this file.**
 
 ---
 
 ## 🌅 START HERE
 
-1. `cd H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`, `git fetch`, `git status -sb`. `main` has the commits below (`65377139`, `7ec6eb29`, `fb1406cb`, `6b235660` docs, `cbe3e7fb` Prometheus). The tree still holds old uncommitted work (CI, tests, compose edits, deleted/renamed notes under `autonomous AI synthesis engine/`, `docs/archive/HEALTH_CHECK_REPORT.md`). Do not bulk-commit or discard it; commit by path (`git commit -o <paths>`).
-2. Check RAM before any start or build: `python scripts/ram_guard.py --for build`. WSL available was about **1,280 MB** at the end (AMBER) with Grafana, Loki, Promtail, Tempo and Pyroscope all stopped.
+1. `cd H:\HYPERFOCUSZONE\HperCore\HyperCode-V2.4`, `git fetch`, `git status -sb`. `main` has the commits below (`65377139`, `7ec6eb29`, `fb1406cb`, `6b235660` docs, `cbe3e7fb` Prometheus, `a2f5e497` docs, `b3b1e0e5` broski-bot metrics fix). The tree still holds old uncommitted work (CI, tests, compose edits, deleted/renamed notes under `autonomous AI synthesis engine/`, `docs/archive/HEALTH_CHECK_REPORT.md`). Do not bulk-commit or discard it; commit by path (`git commit -o <paths>`).
+2. Check RAM before any start or build: `python scripts/ram_guard.py --for build`. WSL available hovered **1,160-1,230 MB** at the end (right on the 1,200 MB stop line) with Grafana, Loki, Promtail, Tempo and Pyroscope stopped and `fcc-proxy` (227 MB) + `throttle-agent` (59 MB) running again. **Do not start anything else without room.**
    **WSL stalls:** `wsl -e free -m` hangs for minutes at a time (once ~5 min) when memory is tight, especially right after a container starts. Blank reading = stall, not necessarily low RAM. Use a watcher that treats blanks patiently (5 blanks in a row) and stops on two readings under 1,200 MB.
 3. **Dashboard service JWT expires about 2026-11-02.** Re-run `MSYS_NO_PATHCONV=1 python scripts/rotate_jwt_secret.py` (preflight), then `--yes`, before then.
 
@@ -28,14 +28,14 @@
 ## 🔴 Current state
 
 - **STOPPED on purpose (RAM):** Grafana (grows to ~285 MB; a 10-30 start caused the long WSL stall), Loki (a start was auto-aborted on blank readings), Promtail (so no new logs reach Loki), cAdvisor (retired; container kept, scrape job removed), Tempo, Pyroscope, grafana-agent, prometheus-cloud, `coder-studio`.
-- **Running healthy:** core, Prometheus, Alertmanager, node-exporter, celery-exporter, `docker-stats-exporter`, Governor, MemStream, `broski-economy-consumer`, `coder-agent`. 37 containers healthy, 0 unhealthy at 16:40.
+- **Running healthy:** core, Prometheus, Alertmanager, node-exporter, celery-exporter, `docker-stats-exporter`, Governor, MemStream, `broski-economy-consumer`, `coder-agent`, `fcc-proxy`, `throttle-agent`. 0 unhealthy at 18:08. (`fcc-proxy` and `throttle-agent` were stopped for ~1 h to try to make build room, then restarted with `docker start` at 18:05.)
 - Grafana data sources (checked from config + from inside the container): Prometheus and Postgres reachable; Loki, Tempo, Pyroscope down only because their containers are stopped. Provisioning file `monitoring/grafana/provisioning/datasources/datasource.yml` is fine.
 - **The dashboard container is the OLD code.** `fb1406cb` is pushed but not rebuilt. A rebuild needs a GREEN RAM guard.
 
 ## ⚠️ Known gaps
 
 - Dashboard write buttons (approval respond, HyperSync handoff/redeem) will 401: the dashboard has no login and sends no token. Same result as before the proxy; fixed only by adding a login.
-- **`broski-bot` metrics never start (root cause found).** The container runs `python -m cogs.bot` (flat `/app/cogs` layout), but `start_http_server(settings.prometheus_port)` lives only in `src/bot.py`'s `setup_hook`, which that entry point never loads. Fix: add the metrics server to `cogs/bot.py`'s startup, then rebuild the image (needs a GREEN RAM guard). Until then its `ServiceDown` alert stays. Its logs also show `autofeed: pets bridge roster unavailable (401)` and repeated `Health check failed:` lines: not investigated.
+- **`broski-bot` metrics: code fix PUSHED (`b3b1e0e5`), NOT LIVE.** Root cause: the container runs `python -m cogs.bot`, which never started a metrics server (it only existed in `src/bot.py`), AND `prometheus_client` was not in `requirements.txt`, so the live image does not even contain the library. Fix: new `agents/broski-bot/metrics_server.py` (fail-open, `:8000`, `PROMETHEUS_PORT`/`PROMETHEUS_ENABLED`, gauges `broski_bot_ready`/`broski_bot_guilds`), 3 lines in `cogs/bot.py`, `prometheus-client==0.19.0` pinned, 5 tests (pass). **Remaining step: rebuild + recreate the image.** The bot still runs the old image and its Prometheus target is still down. Its logs also show `autofeed: pets bridge roster unavailable (401)` (live container has `PETS_BRIDGE_API_KEY` empty, so a recreate from compose keeps it empty; not made worse) and repeated `Health check failed:` lines: not investigated.
 - `HighRequestLatency` on `hypercode-core` was firing at 16:40 although a direct probe took 0.05 s. Probably a WSL-stall artefact; re-check.
 - Alertmanager receiver `alert-webhook` has no service behind it.
 - Loki has no per-container label (labels are only `filename`/`job`/`service_name`).
@@ -50,10 +50,12 @@
 - Never pass included files with `-f` again; use `--no-deps` for single services; never `docker compose down` to stop obs (stop by name).
 - Healthcheck timeouts on tiny Python containers: the 5 s check falsely reported the exporter unhealthy under 0.1 CPU. Compose now uses a 20 s timeout and `cpus: "0.25"`.
 - A memory watcher that stops on one low reading trips on host noise; use two consecutive low readings. **A watcher that ignores blank readings is blind** (it ran blind for a whole Grafana start on 10-30); a watcher that stops on any blank aborts on harmless start-up stalls. Treat blanks as a failure only after ~5 in a row.
+- **Rebuild prep done for `broski-bot`:** the running image is tagged `hypercode-v24-broski-bot:rollback-20261030` (local). Build with `COMPOSE_PARALLEL_LIMIT=1 docker compose <4-file set> --profile discord build broski-bot`, recreate with `... --profile discord up -d --no-deps broski-bot`. `DISCORD_TOKEN` fingerprint before: len 72, sha256 prefix `1eed0bea` (compare after, never print the value). The service is behind `profiles: ["discord"]` in `docker-compose.core.yml`.
+- **Why it was not built on 10-30:** `ram_guard.py --for build` never read GREEN in two polls (10 min, then 5.4 min); WSL available peaked at 1,435 MB (needs 1,500) and mostly sat at 1,160-1,250 MB, with `fcc-proxy` stopped it reached ~1,430 MB. The build itself is small (python:3.11-slim + 4 packages).
 - To bring back a stopped container with its old config (env, proxy settings) use `docker start <name>`, not a compose recreate.
 - Containers killed with exit 137 and `OOMKilled=false` were stopped from outside (Docker/WSL restart) and are NOT brought back by `unless-stopped`: check `docker ps -a --filter status=exited` after any Docker or WSL restart.
 - PowerShell array-of-arrays syntax errors: use Bash for those.
 
 ## 🎯 ONE next task
 
-Fix `broski-bot`'s metrics server in `cogs/bot.py` and rebuild its image once `ram_guard.py` reads GREEN (nothing else has to wait on it). After that, bring logs back one at a time: Loki, then Promtail, then Grafana last, with the patient watcher. The 24 h alert silence expires ~10-31 16:25 UTC: re-silence or start the stack before then.
+Rebuild and recreate `broski-bot` so its metrics port opens (code is already in `main`). It needs a GREEN RAM guard: stop `fcc-proxy` (and ideally close Windows apps) first, poll `python scripts/ram_guard.py --for build`, build, recreate with `--no-deps`, check `http://broski-bot:8000/metrics` and the Prometheus `broski-bot` target, then restart `fcc-proxy`. Roll back with the `rollback-20261030` tag if it misbehaves. After that, bring logs back one at a time: Loki, then Promtail, then Grafana last, with a watcher that treats blanks patiently. The 24 h alert silence expires ~10-31 16:25 UTC: re-silence or start the stack before then.
