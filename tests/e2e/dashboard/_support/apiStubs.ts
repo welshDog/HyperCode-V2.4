@@ -31,7 +31,10 @@ const DEFAULT_STUBS: ApiStub[] = [
   { method: 'GET', path: '/api/crew/panic', json: { paused: [] } },
   { method: 'GET', path: '/api/ops/dlq/stats', json: {} },
   { method: 'GET', path: '/api/ops/dlq', json: { items: [] } },
-  { method: 'GET', path: '/api/v1/orchestrator/system/health', json: {} },
+  // Browser calls to core go through the dashboard's same-origin proxy (/api/core/... -> core /api/v1/...),
+  // so the path the page requests is the proxy path, not core's. Keep this in sync with
+  // agents/dashboard/lib/api.ts (API_BASE_URL) and lib/coreProxyPolicy.ts; a unit test guards it.
+  { method: 'GET', path: '/api/core/api/v1/orchestrator/system/health', json: {} },
 ]
 
 export async function installDeterministicRouting(page: Page, testStubs: ApiStub[]) {
