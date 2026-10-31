@@ -39,12 +39,14 @@ RUN pip install --upgrade --no-cache-dir \
 # ── Stage 1b: Full dependency set (default) ───────────────────────────────────
 FROM build-base AS builder
 ARG INSTALL_AI_DEPS=false
+ARG INSTALL_DEV_DEPS=false
 
 # Install dependencies FIRST (before code) for better layer caching
-COPY requirements.txt requirements-ai.txt ./
+COPY requirements.txt requirements-ai.txt requirements-test.txt ./
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt && \
-    if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install -r requirements-ai.txt; fi
+    if [ "$INSTALL_AI_DEPS" = "true" ]; then pip install -r requirements-ai.txt; fi && \
+    if [ "$INSTALL_DEV_DEPS" = "true" ]; then pip install -r requirements-test.txt; fi
 
 FROM builder AS deps-full
 

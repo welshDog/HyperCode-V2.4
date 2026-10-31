@@ -55,7 +55,7 @@ jobs:
         run: |
           # The root requirements.txt is a small tooling list; these tests import app/* (backend)
           # and need its runtime deps. No "|| true": a failed install must fail the job.
-          pip install -r backend/requirements.txt
+          pip install -r backend/requirements.txt -r backend/requirements-test.txt
           pip install fakeredis jsonschema pytest-timeout
 
       - name: Run existing V2.0 tests
@@ -116,7 +116,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt
+          pip install -r backend/requirements.txt -r backend/requirements-test.txt
           pip install fakeredis jsonschema pytest-timeout
 
       - name: Run known-red tests

@@ -103,10 +103,11 @@ jobs:
           cache: pip
       - name: Install pip-audit
         run: pip install pip-audit
-      - name: Audit backend requirements
+      - name: Audit backend runtime requirements (blocking)
         id: audit_backend
         run: |
           mkdir -p ${{ env.REPORTS_DIR }}
+          # backend/requirements.txt holds runtime pins only; test/lint tooling is audited report-only below.
           # Accepted findings: pip-audit reports no fixed version for any of these
           # (checked 2026-10-18). Matched by exact ID, so any NEW vulnerability still
           # fails the gate. REVIEW BY 2026-11-18: drop an ID as soon as a fix ships.
@@ -128,6 +129,14 @@ jobs:
             --output ${{ env.REPORTS_DIR }}/pip-audit-backend.json \
             || echo "BACKEND_VULNS=true" >> $GITHUB_ENV
         continue-on-error: true
+      - name: Audit test/lint tooling (report only, not a gate)
+        run: |
+          pip-audit \
+            -r backend/requirements-test.txt \
+            --format json \
+            --output ${{ env.REPORTS_DIR }}/pip-audit-test-tooling.json \
+            || echo "Test/lint tooling has known vulnerabilities (report only; see the artifact)."
+        continue-on-error: true
       - name: Upload pip-audit reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -135,10 +144,12 @@ jobs:
           name: pip-audit-reports
           path: ${{ env.REPORTS_DIR }}/pip-audit-*.json
           retention-days: 14
-      - name: Fail on CRITICAL Python CVEs
+      # pip-audit applies no severity filter, so this fails on ANY runtime vulnerability that is not on
+      # the accepted list above (the old step name said CRITICAL, which it never checked).
+      - name: Fail on unaccepted Python vulnerabilities (runtime requirements)
         if: env.BACKEND_VULNS == 'true'
         run: |
-          echo "::error::pip-audit found vulnerabilities. Review pip-audit-reports artifact."
+          echo "::error::pip-audit found unaccepted vulnerabilities in backend/requirements.txt. Review the pip-audit-reports artifact."
           exit 1
 
   trivy-full:

@@ -62,7 +62,7 @@ jobs:
           python-version: ${{ inputs.python_version || '3.12' }}
           cache: pip
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements.txt -r backend/requirements-test.txt
       - name: Compile backend modules
         run: python -m compileall -q backend/app
       - name: Import application

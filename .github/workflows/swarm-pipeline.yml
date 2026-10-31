@@ -18,7 +18,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r "backend/requirements.txt"
+          pip install -r "backend/requirements.txt" -r "backend/requirements-test.txt"
           pip install -r "agents/coder/requirements.txt"
           pip install bandit safety
 
