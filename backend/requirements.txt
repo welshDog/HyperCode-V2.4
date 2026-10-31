@@ -272,7 +272,7 @@ tornado==6.6
 tqdm==4.67.1
 typer==0.16.0
 types-pyasn1==0.6.0.20250914
-types-python-jose==3.5.0.20250531
+types-python-jose==3.5.0.20260408
 types-requests==2.32.4.20260107
 typing==3.7.4.3
 typing-inspect==0.9.0
