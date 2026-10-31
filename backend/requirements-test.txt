@@ -18,7 +18,7 @@ pycodestyle==2.14.0
 pyflakes==3.4.0
 pylint==4.0.5
 pytest==9.0.3
-pytest-asyncio>=0.25.0
+pytest-asyncio>=0.26.0
 pytest-cov==7.1.0
 pytest-xdist==3.8.0
 ruff==0.9.3
