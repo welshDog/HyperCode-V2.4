@@ -1,0 +1,318 @@
+{
+  "schema_version": 1,
+  "document_type": "hypercode.pattern-review.v1",
+  "source": {
+    "kind": "local-directory",
+    "name": "governor"
+  },
+  "provenance": {
+    "approval_id": "governor-2026-10-31-lyndz",
+    "approved_by": "Lyndz",
+    "approved_at": "2026-10-31T13:10:24Z",
+    "inventory_sha256": "c5a21bfd8d09fa8ecbec9ad241d77926df5b38a421efcd6cd97341163412a506",
+    "inventory_schema_version": 2,
+    "manifest_count": 14,
+    "extractor": "scripts/pattern_review.py"
+  },
+  "review_status": "pending_human_review",
+  "synthesis_authorized": false,
+  "execution_authorized": false,
+  "candidate_patterns": [
+    {
+      "candidate_id": "container-build-hardening-signals",
+      "category": "container-pattern",
+      "claim": "Dockerfiles expose build-stage, user, and healthcheck signals for review.",
+      "evidence": [
+        {
+          "path": "Dockerfile",
+          "sha256": "7bf0634b0e309e7dbf0a208a8f71f02764a9def36789f63529f0d7893840c832",
+          "metadata_sha256": "7bf0634b0e309e7dbf0a208a8f71f02764a9def36789f63529f0d7893840c832",
+          "content_sha256": "a543bd7d91b0d03f4036a84a839f5c1796207a8e94df9858b8012847328c6cd8"
+        }
+      ],
+      "facts": {
+        "dockerfile_count": 1,
+        "multi_stage_paths": [
+          "Dockerfile"
+        ],
+        "user_declared_paths": [
+          "Dockerfile"
+        ],
+        "healthcheck_paths": [
+          "Dockerfile"
+        ]
+      },
+      "limitations": [
+        "A USER or HEALTHCHECK declaration is a static hint, not proof of least privilege or a passing runtime check."
+      ]
+    },
+    {
+      "candidate_id": "declared-language-ecosystems",
+      "category": "technology-stack",
+      "claim": "The repository contains these supported package-manifest families.",
+      "evidence": [
+        {
+          "path": "requirements.txt",
+          "sha256": "aa006026c87e4352f19b135faa0b4f8a7702346245dbe6b57991d2c02acc7aac",
+          "metadata_sha256": "aa006026c87e4352f19b135faa0b4f8a7702346245dbe6b57991d2c02acc7aac",
+          "content_sha256": "4b5e99f3691c088eeb94f3a095ef4fe8124c8a3cd413b5f67371bc0f20d2357f"
+        }
+      ],
+      "facts": {
+        "manifest_families": [
+          "python"
+        ]
+      },
+      "limitations": [
+        "Manifest presence does not prove deployed or actively used runtime components."
+      ]
+    },
+    {
+      "candidate_id": "capability-boundary-signals",
+      "category": "security-boundary",
+      "claim": "These static signals show which risky capabilities the scanned compose services and Python modules declare or use.",
+      "evidence": [
+        {
+          "path": "approvals.py",
+          "sha256": "74a0e8991f90b05e2115159be884c64532ede62e47ccd28e256d0c4f0dd696f0",
+          "metadata_sha256": "74a0e8991f90b05e2115159be884c64532ede62e47ccd28e256d0c4f0dd696f0",
+          "content_sha256": "ea7152317513080f4d76b681dda8bab5b8a8a4fbc9a20f850c2d47c66a2301b9"
+        },
+        {
+          "path": "capability.py",
+          "sha256": "e28820b1a5a98ea55eafe4a7129ab4a4998d6ab25bcb29e91ab4db15789d2e01",
+          "metadata_sha256": "e28820b1a5a98ea55eafe4a7129ab4a4998d6ab25bcb29e91ab4db15789d2e01",
+          "content_sha256": "5d9bc711f1feb4a5b94fa941b1e712e81523b7017eb602ec82d5b55a290593a8"
+        },
+        {
+          "path": "keys.py",
+          "sha256": "3a9141705f7cebbc530d835094025a8fc91b06689e3ba0a01f3bb081e487b950",
+          "metadata_sha256": "3a9141705f7cebbc530d835094025a8fc91b06689e3ba0a01f3bb081e487b950",
+          "content_sha256": "92fb0f77cd740ac10c7db1131b5a58caedf4a07372f451eacf83eef3fa2253e3"
+        },
+        {
+          "path": "killswitch.py",
+          "sha256": "928c0312c412697ada68e21082dd35ae60a0788e01c77a05cfbd0a5be99e09d2",
+          "metadata_sha256": "928c0312c412697ada68e21082dd35ae60a0788e01c77a05cfbd0a5be99e09d2",
+          "content_sha256": "4c008e3f21ca36580047c147f9b8b3c95d0fdb3612ebd4d096d386e1344ec676"
+        },
+        {
+          "path": "lease.py",
+          "sha256": "6099911298a276df3b125dd40a515d525c6f8e67906ee8bd864d10f55f2a08b1",
+          "metadata_sha256": "6099911298a276df3b125dd40a515d525c6f8e67906ee8bd864d10f55f2a08b1",
+          "content_sha256": "67bb258abb737122988e6a54fc14ff7b931a94b00652ccf8608391349368fa84"
+        },
+        {
+          "path": "ledger_client.py",
+          "sha256": "8b88da9a94ecb9d50cee119f7a919c7b4c4436048f9f9bb5c09f4c410983ac6e",
+          "metadata_sha256": "8b88da9a94ecb9d50cee119f7a919c7b4c4436048f9f9bb5c09f4c410983ac6e",
+          "content_sha256": "469f217556bce7b460e13211cc3784086a41ba96d57be30b2094b11e46fae7b9"
+        },
+        {
+          "path": "main.py",
+          "sha256": "b8662b0a61f876b30c0652e794459bccaf7cef3815f3c9f02c8d16c17e74eb3d",
+          "metadata_sha256": "b8662b0a61f876b30c0652e794459bccaf7cef3815f3c9f02c8d16c17e74eb3d",
+          "content_sha256": "36111a8289b6ada01c9ac35ace2c6ed7d71360f38061dfe98c12583234618fd3"
+        },
+        {
+          "path": "models.py",
+          "sha256": "4caf422f4690ab0e9a1de3e52522779117cf89a69d925d5e6cf913316c70df9d",
+          "metadata_sha256": "4caf422f4690ab0e9a1de3e52522779117cf89a69d925d5e6cf913316c70df9d",
+          "content_sha256": "7769974967046897cfc73800bcd948d108d0aad0d5b0005733708feeaa1b0761"
+        },
+        {
+          "path": "plan_validator.py",
+          "sha256": "659417c148ad2028eb1d3204b212c5734bf4ec9fbebcc3b6717503293aac8e1b",
+          "metadata_sha256": "659417c148ad2028eb1d3204b212c5734bf4ec9fbebcc3b6717503293aac8e1b",
+          "content_sha256": "2747216339538464348a0b3f9cfc5ceb583d46fe930b31511a3269c50970d603"
+        },
+        {
+          "path": "redis_state.py",
+          "sha256": "a071ba2ebea8df4c790d717b00be117b0cb4e71e7084ade8172de23bc8018752",
+          "metadata_sha256": "a071ba2ebea8df4c790d717b00be117b0cb4e71e7084ade8172de23bc8018752",
+          "content_sha256": "e80511b1cf0f5539c5351817e28bfc626d745a1a2ff4f6aff6f7662852d57933"
+        },
+        {
+          "path": "shepherd_client.py",
+          "sha256": "4bf828028e0b5fe3fc416873f0faf78979b265ae6443c1502190bba996d7ab0f",
+          "metadata_sha256": "4bf828028e0b5fe3fc416873f0faf78979b265ae6443c1502190bba996d7ab0f",
+          "content_sha256": "34d8b45be0bcfd8fe969ed5e1ec4b4e45ac13772601445540a77c9bf61f820b3"
+        },
+        {
+          "path": "transitions.py",
+          "sha256": "cfb7fdfd3d5afab6c4d2aae30424bb3e422b5aba26c1e45557bbafbbf3ecbbe0",
+          "metadata_sha256": "cfb7fdfd3d5afab6c4d2aae30424bb3e422b5aba26c1e45557bbafbbf3ecbbe0",
+          "content_sha256": "da14e401e4683d8ba2fdc97b11a6fe2042fe1552b1f5115a2c67439f45200c6b"
+        }
+      ],
+      "facts": {
+        "docker_socket_services": [],
+        "docker_host_env_services": [],
+        "privileged_services": [],
+        "host_network_services": [],
+        "cap_add_services": [],
+        "python_modules_scanned": 12,
+        "python_modules_by_import_category": {
+          "crypto": [
+            "capability.py",
+            "keys.py"
+          ],
+          "network-client": [
+            "ledger_client.py",
+            "shepherd_client.py"
+          ]
+        },
+        "dynamic_eval_modules": [],
+        "process_exec_modules": [],
+        "evidence_truncated": false
+      },
+      "limitations": [
+        "An empty list means the scan found nothing, not that the capability is impossible.",
+        "Only top-level Python modules and one directory down are parsed; tests, generated code and dynamic imports are not seen."
+      ]
+    },
+    {
+      "candidate_id": "python-module-surface",
+      "category": "service-surface",
+      "claim": "Scanned Python modules declare these HTTP routes.",
+      "evidence": [
+        {
+          "path": "approvals.py",
+          "sha256": "74a0e8991f90b05e2115159be884c64532ede62e47ccd28e256d0c4f0dd696f0",
+          "metadata_sha256": "74a0e8991f90b05e2115159be884c64532ede62e47ccd28e256d0c4f0dd696f0",
+          "content_sha256": "ea7152317513080f4d76b681dda8bab5b8a8a4fbc9a20f850c2d47c66a2301b9"
+        },
+        {
+          "path": "capability.py",
+          "sha256": "e28820b1a5a98ea55eafe4a7129ab4a4998d6ab25bcb29e91ab4db15789d2e01",
+          "metadata_sha256": "e28820b1a5a98ea55eafe4a7129ab4a4998d6ab25bcb29e91ab4db15789d2e01",
+          "content_sha256": "5d9bc711f1feb4a5b94fa941b1e712e81523b7017eb602ec82d5b55a290593a8"
+        },
+        {
+          "path": "keys.py",
+          "sha256": "3a9141705f7cebbc530d835094025a8fc91b06689e3ba0a01f3bb081e487b950",
+          "metadata_sha256": "3a9141705f7cebbc530d835094025a8fc91b06689e3ba0a01f3bb081e487b950",
+          "content_sha256": "92fb0f77cd740ac10c7db1131b5a58caedf4a07372f451eacf83eef3fa2253e3"
+        },
+        {
+          "path": "killswitch.py",
+          "sha256": "928c0312c412697ada68e21082dd35ae60a0788e01c77a05cfbd0a5be99e09d2",
+          "metadata_sha256": "928c0312c412697ada68e21082dd35ae60a0788e01c77a05cfbd0a5be99e09d2",
+          "content_sha256": "4c008e3f21ca36580047c147f9b8b3c95d0fdb3612ebd4d096d386e1344ec676"
+        },
+        {
+          "path": "lease.py",
+          "sha256": "6099911298a276df3b125dd40a515d525c6f8e67906ee8bd864d10f55f2a08b1",
+          "metadata_sha256": "6099911298a276df3b125dd40a515d525c6f8e67906ee8bd864d10f55f2a08b1",
+          "content_sha256": "67bb258abb737122988e6a54fc14ff7b931a94b00652ccf8608391349368fa84"
+        },
+        {
+          "path": "ledger_client.py",
+          "sha256": "8b88da9a94ecb9d50cee119f7a919c7b4c4436048f9f9bb5c09f4c410983ac6e",
+          "metadata_sha256": "8b88da9a94ecb9d50cee119f7a919c7b4c4436048f9f9bb5c09f4c410983ac6e",
+          "content_sha256": "469f217556bce7b460e13211cc3784086a41ba96d57be30b2094b11e46fae7b9"
+        },
+        {
+          "path": "main.py",
+          "sha256": "b8662b0a61f876b30c0652e794459bccaf7cef3815f3c9f02c8d16c17e74eb3d",
+          "metadata_sha256": "b8662b0a61f876b30c0652e794459bccaf7cef3815f3c9f02c8d16c17e74eb3d",
+          "content_sha256": "36111a8289b6ada01c9ac35ace2c6ed7d71360f38061dfe98c12583234618fd3"
+        },
+        {
+          "path": "models.py",
+          "sha256": "4caf422f4690ab0e9a1de3e52522779117cf89a69d925d5e6cf913316c70df9d",
+          "metadata_sha256": "4caf422f4690ab0e9a1de3e52522779117cf89a69d925d5e6cf913316c70df9d",
+          "content_sha256": "7769974967046897cfc73800bcd948d108d0aad0d5b0005733708feeaa1b0761"
+        },
+        {
+          "path": "plan_validator.py",
+          "sha256": "659417c148ad2028eb1d3204b212c5734bf4ec9fbebcc3b6717503293aac8e1b",
+          "metadata_sha256": "659417c148ad2028eb1d3204b212c5734bf4ec9fbebcc3b6717503293aac8e1b",
+          "content_sha256": "2747216339538464348a0b3f9cfc5ceb583d46fe930b31511a3269c50970d603"
+        },
+        {
+          "path": "redis_state.py",
+          "sha256": "a071ba2ebea8df4c790d717b00be117b0cb4e71e7084ade8172de23bc8018752",
+          "metadata_sha256": "a071ba2ebea8df4c790d717b00be117b0cb4e71e7084ade8172de23bc8018752",
+          "content_sha256": "e80511b1cf0f5539c5351817e28bfc626d745a1a2ff4f6aff6f7662852d57933"
+        },
+        {
+          "path": "shepherd_client.py",
+          "sha256": "4bf828028e0b5fe3fc416873f0faf78979b265ae6443c1502190bba996d7ab0f",
+          "metadata_sha256": "4bf828028e0b5fe3fc416873f0faf78979b265ae6443c1502190bba996d7ab0f",
+          "content_sha256": "34d8b45be0bcfd8fe969ed5e1ec4b4e45ac13772601445540a77c9bf61f820b3"
+        },
+        {
+          "path": "transitions.py",
+          "sha256": "cfb7fdfd3d5afab6c4d2aae30424bb3e422b5aba26c1e45557bbafbbf3ecbbe0",
+          "metadata_sha256": "cfb7fdfd3d5afab6c4d2aae30424bb3e422b5aba26c1e45557bbafbbf3ecbbe0",
+          "content_sha256": "da14e401e4683d8ba2fdc97b11a6fe2042fe1552b1f5115a2c67439f45200c6b"
+        }
+      ],
+      "facts": {
+        "modules_scanned": 12,
+        "modules_with_routes": [
+          "main.py"
+        ],
+        "routes_total": 9,
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/health",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/approvals",
+            "module": "main.py"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/approvals/{mission_id}",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/mint",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/revoke",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/verify",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/kill",
+            "module": "main.py"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/lease",
+            "module": "main.py"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/unkill",
+            "module": "main.py"
+          }
+        ],
+        "routes_truncated": false,
+        "evidence_truncated": false
+      },
+      "limitations": [
+        "Only route decorators with a literal path are seen; routers mounted elsewhere, middleware and auth dependencies are not evaluated."
+      ]
+    }
+  ],
+  "review_instructions": [
+    "Confirm each claim against the cited manifest evidence.",
+    "Reject patterns derived from untrusted or irrelevant repositories.",
+    "A reviewer must explicitly approve a specific pattern before any future synthesis stage consumes it."
+  ]
+}

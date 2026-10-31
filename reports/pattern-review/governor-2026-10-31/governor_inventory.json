@@ -1,0 +1,277 @@
+{
+  "schema_version": 2,
+  "source": {
+    "kind": "local-directory",
+    "name": "governor",
+    "root_label": "."
+  },
+  "safety": {
+    "repository_cloned": false,
+    "code_executed": false,
+    "llm_called": false,
+    "secret_values_exported": false,
+    "raw_source_exported": false
+  },
+  "scan_limits": {
+    "max_files": 20000,
+    "max_depth": 10,
+    "max_manifest_bytes": 262144,
+    "max_total_bytes": 4194304,
+    "visited_files": 32,
+    "included_manifests": 14,
+    "python_modules_scanned": 12,
+    "python_modules_skipped": 0,
+    "skipped_large_manifests": [],
+    "truncated_file_limit": false,
+    "inventory_complete": true
+  },
+  "files": [
+    "Dockerfile",
+    "approvals.py",
+    "capability.py",
+    "keys.py",
+    "killswitch.py",
+    "lease.py",
+    "ledger_client.py",
+    "main.py",
+    "models.py",
+    "plan_validator.py",
+    "redis_state.py",
+    "requirements.txt",
+    "shepherd_client.py",
+    "transitions.py"
+  ],
+  "manifests": [
+    {
+      "path": "Dockerfile",
+      "kind": "dockerfile",
+      "metadata_sha256": "7bf0634b0e309e7dbf0a208a8f71f02764a9def36789f63529f0d7893840c832",
+      "content_sha256": "a543bd7d91b0d03f4036a84a839f5c1796207a8e94df9858b8012847328c6cd8",
+      "metadata": {
+        "base_stages": [
+          {
+            "image": "python:3.11-slim",
+            "stage": "builder"
+          },
+          {
+            "image": "python:3.11-slim",
+            "stage": null
+          }
+        ],
+        "exposed_ports": [
+          "8080"
+        ],
+        "users": [
+          "appuser"
+        ],
+        "healthcheck": true
+      }
+    },
+    {
+      "path": "approvals.py",
+      "kind": "python-module",
+      "metadata_sha256": "74a0e8991f90b05e2115159be884c64532ede62e47ccd28e256d0c4f0dd696f0",
+      "content_sha256": "ea7152317513080f4d76b681dda8bab5b8a8a4fbc9a20f850c2d47c66a2301b9",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "capability.py",
+      "kind": "python-module",
+      "metadata_sha256": "e28820b1a5a98ea55eafe4a7129ab4a4998d6ab25bcb29e91ab4db15789d2e01",
+      "content_sha256": "5d9bc711f1feb4a5b94fa941b1e712e81523b7017eb602ec82d5b55a290593a8",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [
+          "crypto:pyseto"
+        ],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "keys.py",
+      "kind": "python-module",
+      "metadata_sha256": "3a9141705f7cebbc530d835094025a8fc91b06689e3ba0a01f3bb081e487b950",
+      "content_sha256": "92fb0f77cd740ac10c7db1131b5a58caedf4a07372f451eacf83eef3fa2253e3",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [
+          "crypto:pyseto"
+        ],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "killswitch.py",
+      "kind": "python-module",
+      "metadata_sha256": "928c0312c412697ada68e21082dd35ae60a0788e01c77a05cfbd0a5be99e09d2",
+      "content_sha256": "4c008e3f21ca36580047c147f9b8b3c95d0fdb3612ebd4d096d386e1344ec676",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "lease.py",
+      "kind": "python-module",
+      "metadata_sha256": "6099911298a276df3b125dd40a515d525c6f8e67906ee8bd864d10f55f2a08b1",
+      "content_sha256": "67bb258abb737122988e6a54fc14ff7b931a94b00652ccf8608391349368fa84",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "ledger_client.py",
+      "kind": "python-module",
+      "metadata_sha256": "8b88da9a94ecb9d50cee119f7a919c7b4c4436048f9f9bb5c09f4c410983ac6e",
+      "content_sha256": "469f217556bce7b460e13211cc3784086a41ba96d57be30b2094b11e46fae7b9",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [
+          "network-client:httpx"
+        ],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "main.py",
+      "kind": "python-module",
+      "metadata_sha256": "b8662b0a61f876b30c0652e794459bccaf7cef3815f3c9f02c8d16c17e74eb3d",
+      "content_sha256": "36111a8289b6ada01c9ac35ace2c6ed7d71360f38061dfe98c12583234618fd3",
+      "metadata": {
+        "routes": [
+          {
+            "method": "GET",
+            "path": "/health"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/approvals/{mission_id}"
+          },
+          {
+            "method": "GET",
+            "path": "/v1/lease"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/approvals"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/mint"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/revoke"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/capabilities/verify"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/kill"
+          },
+          {
+            "method": "POST",
+            "path": "/v1/unkill"
+          }
+        ],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "models.py",
+      "kind": "python-module",
+      "metadata_sha256": "4caf422f4690ab0e9a1de3e52522779117cf89a69d925d5e6cf913316c70df9d",
+      "content_sha256": "7769974967046897cfc73800bcd948d108d0aad0d5b0005733708feeaa1b0761",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "plan_validator.py",
+      "kind": "python-module",
+      "metadata_sha256": "659417c148ad2028eb1d3204b212c5734bf4ec9fbebcc3b6717503293aac8e1b",
+      "content_sha256": "2747216339538464348a0b3f9cfc5ceb583d46fe930b31511a3269c50970d603",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "redis_state.py",
+      "kind": "python-module",
+      "metadata_sha256": "a071ba2ebea8df4c790d717b00be117b0cb4e71e7084ade8172de23bc8018752",
+      "content_sha256": "e80511b1cf0f5539c5351817e28bfc626d745a1a2ff4f6aff6f7662852d57933",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "requirements.txt",
+      "kind": "python",
+      "metadata_sha256": "aa006026c87e4352f19b135faa0b4f8a7702346245dbe6b57991d2c02acc7aac",
+      "content_sha256": "4b5e99f3691c088eeb94f3a095ef4fe8124c8a3cd413b5f67371bc0f20d2357f",
+      "metadata": {
+        "dependency_names": [
+          "cryptography",
+          "fastapi",
+          "httpx",
+          "pydantic",
+          "pyseto",
+          "redis",
+          "uvicorn"
+        ]
+      }
+    },
+    {
+      "path": "shepherd_client.py",
+      "kind": "python-module",
+      "metadata_sha256": "4bf828028e0b5fe3fc416873f0faf78979b265ae6443c1502190bba996d7ab0f",
+      "content_sha256": "34d8b45be0bcfd8fe969ed5e1ec4b4e45ac13772601445540a77c9bf61f820b3",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [
+          "network-client:httpx"
+        ],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    },
+    {
+      "path": "transitions.py",
+      "kind": "python-module",
+      "metadata_sha256": "cfb7fdfd3d5afab6c4d2aae30424bb3e422b5aba26c1e45557bbafbbf3ecbbe0",
+      "content_sha256": "da14e401e4683d8ba2fdc97b11a6fe2042fe1552b1f5115a2c67439f45200c6b",
+      "metadata": {
+        "routes": [],
+        "sensitive_imports": [],
+        "dynamic_eval": false,
+        "process_exec_calls": false
+      }
+    }
+  ]
+}
