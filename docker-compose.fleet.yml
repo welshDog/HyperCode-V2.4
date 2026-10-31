@@ -111,7 +111,8 @@ services:
     environment:
       AGENT_NAME: governor
       AGENT_PORT: "8080"
-      API_KEY: ${API_KEY:-}
+      # No API_KEY here on purpose: the Shepherd credential comes from API_KEY_FILE (docker-compose.secrets.yml).
+      # The env var was only a silent fallback that could carry the master key into this service.
       SAFETY_SHEPHERD_URL: http://safety-shepherd:8096
       CORE_URL: http://hypercode-core:8000
       GOVERNOR_REDIS_URL: redis://redis:6379/3
@@ -135,6 +136,17 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # The service writes nothing to disk (state is in Redis, the kill file is mounted read-only).
+    read_only: true
+    tmpfs:
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 256M
+        reservations:
+          memory: 64M
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
