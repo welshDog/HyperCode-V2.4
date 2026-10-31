@@ -40,8 +40,15 @@ TestingSessionLocal = sessionmaker(
 def db():
     """Create a new database for each test."""
     Base.metadata.create_all(bind=engine)
-    yield TestingSessionLocal()
-    Base.metadata.drop_all(bind=engine)
+    session = TestingSessionLocal()
+    try:
+        yield session
+    finally:
+        # Close before drop_all: a test that ends with a read leaves a transaction open, which keeps a connection checked
+        # out of the engine's pool (size 5, overflow 10) until the garbage collector frees the session. Enough of those and
+        # drop_all waits 30 s for a connection and errors in whichever test is running (the flaky QueuePool timeout).
+        session.close()
+        Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture(scope="function")
