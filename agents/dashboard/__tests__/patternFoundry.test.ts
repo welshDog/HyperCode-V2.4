@@ -56,6 +56,40 @@ describe('Pattern Foundry review packet parser', () => {
   it('rejects packets over one megabyte', () => {
     expect(() => parsePatternReviewPacket(' '.repeat(1_000_001))).toThrow(/1 MB/)
   })
+
+  describe('schema 2 evidence (metadata vs content hashes)', () => {
+    const withEvidence = (evidence: unknown): string =>
+      JSON.stringify({ ...packet, candidate_patterns: [{ ...packet.candidate_patterns[0], evidence: [evidence] }] })
+    const fileHash = 'c'.repeat(64)
+
+    it('keeps old packets exactly as before: no new keys appear', () => {
+      const parsed = parsePatternReviewPacket(validPacketText())
+      expect(parsed.candidate_patterns[0].evidence).toEqual([{ path: 'docker-compose.yml', sha256: candidateHash }])
+    })
+
+    it('passes metadata_sha256 and content_sha256 through', () => {
+      const parsed = parsePatternReviewPacket(withEvidence({ path: 'Dockerfile', sha256: digest, metadata_sha256: digest, content_sha256: fileHash }))
+      expect(parsed.candidate_patterns[0].evidence[0]).toEqual({ path: 'Dockerfile', sha256: digest, metadata_sha256: digest, content_sha256: fileHash })
+    })
+
+    it('accepts a withheld (null) content hash', () => {
+      const parsed = parsePatternReviewPacket(withEvidence({ path: 'docker-compose.yml', sha256: digest, metadata_sha256: digest, content_sha256: null }))
+      expect(parsed.candidate_patterns[0].evidence[0].content_sha256).toBeNull()
+    })
+
+    it.each([
+      [{ path: 'a', sha256: digest, metadata_sha256: 'nothex' }, /invalid metadata digest/],
+      [{ path: 'a', sha256: digest, content_sha256: 'nothex' }, /invalid content digest/],
+      [{ path: 'a', sha256: digest, content_sha256: 42 }, /invalid content digest/],
+    ])('rejects malformed fingerprints %#', (evidence, message) => {
+      expect(() => parsePatternReviewPacket(withEvidence(evidence))).toThrow(message)
+    })
+
+    it('does not carry unknown evidence keys through', () => {
+      const parsed = parsePatternReviewPacket(withEvidence({ path: 'a', sha256: digest, raw_source: 'print(1)' }))
+      expect(JSON.stringify(parsed)).not.toContain('raw_source')
+    })
+  })
 })
 
 describe('Pattern Foundry decision export', () => {

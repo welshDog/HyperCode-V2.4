@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "document_type": "hypercode.pattern-review.v1",
+  "source": {
+    "kind": "local-directory",
+    "name": "governor"
+  },
+  "provenance": {
+    "approval_id": "governor-2026-10-29-lyndz",
+    "approved_by": "Lyndz",
+    "approved_at": "2026-10-29T19:53:01Z",
+    "inventory_sha256": "1eb7dc76aab5cf03b503814ae8b84f7580f6fb6c02ff07637547bb02a1962a47",
+    "inventory_schema_version": 1,
+    "manifest_count": 2,
+    "extractor": "scripts/pattern_review.py"
+  },
+  "review_status": "pending_human_review",
+  "synthesis_authorized": false,
+  "execution_authorized": false,
+  "candidate_patterns": [
+    {
+      "candidate_id": "container-build-hardening-signals",
+      "category": "container-pattern",
+      "claim": "Dockerfiles expose build-stage, user, and healthcheck signals for review.",
+      "evidence": [
+        {
+          "path": "Dockerfile",
+          "sha256": "7bf0634b0e309e7dbf0a208a8f71f02764a9def36789f63529f0d7893840c832"
+        }
+      ],
+      "facts": {
+        "dockerfile_count": 1,
+        "multi_stage_paths": [
+          "Dockerfile"
+        ],
+        "user_declared_paths": [
+          "Dockerfile"
+        ],
+        "healthcheck_paths": [
+          "Dockerfile"
+        ]
+      },
+      "limitations": [
+        "A USER or HEALTHCHECK declaration is a static hint, not proof of least privilege or a passing runtime check."
+      ]
+    },
+    {
+      "candidate_id": "declared-language-ecosystems",
+      "category": "technology-stack",
+      "claim": "The repository contains these supported package-manifest families.",
+      "evidence": [
+        {
+          "path": "requirements.txt",
+          "sha256": "aa006026c87e4352f19b135faa0b4f8a7702346245dbe6b57991d2c02acc7aac"
+        }
+      ],
+      "facts": {
+        "manifest_families": [
+          "python"
+        ]
+      },
+      "limitations": [
+        "Manifest presence does not prove deployed or actively used runtime components."
+      ]
+    }
+  ],
+  "review_instructions": [
+    "Confirm each claim against the cited manifest evidence.",
+    "Reject patterns derived from untrusted or irrelevant repositories.",
+    "A reviewer must explicitly approve a specific pattern before any future synthesis stage consumes it."
+  ]
+}

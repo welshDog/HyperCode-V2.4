@@ -1,6 +1,13 @@
 export type PatternDecision = 'accepted' | 'rejected' | 'deferred'
 
-export type PatternEvidence = { path: string; sha256: string }
+export type PatternEvidence = {
+  path: string
+  /** Schema 1: metadata fingerprint. Schema 2: alias of metadata_sha256. Never a file hash. */
+  sha256: string
+  metadata_sha256?: string
+  /** Hash of the file with CRLF normalised to LF; null when withheld (secret-like or non-UTF-8 content). */
+  content_sha256?: string | null
+}
 export type PatternCandidate = {
   candidate_id: string
   category: string
@@ -122,7 +129,18 @@ export function parsePatternReviewPacket(text: string): PatternReviewPacket {
         throw new Error(`candidate ${candidateId} evidence[${evidenceIndex}] has an unsafe path`)
       }
       if (typeof ref.sha256 !== 'string' || !SHA256.test(ref.sha256)) throw new Error(`candidate ${candidateId} evidence[${evidenceIndex}] has an invalid digest`)
-      return { path: ref.path, sha256: ref.sha256 }
+      // Schema 2 evidence: `sha256` is only an alias of metadata_sha256 (a hash of extracted facts, not the file).
+      // content_sha256 is the file hash (CRLF normalised), or null when withheld. Old packets have neither.
+      const extra: Partial<PatternEvidence> = {}
+      if (ref.metadata_sha256 !== undefined) {
+        if (typeof ref.metadata_sha256 !== 'string' || !SHA256.test(ref.metadata_sha256)) throw new Error(`candidate ${candidateId} evidence[${evidenceIndex}] has an invalid metadata digest`)
+        extra.metadata_sha256 = ref.metadata_sha256
+      }
+      if (ref.content_sha256 !== undefined) {
+        if (ref.content_sha256 !== null && (typeof ref.content_sha256 !== 'string' || !SHA256.test(ref.content_sha256))) throw new Error(`candidate ${candidateId} evidence[${evidenceIndex}] has an invalid content digest`)
+        extra.content_sha256 = ref.content_sha256
+      }
+      return { path: ref.path, sha256: ref.sha256, ...extra }
     })
     const facts = item.facts
     const limitations = item.limitations

@@ -1,0 +1,9 @@
+{
+  "approved_at": "2026-10-29T19:53:01Z",
+  "approved_by": "Lyndz",
+  "source_name": "governor",
+  "schema_version": "hypercode.source-approval.v1",
+  "approved": true,
+  "inventory_sha256": "1eb7dc76aab5cf03b503814ae8b84f7580f6fb6c02ff07637547bb02a1962a47",
+  "approval_id": "governor-2026-10-29-lyndz"
+}

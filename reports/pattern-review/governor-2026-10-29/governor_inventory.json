@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source": {
+    "kind": "local-directory",
+    "name": "governor",
+    "root_label": "."
+  },
+  "safety": {
+    "repository_cloned": false,
+    "code_executed": false,
+    "llm_called": false,
+    "secret_values_exported": false,
+    "raw_source_exported": false
+  },
+  "scan_limits": {
+    "max_files": 20000,
+    "max_depth": 10,
+    "max_manifest_bytes": 262144,
+    "max_total_bytes": 4194304,
+    "visited_files": 32,
+    "included_manifests": 2,
+    "skipped_large_manifests": [],
+    "truncated_file_limit": false,
+    "inventory_complete": true
+  },
+  "files": [
+    "Dockerfile",
+    "requirements.txt"
+  ],
+  "manifests": [
+    {
+      "path": "Dockerfile",
+      "kind": "dockerfile",
+      "sha256": "7bf0634b0e309e7dbf0a208a8f71f02764a9def36789f63529f0d7893840c832",
+      "metadata": {
+        "base_stages": [
+          {
+            "image": "python:3.11-slim",
+            "stage": "builder"
+          },
+          {
+            "image": "python:3.11-slim",
+            "stage": null
+          }
+        ],
+        "exposed_ports": [
+          "8080"
+        ],
+        "users": [
+          "appuser"
+        ],
+        "healthcheck": true
+      }
+    },
+    {
+      "path": "requirements.txt",
+      "kind": "python",
+      "sha256": "aa006026c87e4352f19b135faa0b4f8a7702346245dbe6b57991d2c02acc7aac",
+      "metadata": {
+        "dependency_names": [
+          "cryptography",
+          "fastapi",
+          "httpx",
+          "pydantic",
+          "pyseto",
+          "redis",
+          "uvicorn"
+        ]
+      }
+    }
+  ]
+}

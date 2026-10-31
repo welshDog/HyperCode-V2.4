@@ -38,8 +38,28 @@ def _load_json(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
+SUPPORTED_INVENTORY_SCHEMAS = (1, 2)
+
+
+def _evidence(manifest: dict[str, Any], schema_version: int) -> dict[str, Any]:
+    """Evidence reference for a packet. Schema 1 inventories only have a metadata fingerprint.
+
+    `sha256` is kept in every packet because older readers (the dashboard parser) require it;
+    it is ALWAYS the metadata fingerprint, never a file hash. Use content_sha256 to check the file.
+    """
+    if schema_version == 1:
+        return {"path": manifest["path"], "sha256": manifest["sha256"]}
+    return {
+        "path": manifest["path"],
+        "sha256": manifest["metadata_sha256"],
+        "metadata_sha256": manifest["metadata_sha256"],
+        "content_sha256": manifest.get("content_sha256"),
+    }
+
+
 def validate_approval(inventory: dict[str, Any], approval: dict[str, Any]) -> dict[str, str]:
-    if inventory.get("schema_version") != 1:
+    schema_version = inventory.get("schema_version")
+    if schema_version not in SUPPORTED_INVENTORY_SCHEMAS:
         raise ValueError("unsupported inventory schema_version")
     source = inventory.get("source")
     safety = inventory.get("safety")
@@ -61,11 +81,15 @@ def validate_approval(inventory: dict[str, Any], approval: dict[str, Any]) -> di
         if not isinstance(item, dict):
             raise ValueError("inventory contains a malformed manifest entry")
         path = item.get("path")
-        digest = item.get("sha256")
+        digest = item.get("sha256" if schema_version == 1 else "metadata_sha256")
         if not isinstance(path, str) or path.startswith(("/", "\\")) or ".." in Path(path).parts:
             raise ValueError("inventory contains a non-repository manifest path")
         if not isinstance(digest, str) or not SHA256.fullmatch(digest):
             raise ValueError("inventory contains an invalid metadata fingerprint")
+        if schema_version == 2:
+            content_digest = item.get("content_sha256")
+            if content_digest is not None and (not isinstance(content_digest, str) or not SHA256.fullmatch(content_digest)):
+                raise ValueError("inventory contains an invalid content fingerprint")
         if "content" in item or "raw_source" in item:
             raise ValueError("inventory must not contain raw source text")
 
@@ -100,6 +124,7 @@ def _safe_service_name(value: Any) -> str | None:
 def extract_candidates(inventory: dict[str, Any]) -> list[dict[str, Any]]:
     """Produce deterministic, evidence-linked candidates from allowlisted metadata only."""
     manifests = inventory["manifests"]
+    version = inventory["schema_version"]
     candidates: list[dict[str, Any]] = []
     compose_services: list[tuple[str, str, dict[str, Any]]] = []
     languages: set[str] = set()
@@ -135,7 +160,7 @@ def extract_candidates(inventory: dict[str, Any]) -> list[dict[str, Any]]:
             "candidate_id": "compose-service-topology",
             "category": "service-architecture",
             "claim": "Compose defines a service topology suitable for human review.",
-            "evidence": [{"path": path, "sha256": manifest["sha256"]} for manifest in manifests if manifest.get("kind") == "compose"],
+            "evidence": [_evidence(manifest, version) for manifest in manifests if manifest.get("kind") == "compose"],
             "facts": {"service_names": sorted({name for _, name, _ in compose_services}), "dependency_edges": sorted(links, key=lambda edge: (edge["from"], edge["to"], edge["source"]))},
             "limitations": ["Compose declarations do not prove runtime health or dependency correctness."],
         })
@@ -149,7 +174,7 @@ def extract_candidates(inventory: dict[str, Any]) -> list[dict[str, Any]]:
             "candidate_id": "container-build-hardening-signals",
             "category": "container-pattern",
             "claim": "Dockerfiles expose build-stage, user, and healthcheck signals for review.",
-            "evidence": [{"path": item["path"], "sha256": item["sha256"]} for item in dockerfiles],
+            "evidence": [_evidence(item, version) for item in dockerfiles],
             "facts": {"dockerfile_count": len(dockerfiles), "multi_stage_paths": sorted(multi_stage), "user_declared_paths": sorted(nonroot), "healthcheck_paths": sorted(healthchecks)},
             "limitations": ["A USER or HEALTHCHECK declaration is a static hint, not proof of least privilege or a passing runtime check."],
         })
@@ -159,11 +184,116 @@ def extract_candidates(inventory: dict[str, Any]) -> list[dict[str, Any]]:
             "candidate_id": "declared-language-ecosystems",
             "category": "technology-stack",
             "claim": "The repository contains these supported package-manifest families.",
-            "evidence": [{"path": item["path"], "sha256": item["sha256"]} for item in manifests if item.get("kind") in {"python", "node", "go", "rust"}],
+            "evidence": [_evidence(item, version) for item in manifests if item.get("kind") in {"python", "node", "go", "rust"}],
             "facts": {"manifest_families": sorted(languages)},
             "limitations": ["Manifest presence does not prove deployed or actively used runtime components."],
         })
+
+    if version >= 2:
+        candidates.extend(_security_candidates(manifests, compose_services, version))
     return candidates
+
+
+MAX_EVIDENCE = 80  # the review UI rejects a candidate that cites more than this
+MAX_LISTED = 100
+
+
+def _capped(items: list[Any]) -> tuple[list[Any], bool]:
+    return items[:MAX_LISTED], len(items) > MAX_LISTED
+
+
+def _security_candidates(manifests: list[dict[str, Any]], compose_services: list[tuple[str, str, dict[str, Any]]], version: int) -> list[dict[str, Any]]:
+    """Schema 2 signals: compose hardening, capability boundary, HTTP surface. Static hints only."""
+    out: list[dict[str, Any]] = []
+    compose_manifests = [m for m in manifests if m.get("kind") == "compose"]
+    modules = [m for m in manifests if m.get("kind") == "python-module" and isinstance(m.get("metadata"), dict)]
+
+    def services_where(flag: str) -> list[str]:
+        return sorted({name for _, name, svc in compose_services if svc.get(flag) is True})
+
+    def evidence_for(items: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
+        refs = [_evidence(item, version) for item in items]
+        return refs[:MAX_EVIDENCE], len(refs) > MAX_EVIDENCE
+
+    if compose_services:
+        evidence, evidence_truncated = evidence_for(compose_manifests)
+        read_only, ro_cut = _capped(services_where("read_only"))
+        no_new_priv, nnp_cut = _capped(services_where("no_new_privileges"))
+        drop_all, drop_cut = _capped(sorted({name for _, name, svc in compose_services if "ALL" in (svc.get("cap_drop") or [])}))
+        with_secrets, sec_cut = _capped(sorted({name for _, name, svc in compose_services if svc.get("secret_names")}))
+        out.append({
+            "candidate_id": "compose-hardening-declarations",
+            "category": "container-pattern",
+            "claim": "Compose services declare these runtime hardening options.",
+            "evidence": evidence,
+            "facts": {
+                "service_count": len({name for _, name, _ in compose_services}),
+                "read_only_services": read_only,
+                "cap_drop_all_services": drop_all,
+                "no_new_privileges_services": no_new_priv,
+                "services_using_secrets": with_secrets,
+                "lists_truncated": any((ro_cut, nnp_cut, drop_cut, sec_cut)),
+                "evidence_truncated": evidence_truncated,
+            },
+            "limitations": ["Declared options are static hints; they do not prove the running container has them, and options inherited from other compose files are not merged."],
+        })
+
+    if compose_services or modules:
+        evidence, evidence_truncated = evidence_for(compose_manifests + modules)
+        by_category: dict[str, list[str]] = {}
+        for module in modules:
+            for entry in module["metadata"].get("sensitive_imports", []):
+                category = str(entry).split(":", 1)[0]
+                by_category.setdefault(category, []).append(module["path"])
+        dynamic_eval = sorted(m["path"] for m in modules if m["metadata"].get("dynamic_eval") is True)
+        process_exec = sorted(m["path"] for m in modules if m["metadata"].get("process_exec_calls") is True)
+        out.append({
+            "candidate_id": "capability-boundary-signals",
+            "category": "security-boundary",
+            "claim": "These static signals show which risky capabilities the scanned compose services and Python modules declare or use.",
+            "evidence": evidence,
+            "facts": {
+                "docker_socket_services": services_where("docker_socket_mounted"),
+                "docker_host_env_services": services_where("docker_host_env"),
+                "privileged_services": services_where("privileged"),
+                "host_network_services": services_where("host_network"),
+                "cap_add_services": sorted({name for _, name, svc in compose_services if svc.get("cap_add")}),
+                "python_modules_scanned": len(modules),
+                "python_modules_by_import_category": {key: sorted(set(paths)) for key, paths in sorted(by_category.items())},
+                "dynamic_eval_modules": dynamic_eval,
+                "process_exec_modules": process_exec,
+                "evidence_truncated": evidence_truncated,
+            },
+            "limitations": [
+                "An empty list means the scan found nothing, not that the capability is impossible.",
+                "Only top-level Python modules and one directory down are parsed; tests, generated code and dynamic imports are not seen.",
+            ],
+        })
+
+    if modules:
+        evidence, evidence_truncated = evidence_for(modules)
+        routes = sorted(
+            ({"method": r["method"], "path": r["path"], "module": m["path"]}
+             for m in modules for r in m["metadata"].get("routes", []) if isinstance(r, dict) and "method" in r and "path" in r),
+            key=lambda r: (r["module"], r["path"], r["method"]),
+        )
+        listed, routes_cut = _capped(routes)
+        out.append({
+            "candidate_id": "python-module-surface",
+            "category": "service-surface",
+            "claim": "Scanned Python modules declare these HTTP routes.",
+            "evidence": evidence,
+            "facts": {
+                "modules_scanned": len(modules),
+                "modules_with_routes": sorted({r["module"] for r in routes}),
+                "routes_total": len(routes),
+                "routes": listed,
+                "routes_truncated": routes_cut,
+                "evidence_truncated": evidence_truncated,
+            },
+            "limitations": ["Only route decorators with a literal path are seen; routers mounted elsewhere, middleware and auth dependencies are not evaluated."],
+        })
+    return out
 
 
 def build_review(inventory: dict[str, Any], approval: dict[str, Any]) -> dict[str, Any]:

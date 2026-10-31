@@ -50,7 +50,7 @@ def test_inventory_is_local_bounded_and_secret_redacted(tmp_path):
     result = inventory_module.build_inventory(root)
     serialized = json.dumps(result)
 
-    assert result["schema_version"] == 1
+    assert result["schema_version"] == 2
     assert result["scan_limits"]["inventory_complete"] is True
     assert result["source"] == {"kind": "local-directory", "name": "sample-repo", "root_label": "."}
     assert result["safety"] == {
@@ -90,12 +90,12 @@ def test_inventory_hashes_are_deterministic_and_do_not_fingerprint_raw_values(tm
     first = inventory_module.build_inventory(root)
     second = inventory_module.build_inventory(root)
     assert first == second
-    assert all(len(item["sha256"]) == 64 for item in first["manifests"])
+    assert all(len(item["metadata_sha256"]) == 64 for item in first["manifests"])
     compose = root / "docker-compose.yml"
-    before = next(item["sha256"] for item in first["manifests"] if item["path"] == "docker-compose.yml")
+    before = next(item["metadata_sha256"] for item in first["manifests"] if item["path"] == "docker-compose.yml")
     compose.write_text(compose.read_text(encoding="utf-8").replace("127.0.0.1:8090:8080", "127.0.0.1:8091:8080"), encoding="utf-8")
     after_inventory = inventory_module.build_inventory(root)
-    after = next(item["sha256"] for item in after_inventory["manifests"] if item["path"] == "docker-compose.yml")
+    after = next(item["metadata_sha256"] for item in after_inventory["manifests"] if item["path"] == "docker-compose.yml")
     assert before != after
 
 
