@@ -38,9 +38,15 @@ updates:
       # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # The OpenTelemetry family moves in lockstep (sdk requires api==same version); a lone or partial bump
+      # cannot resolve. Bump it by hand as one PR (see reports/dependency-bumps/2026-10-31/).
+      - dependency-name: "opentelemetry*"
+      # Minor bumps of a 300-pin freeze arrived as 200+ updates in one PR nobody could review (#711, #712).
+      # Patch-only here; do minor upgrades by hand in small, tested batches.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-minor"]
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
       time: "09:00"
       timezone: "Europe/London"
     open-pull-requests-limit: 5
@@ -572,6 +578,10 @@ updates:
       # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Held on purpose (2026-10-31): a newer eslint-config-next lets eslint-plugin-react-hooks float to 7.1.x,
+      # which enables set-state-in-effect and turns Lint red. Remove these two once that rule is addressed.
+      - dependency-name: "eslint-config-next"
+      - dependency-name: "eslint-plugin-react-hooks"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -585,6 +595,11 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # vitest and @vitest/coverage-v8 pin each other, so they must move in one PR (first match wins).
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       patch-and-minor:
         update-types:
           - "minor"
@@ -691,6 +706,9 @@ updates:
       # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Base-image Python moves (e.g. 3.11 -> 3.14, #72, #79) are a planned migration with a full test run.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -713,6 +731,9 @@ updates:
       # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Base-image Python moves (e.g. 3.11 -> 3.14, #72, #79) are a planned migration with a full test run.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor"]
     schedule:
       interval: "weekly"
       day: "monday"
@@ -735,6 +756,9 @@ updates:
       # Majors need a planned migration; bulk-closed 2026-10-18 (docs/NEXT_TASKS.md).
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Base-image Python moves (e.g. 3.11 -> 3.14, #72, #79) are a planned migration with a full test run.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-minor"]
     schedule:
       interval: "weekly"
       day: "monday"
