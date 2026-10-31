@@ -1,0 +1,154 @@
+{
+ "authlib": {
+  "name": "authlib",
+  "cur": "1.6.12",
+  "target": "1.9.1",
+  "n": 9,
+  "kind": "minor",
+  "ids": [
+   "CVE-2026-116672",
+   "CVE-2026-96760",
+   "PYSEC-2026-4354",
+   "PYSEC-2026-4355",
+   "PYSEC-2026-4356",
+   "PYSEC-2026-4357",
+   "PYSEC-2026-4358",
+   "PYSEC-2026-4359",
+   "PYSEC-2026-4360"
+  ]
+ },
+ "brotli": {
+  "name": "brotli",
+  "cur": "1.2.0",
+  "target": "1.2.1",
+  "n": 2,
+  "kind": "patch",
+  "ids": [
+   "PYSEC-2026-4322",
+   "PYSEC-2026-4322"
+  ]
+ },
+ "msgpack": {
+  "name": "msgpack",
+  "cur": "1.2.1",
+  "target": "1.2.3",
+  "n": 1,
+  "kind": "patch",
+  "ids": [
+   "CVE-2026-114613"
+  ]
+ },
+ "certifi": {
+  "name": "certifi",
+  "cur": "2025.8.3",
+  "target": "2026.10.18",
+  "n": 2,
+  "kind": "major",
+  "ids": [
+   "PYSEC-2026-4320",
+   "PYSEC-2026-4320"
+  ]
+ },
+ "dnspython": {
+  "name": "dnspython",
+  "cur": "2.8.0",
+  "target": "2.9.0",
+  "n": 1,
+  "kind": "minor",
+  "ids": [
+   "CVE-2026-114605"
+  ]
+ },
+ "filelock": {
+  "name": "filelock",
+  "cur": "3.20.3",
+  "target": "4.2.1",
+  "n": 2,
+  "kind": "major",
+  "ids": [
+   "CVE-2026-112909",
+   "CVE-2026-112910"
+  ]
+ },
+ "gitpython": {
+  "name": "gitpython",
+  "cur": "3.1.60",
+  "target": "3.2.1",
+  "n": 6,
+  "kind": "minor",
+  "ids": [
+   "CVE-2026-110855",
+   "CVE-2026-110856",
+   "CVE-2026-110857",
+   "CVE-2026-110858",
+   "CVE-2026-110859",
+   "CVE-2026-114145"
+  ]
+ },
+ "graphql-core": {
+  "name": "graphql-core",
+  "cur": "3.2.8",
+  "target": "3.2.12",
+  "n": 2,
+  "kind": "patch",
+  "ids": [
+   "CVE-2026-75507",
+   "CVE-2026-75508"
+  ]
+ },
+ "langgraph-sdk": {
+  "name": "langgraph-sdk",
+  "cur": "0.4.4",
+  "target": "0.4.6",
+  "n": 1,
+  "kind": "patch",
+  "ids": [
+   "CVE-2026-118667"
+  ]
+ },
+ "opentelemetry-api": {
+  "name": "opentelemetry-api",
+  "cur": "1.40.0",
+  "target": "1.45.1",
+  "n": 1,
+  "kind": "minor",
+  "ids": [
+   "CVE-2026-114603"
+  ]
+ },
+ "pyasn1": {
+  "name": "pyasn1",
+  "cur": "0.6.4",
+  "target": "0.6.5",
+  "n": 4,
+  "kind": "patch",
+  "ids": [
+   "CVE-2026-119194",
+   "CVE-2026-119195",
+   "CVE-2026-119196",
+   "CVE-2026-119197"
+  ]
+ },
+ "setuptools": {
+  "name": "setuptools",
+  "cur": "83.0.0",
+  "target": "84.1.0",
+  "n": 1,
+  "kind": "major",
+  "ids": [
+   "GHSA-xmj3-9gf7-h52w"
+  ]
+ },
+ "tornado": {
+  "name": "tornado",
+  "cur": "6.5.9",
+  "target": "6.6",
+  "n": 3,
+  "kind": "minor",
+  "ids": [
+   "CVE-2026-115927",
+   "CVE-2026-116577",
+   "CVE-2026-116578"
+  ]
+ }
+}
