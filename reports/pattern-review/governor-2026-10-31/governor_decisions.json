@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "document_type": "hypercode.pattern-decisions.v1",
+  "source": {
+    "kind": "local-directory",
+    "name": "governor"
+  },
+  "provenance": {
+    "approval_id": "governor-2026-10-31-lyndz",
+    "approved_by": "Lyndz",
+    "approved_at": "2026-10-31T13:10:24Z",
+    "inventory_sha256": "c5a21bfd8d09fa8ecbec9ad241d77926df5b38a421efcd6cd97341163412a506",
+    "inventory_schema_version": 2,
+    "manifest_count": 14,
+    "extractor": "scripts/pattern_review.py"
+  },
+  "review": {
+    "status": "human_reviewed",
+    "reviewer": "Lyndz",
+    "reviewed_at": "2026-10-31T13:16:10Z",
+    "unsigned": true
+  },
+  "decisions": [
+    {
+      "candidate_id": "container-build-hardening-signals",
+      "candidate_sha256": "8250a93c42ce93a5a1fad0bb967486a28f4083fb86e93c95568d4fa3b2698c3b",
+      "decision": "accepted"
+    },
+    {
+      "candidate_id": "declared-language-ecosystems",
+      "candidate_sha256": "c10dc7de8164613e87e97f883387d33f15de9622872945dafcbeee99ee43d2ae",
+      "decision": "accepted"
+    },
+    {
+      "candidate_id": "capability-boundary-signals",
+      "candidate_sha256": "f9a7aef447f0072668b8c3f0e2f13f2eb68f23cc4b926cdb09a70052d95c2c31",
+      "decision": "accepted"
+    },
+    {
+      "candidate_id": "python-module-surface",
+      "candidate_sha256": "60cf2bb4f999dd21b93a25173d79d2a9e6e121b2a8e89da1fff0bd1e6afb4e1f",
+      "decision": "accepted"
+    }
+  ],
+  "synthesis_authorized": false,
+  "execution_authorized": false
+}

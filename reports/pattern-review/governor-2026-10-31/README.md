@@ -9,17 +9,22 @@ record of the first approval.
 | `governor_inventory.json` | Inventory of `agents/governor`, **schema 2**: 14 manifests (Dockerfile, requirements, 12 Python modules), complete, no withheld content hashes. |
 | `governor_approval.json` | Human approval `governor-2026-10-31-lyndz` (approved by Lyndz, 2026-10-31T13:10:24Z), bound to inventory digest `c5a21bfd8d09fa8e…a506`. |
 | `governor_packet.json` | Review packet built from the two files above: 4 candidates, `pending_human_review`, synthesis and execution **not** authorised. |
+| `governor_decisions.json` | The human decision record for that packet: all four candidates accepted (2026-10-31). |
 
 ## Status
 
-- **Decisions: none recorded yet.** Each candidate still needs a human accept / reject / defer
-  (dashboard `/pattern-review` exports a decision record).
+- **Decisions recorded 2026-10-31: all four candidates ACCEPTED by Lyndz** (`governor_decisions.json`,
+  format `hypercode.pattern-decisions.v1`, produced with the dashboard's own export code; each decision is
+  bound to a hash of the exact candidate). The record is unsigned. Accepting a candidate marks it as a
+  reviewed, true fact about the source. It does **not** authorise synthesis or execution
+  (`synthesis_authorized` and `execution_authorized` stay `false`); a future synthesis stage would need
+  its own explicit authorisation.
 - The approval is a local record, not a cryptographic identity. It only authorises building a *review
   packet*, never synthesis or execution.
 
 ## Candidates, and what was checked on 2026-10-31
 
-| Candidate | Checked against the source | Reviewer's recommendation |
+| Candidate | Checked against the source | Reviewer's recommendation (decision: accepted) |
 |---|---|---|
 | `container-build-hardening-signals` | Dockerfile has a builder and a runtime stage, `USER appuser`, `HEALTHCHECK`. | Accept (static hint only). |
 | `declared-language-ecosystems` | `requirements.txt`: fastapi, uvicorn, pydantic, httpx, pyseto, redis, cryptography. | Accept (low value). |
