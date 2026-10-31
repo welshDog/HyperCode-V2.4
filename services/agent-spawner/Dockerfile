@@ -1,7 +1,8 @@
 # Docker's published docker-compose-plugin 5.6.0 (latest) is built with Go 1.26.8 and
-# golang.org/x/net v0.58.0, which carry HIGH CVEs (fixed in Go 1.26.9 / x/net 0.60.0).
+# golang.org/x/net v0.58.0, which carry HIGH CVEs (fixed in Go 1.26.9 / x/net 0.60.0). Go 1.26.9 itself has a HIGH
+# crypto/x509 CVE-2026-111943 (fixed in 1.26.10), and the compiled binary embeds the toolchain's stdlib, so Trivy flags it.
 # Build the same Compose release ourselves on a patched toolchain until upstream ships one.
-FROM golang:1.26.9-bookworm AS compose
+FROM golang:1.26.10-bookworm AS compose
 ARG COMPOSE_VERSION=v5.6.0
 RUN git clone --depth 1 --branch "${COMPOSE_VERSION}" https://github.com/docker/compose.git /src
 WORKDIR /src
