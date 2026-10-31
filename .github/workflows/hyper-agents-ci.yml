@@ -175,6 +175,9 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
+        with:
+          # TruffleHog scans the commit range of the event (pushed commits, or the PR), so it needs the history.
+          fetch-depth: 0
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -190,12 +193,14 @@ jobs:
       - name: Dependency vulnerability scan
         run: pip-audit --ignore-vuln PYSEC-2022-42969 || true
 
+      # No base/head on purpose: the action picks the range per event (push: the pushed commits, before..after;
+      # pull_request: the PR's base..head). An explicit base: <default branch> + head: HEAD made every push to the
+      # default branch fail with "BASE and HEAD commits are the same" before scanning anything.
+      # Pinned to a release commit (v3.99.7), not the moving @main branch, since this action sees the whole repo.
       - name: TruffleHog secret scan
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@31ce31ee1abbcc7dc8eee5764c17121c3044c8b2 # v3.99.7
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
           extra_args: --only-verified
 
   nd-ux-check:
