@@ -8,13 +8,15 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, AnyHttpUrl, Field
+from pydantic import BaseModel, AnyHttpUrl, Field, field_validator
 from sqlalchemy import (
     Boolean, Column, DateTime, Float, ForeignKey,
     Integer, String, Text, JSON
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, relationship
+
+from target_secrets import mask_target
 
 
 # ── SQLAlchemy Base ──────────────────────────────────────────────────────────
@@ -126,6 +128,12 @@ class CheckDefinitionOut(BaseModel):
     enabled: bool
     tags: List[str]
     created_at: datetime
+
+    @field_validator("target")
+    @classmethod
+    def _mask_target_credentials(cls, value: str) -> str:
+        """Never return a password stored in a DSN-style target (see target_secrets.py)."""
+        return mask_target(value)
 
     class Config:
         from_attributes = True
