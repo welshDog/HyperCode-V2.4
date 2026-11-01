@@ -47,8 +47,8 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    env_file:
-      - .env
+    # No env_file: postgres only needs the three POSTGRES_* values below. Loading all of .env put
+    # every app secret (Stripe, GitHub, Discord, Anthropic, ...) into this container's environment.
     container_name: postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
