@@ -31,6 +31,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
 
 from models import CheckDefinitionORM, CheckResultORM
+from target_secrets import mask_target, resolve_target
 
 # HyperAlert \u2014 safe import guard
 try:
@@ -153,7 +154,7 @@ async def execute_db_check(target: str, thresholds: Dict) -> Dict[str, Any]:
     import asyncpg
     start = time.monotonic()
     try:
-        conn = await asyncpg.connect(target, timeout=10)
+        conn = await asyncpg.connect(target.replace("postgresql+asyncpg://", "postgresql://", 1), timeout=10)
         await conn.fetchval("SELECT 1")
         await conn.close()
         latency_ms = (time.monotonic() - start) * 1000
@@ -215,7 +216,15 @@ async def execute_check(check: CheckDefinitionORM) -> Dict[str, Any]:
     }
     executor = dispatchers.get(check.type)
     if executor:
-        return await executor(check.target, check.thresholds or {})
+        # `env:NAME` targets keep credentials out of the database; resolve them at check time.
+        try:
+            target = resolve_target(check.target)
+        except ValueError as exc:
+            return {"status": "CRIT", "latency_ms": None, "value": None, "message": str(exc)}
+        result = await executor(target, check.thresholds or {})
+        if isinstance(result.get("message"), str):
+            result["message"] = mask_target(result["message"])  # never echo a DSN password
+        return result
     return {"status": "UNKNOWN", "latency_ms": None, "value": None,
             "message": f"Check type '{check.type}' not yet implemented"}
 
