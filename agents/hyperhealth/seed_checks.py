@@ -37,22 +37,6 @@ if not API_KEY:
     sys.exit(1)
 
 
-def resolve_db_dsn() -> str:
-    dsn = (
-        os.environ.get("HYPERCODE_DB_URL")
-        or dot_env.get("HYPERCODE_DB_URL")
-        or os.environ.get("DATABASE_URL")
-        or dot_env.get("DATABASE_URL")
-    )
-    if dsn:
-        return dsn.replace("postgresql+asyncpg://", "postgresql://")
-    user = dot_env.get("POSTGRES_USER", "postgres")
-    pwd  = dot_env.get("POSTGRES_PASSWORD", "postgres")
-    db   = dot_env.get("POSTGRES_DB", "hypercode")
-    return f"postgresql://{user}:{pwd}@postgres:5432/{db}"
-
-
-DB_DSN  = resolve_db_dsn()
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
 
 CHECKS = [
@@ -100,7 +84,7 @@ CHECKS = [
     {
         "name": "postgres-db-health",
         "type": "db",
-        "target": DB_DSN,
+        "target": "env:DATABASE_URL",  # resolved by the worker at check time; never store a DSN password
         "environment": "production",
         "interval_seconds": 30,
         # loosened: 200→500ms warn (first connection + asyncpg overhead), 1000→2000ms crit
@@ -146,8 +130,8 @@ CHECKS = [
 def seed():
     print(f"\n\U0001f9e0 HyperHealth Seed Script{'  [--force / update mode]' if FORCE else ''}")
     print(f"\U0001f3af API : {API_BASE}")
-    print(f"\U0001f511 Key : {API_KEY[:8]}...")
-    print(f"\U0001f5c4\ufe0f  DB  : {DB_DSN[:60]}...\n")
+    print(f"\U0001f511 Key : (set, {len(API_KEY)} chars)")  # never print any part of a secret
+    print(f"\U0001f5c4\ufe0f  DB  : via worker env DATABASE_URL (not stored)\n")
 
     created = skipped = failed = updated = 0
 

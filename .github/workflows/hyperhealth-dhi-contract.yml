@@ -35,7 +35,7 @@ jobs:
       - name: Install HyperHealth test and validator dependencies
         run: |
           python -m pip install -r agents/hyperhealth/requirements.txt
-          python -m pip install pytest pyyaml
+          python -m pip install pytest pytest-asyncio pyyaml
       - name: Check DHI and Compose contracts
         run: python .github/scripts/check_dhi_contract.py --check
       - name: Test DHI contract mutations and process entrypoint
