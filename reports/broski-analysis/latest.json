@@ -1,59 +1,59 @@
 {
-  "score": 99,
-  "grade": "S",
-  "label": "LEGENDARY",
-  "emoji": "\ud83c\udfc6",
-  "colour": 65416,
-  "files_scanned": 10799,
-  "lint_issues": 222,
-  "ast_issues": 129,
-  "total_issues": 351,
+  "score": 51,
+  "grade": "C",
+  "label": "NEEDS WORK",
+  "emoji": "\u26a0\ufe0f",
+  "colour": 16747520,
+  "files_scanned": 328,
+  "lint_issues": 395,
+  "ast_issues": 4,
+  "total_issues": 399,
   "top_lint": [
     {
-      "file": "agents\\01-frontend-specialist\\base_agent.py",
-      "line": 14,
-      "msg": "`asyncio` imported but unused"
+      "file": "backend\\alembic\\env.py",
+      "line": 1,
+      "msg": "Import block is un-sorted or un-formatted"
     },
     {
-      "file": "agents\\09-tips-tricks-writer\\agent.py",
-      "line": 6,
-      "msg": "`os` imported but unused"
-    },
-    {
-      "file": "agents\\agent-x\\designer.py",
+      "file": "backend\\alembic\\env.py",
       "line": 16,
-      "msg": "`typing.Optional` imported but unused"
+      "msg": "Module level import not at top of file"
     },
     {
-      "file": "agents\\agent-x\\designer.py",
-      "line": 132,
-      "msg": "Multiple imports on one line"
+      "file": "backend\\alembic\\env.py",
+      "line": 16,
+      "msg": "Import block is un-sorted or un-formatted"
     },
     {
-      "file": "agents\\agent-x\\designer.py",
-      "line": 206,
-      "msg": "Multiple imports on one line"
+      "file": "backend\\alembic\\env.py",
+      "line": 17,
+      "msg": "Module level import not at top of file"
+    },
+    {
+      "file": "backend\\alembic\\versions\\001_broski_token_system.py",
+      "line": 7,
+      "msg": "Import block is un-sorted or un-formatted"
     }
   ],
   "top_ast": [
-    {
-      "file": "examples\\api_usage.py",
-      "line": 69,
-      "msg": "Bare except \u2014 catches everything",
-      "severity": "medium"
-    },
-    {
-      "file": "hyperstudio-platform\\api-main.py",
-      "line": 461,
-      "msg": "Bare except \u2014 catches everything",
-      "severity": "medium"
-    },
     {
       "file": "scripts\\generate_health_check_compose.py",
       "line": 274,
       "msg": "Bare except \u2014 catches everything",
       "severity": "medium"
+    },
+    {
+      "file": "scripts\\health_check_controller.py",
+      "line": 57,
+      "msg": "Bare except \u2014 catches everything",
+      "severity": "medium"
+    },
+    {
+      "file": "scripts\\health_check_controller.py",
+      "line": 184,
+      "msg": "Bare except \u2014 catches everything",
+      "severity": "medium"
     }
   ],
-  "scanned_at": "2026-04-23T13:13:55.465094+00:00"
+  "scanned_at": "2026-10-20T21:09:31.332856+00:00"
 }

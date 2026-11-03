@@ -18,7 +18,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(ROOT / "agents" / "broski-nemoclaw-agent"))
+sys.path.insert(0, str(ROOT / "agents" / "broski-bot" / "broski-nemoclaw-agent"))
 
 # Windows UTF-8 fix for stdout + subprocess
 if hasattr(sys.stdout, "reconfigure"):

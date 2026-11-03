@@ -257,8 +257,10 @@ services:
         - NEXT_PUBLIC_HYPER_BRAIN_URL=${NEXT_PUBLIC_HYPER_BRAIN_URL:-}
     container_name: hypercode-dashboard
     environment:
-      - NEXT_PUBLIC_CORE_URL=http://hypercode-core:8000
+      # Browser Core requests use /api/core so service DNS stays server-side.
       - HYPERCODE_CORE_URL=http://hypercode-core:8000
+      - NEXT_PUBLIC_CORE_URL=http://127.0.0.1:8000
+      - AGENT_REGISTRY_URL=http://agent-registry:8077
       # Service identity for tasks/planning/DLQ proxies (no login UI yet).
       # Empty = proxies forward the browser header only, as before.
       - HYPERCODE_API_KEY=${HYPERCODE_API_KEY:-}
@@ -266,10 +268,10 @@ services:
       # NOT the master API key: core's /operator/* rejects that as both Bearer and X-Agent-Key.
       # The env var DASHBOARD_SERVICE_JWT must stay unset or it wins over the file.
       - DASHBOARD_SERVICE_JWT_FILE=/run/secrets/dashboard_service_jwt
-      - NEXT_PUBLIC_CORE_WS_HOST=127.0.0.1
-      - NEXT_PUBLIC_CORE_WS_PORT=8000
+      # Browser WebSocket URLs use the visiting hostname and choose WSS when HTTPS is active.
+      - NEXT_PUBLIC_CORE_WS_PORT=${NEXT_PUBLIC_CORE_WS_PORT:-8000}
       - CREW_ORCHESTRATOR_URL=http://crew-orchestrator:8080
-      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - ORCHESTRATOR_API_KEY_FILE=/run/secrets/orchestrator_api_key
       # HyperStudio proxy → coder-studio. The key must match coder-studio's
       # (both resolve from ${API_KEY}); without it the proxy forwards an empty
       # X-Agent-Key and coder-studio rejects every request with 401.
@@ -279,12 +281,12 @@ services:
       # mcp-rest-adapter's own (both resolve from ${MCP_REST_ADAPTER_AUTH_TOKEN});
       # without it the proxy forwards no Authorization header and
       # mcp-rest-adapter rejects every non-health request with 401.
-      - MCP_REST_ADAPTER_AUTH_TOKEN=${MCP_REST_ADAPTER_AUTH_TOKEN}
+      - MCP_REST_ADAPTER_AUTH_TOKEN_FILE=/run/secrets/mcp_rest_adapter_auth_token
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
       - PORT=3000
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {if (r.statusCode >= 500) process.exit(1)}).on('error', () => process.exit(1))"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {r.resume(); if (r.statusCode !== 200) process.exit(1)}).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -299,6 +301,8 @@ services:
       - agents-net
     secrets:
       - dashboard_service_jwt
+      - orchestrator_api_key
+      - mcp_rest_adapter_auth_token
     restart: unless-stopped
     deploy:
       resources:
@@ -968,7 +972,7 @@ services:
       - ORCHESTRATOR_ENABLED_AGENTS=${ORCHESTRATOR_ENABLED_AGENTS:-}
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-hypercode}
-      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - ORCHESTRATOR_API_KEY_FILE=/run/secrets/orchestrator_api_key
       - HYPERCODE_API_KEY=${API_KEY:-}
       - SMOKE_ENDPOINT_ENABLED=${SMOKE_ENDPOINT_ENABLED:-false}
       - SMOKE_KEY_ALLOWLIST=${SMOKE_KEY_ALLOWLIST:-}
@@ -976,6 +980,8 @@ services:
       # P0-2 remaining intercept — downstream dispatch gated by Safety Shepherd
       - SAFETY_SHEPHERD_URL=${SAFETY_SHEPHERD_URL:-http://safety-shepherd:8096}
       - SAFETY_SHEPHERD_MODE=${SAFETY_SHEPHERD_MODE:-monitor}
+    secrets:
+      - orchestrator_api_key
     volumes:
       - ./agents/crew-orchestrator:/app
       - ./Configuration_Kit:/app/hive_mind:ro
@@ -1152,7 +1158,7 @@ services:
       - MCP_WORKSPACE_TARGET_PATH=/workspace
       - MCP_WORKSPACE_SOURCE_PATH=/run/desktop/mnt/host/h/HYPERFOCUSZONE/HperCore/HyperCode-V2.4
       - MCP_LOCAL_WORKSPACE_ROOT=/workspace
-      - MCP_REST_ADAPTER_AUTH_TOKEN=${MCP_REST_ADAPTER_AUTH_TOKEN}
+      - MCP_REST_ADAPTER_AUTH_TOKEN_FILE=/run/secrets/mcp_rest_adapter_auth_token
     volumes:
       - ./:/workspace:ro
     expose:
@@ -1161,6 +1167,8 @@ services:
       - "127.0.0.1:8821:8821"
     networks:
       - agents-net
+    secrets:
+      - mcp_rest_adapter_auth_token
     depends_on:
       mcp-gateway:
         condition: service_started
@@ -1852,6 +1860,10 @@ services:
 secrets:
   dashboard_service_jwt:
     file: ./secrets/dashboard_service_jwt.txt
+  orchestrator_api_key:
+    file: ./secrets/orchestrator_api_key.txt
+  mcp_rest_adapter_auth_token:
+    file: ./secrets/mcp_rest_adapter_auth_token.txt
 
 volumes:
   github-sync-logs:

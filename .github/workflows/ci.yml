@@ -27,11 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: 'pip'
+          cache-dependency-path: backend/requirements.core.txt
 
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
@@ -40,12 +41,15 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'agents/dashboard/package-lock.json'
 
+      - name: Check backend dependency authority
+        run: python .github/scripts/check_dependency_authority.py
+
       - name: Install Python Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          # Install test/lint tools ensuring they are available
-          pip install bandit flake8 black pytest pytest-asyncio pytest-cov httpx
+          pip install -r backend/requirements.core.txt
+          pip install -r backend/requirements-dev.txt
+          pip install bandit flake8 black
 
       - name: Install Node.js Dependencies (Frontend)
         run: |
@@ -68,8 +72,8 @@ jobs:
 
       - name: Run Pytest
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
-          pytest
+          export PYTHONPATH=$PYTHONPATH:$(pwd)/backend
+          pytest backend/tests
 
       - name: Smoke Framework Coverage Gate
         run: |

@@ -40,7 +40,7 @@ The MemStream-throttle-agent integration is now functional, enabling real-time R
     - `GET /health/memstream` → returns JSON pressure state (ram_used_percent, ram_free_gb, tokens_per_sec, current_mode, pressure, timestamp)
     - `POST /throttle` → logs delay commands (mock throttle control for adaptive throttling)
   - Configuration:
-    - `MEMSTREAM_HEALTH_TOKEN=broski123`
+    - `MEMSTREAM_HEALTH_TOKEN=${MEMSTREAM_HEALTH_TOKEN:-dev}`
     - `MEMSTREAM_API_TOKEN=[REDACTED: MEMSTREAM_API_TOKEN (rotated)]`
     - Networks: `agents-net`, `data-net`
     - Depends on: `redis` (service_healthy), `hypercode-core` (service_healthy)
@@ -56,7 +56,7 @@ The MemStream-throttle-agent integration is now functional, enabling real-time R
 - **Updated `.env.example`:**
   - Added placeholder values:
     ```
-    MEMSTREAM_HEALTH_TOKEN=broski123
+    MEMSTREAM_HEALTH_TOKEN=dev
     MEMSTREAM_API_TOKEN=[REDACTED: MEMSTREAM_API_TOKEN (rotated)]
     ```
 

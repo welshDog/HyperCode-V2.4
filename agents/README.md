@@ -7,7 +7,7 @@ Complete Docker configuration for running your specialist AI agent team.
 ## 🚀 Quick Start (Choose Your Path)
 
 ### 🌟 Path 1: Lean Stack (4GB RAM Systems)
-Perfect for development & testing on limited hardware:
+  Perfect for development & testing on limited hardware:
 
 ```bash
 cd HyperCode-V2.4

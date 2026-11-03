@@ -45,7 +45,7 @@ def test_the_draft_matches_the_repos_handover_format():
     assert re.fullmatch(r"docs/NEXT_SESSION_HANDOVER_2026-10-02_crew-[0-9a-f]{8}\.md", handover["path"])
     real = REPO_ROOT / "docs" / "NEXT_SESSION_HANDOVER_2026-09-18.md"
     if real.exists():  # the headings a human handover uses, so a reader finds the same things in the same place
-        real_text = real.read_text()
+        real_text = real.read_text(encoding="utf-8")
         for heading in ("## 🟢 LIVE STATE RIGHT NOW", "## ✅ PROOF"):
             assert heading in real_text and heading in text
     assert text.count("## ▶️ NEXT TASK") == 1 and "## ⚠️ NOT DONE / NOT PROVEN" in text

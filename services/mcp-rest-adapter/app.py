@@ -26,7 +26,18 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 GATEWAY_BASE = os.getenv("MCP_GATEWAY_BASE_URL", "http://mcp-gateway:8820").rstrip("/")
-AUTH_TOKEN = os.getenv("MCP_GATEWAY_AUTH_TOKEN", "").strip()
+def read_secret(name: str) -> str:
+    """Read a secret from environment or an optional mounted *_FILE."""
+    path = os.getenv(f"{name}_FILE", "").strip()
+    if path:
+        try:
+            return Path(path).read_text(encoding="utf-8-sig").strip()
+        except (OSError, UnicodeError):
+            pass
+    return os.getenv(name, "").strip()
+
+
+AUTH_TOKEN = read_secret("MCP_GATEWAY_AUTH_TOKEN")
 WORKSPACE_TARGET = os.getenv("MCP_WORKSPACE_TARGET_PATH", "/workspace").rstrip("/")
 WORKSPACE_SOURCE = os.getenv(
     "MCP_WORKSPACE_SOURCE_PATH",
@@ -64,7 +75,7 @@ async def require_mcp_token(authorization: str | None = Header(default=None)) ->
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authorization: Bearer <token> required")
     token = authorization.removeprefix("Bearer ").strip()
-    expected = os.environ.get("MCP_REST_ADAPTER_AUTH_TOKEN", "").strip()
+    expected = read_secret("MCP_REST_ADAPTER_AUTH_TOKEN")
     if not expected or not hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8")):
         raise HTTPException(status_code=403, detail="Invalid token")
 

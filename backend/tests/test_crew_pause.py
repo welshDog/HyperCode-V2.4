@@ -23,6 +23,12 @@ from tests.test_hyperflow import _runner_with_io
 BASE = "/api/v1/operator"
 
 
+@pytest.fixture(autouse=True)
+def _safety_off_by_default(monkeypatch):
+    """Keep runner unit tests deterministic and independent of Safety Shepherd."""
+    monkeypatch.setenv("SAFETY_SHEPHERD_MODE", "off")
+
+
 def two_step_flow():
     return FlowDefinition.model_validate({
         "name": "two-step", "entry": "a",
