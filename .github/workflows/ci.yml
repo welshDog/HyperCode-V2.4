@@ -23,7 +23,8 @@ permissions:
 jobs:
   quality-checks:
     name: Quality & Security
-    runs-on: ubuntu-latest
+    # ubuntu-latest is now 26.04, which Playwright does not support (cannot install chromium); pin 24.04.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -105,7 +106,7 @@ jobs:
   docker-build:
     name: Build & Scan Docker Images
     needs: quality-checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # same image as quality-checks
     steps:
       - uses: actions/checkout@v4
 
