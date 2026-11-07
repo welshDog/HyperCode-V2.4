@@ -107,13 +107,15 @@ ENV SENTENCE_TRANSFORMERS_HOME=/app/cache/sentence_transformers
 ARG INSTALL_AI_DEPS=false
 
 # OS package hardening — upgrade all + explicitly install patched security libs
+# zlib1g: pulls in the fixed 1.3.1-1+deb13u1 (CVE-2026-76844, CVE-2026-85091) until the base image catches up.
 RUN apt-get update --allow-releaseinfo-change && \
     apt-get install -y --no-install-recommends \
         libpq5 \
         curl \
         ca-certificates \
         libexpat1 \
-        openssl && \
+        openssl \
+        zlib1g && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
