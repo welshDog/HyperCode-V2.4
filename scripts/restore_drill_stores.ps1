@@ -54,13 +54,24 @@ try {
         Wait-Until { (docker exec redis-drill redis-cli ping) -eq 'PONG' -and (docker exec redis-drill redis-cli info persistence) -match 'loading:0' } 60 'redis load'
         $got = @{}
         foreach ($l in (docker exec redis-drill redis-cli info keyspace)) { if ($l -match '^(db\d+):keys=(\d+)') { $got[$Matches[1]] = [int]$Matches[2] } }
-        $okR = $true; $detail = @()
+        # A normal Redis silently drops keys whose TTL had already passed when it loads the dump, so a restore hours
+        # after the backup always shows fewer keys than the manifest. redis-check-rdb counts those ("N already expired")
+        # without loading anything, so we can tell expected loss (expired TTLs) from real loss (unexplained).
+        $expired = 0
+        $chk = & { $ErrorActionPreference = 'Continue'; docker exec redis-drill redis-check-rdb /data/dump.rdb 2>&1 } | Out-String
+        if ($chk -match '\[info\]\s+(\d+)\s+already expired') { $expired = [int]$Matches[1] }
+        else { throw 'could not read the already-expired count from redis-check-rdb' }
+        $okR = $true; $detail = @(); $missing = 0
         foreach ($p in $m.redis.PSObject.Properties) {
-            $want = [int]$p.Value; $have = [int]($got[$p.Name]); $tol = [Math]::Max(5, [int]($want * 0.05))
-            if ([Math]::Abs($want - $have) -gt $tol) { $okR = $false }
+            $want = [int]$p.Value; $have = [int]($got[$p.Name])
+            $missing += [Math]::Max(0, $want - $have)
             $detail += "$($p.Name):$have/$want"
         }
-        Result 'redis' $okR ("restored/manifest keys  " + ($detail -join ' '))
+        # Every missing key must be explained by an expired TTL. 3 keys of slack covers writes landing between the
+        # manifest's key count and the RDB snapshot; more than that is real loss.
+        $unexplained = [Math]::Max(0, $missing - $expired)
+        if ($unexplained -gt 3) { $okR = $false }
+        Result 'redis' $okR ("restored/manifest keys  " + ($detail -join ' ') + "  | missing=$missing expired-TTL=$expired unexplained=$unexplained")
     } catch { Result 'redis' $false "$_" }
 
     # 2. MinIO
