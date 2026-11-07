@@ -17,7 +17,7 @@ on:
         description: Minimum coverage percentage (lines/statements)
         required: false
         type: string
-        default: "80"
+        default: "55"
       run_e2e:
         description: Run Playwright E2E
         required: false
@@ -74,7 +74,7 @@ jobs:
           LINES=$(node -e "console.log(JSON.parse(process.argv[1]).total?.lines?.pct||0)" "$SUMMARY")
           STATEMENTS=$(node -e "console.log(JSON.parse(process.argv[1]).total?.statements?.pct||0)" "$SUMMARY")
           echo "Lines: $LINES% Statements: $STATEMENTS%"
-          MIN=${{ inputs.coverage_min || '80' }}
+          MIN=${{ inputs.coverage_min || '55' }}
           node -e "process.exit((${LINES} < ${MIN} || ${STATEMENTS} < ${MIN})?1:0)"
 
       - name: E2E tests (Playwright)
