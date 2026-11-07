@@ -313,7 +313,7 @@ numpy==2.3.2
     #   -c requirements.txt
     #   chromadb
     #   onnxruntime
-oauthlib==4.0.0
+oauthlib==4.0.1
     # via
     #   -c requirements.txt
     #   kubernetes
