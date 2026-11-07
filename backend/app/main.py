@@ -501,7 +501,8 @@ if _trace is not None:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    # Dev-only entrypoint; containers must bind all interfaces to be reachable.
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)  # nosec B104
 
 # =============================================================================
 # DASHBOARD ENDPOINT AUDIT — 2026-04-01

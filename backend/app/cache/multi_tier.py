@@ -251,7 +251,7 @@ def cache(
         async def wrapper(*args, **kwargs):
             # Generate cache key from arguments
             key_parts = [str(arg) for arg in args] + [f"{k}={v}" for k, v in kwargs.items()]
-            cache_key = hashlib.md5(":".join(key_parts).encode()).hexdigest()
+            cache_key = hashlib.md5(":".join(key_parts).encode(), usedforsecurity=False).hexdigest()
             
             # Try cache
             cache = await get_cache()
@@ -306,7 +306,7 @@ def cache_response(namespace: str, ttl: int = 60):
                 if isinstance(v, (str, int, float, bool, type(None)))
             )
             key_str = f"{func.__module__}.{func.__name__}:{':'.join(safe_parts)}"
-            cache_key = hashlib.md5(key_str.encode()).hexdigest()
+            cache_key = hashlib.md5(key_str.encode(), usedforsecurity=False).hexdigest()
 
             # ── Try cache ──────────────────────────────────────────────
             try:
