@@ -17,7 +17,7 @@ I've created a **comprehensive Docker ecosystem** that covers every aspect of yo
 
 ### 2. **Testing**
 - Tests live under `backend/tests/` and `tests/e2e/`
-- CI runs tests via GitHub Actions workflows in `.github/workflows/` (see `tests.yml` / `ci.yml`)
+- CI runs tests via GitHub Actions workflows in `.github/workflows/` (see `ci.yml` and `ci-cd.yml`)
 
 ### 3. **CI/CD Pipeline (GitHub Actions)**
 - Build verification, tests, security scans, and artifacts are handled by workflows in `.github/workflows/`
