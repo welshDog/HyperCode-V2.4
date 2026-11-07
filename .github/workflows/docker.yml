@@ -147,13 +147,15 @@ jobs:
       - name: Build images (no push) and collect metrics
         run: |
           set -e
-          build_img () { NAME=$1; CTX=$2; DOCKER_BUILDKIT=1 docker build -t $NAME $CTX; }
+          # Optional 3rd arg: a Dockerfile path, for images whose Dockerfile expects a wider context than its own folder.
+          build_img () { NAME=$1; CTX=$2; DF=${3:-}; DOCKER_BUILDKIT=1 docker build -t $NAME ${DF:+-f $DF} $CTX; }
           measure () { NAME=$1; echo "$NAME size: $(docker image inspect "$NAME" --format='{{.Size}}')"; }
           # Build
           build_img hypercode-core:metrics "./backend"
           build_img hypercode-dashboard:metrics "./agents/dashboard"
           build_img crew-orchestrator:metrics "./agents/crew-orchestrator"
-          build_img healer-agent:metrics "./agents/healer"
+          # healer's Dockerfile does COPY healer/requirements.txt, so its context is agents/ (as in docker-compose.agents.yml).
+          build_img healer-agent:metrics "./agents" "agents/healer/Dockerfile"
           # Metrics
           measure hypercode-core:metrics
           measure hypercode-dashboard:metrics
