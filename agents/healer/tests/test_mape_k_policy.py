@@ -390,6 +390,15 @@ def test_unreadable_load_fails_open():
     assert evaluate_guard([make_service()], HostLoad()).hold is False
 
 
+def test_unreadable_memory_holds_restarts_when_floor_is_configured(monkeypatch):
+    monkeypatch.setattr(eng, "HEALER_LOAD_GUARD_MIN_MEM_MB", 1200.0)
+    decision = evaluate_guard(
+        [make_service()],
+        HostLoad(loadavg1=0.5, ncpu=4, cpu_pressure10=5.0, mem_available_mb=None),
+    )
+    assert decision.hold is True
+    assert "memory availability unreadable" in decision.reason
+
 def test_guard_can_be_disabled(monkeypatch):
     monkeypatch.setattr(eng, "HEALER_LOAD_GUARD_ENABLED", False)
     assert evaluate_guard([make_service()], BUSY).hold is False

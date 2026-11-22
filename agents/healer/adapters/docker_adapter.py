@@ -5,6 +5,7 @@ import asyncio
 from typing import Optional
 import redis.asyncio as redis
 from ..models import ContainerStatus
+from ..mape_k_engine import evaluate_guard, read_host_load
 from .discord_notifier import DiscordNotifier
 
 logger = logging.getLogger("healer.docker")
@@ -120,6 +121,7 @@ class DockerAdapter:
         Called when a container is detected as OOM-killed.
         Deduplicates via Redis (one alert per container per 10-min window).
         """
+
         redis_client = await self.get_redis()
         dedup_key = f"healer:oom_alert:{name}"
 
@@ -153,6 +155,7 @@ class DockerAdapter:
           - Different dedup windows (10 min OOM vs 15 min loop) reduce noise.
           - Lets ops distinguish "out of memory" from "crashing for another reason".
         """
+
         redis_client = await self.get_redis()
 
         # Counter written by restart_container() — 5-min rolling window TTL
@@ -225,6 +228,12 @@ class DockerAdapter:
         if not self.client:
             return False
 
+
+        # Watchdog and manual-heal routes bypass MAPE-K's planner, so guard the shared Docker mutation point too.
+        pressure = evaluate_guard([], read_host_load())
+        if pressure.hold:
+            logger.warning("Restart held for %s by host-load guard: %s", name, pressure.reason)
+            return False
         redis_client = await self.get_redis()
         key = f"healer:restarts:{name}"
 

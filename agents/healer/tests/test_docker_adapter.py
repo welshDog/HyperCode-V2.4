@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
+import agents.healer.adapters.docker_adapter as docker_adapter_module
 from agents.healer.adapters.docker_adapter import DockerAdapter
 
 @pytest.fixture
@@ -49,6 +50,18 @@ async def test_get_container_success(mock_docker):
     assert status.name == "test_container"
     assert status.status == "running"
     assert status.health == "healthy"
+
+@pytest.mark.asyncio
+async def test_restart_container_shared_boundary_holds_under_pressure(mock_docker, mock_redis, monkeypatch):
+    monkeypatch.setattr(
+        docker_adapter_module,
+        "evaluate_guard",
+        lambda *_args: type("Decision", (), {"hold": True, "reason": "low memory"})(),
+    )
+    adapter = DockerAdapter()
+    assert await adapter.restart_container("test_container") is False
+    mock_docker.containers.get.assert_not_called()
+    mock_redis.get.assert_not_awaited()
 
 @pytest.mark.asyncio
 async def test_restart_container_threshold(mock_docker, mock_redis):

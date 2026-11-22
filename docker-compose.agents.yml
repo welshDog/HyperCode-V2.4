@@ -177,6 +177,8 @@ services:
       DISCORD_OOM_WEBHOOK_URL: ${DISCORD_OOM_WEBHOOK_URL:-}
       DISCORD_ALERTS_WEBHOOK_URL: ${DISCORD_ALERTS_WEBHOOK_URL:-}
       RESTART_LOOP_THRESHOLD: ${RESTART_LOOP_THRESHOLD:-5}
+      # Hold automatic restarts below the host's 1.2 GB safety floor.
+      HEALER_LOAD_GUARD_MIN_MEM_MB: ${HEALER_LOAD_GUARD_MIN_MEM_MB:-1200}
     volumes:
       # Live shared loadout module (overrides the baked-in copy) + HYPER-SILLs
       # loadout/registry for the startup boot-check. Fail-open if absent.

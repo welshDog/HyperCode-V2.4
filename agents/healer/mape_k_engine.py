@@ -366,12 +366,11 @@ def evaluate_guard(
         reasons.append(f"CPU pressure {load.cpu_pressure10:.0f}% >= {HEALER_LOAD_GUARD_CPU_PRESSURE:.0f}%")
     if load.loadavg1 is not None and load.ncpu > 0 and load.loadavg1 / load.ncpu >= HEALER_LOAD_GUARD_LOAD_PER_CPU:
         reasons.append(f"load {load.loadavg1:.1f} on {load.ncpu} CPUs")
-    if (
-        HEALER_LOAD_GUARD_MIN_MEM_MB > 0
-        and load.mem_available_mb is not None
-        and load.mem_available_mb < HEALER_LOAD_GUARD_MIN_MEM_MB
-    ):
-        reasons.append(f"only {load.mem_available_mb:.0f} MB memory available")
+    if HEALER_LOAD_GUARD_MIN_MEM_MB > 0:
+        if load.mem_available_mb is None:
+            reasons.append("memory availability unreadable")
+        elif load.mem_available_mb < HEALER_LOAD_GUARD_MIN_MEM_MB:
+            reasons.append(f"only {load.mem_available_mb:.0f} MB memory available")
 
     # Systemic: several services that were healthy a moment ago are all unhealthy now. That points at the host, not at
     # any one service. Services that have been down for days (e.g. the stopped observability stack) were not recently
