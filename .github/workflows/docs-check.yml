@@ -22,7 +22,7 @@ jobs:
         # Advisory: measured 2026-10-18, 106 of 811 links broken (77 missing local
         # files, 16 web 404s, 6 container-only URLs). Make blocking after the cleanup.
         continue-on-error: true
-        uses: lycheeverse/lychee-action@v2.8.0
+        uses: lycheeverse/lychee-action@v2.9.0
         with:
           args: >-
             --verbose
