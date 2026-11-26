@@ -259,7 +259,7 @@ def log_error(path: str, message: str) -> None:
         with open(path, mode, encoding="utf-8") as fh:
             fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {message}\n")
     except OSError:
-        pass
+        pass  # deliberate: the signal matters more than its log, so a failed log write is dropped
 
 
 def run_loop(a: argparse.Namespace, th: dict[str, int]) -> int:
