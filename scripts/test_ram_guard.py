@@ -143,6 +143,72 @@ class Loop(unittest.TestCase):
         self.assertEqual((data["overall"], data["metrics"]["host_free_mb"], data["metrics"]["compression_mb"]), ("RED", 1, 4511))
 
 
+class LoopSurvivesFailedSaves(unittest.TestCase):
+    """2026-11-25: one refused os.replace (a reader held ram.json) ended the whole loop, silently, for 35 hours."""
+
+    def setUp(self):
+        self.d = tempfile.TemporaryDirectory()
+        self.addCleanup(self.d.cleanup)
+        self.path = os.path.join(self.d.name, "ram.json")
+        self.log = os.path.join(self.d.name, "ram_guard.log")
+
+    def run_loop(self, replace_failures, cycles=2, measure=None):
+        """Run --loop with the first `replace_failures` calls to os.replace refused, as Windows does for a held file."""
+        real, left, cycle_sleeps = os.replace, [replace_failures], []
+
+        def flaky_replace(src, dst):
+            if left[0] > 0:
+                left[0] -= 1
+                raise PermissionError(13, "Access is denied", dst)
+            real(src, dst)
+
+        def fake_sleep(s):
+            if s == 30:  # the pause between cycles; shorter ones are retry waits
+                cycle_sleeps.append(s)
+                if len(cycle_sleeps) >= cycles:
+                    raise KeyboardInterrupt
+
+        with unittest.mock.patch.object(rg, "measure", side_effect=measure or (lambda skip=False: GOOD)),              unittest.mock.patch.object(rg.os, "replace", flaky_replace),              unittest.mock.patch.object(rg.time, "sleep", fake_sleep), contextlib.redirect_stdout(io.StringIO()):
+            code = rg.main(["--loop", "30", "--out", self.path, "--skip-docker"])
+        return code, len(cycle_sleeps)
+
+    def read_log(self):
+        with open(self.log, encoding="utf-8") as fh:
+            return fh.read()
+
+    def test_a_briefly_held_file_is_retried_and_saved_in_the_same_cycle(self):
+        code, cycles = self.run_loop(replace_failures=2, cycles=1)
+        self.assertEqual((code, cycles), (0, 1))
+        with open(self.path, encoding="utf-8") as fh:
+            self.assertEqual(json.load(fh)["overall"], "GREEN")
+        self.assertFalse(os.path.exists(self.log), "a save that worked on retry is not an error")
+
+    def test_a_file_that_stays_held_skips_that_cycle_logs_it_and_carries_on(self):
+        code, cycles = self.run_loop(replace_failures=rg.SAVE_ATTEMPTS, cycles=2)
+        self.assertEqual((code, cycles), (0, 2))
+        self.assertTrue(os.path.exists(self.path), "the second cycle should have saved")
+        self.assertIn("PermissionError", self.read_log())
+
+    def test_a_crash_is_written_to_the_log_and_still_ends_the_loop(self):
+        def boom(skip=False):
+            raise ValueError("measurement broke")
+
+        with self.assertRaises(ValueError):
+            self.run_loop(replace_failures=0, measure=boom)
+        self.assertIn("measurement broke", self.read_log())
+
+    def test_the_log_stays_small(self):
+        with open(self.log, "w", encoding="utf-8") as fh:
+            fh.write("x" * (rg.LOG_MAX_BYTES + 1))
+        self.run_loop(replace_failures=rg.SAVE_ATTEMPTS, cycles=1)
+        self.assertLess(os.path.getsize(self.log), 2000)
+
+    def test_a_log_that_cannot_be_written_does_not_stop_the_loop(self):
+        os.mkdir(self.log)  # opening a directory for writing fails
+        code, cycles = self.run_loop(replace_failures=rg.SAVE_ATTEMPTS, cycles=2)
+        self.assertEqual((code, cycles), (0, 2))
+
+
 class ExitCodes(unittest.TestCase):
     def test_a_build_needs_GREEN_the_others_only_need_not_RED(self):
         self.assertEqual([rg.exit_code("build", x) for x in (rg.GREEN, rg.AMBER, rg.RED)], [0, 1, 2])

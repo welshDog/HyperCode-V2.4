@@ -28,6 +28,7 @@ import os
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import dataclass, asdict
 from typing import Any, Optional
 
@@ -230,29 +231,59 @@ def to_json(purpose: str, overall: str, findings: list[Finding], m: Metrics, cod
             "metrics": asdict(m), "findings": [asdict(x) for x in findings]}
 
 
+SAVE_ATTEMPTS = 5            # Windows refuses os.replace while another program has the target open
+SAVE_RETRY_S = 0.5
+LOG_NAME = "ram_guard.log"   # beside --out; the loop runs hidden (pythonw), so this is its only error trail
+LOG_MAX_BYTES = 100_000
+
+
 def write_atomic(path: str, data: dict[str, Any]) -> None:
     """Write-then-replace in the same directory, so a reader never sees a half-written file."""
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh)
-    os.replace(tmp, path)
+    for attempt in range(1, SAVE_ATTEMPTS + 1):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == SAVE_ATTEMPTS:
+                raise
+            time.sleep(SAVE_RETRY_S)
+
+
+def log_error(path: str, message: str) -> None:
+    """Append one timestamped entry; start afresh when the file is big. Logging must never break the loop."""
+    try:
+        mode = "w" if os.path.exists(path) and os.path.getsize(path) > LOG_MAX_BYTES else "a"
+        with open(path, mode, encoding="utf-8") as fh:
+            fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S%z')} {message}\n")
+    except OSError:
+        pass  # deliberate: the signal matters more than its log, so a failed log write is dropped
 
 
 def run_loop(a: argparse.Namespace, th: dict[str, int]) -> int:
     """The host-side signal writer: measure every a.loop seconds, rewrite a.out, print one ASCII line per cycle."""
     d = os.path.dirname(os.path.abspath(a.out))
     os.makedirs(d, exist_ok=True)
+    log = os.path.join(d, LOG_NAME)
     print(f"ram_guard loop: every {a.loop}s -> {a.out} (Ctrl+C to stop)", flush=True)
     try:
         while True:
             m = measure(a.skip_docker)
             overall, findings = evaluate(m, th, check_docker=not a.skip_docker)
-            write_atomic(a.out, to_json(a.purpose, overall, findings, m, exit_code(a.purpose, overall)))
+            try:
+                write_atomic(a.out, to_json(a.purpose, overall, findings, m, exit_code(a.purpose, overall)))
+            except OSError as e:  # skip this cycle: a stale signal reads as UNKNOWN, a dead writer stays dead
+                log_error(log, f"signal not saved this cycle: {type(e).__name__}: {e}")
             print(f"{time.strftime('%H:%M:%S')} {overall:<5} host_free={m.host_free_mb} compression={m.compression_mb} "
                   f"wsl_avail={m.wsl_avail_mb}", flush=True)
             time.sleep(max(5, a.loop))
     except KeyboardInterrupt:
         print("stopped", flush=True)
+    except Exception:
+        log_error(log, "loop crashed:\n" + traceback.format_exc())
+        raise
     return 0
 
 
